@@ -1,0 +1,223 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_number=${VERSION#v}" >> $GITHUB_OUTPUT
+
+      - name: Get current date
+        id: date
+        run: |
+          echo "date=$(date -u +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Get last release commit
+        id: last_release
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            echo "last_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          else
+            echo "last_commit=$LAST_TAG" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare release notes (English)
+        id: release_en
+        run: |
+          sed "s|{{ version }}|${{ steps.version.outputs.version }}|g; \
+               s|{{ date }}|${{ steps.date.outputs.date }}|g; \
+               s|{{ commits_url }}|https://github.com/Kaffyn/Vectora/compare/${{ steps.last_release.outputs.last_commit }}...HEAD|g" \
+            release.md > release_notes_en.md
+          cat release_notes_en.md
+
+      - name: Prepare release notes (Portuguese)
+        id: release_pt
+        run: |
+          sed "s|{{ version }}|${{ steps.version.outputs.version }}|g; \
+               s|{{ date }}|${{ steps.date.outputs.date }}|g; \
+               s|{{ commits_url }}|https://github.com/Kaffyn/Vectora/compare/${{ steps.last_release.outputs.last_commit }}...HEAD|g" \
+            release.pt.md > release_notes_pt.md
+          cat release_notes_pt.md
+
+      - name: Combine release notes
+        id: combined
+        run: |
+          {
+            cat release_notes_en.md
+            echo ""
+            echo "---"
+            echo ""
+            cat release_notes_pt.md
+          } > combined_release_notes.txt
+          cat combined_release_notes.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          body_path: combined_release_notes.txt
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-upload:
+    name: Build and Upload - ${{ matrix.os }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    needs: create-release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows builds
+          - os: windows
+            arch: amd64
+            runner: windows-latest
+            artifact_suffix: .exe
+
+          # Linux builds
+          - os: linux
+            arch: amd64
+            runner: ubuntu-latest
+            artifact_suffix: ''
+          - os: linux
+            arch: arm64
+            runner: ubuntu-latest
+            artifact_suffix: ''
+
+          # macOS builds
+          - os: darwin
+            arch: amd64
+            runner: macos-latest
+            artifact_suffix: ''
+          - os: darwin
+            arch: arm64
+            runner: macos-latest
+            artifact_suffix: ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Create build output directory
+        run: mkdir -p bin
+
+      - name: Build all binaries (non-Fyne)
+        run: |
+          go build -v -ldflags="-s -w" -o bin/vectora${{ matrix.artifact_suffix }} ./cmd/daemon
+          go build -v -ldflags="-s -w" -o bin/vectora-tui${{ matrix.artifact_suffix }} ./cmd/tui
+          go build -v -ldflags="-s -w" -o bin/mpm${{ matrix.artifact_suffix }} ./cmd/mpm
+          go build -v -ldflags="-s -w" -o bin/lpm${{ matrix.artifact_suffix }} ./cmd/lpm
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 0
+
+      - name: Build vectora-setup (Fyne GUI)
+        run: |
+          go build -v -ldflags="-s -w" -o bin/vectora-setup${{ matrix.artifact_suffix }} ./cmd/setup
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 1
+
+      - name: Build vectora-desktop (Fyne GUI)
+        run: |
+          go build -v -ldflags="-s -w" -o bin/vectora-desktop${{ matrix.artifact_suffix }} ./cmd/desktop
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 1
+
+      - name: Create checksums (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cd bin
+          sha256sum * > ../checksums-${{ matrix.os }}-${{ matrix.arch }}.txt
+          cat ../checksums-${{ matrix.os }}-${{ matrix.arch }}.txt
+
+      - name: Create checksums (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd bin
+          Get-Item * | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            "$hash  $($_.Name)" >> ..\checksums-${{ matrix.os }}-${{ matrix.arch }}.txt
+          }
+          cat ..\checksums-${{ matrix.os }}-${{ matrix.arch }}.txt
+
+      - name: Upload binaries to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          files: |
+            bin/vectora${{ matrix.artifact_suffix }}
+            bin/vectora-tui${{ matrix.artifact_suffix }}
+            bin/vectora-setup${{ matrix.artifact_suffix }}
+            bin/vectora-desktop${{ matrix.artifact_suffix }}
+            bin/mpm${{ matrix.artifact_suffix }}
+            bin/lpm${{ matrix.artifact_suffix }}
+            checksums-${{ matrix.os }}-${{ matrix.arch }}.txt
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release-summary:
+    name: Release Summary
+    runs-on: ubuntu-latest
+    needs: build-and-upload
+    if: always()
+
+    steps:
+      - name: Check release status
+        run: |
+          if [ "${{ needs.build-and-upload.result }}" == "failure" ]; then
+            echo "❌ Release build failed on one or more platforms"
+            exit 1
+          fi
+          echo "✅ Release completed successfully"
+          echo "🎉 All binaries are now available for download"
+
+      - name: Summary
+        run: |
+          echo "📦 Release: ${{ github.ref }}"
+          echo "🔗 Release page: https://github.com/Kaffyn/Vectora/releases/${{ github.ref }}"

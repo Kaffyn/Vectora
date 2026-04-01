@@ -1,0 +1,16 @@
+{
+  "RT_GROUP_ICON": {
+    "APPICON": {
+      "0": "../../../assets/vectora.ico"
+    }
+  },
+  "RT_MANIFEST": {
+    "APP": {
+      "0": {
+        "executionLevel": "asInvoker",
+        "dpiAwareness": "PerMonitorV2",
+        "theme": true
+      }
+    }
+  }
+}

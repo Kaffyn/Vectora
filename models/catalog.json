@@ -1,0 +1,112 @@
+{
+  "models": [
+    {
+      "id": "qwen3-0.6b",
+      "name": "Qwen 3 0.6B",
+      "description": "Modelo ultra-leve para execução em CPU puro. Perfeito para dispositivos com RAM limitada.",
+      "size_bytes": 419430400,
+      "required_ram_gb": 2.0,
+      "required_vram_gb": 1.0,
+      "capabilities": ["chat", "instruction-follow"],
+      "tags": ["qwen", "lightweight", "cpu-friendly"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-0.6B-GGUF"
+    },
+    {
+      "id": "qwen3-1.7b",
+      "name": "Qwen 3 1.7B",
+      "description": "Modelo compacto com qualidade decente. Roda confortavelmente em 4GB RAM.",
+      "size_bytes": 1124073472,
+      "required_ram_gb": 4.0,
+      "required_vram_gb": 2.0,
+      "capabilities": ["chat", "instruction-follow", "coding"],
+      "tags": ["qwen", "compact", "balanced"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-1.7B-GGUF"
+    },
+    {
+      "id": "qwen3-4b",
+      "name": "Qwen 3 4B",
+      "description": "Modelo mid-range com boa capacidade de raciocínio. Recomendado para maioria dos casos.",
+      "size_bytes": 2693406720,
+      "required_ram_gb": 8.0,
+      "required_vram_gb": 4.0,
+      "capabilities": ["chat", "instruction-follow", "coding", "reasoning"],
+      "tags": ["qwen", "general-purpose", "recommended"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-4B-GGUF"
+    },
+    {
+      "id": "qwen3-8b",
+      "name": "Qwen 3 8B",
+      "description": "Modelo grande com excelente qualidade. Requer GPU para desempenho ótimo.",
+      "size_bytes": 5368709120,
+      "required_ram_gb": 16.0,
+      "required_vram_gb": 8.0,
+      "capabilities": ["chat", "instruction-follow", "coding", "reasoning", "analysis"],
+      "tags": ["qwen", "powerful", "gpu-recommended"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-8B-GGUF"
+    },
+    {
+      "id": "qwen3-14b",
+      "name": "Qwen 3 14B",
+      "description": "Modelo muito grande com capacidade avançada de raciocínio. Para servidores e máquinas de alta performance.",
+      "size_bytes": 9395604480,
+      "required_ram_gb": 28.0,
+      "required_vram_gb": 14.0,
+      "capabilities": ["chat", "instruction-follow", "coding", "reasoning", "analysis", "deep-reasoning"],
+      "tags": ["qwen", "large", "server-grade"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-14B-GGUF"
+    },
+    {
+      "id": "qwen3-embedding-0.6b",
+      "name": "Qwen 3 Embedding 0.6B",
+      "description": "Modelo de embedding pequeno para RAG e busca semântica. Rápido e eficiente.",
+      "size_bytes": 420864000,
+      "required_ram_gb": 2.0,
+      "required_vram_gb": 0.5,
+      "capabilities": ["embedding", "semantic-search"],
+      "tags": ["qwen", "embedding", "rag"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-Embedding-0.6B-GGUF"
+    },
+    {
+      "id": "qwen3-embedding-4b",
+      "name": "Qwen 3 Embedding 4B",
+      "description": "Modelo de embedding de alta qualidade para RAG avançado. Melhor precisão e relevância.",
+      "size_bytes": 2844254720,
+      "required_ram_gb": 8.0,
+      "required_vram_gb": 4.0,
+      "capabilities": ["embedding", "semantic-search", "dense-retrieval"],
+      "tags": ["qwen", "embedding", "rag", "high-quality"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-Embedding-4B-GGUF"
+    },
+    {
+      "id": "qwen2.5-coder-3b",
+      "name": "Qwen 2.5 Coder 3B",
+      "description": "Modelo especializado em geração de código. Otimizado para programação e análise de código.",
+      "size_bytes": 1966080000,
+      "required_ram_gb": 6.0,
+      "required_vram_gb": 3.0,
+      "capabilities": ["coding", "code-generation", "code-analysis", "chat"],
+      "tags": ["qwen", "coder", "programming"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen2.5-Coder-3B-Instruct-GGUF"
+    },
+    {
+      "id": "qwen2.5-coder-7b",
+      "name": "Qwen 2.5 Coder 7B",
+      "description": "Modelo grande especializado em código. Melhor qualidade para desenvolvimento e análise avançada.",
+      "size_bytes": 4563206144,
+      "required_ram_gb": 14.0,
+      "required_vram_gb": 7.0,
+      "capabilities": ["coding", "code-generation", "code-analysis", "chat", "reasoning"],
+      "tags": ["qwen", "coder", "programming", "powerful"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF"
+    }
+  ]
+}

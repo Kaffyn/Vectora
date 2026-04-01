@@ -1,0 +1,252 @@
+syntax = "proto3";
+
+package vectora.index.v1;
+
+option go_package = "github.com/Kaffyn/Vectora-Index/api/gen/go/vectora/index/v1;indexv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// ============================================================================
+// IndexService - Serviço principal de indexação
+// ============================================================================
+service IndexService {
+  // Workspace Management
+  rpc CreateWorkspace(CreateWorkspaceRequest) returns (WorkspaceResponse);
+  rpc GetWorkspace(GetWorkspaceRequest) returns (WorkspaceResponse);
+  rpc ListWorkspaces(ListWorkspacesRequest) returns (ListWorkspacesResponse);
+  rpc DeleteWorkspace(DeleteWorkspaceRequest) returns (google.protobuf.Empty);
+
+  // Index Management
+  rpc CreateIndex(CreateIndexRequest) returns (IndexResponse);
+  rpc GetIndex(GetIndexRequest) returns (IndexResponse);
+  rpc ListIndexes(ListIndexesRequest) returns (ListIndexesResponse);
+  rpc DeleteIndex(DeleteIndexRequest) returns (google.protobuf.Empty);
+
+  // Document Upload & Management
+  rpc UploadDocument(stream UploadDocumentRequest) returns (UploadDocumentResponse);
+  rpc GetDocument(GetDocumentRequest) returns (DocumentResponse);
+  rpc ListDocuments(ListDocumentsRequest) returns (ListDocumentsResponse);
+  rpc DeleteDocument(DeleteDocumentRequest) returns (google.protobuf.Empty);
+
+  // Vector Search
+  rpc SearchDocuments(SearchDocumentsRequest) returns (SearchDocumentsResponse);
+
+  // Indexing Status
+  rpc GetIndexingStatus(GetIndexingStatusRequest) returns (IndexingStatusResponse);
+
+  // Health Check
+  rpc Health(google.protobuf.Empty) returns (HealthResponse);
+}
+
+// ============================================================================
+// Workspace Messages
+// ============================================================================
+
+message Workspace {
+  string id = 1;
+  string name = 2;
+  string owner_id = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+message CreateWorkspaceRequest {
+  string name = 1;
+  string owner_id = 2;
+}
+
+message GetWorkspaceRequest {
+  string workspace_id = 1;
+}
+
+message ListWorkspacesRequest {
+  string owner_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListWorkspacesResponse {
+  repeated Workspace workspaces = 1;
+  int32 total = 2;
+}
+
+message DeleteWorkspaceRequest {
+  string workspace_id = 1;
+  string owner_id = 2;
+}
+
+message WorkspaceResponse {
+  Workspace workspace = 1;
+}
+
+// ============================================================================
+// Index Messages
+// ============================================================================
+
+message Index {
+  string id = 1;
+  string workspace_id = 2;
+  string name = 3;
+  string description = 4;
+  int32 document_count = 5;
+  int64 size_bytes = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message CreateIndexRequest {
+  string workspace_id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message GetIndexRequest {
+  string index_id = 1;
+  string workspace_id = 2;
+}
+
+message ListIndexesRequest {
+  string workspace_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListIndexesResponse {
+  repeated Index indexes = 1;
+  int32 total = 2;
+}
+
+message DeleteIndexRequest {
+  string index_id = 1;
+  string workspace_id = 2;
+}
+
+message IndexResponse {
+  Index index = 1;
+}
+
+// ============================================================================
+// Document Messages
+// ============================================================================
+
+message Document {
+  string id = 1;
+  string index_id = 2;
+  string workspace_id = 3;
+  string filename = 4;
+  string content_type = 5;
+  int64 file_size = 6;
+  string uploaded_by = 7;
+  string storage_path = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+message UploadDocumentRequest {
+  // Primeira mensagem contém metadados
+  string index_id = 1;
+  string workspace_id = 2;
+  string filename = 3;
+  string content_type = 4;
+  // Mensagens subsequentes contêm chunks de arquivo
+  bytes chunk = 5;
+}
+
+message UploadDocumentResponse {
+  Document document = 1;
+  int32 chunks_created = 2;
+  string status = 3;  // "uploaded", "indexing", "completed", "error"
+  string message = 4;
+}
+
+message GetDocumentRequest {
+  string document_id = 1;
+  string workspace_id = 2;
+}
+
+message DocumentResponse {
+  Document document = 1;
+  repeated Chunk chunks = 2;
+}
+
+message ListDocumentsRequest {
+  string index_id = 1;
+  string workspace_id = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message ListDocumentsResponse {
+  repeated Document documents = 1;
+  int32 total = 2;
+}
+
+message DeleteDocumentRequest {
+  string document_id = 1;
+  string workspace_id = 2;
+}
+
+// ============================================================================
+// Chunk Messages (com embeddings)
+// ============================================================================
+
+message Chunk {
+  string id = 1;
+  string document_id = 2;
+  int32 chunk_number = 3;
+  string content = 4;
+  repeated float embedding = 5;  // Vetor de embedding (1536 floats)
+  map<string, string> metadata = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
+
+// ============================================================================
+// Search Messages
+// ============================================================================
+
+message SearchDocumentsRequest {
+  string index_id = 1;
+  string workspace_id = 2;
+  string query = 3;         // Texto para buscar (será embeddado no servidor)
+  int32 top_k = 4;          // Quantos resultados retornar (default: 5)
+  float min_score = 5;      // Score mínimo de similaridade (0-1, default: 0.0)
+}
+
+message SearchDocumentsResponse {
+  repeated SearchResult results = 1;
+}
+
+message SearchResult {
+  Chunk chunk = 1;
+  float similarity_score = 2;  // 0-1
+  string document_filename = 3;
+}
+
+// ============================================================================
+// Indexing Status Messages
+// ============================================================================
+
+message GetIndexingStatusRequest {
+  string document_id = 1;
+  string workspace_id = 2;
+}
+
+message IndexingStatusResponse {
+  string status = 1;              // "pending", "processing", "completed", "error"
+  int32 documents_indexed = 2;
+  int32 total_documents = 3;
+  int32 progress_percent = 4;
+  string error_message = 5;
+}
+
+// ============================================================================
+// Health Check
+// ============================================================================
+
+message HealthResponse {
+  string status = 1;      // "healthy", "degraded", "unhealthy"
+  string version = 2;
+  int64 uptime_seconds = 3;
+  map<string, string> details = 4;
+}

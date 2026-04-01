@@ -1,0 +1,27 @@
+key,en,pt,es,fr
+tray_status,Status: Running,Status: Rodando,Estado: En ejecución,Statut : En cours
+tray_open_app,Open Vectora Desktop,Abrir Vectora Desktop,Abrir Vectora Desktop,Ouvrir Vectora Desktop
+tray_open_cli,Open CLI Server,Abrir Terminal CLI,Abrir Terminal CLI,Ouvrir le Terminal CLI
+tray_provider,AI Provider,Provedor de IA base,Proveedor de IA,Fournisseur d'IA
+tray_prov_gemini,Gemini (Cloud),Gemini (Nuvem rápida),Gemini (Nube),Gemini (Cloud)
+tray_prov_qwen,Qwen3 (Local Engine),Qwen3 (Motor Local Offline),Qwen3 (Motor Local),Qwen3 (Moteur Local)
+tray_language,Language,Alterar Idioma,Idioma,Langue
+tray_settings,Settings,Configurações Globais,Configuraciones,Paramètres
+tray_quit,Quit Vectora,Encerrar e Desligar o Vectora,Cerrar Vectora,Quitter Vectora
+inst_welcome,Welcome to Vectora Setup,Bem-vindo à Instalação do Vectora,Bienvenido a la instalación de Vectora,Bienvenue dans l'installation de Vectora
+inst_select_lang,Select Installation Language:,Selecione o idioma de Instalação:,Seleccione el Idioma de Instalación:,Sélectionnez la langue d'installation :
+inst_btn_next,Next,Avançar p/ Próximo Passo,Siguiente,Suivant
+inst_step_path,Select Installation Folder:,Selecione a Pasta de Instalação:,Seleccione la carpeta de instalación:,Sélectionnez le dossier d'installation :
+inst_btn_browse,Browse...,Procurar...,Navegar...,Parcourir...
+inst_step_engine,Select your primary AI Engine,Selecione o Motor da IA a ser Utilizado,Seleccione su motor principal,Sélectionnez votre moteur d'IA
+inst_desc_gemini,Use Gemini API (Cloud) - Requires API Key,Usar Gemini API (Apenas Chave / Leve RAM),Usar Gemini API (Nube),Gemini API (Cloud)
+inst_desc_qwen,Use Qwen3 (Local) - Downloads heavy GGUF,Usar Qwen3 (100% Privado / Download Pesado),Usar Qwen3 (Local) - Descarga archivo GGUF,Qwen3 (Local) - Télécharge fichiers lourds
+inst_step_download,Setting up workspace...,Estruturando os buckets de workspace...,Configurando el espacio de trabajo...,Configuration de l'espace de travail...
+inst_done,Installation Complete!,Instalação Concluída com Sucesso!,¡Instalación Completada!,Installation Terminée !
+inst_btn_finish,Finish,Concluir Instalação,Finalizar,Terminer
+inst_already,Vectora is already installed on this system.,O Vectora já se encontra instalado no sistema!,¡Vectora ya está instalado en este sistema!,Vectora est déjà installé sur ce système.
+inst_install_done,Files extracted and O.S links successfully registered.,Arquivos extraídos e links do S.O registrados com sucesso.,Archivos extraídos y enlaces del S.O registrados correctamente.,Fichiers extraits et liens du S.O enregistrés avec succès.
+inst_configure_engine,Now let's configure the Assistant Engine.,Agora vamos configurar o Motor da IA.,Ahora configuremos el Motor de IA.,Configurons maintenant le moteur d'IA.
+inst_select_backend,Select which Core will process the local LLM:,Defina qual Core fará o processamento local LLM:,Selecciona qué Core procesará el LLM local:,Sélectionnez quel Core traitera le LLM local :
+inst_select_models,Select the AI models you want to install:,Selecione os modelos de IA que deseja instalar:,Selecciona los modelos de IA que deseas instalar:,Sélectionnez les modèles d'IA à installer :
+inst_btn_uninstall,Uninstall Vectora,Executar Desinstalação,Desinstalar Vectora,Désinstaller Vectora

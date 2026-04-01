@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+package vectora.auth.v1;
+
+option go_package = "github.com/Kaffyn/Vectora-Services/api/gen/go/vectora/auth/v1;authv1";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// ============================================================================
+// AuthService - Gerenciamento de Identidade e Sessão
+// ============================================================================
+service AuthService {
+  // Obter URLs de login para OAuth (Google/GitHub)
+  rpc GetAuthURL(GetAuthURLRequest) returns (GetAuthURLResponse);
+
+  // Trocar código de autorização por sessão (JWT)
+  rpc ExchangeCode(ExchangeCodeRequest) returns (SessionResponse);
+
+  // Validar token de sessão (chamada interna ou externa)
+  rpc ValidateToken(ValidateTokenRequest) returns (SessionResponse);
+
+  // Encerrar sessão
+  rpc Logout(LogoutRequest) returns (google.protobuf.Empty);
+
+  // Obter perfil do usuário logado
+  rpc GetProfile(google.protobuf.Empty) returns (ProfileResponse);
+
+  // Health Check
+  rpc Health(google.protobuf.Empty) returns (HealthResponse);
+}
+
+// ============================================================================
+// Auth Messages
+// ============================================================================
+
+message GetAuthURLRequest {
+  string provider = 1; // "google" ou "github"
+  string redirect_url = 2; // URL de retorno (ex: localhost:54321)
+}
+
+message GetAuthURLResponse {
+  string auth_url = 1;
+}
+
+message ExchangeCodeRequest {
+  string code = 1;
+  string provider = 2;
+}
+
+message SessionResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
+  User user = 4;
+}
+
+message User {
+  string id = 1;
+  string email = 2;
+  string full_name = 3;
+  string avatar_url = 4;
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message ValidateTokenRequest {
+  string access_token = 1;
+}
+
+message LogoutRequest {
+  string access_token = 1;
+}
+
+message ProfileResponse {
+  User user = 1;
+}
+
+message HealthResponse {
+  string status = 1; // "healthy", "degraded", "unhealthy"
+  string version = 2;
+}
