@@ -1,94 +1,65 @@
-# Plano de Arquitetura de Comunicação e API (Vectora)
+# Revisão Arquitetural Sistêmica: Ecossistema de APIs Vectora
 
-Este plano traça o mapa definitivo de engenharia para o backend logístico do Vectora. Aqui integramos a espinha dorsal de Sockets com a exposição estendida e a infraestrutura local em Go.
+Após a implementação basal dos Sockets e Módulos Estruturais, detectamos interdependências profundas que requerem orquestração impecável. Este plano definitivo formaliza as regras de tráfego de dados cruzados entre todo o Backend (Daemon/Tray -> LLMs -> Bancos BD -> Ferramentas).
 
 ## User Review Required
 
 > [!IMPORTANT]
 >
-> - O Toolkit Agêntico (Read, Write, Memory, Shell) sofrerá interações diretas via IPC ou via ACP.
-> - O Transporte de MCP servirá apenas requisições Standard I/O (StdIn/StdOut), significando que IDEs conectadas abrirão o daemon Vectora num container/stream isolado. Validar abordagem.
+> - O Wails IPC (_Web UI_) irá abstrair chamadas do React e enviá-las num pipeline nativo do Go diretamente para o socket IPC Socket UNIX do Daemon. Assim não abrimos portas HTTP na máquina do usuário. Valide se concorda.
+> - O MCP Server roda isoladamente quando invocado pelo VSCode/Cursor (`vectora.exe --mcp`). Ele deverá renegociar acesso seguro ao Chromem-Go independentemente, mas não instanciará _llama.cpp_ para evitar conflitos de GPU com o Daemon.
 
 ---
 
-## Proposed Changes
+## Revisão de Fluxo Integrado (Como os módulos se tocam)
 
-### 1. Comunicação Interna Host (IPC: Inter-Process Communication)
+### 1. Comunicação Wails Front-End ↔ RPC IPC Daemon (`vectora-web` -> `internal/ipc`)
 
-_Responsável por ligar o Daemon ao Web UI (Next.js/Wails) e CLI sem trafegar na stack HTTP Rest, economizando overhead brutal de TCP networking._
+- O Next.js/React fará chamada assíncrona p/ Wails: `window.go.main.App.WorkspaceQuery("id", "pergunta")`.
+- A Go Struct do Wails agirá puramente como um Proxy (Router): Constrói a mensagem ND-JSON e emite no `client.Send("workspace.query")`.
+- O Daemon `vectora.exe` principal (Unix Socket Master) recebe o pulso, invoca o pipeline RAG, aciona evento de Stream pro UI e devolve a resposta final.
 
-#### [NEW] `internal/ipc/protocol.go`
+### 2. Ciclo Sidecar (`tray` ↔ `internal/llm/qwen` ↔ `llama-server.exe`)
 
-- Protocolo `JSON-ND` assíncrono (Request/Response pareado por UUID).
-- Formato rigoroso sem bloqueios.
+- Quando o usuário no Systray escolhe o modo **Qwen GGUF Offline**:
+  1. A `tray` inicializa a Factory `NewQwenProvider()`.
+  2. O O.S. Manager entra em ação, busca o binário nativo na raiz `~/.Vectora/` e starta o Subprocesso local (42781 tcp).
+  3. O provedor injeta um client `langchaingo` falsificando requisições OpenAI `v1/chat/completions` em apontamento direto para o localhost limpo.
+  4. Quando o Systray é finalizado (Quit) ou há troca de motor (Gemini), a interface atesta limpeza matando a Thread OS do `llama-server`.
 
-#### [NEW] `internal/ipc/server.go` e `client.go`
+### 3. Workflow de I/O em LangChain (`internal/llm` ↔ `internal/acp` ↔ `internal/tools`)
 
-- Escuta no SO Host: `~/.Vectora/run/vectora.sock` ou Pipe Global Win32.
-- **Handlers Distribuídos (`internal/ipc/handlers`)**:
-  - `workspace.query` (RAG puro)
-  - `session.history`
-  - `provider.set`
+- Todas as Tool calls descritas no schema do Langchaingo devem realizar unmarshal nativo nos structs do Go.
+- Quando a LLM solicita acesso (Ex: `write_file`):
+  1. O `internal/acp` (Agent Context) invoca a Tool através do "ExecuteStringArgs".
+  2. A própria ferramenta instigada executa antes um _Backup_ automático raw gerando SnapID em `%USERPROFILE%/.Vectora/backups`.
+  3. Só então o FS nativo é tocado via O.S. (Garantindo Regra Zero-Risco de modificação sem reverter).
 
----
+### 4. Persistência de Contexto Duplo (`internal/db`)
 
-### 2. Integração Externa de Rede (HTTP APIs)
-
-_Conexões out-of-socket desenhadas para internet ou sub-redes._
-
-#### [NEW] `internal/index/client.go`
-
-- Módulo HTTP cliente que consome o Vectora Index JSON.
-- Proxy-Aware (Herda config corporativo local).
-- Streamador de arquivos pesados (`.gguf` / bancos) que informa porcentagem via IPC Event Callbacks invés de segurar blocos de RAM enormes.
+- **Memória Linear (`bbolt`)**: Persiste a estrutura de preferência do usuário (Keys, Workspaces Meta) e Histórico de Chat. Injetado na Tool `save_memory` via AgentContext pra dar lembrança pro LLM.
+- **RAG Geométrico (`chromem-go`)**: Atuará de mãos dadas com a Action `workspace.query`. Assim que um Dataset é indexado/baixado pelo Cliente HTTP `internal/index`, ele vai pra gaveta vetorial com Namespaces Isolados. A função de Embebing do Langchaingo mapea todo documento em "Chunks", que mergulharam individualmente encapsulados no Struct `db.Chunk`.
 
 ---
 
-### 3. Integração Cross-Software (MCP & ACP)
+## Proximas Frentes de Adoção (Checklist Arquitetural)
 
-_Padrões abertos arquitetados no repositório para expor o "Cérebro" de busca e edição do Vectora pra softwares de terceiros (Como Cursor e Plugins)._
+Para solidificar os links que acabam de nascer nos pacotes desacoplados da `/internal`:
 
-#### [NEW] `internal/mcp/server.go` (Model Context Protocol)
+#### [MODIFY] `internal/acp/agent.go`
 
-- Padrão oficial OpenSource para IA (Empregado pelo Claude Desktop / Cursor).
-- Escuta em **STDIO** (O processo Host invoca `vectora.exe --mcp`, e o daemon conversa exclusivamente via Pipe Padrão Terminal StdIn/Out usando JSON-RPC).
-- Transforma os `Workspaces` do Vectora em Ferramentas Universais acessíveis pela IDE local.
+- Injetar o repositório DB físico (BBoltStore) no inicializador do Agent Context, permitindo que a _Tool_ `save_memory` funcione perfeitamente.
 
-#### [NEW] `internal/acp/agent.go` (Agent Context Protocol)
+#### [NEW] `internal/core/rag_pipeline.go`
 
-- Definição do Agente e empacotador isolado de contexto, abstraindo decisões para o "Agente interno" tomar caso seja chamado por fora.
-
----
-
-### 4. Toolkit Engine (Cinto de Ferramentas da IA)
-
-_A biblioteca utilitária `internal/tools`. Os "Braços" que a LLM executa. Passarão pelo sistema de Undo em conformidade._
-
-#### [NEW] `internal/tools/engine.go`
-
-- O Registrador (`registry` de chamadas suportadas). Converte Payload do LLM Toolcall (Langchaingo) em structs físicas de Go.
-
-#### Mapeamento de Tools OBRIGATÓRIAS O.S
-
-1. **[NEW] `internal/tools/filesystem.go`**
-   - `read_file`, `write_file`, `read_folder`, `edit`.
-2. **[NEW] `internal/tools/search.go`**
-   - `find_files`, `grep_search`.
-3. **[NEW] `internal/tools/system.go`**
-   - `run_shell_command` (Execução isolada de Terminal streaming output).
-4. **[NEW] `internal/tools/memory.go`**
-   - `save_memory` (Chave-Valor no BBolt).
-   - `enter_plan_mode` (Ação Meta onde IA decide se fragmentar p/ resolver tarefa).
-5. **[NEW] `internal/tools/web.go`**
-   - `google_search` e `web_fetch`.
+- Será a Placa Mãe Real! Fiará as conexões em tempo real do DB Vectorial (Chromem) -> Chamada ao Prompt -> Invoca a LLM (Gemini/Qwen) -> Ativa o Evento do IPC pra desenhar na tela Web.
 
 ## Open Questions
 
 > [!WARNING]
-> Foi removida a menção de `GitBridge` como dependência externa via prompt nas configs do README. Pretende manter Backup local raw (cópia crua na pasta backups) para os reverts das modificações do SDK (`write_file`, `run_shell_command`) ao invés do Git Bridge antigo?
+> Dado que o Wails é o empacotador de Janelas do Windows/Mac, a única dependência que o instalador vai colocar além do Daemon (`vectora.exe`) na raiz do `%USERPROFILE%/.Vectora` é o binário principal `vectora-web.exe`. Ou você prefere fundir o Wails e o Daemon no MESMO código binário unificado usando as Views Nativas do Wails invés de processos IPC independentes? (Recomendo fortemente IPC Separado pra não "sujar" o Daemon Systray com WebView memory footprint).
 
 ## Verification Plan
 
-1. Teste de `shell_stream`: Simularemos um `ping 8.8.8.8` gerando fluxo pro LLM.
-2. Testes STDIO do lado MCP consumindo pacote falso local.
-3. Teste exaustivo IPC Sockets para Zero-Delay.
+1. Revisaremos o Mockup Pipeline do Core injetando Chunks artificais na camada `internal/db` para aferir busca em menos de 100ms.
+2. Validar que o Wails Router dispara perfeitamente no Socket Linux/Win32 via IPC Ping.
