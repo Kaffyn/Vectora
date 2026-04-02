@@ -227,21 +227,18 @@ func main() {
 			os.MkdirAll(filepath.Join(installPath, "logs"), 0755)
 			os.MkdirAll(filepath.Join(installPath, "backups"), 0755)
 
-			// Extração de Binários Embutidos (Self-Contained)
-			daemonPath := filepath.Join(installPath, "vectora.exe")
-			uninstallerPath := filepath.Join(installPath, "vectora-uninstaller.exe")
-			llamaPath := filepath.Join(installPath, "llama-server.exe")
-
-			// Escreve o Daemon
-			os.WriteFile(daemonPath, vectoraExe, 0755)
-			
-			// Escreve o Llama Server (Opcional se falhar embed, mas aqui assume-se presente)
-			if len(llamaServerExe) > 0 {
-				os.WriteFile(llamaPath, llamaServerExe, 0755)
+			// Extração em massa de todos os recursos embutidos (Self-Contained)
+			assets := getInstallerAssets()
+			for filename, data := range assets {
+				if len(data) > 0 {
+					target := filepath.Join(installPath, filename)
+					os.WriteFile(target, data, 0755)
+				}
 			}
 			
-			// O Próprio Instalador vira o Desinstalador copiando a si mesmo
+			// O Próprio Instalador vira o Desinstalador
 			srcSelf, _ := os.Executable()
+			uninstallerPath := filepath.Join(installPath, "vectora-uninstaller.exe")
 			copySysFile(srcSelf, uninstallerPath)
 
 			systemManager.RegisterApp(installPath)
