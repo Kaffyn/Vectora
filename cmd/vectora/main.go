@@ -7,7 +7,6 @@ import (
 	"github.com/Kaffyn/vectora/internal/infra"
 	vecos "github.com/Kaffyn/vectora/internal/os"
 	"github.com/Kaffyn/vectora/internal/tray"
-	"github.com/gen2brain/beeep"
 )
 
 func main() {
@@ -19,7 +18,7 @@ func main() {
 
 	// 1. Bloqueio de Múltiplas Instâncias Agilizado Baseado no S.O Host (Mac/Linux TPC vs Win32 Mutex)
 	if err := systemManager.EnforceSingleInstance(); err != nil {
-		beeep.Notify("Vectora", "O Vectora já está em execução na bandeja do sistema. Verifique o ícone próximo ao relógio.", "info")
+		infra.NotifyOS("Vectora em Rodagem", "O Vectora já está em execução na bandeja do sistema. Verifique o ícone próximo ao relógio.")
 		os.Exit(0)
 	}
 
@@ -37,7 +36,7 @@ func main() {
 	}
 
 	// 4. Notificação OS visual para Feedback de Inicialização rápida
-	err = beeep.Notify("Vectora", "O Vectora foi iniciado e está pronto para começar.", "")
+	err = infra.NotifyOS("Vectora", "O assistente Vectora foi invocado no sistema e está residente.")
 	if err != nil {
 		infra.Logger.Warn("Falha ao disparar notificacao de S.O: " + err.Error())
 	}
