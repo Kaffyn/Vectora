@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -42,6 +43,32 @@ func main() {
 	}
 
 	var showStep1, showStepPath, showStep2, showStep3 func()
+	var showAlreadyInstalled func(string)
+
+	// ---- PASSO 0: Verificação Ativa ----
+	showAlreadyInstalled = func(existingPath string) {
+		lbl := widget.NewLabelWithStyle(i18n.T("inst_already"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+		
+		btnUninstall := widget.NewButton(i18n.T("inst_btn_uninstall"), func() {
+			uninstaller := filepath.Join(existingPath, "vectora-uninstaller.exe")
+			if _, err := os.Stat(uninstaller); err == nil {
+				exec.Command(uninstaller).Start()
+			}
+			w.Close()
+		})
+		
+		btnCancel := widget.NewButton("Cancel / Sair", func() {
+			w.Close()
+		})
+		
+		content := container.NewVBox(
+			widget.NewLabel(""),
+			lbl,
+			widget.NewLabel(""),
+			container.NewCenter(container.NewHBox(btnUninstall, btnCancel)),
+		)
+		w.SetContent(content)
+	}
 
 	// ---- PASSO 1: Boas Vindas & Idioma ----
 	showStep1 = func() {
@@ -72,7 +99,7 @@ func main() {
 
 		content := container.NewVBox(
 			welcome,
-			widget.NewLabel(""), // Spacer
+			widget.NewLabel(""), 
 			widget.NewLabelWithStyle(i18n.T("inst_select_lang"), fyne.TextAlignCenter, fyne.TextStyle{}),
 			container.NewCenter(langSelect),
 			widget.NewLabel(""),
@@ -95,7 +122,6 @@ func main() {
 		btnFolder := widget.NewButton(i18n.T("inst_btn_browse"), func() {
 			dialog.ShowFolderOpen(func(lu fyne.ListableURI, err error) {
 				if lu != nil {
-					// Extrai caminho local seguro file://
 					pathEntry.SetText(lu.Path())
 					installPath = lu.Path()
 				}
@@ -148,18 +174,21 @@ func main() {
 		progress := widget.NewProgressBar()
 		progress.SetValue(0.0)
 		
+		btn := widget.NewButton(i18n.T("inst_btn_finish"), func() {
+			w.Close()
+		})
+		btn.Hide() // Omitido até garantir 100%
+
 		go func() {
 			title.SetText(i18n.T("inst_step_download"))
+			title.Refresh()
 			
-			// Mocker da infraestrutura de cópia
 			for i := 0; i <= 20; i++ {
 				time.Sleep(time.Millisecond * 120)
 				progress.SetValue(float64(i) / 20.0)
 			}
 			
-			// Registro efetivo no Windows
 			registerWindowsApp(installPath)
-
 			progress.SetValue(1.0)
 			
 			doneTxt := i18n.T("inst_done")
@@ -167,12 +196,9 @@ func main() {
 				doneTxt = "Instalação Concluída com Sucesso!"
 			}
 			title.SetText(doneTxt)
+			btn.Show() // Salta pra UI de forma imperativa
 			title.Refresh()
 		}()
-
-		btn := widget.NewButton(i18n.T("inst_btn_finish"), func() {
-			w.Close()
-		})
 
 		content := container.NewVBox(
 			title,
@@ -184,11 +210,31 @@ func main() {
 		w.SetContent(content)
 	}
 
-	showStep1()
+	// Executa a ramificação Inicial de verificação OS-Level no Registry
+	if existingPath := checkInstalledPath(); existingPath != "" {
+		showAlreadyInstalled(existingPath)
+	} else {
+		showStep1()
+	}
+
 	w.ShowAndRun()
 }
 
-// Criação de chaves no Regedit p/ Transformar o Vectora em Aplicativo Nativo Adicionar/Remover UI
+// Verifica Instalação Prévia Lendo Chaves do Sistema Win32
+func checkInstalledPath() string {
+	keyPath := `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`
+	key, err := registry.OpenKey(registry.CURRENT_USER, keyPath, registry.QUERY_VALUE)
+	if err == nil {
+		defer key.Close()
+		val, _, err := key.GetStringValue("InstallLocation")
+		if err == nil && val != "" {
+			return val
+		}
+	}
+	return ""
+}
+
+// Criação de chaves no Regedit p/ Transformar o Vectora em Aplicativo Nativo
 func registerWindowsApp(dst string) {
 	os.MkdirAll(dst, 0755)
 	
@@ -196,7 +242,6 @@ func registerWindowsApp(dst string) {
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, keyPath, registry.ALL_ACCESS)
 	if err == nil {
 		defer key.Close()
-		// Variáveis Ocultas Primordiais
 		key.SetStringValue("DisplayName", "Vectora")
 		key.SetStringValue("DisplayVersion", "1.0.0")
 		key.SetStringValue("Publisher", "Kaffyn")

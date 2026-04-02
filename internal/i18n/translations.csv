@@ -19,3 +19,5 @@ inst_desc_qwen,Use Qwen3 (Local) - Downloads heavy GGUF,Usar Qwen3 (100% Privado
 inst_step_download,Setting up workspace...,Estruturando os buckets de workspace...,Configurando el espacio de trabajo...,Configuration de l'espace de travail...
 inst_done,Installation Complete!,Instalação Concluída com Sucesso!,¡Instalación Completada!,Installation Terminée !
 inst_btn_finish,Finish,Concluir Instalação,Finalizar,Terminer
+inst_already,Vectora is already installed on this system.,O Vectora já se encontra instalado no sistema!,¡Vectora ya está instalado en este sistema!,Vectora est déjà installé sur ce système.
+inst_btn_uninstall,Uninstall Vectora,Executar Desinstalação,Desinstalar Vectora,Désinstaller Vectora
