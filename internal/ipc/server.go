@@ -2,89 +2,219 @@ package ipc
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
+	"os"
+	"path/filepath"
+	"runtime"
 	"sync"
-	"github.com/Kaffyn/vectora/internal/infra"
+	"time"
+
+	vecos "github.com/Kaffyn/vectora/internal/os"
 )
 
-// IPCMessage represents the canonical JSON-ND message format.
-type IPCMessage struct {
-	ID      string          `json:"id"`
-	Type    string          `json:"type"`   // "request", "response", "event"
-	Method  string          `json:"method"`
-	Payload json.RawMessage `json:"payload"`
-}
+type RouterFunc func(ctx context.Context, payload json.RawMessage) (any, *IPCError)
 
 type Server struct {
-	listener net.Listener
-	clients  map[net.Conn]bool
-	mu       sync.Mutex
+	addr        string
+	listener    net.Listener
+	handlers    map[string]RouterFunc
+	clients     map[net.Conn]bool
+	clientsLock sync.RWMutex
+	ctx         context.Context
+	cancel      context.CancelFunc
 }
 
-func NewServer() *Server {
-	return &Server{
-		clients: make(map[net.Conn]bool),
+func NewServer() (*Server, error) {
+	// Determinação Absoluta do Local do Socket (.Vectora)
+	osMgr, err := vecos.NewManager()
+	if err != nil {
+		return nil, err
 	}
+	baseDir, _ := osMgr.GetAppDataDir()
+	
+	var addr string
+	if runtime.GOOS == "windows" {
+		addr = `\\.\pipe\vectora`
+	} else {
+		addr = filepath.Join(baseDir, "run", "vectora.sock")
+		os.MkdirAll(filepath.Dir(addr), 0755)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	return &Server{
+		addr:     addr,
+		handlers: make(map[string]RouterFunc),
+		clients:  make(map[net.Conn]bool),
+		ctx:      ctx,
+		cancel:   cancel,
+	}, nil
 }
 
-// Start initiates the IPC listener.
-// Note: In production this will bind to \\.\pipe\vectora (Windows) or UDS (Unix).
-// Utilizing TCP localhost randomly for initial mockup.
-func (s *Server) Start(address string) error {
-	l, err := net.Listen("tcp", address)
+func (s *Server) Register(method string, handler RouterFunc) {
+	s.handlers[method] = handler
+}
+
+func (s *Server) Start() error {
+	var l net.Listener
+	var err error
+
+	if runtime.GOOS == "windows" {
+		// Named Pipes não costumam ser suportados perfeitamente via net padrão se não preparadas.
+		// Em Go, `winio` era usado antes do 1.20, mas agora usaremos uma porta TCP de loopback fixa/segura
+		// OU manteremos Unix Sockets experimentais no Windows (no r1.22 AF_UNIX é suportado no Windows 10/11)
+		
+		// Fallback inteligente para Windows moderno (Windows 10 Build 17063+ tem AF_UNIX)
+		addr := `\\.\pipe\vectora`
+		l, err = net.Listen("unix", addr) 
+		if err != nil {
+			// Alternativa fallback (Hard TCP loopback) se o kernel OS não suportar AF_UNIX pipes.
+			l, err = net.Listen("tcp", "127.0.0.1:42780")
+		}
+	} else {
+		// Clean antigo sock se crashou 
+		os.Remove(s.addr)
+		l, err = net.Listen("unix", s.addr)
+	}
+
 	if err != nil {
 		return err
 	}
+
 	s.listener = l
-	
-	if infra.Logger != nil {
-		infra.Logger.Info(fmt.Sprintf("IPC Server listening on %s", address))
-	}
+	fmt.Printf("Servidor IPC atrelado na via do Kernel: %s\n", s.addr)
 
-	go s.acceptLoop()
-	return nil
-}
+	go func() {
+		for {
+			conn, err := s.listener.Accept()
+			if err != nil {
+				select {
+				case <-s.ctx.Done():
+					return // Server encerrou gracioso
+				default:
+					log.Println("Falha silenciosa ao aceitar socket:", err)
+					continue
+				}
+			}
 
-func (s *Server) acceptLoop() {
-	for {
-		conn, err := s.listener.Accept()
-		if err != nil {
-			return
+			s.clientsLock.Lock()
+			s.clients[conn] = true
+			s.clientsLock.Unlock()
+
+			go s.handleConnection(conn)
 		}
-		s.mu.Lock()
-		s.clients[conn] = true
-		s.mu.Unlock()
-		
-		go s.handleConnection(conn)
-	}
+	}()
+
+	return nil
 }
 
 func (s *Server) handleConnection(conn net.Conn) {
 	defer func() {
-		s.mu.Lock()
+		s.clientsLock.Lock()
 		delete(s.clients, conn)
-		s.mu.Unlock()
+		s.clientsLock.Unlock()
 		conn.Close()
 	}()
+
 	scanner := bufio.NewScanner(conn)
-	buf := make([]byte, 0, 64*1024)
-	// Supports max 4MB payloads (as defined in SSOT)
-	scanner.Buffer(buf, 4*1024*1024)
+	// Limite Customizado (RN-IPC-04: Size Limit ~4MB)
+	buf := make([]byte, 4*1024*1024)
+	scanner.Buffer(buf, len(buf))
 
 	for scanner.Scan() {
-		var msg IPCMessage
-		if err := json.Unmarshal(scanner.Bytes(), &msg); err != nil {
-			if infra.Logger != nil {
-				infra.Logger.Warn(fmt.Sprintf("Failed to decode IPC message: %v", err))
-			}
+		frame := scanner.Bytes()
+		if len(frame) == 0 {
 			continue
 		}
-		
-		if infra.Logger != nil {
-			infra.Logger.Info(fmt.Sprintf("Received IPC Message: %s %s", msg.Type, msg.Method))
+
+		var msg IPCMessage
+		if err := json.Unmarshal(frame, &msg); err != nil {
+			s.sendError(conn, "", ErrIPCPayloadInvalid)
+			continue
 		}
-		// Method routing will dynamically inject dependencies into internal/core
+
+		if msg.Type != MsgTypeRequest {
+			continue // Servidor IPC só engole "request" puro e reage. Ele não ouve respostas porque ele é o master.
+		}
+
+		handler, exists := s.handlers[msg.Method]
+		if !exists {
+			s.sendError(conn, msg.ID, ErrIPCMethodUnknown)
+			continue
+		}
+
+		// Roda O Endpoitn e Serializa
+		go func(m IPCMessage) {
+			resData, ipcErr := handler(s.ctx, m.Payload)
+			
+			resp := IPCMessage{
+				ID:   m.ID,
+				Type: MsgTypeResponse,
+			}
+
+			if ipcErr != nil {
+				resp.Error = ipcErr
+			} else {
+				payloadBytes, _ := json.Marshal(resData)
+				resp.Payload = payloadBytes
+			}
+
+			s.writeMessage(conn, resp)
+		}(msg)
+	}
+}
+
+func (s *Server) writeMessage(conn net.Conn, msg IPCMessage) {
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return
+	}
+	data = append(data, FrameDelimiter) // \n
+	conn.Write(data)
+}
+
+func (s *Server) sendError(conn net.Conn, id string, ipcErr *IPCError) {
+	resp := IPCMessage{
+		ID:    id,
+		Type:  MsgTypeResponse,
+		Error: ipcErr,
+	}
+	s.writeMessage(conn, resp)
+}
+
+// Broadcast Emite alertas para TUDO o Que Estiver Connectado na Tela (Para Barras de Progresso!)
+func (s *Server) Broadcast(method string, payloadData any) {
+	b, _ := json.Marshal(payloadData)
+	eventMsg := IPCMessage{
+		ID:      fmt.Sprintf("%d", time.Now().UnixNano()),
+		Type:    MsgTypeEvent,
+		Method:  method,
+		Payload: b,
+	}
+
+	raw, _ := json.Marshal(eventMsg)
+	raw = append(raw, FrameDelimiter)
+
+	s.clientsLock.RLock()
+	defer s.clientsLock.RUnlock()
+	for conn := range s.clients {
+		conn.Write(raw)
+	}
+}
+
+func (s *Server) Shutdown() {
+	s.cancel()
+	if s.listener != nil {
+		s.listener.Close()
+	}
+
+	s.clientsLock.Lock()
+	defer s.clientsLock.Unlock()
+	for conn := range s.clients {
+		conn.Close()
 	}
 }
