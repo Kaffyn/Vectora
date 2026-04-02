@@ -1,8 +1,8 @@
 package main
 
 import (
+	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -22,8 +22,14 @@ import (
 var installPath string
 
 func main() {
+	// Flag detector for Unified Manager Mode
+	isUninstallMode := false
+	if len(os.Args) >= 2 && os.Args[1] == "--uninstall" {
+		isUninstallMode = true
+	}
+
 	a := app.New()
-	w := a.NewWindow("Vectora Installer")
+	w := a.NewWindow("Vectora Setup Engine")
 	w.Resize(fyne.NewSize(600, 350))
 	w.SetIcon(fyne.NewStaticResource("logo", assets.IconData))
 
@@ -43,18 +49,53 @@ func main() {
 	}
 
 	var showStep1, showStepPath, showStep2, showStep3 func()
-	var showAlreadyInstalled func(string)
+	var showAlreadyInstalled, showUninstallProgress func(string)
+
+	// ---- PASSO: Desinstalação Oficial UI ----
+	showUninstallProgress = func(existingPath string) {
+		title := widget.NewLabelWithStyle("Uninstalling / Removendo Vectora...", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+		progress := widget.NewProgressBar()
+		
+		btn := widget.NewButton("Close / Sair", func() {
+			w.Close()
+		})
+		btn.Hide()
+
+		go func() {
+			for i := 0; i <= 20; i++ {
+				time.Sleep(time.Millisecond * 60)
+				progress.SetValue(float64(i) / 20.0)
+			}
+			
+			// Remoção Categórica do Regedit e Binários
+			registry.DeleteKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`)
+			
+			daemonPath := filepath.Join(existingPath, "vectora.exe")
+			os.Remove(daemonPath)
+			
+			progress.SetValue(1.0)
+			title.SetText("Successfully uninstalled / Desinstalado com sucesso.")
+			btn.Show()
+			title.Refresh()
+		}()
+
+		w.SetContent(container.NewVBox(
+			widget.NewLabel(""),
+			title,
+			widget.NewLabel(""),
+			progress,
+			widget.NewLabel(""),
+			container.NewCenter(btn),
+		))
+	}
 
 	// ---- PASSO 0: Verificação Ativa ----
 	showAlreadyInstalled = func(existingPath string) {
 		lbl := widget.NewLabelWithStyle(i18n.T("inst_already"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 		
 		btnUninstall := widget.NewButton(i18n.T("inst_btn_uninstall"), func() {
-			uninstaller := filepath.Join(existingPath, "vectora-uninstaller.exe")
-			if _, err := os.Stat(uninstaller); err == nil {
-				exec.Command(uninstaller).Start()
-			}
-			w.Close()
+			// Encaminha UI local pra janela de progressão unificada
+			showUninstallProgress(existingPath)
 		})
 		
 		btnCancel := widget.NewButton("Cancel / Sair", func() {
@@ -75,7 +116,6 @@ func main() {
 		welcome := widget.NewLabelWithStyle(i18n.T("inst_welcome"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 		
 		langSelect := widget.NewSelect([]string{"English", "Português", "Español", "Français"}, nil)
-		
 		switch i18n.GetCurrentLang() {
 		case "en": langSelect.SetSelected("English")
 		case "pt": langSelect.SetSelected("Português")
@@ -177,7 +217,7 @@ func main() {
 		btn := widget.NewButton(i18n.T("inst_btn_finish"), func() {
 			w.Close()
 		})
-		btn.Hide() // Omitido até garantir 100%
+		btn.Hide()
 
 		go func() {
 			title.SetText(i18n.T("inst_step_download"))
@@ -188,6 +228,11 @@ func main() {
 				progress.SetValue(float64(i) / 20.0)
 			}
 			
+			// Autoclonagem do Instalador como Desinstalador Autorizado na pasta final
+			os.MkdirAll(installPath, 0755)
+			srcApp, _ := os.Executable()
+			copySysFile(srcApp, filepath.Join(installPath, "vectora-uninstaller.exe"))
+
 			registerWindowsApp(installPath)
 			progress.SetValue(1.0)
 			
@@ -196,7 +241,7 @@ func main() {
 				doneTxt = "Instalação Concluída com Sucesso!"
 			}
 			title.SetText(doneTxt)
-			btn.Show() // Salta pra UI de forma imperativa
+			btn.Show()
 			title.Refresh()
 		}()
 
@@ -210,8 +255,10 @@ func main() {
 		w.SetContent(content)
 	}
 
-	// Executa a ramificação Inicial de verificação OS-Level no Registry
-	if existingPath := checkInstalledPath(); existingPath != "" {
+	if isUninstallMode {
+		existingPath := checkInstalledPath()
+		showUninstallProgress(existingPath)
+	} else if existingPath := checkInstalledPath(); existingPath != "" {
 		showAlreadyInstalled(existingPath)
 	} else {
 		showStep1()
@@ -220,7 +267,17 @@ func main() {
 	w.ShowAndRun()
 }
 
-// Verifica Instalação Prévia Lendo Chaves do Sistema Win32
+// Utilitario para replicar o wizard visual na pasta host pro Add/Remove
+func copySysFile(src, dst string) {
+	in, err := os.Open(src)
+	if err != nil { return }
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil { return }
+	defer out.Close()
+	io.Copy(out, in)
+}
+
 func checkInstalledPath() string {
 	keyPath := `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`
 	key, err := registry.OpenKey(registry.CURRENT_USER, keyPath, registry.QUERY_VALUE)
@@ -234,10 +291,7 @@ func checkInstalledPath() string {
 	return ""
 }
 
-// Criação de chaves no Regedit p/ Transformar o Vectora em Aplicativo Nativo
 func registerWindowsApp(dst string) {
-	os.MkdirAll(dst, 0755)
-	
 	keyPath := `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, keyPath, registry.ALL_ACCESS)
 	if err == nil {
@@ -246,7 +300,9 @@ func registerWindowsApp(dst string) {
 		key.SetStringValue("DisplayVersion", "1.0.0")
 		key.SetStringValue("Publisher", "Kaffyn")
 		key.SetStringValue("DisplayIcon", filepath.Join(dst, "vectora.exe"))
-		key.SetStringValue("UninstallString", filepath.Join(dst, "vectora-uninstaller.exe"))
+		
+		// O painel do Windows agora lançará o instalador unificado com a flag
+		key.SetStringValue("UninstallString", filepath.Join(dst, "vectora-uninstaller.exe")+" --uninstall")
 		key.SetStringValue("InstallLocation", dst)
 	}
 }
