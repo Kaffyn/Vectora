@@ -2,6 +2,7 @@ package tray
 
 import (
 	"github.com/getlantern/systray"
+	"github.com/Kaffyn/vectora/assets"
 	"github.com/Kaffyn/vectora/internal/infra"
 )
 
@@ -11,6 +12,7 @@ func Setup() {
 }
 
 func onReady() {
+	systray.SetIcon(assets.IconData)
 	systray.SetTitle("Vectora")
 	systray.SetTooltip("Vectora - Agentic System")
 	
