@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"log"
 	"os"
 
+	"github.com/Kaffyn/vectora/internal/core"
+	"github.com/Kaffyn/vectora/internal/db"
 	"github.com/Kaffyn/vectora/internal/infra"
+	"github.com/Kaffyn/vectora/internal/ipc"
 	vecos "github.com/Kaffyn/vectora/internal/os"
 	"github.com/Kaffyn/vectora/internal/tray"
 )
@@ -35,12 +40,51 @@ func main() {
 		infra.Logger.Warn("GEMINI_API_KEY is not set. Cloud features may be unavailable.")
 	}
 
-	// 4. Notificação OS visual para Feedback de Inicialização rápida
+	// 4. Inicializa Motores de Back-End (Bancos + Servidor Sockets)
+	infra.Logger.Info("Alocando Camada Oculta: Bancos BBolt/Chromem & IPC Sockets...")
+	kvStore, dbErr := db.NewKVStore()
+	if dbErr != nil {
+		infra.Logger.Error("Fatal: BBolt Mount", "err", dbErr)
+	}
+	vecStore, vecErr := db.NewVectorStore()
+	if vecErr != nil {
+		infra.Logger.Error("Fatal: Chromem Mount", "err", vecErr)
+	}
+	
+	ipcServer, ipcErr := ipc.NewServer()
+	if ipcErr != nil {
+		infra.Logger.Warn("Não foi possivel abrir o Socket UNIX IPC", "err", ipcErr)
+	} else {
+		// Cadastra as Rotas RPC
+		ipcServer.Register("workspace.query", func(ctx context.Context, payload json.RawMessage) (any, *ipc.IPCError) {
+			if tray.ActiveProvider == nil {
+				return nil, ipc.ErrProviderNotConfig
+			}
+			
+			var req core.QueryRequest
+			if err := json.Unmarshal(payload, &req); err != nil {
+				return nil, ipc.ErrIPCPayloadInvalid
+			}
+			
+			pipeline := core.NewPipeline(tray.ActiveProvider, vecStore, kvStore)
+			res, qErr := pipeline.Query(ctx, req)
+			if qErr != nil {
+				return nil, &ipc.IPCError{Code: "rag_err", Message: qErr.Error()}
+			}
+			
+			return res, nil
+		})
+		
+		go ipcServer.Start()
+		defer ipcServer.Shutdown()
+	}
+
+	// 5. Notificação OS visual para Feedback de Inicialização rápida
 	err = infra.NotifyOS("Vectora", "O assistente Vectora foi invocado no sistema e está residente.")
 	if err != nil {
 		infra.Logger.Warn("Falha ao disparar notificacao de S.O: " + err.Error())
 	}
 
-	// 5. Start the Systray Engine (This is blocking)
+	// 6. Start the Systray Engine (This is blocking)
 	tray.Setup()
 }

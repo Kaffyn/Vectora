@@ -1,6 +1,7 @@
 package acp
 
 import (
+	"github.com/Kaffyn/vectora/internal/db"
 	"github.com/Kaffyn/vectora/internal/tools"
 )
 
@@ -10,7 +11,7 @@ type AgentContext struct {
 	Registry *tools.Registry
 }
 
-func NewAgent() *AgentContext {
+func NewAgent(kvStore db.KVStore) *AgentContext {
 	reg := tools.NewRegistry()
 	
 	// Carrega Kit Base de Permissões
@@ -23,7 +24,7 @@ func NewAgent() *AgentContext {
 	reg.Register(&tools.GrepSearchTool{})
 	reg.Register(&tools.ShellTool{})
 	
-	reg.Register(&tools.SaveMemoryTool{KV: nil}) // FIXME: Injete dinamicamente depois
+	reg.Register(&tools.SaveMemoryTool{KV: kvStore}) // Fixado: Dependencia Injetada Oficialmente!
 	reg.Register(&tools.PlanModeTool{})
 	
 	reg.Register(&tools.GoogleSearchTool{})
