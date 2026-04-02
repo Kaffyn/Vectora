@@ -15,7 +15,6 @@ type ChromemStore struct {
 }
 
 // Instancia persistência baseada em pastas para Embeddings. 
-// Isso atende à Iron Rule 3: Nenhum workspace pode ler conteúdo do outro.
 func NewVectorStore() (*ChromemStore, error) {
 	osMgr, err := vecos.NewManager()
 	if err != nil {
@@ -23,7 +22,10 @@ func NewVectorStore() (*ChromemStore, error) {
 	}
 	baseDir, _ := osMgr.GetAppDataDir()
 	path := filepath.Join(baseDir, "data", "chroma")
+	return NewVectorStoreAtPath(path)
+}
 
+func NewVectorStoreAtPath(path string) (*ChromemStore, error) {
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return nil, err
 	}

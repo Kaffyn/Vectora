@@ -39,6 +39,14 @@ func (r *Registry) Get(name string) (Tool, bool) {
 	return t, ok
 }
 
+func (r *Registry) GetAll() []Tool {
+	var all []Tool
+	for _, t := range r.registry {
+		all = append(all, t)
+	}
+	return all
+}
+
 // Transforma diretamente invocações puras de Texto JSON (que o LLM vomita)
 // em Execuções Binárias seguras
 func (r *Registry) ExecuteStringArgs(ctx context.Context, name string, argsJSON string) (ToolResult, error) {

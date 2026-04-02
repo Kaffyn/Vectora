@@ -141,9 +141,14 @@ func (s *Server) handleConnection(conn net.Conn) {
 			continue // Servidor IPC só engole "request" puro e reage. Ele não ouve respostas porque ele é o master.
 		}
 
+		log.Printf("[IPC DEBUG] Recebido Metodo: '%s' (ID: %s)\n", msg.Method, msg.ID)
 		handler, exists := s.handlers[msg.Method]
 		if !exists {
-			s.sendError(conn, msg.ID, ErrIPCMethodUnknown)
+			log.Printf("[IPC DEBUG] Metodos Disponiveis: %v\n", s.handlers)
+			s.sendError(conn, msg.ID, &IPCError{
+				Code: "ipc_method_unknown", 
+				Message: fmt.Sprintf("Metodo '%s' não existe no registry.", msg.Method),
+			})
 			continue
 		}
 

@@ -16,7 +16,6 @@ type BBoltStore struct {
 }
 
 // Inicializa a conexão com o Banco bbolt raiz. 
-// Será a base para persistir histórico de chat, sessão e configs do sistema localmente.
 func NewKVStore() (*BBoltStore, error) {
 	osMgr, err := vecos.NewManager()
 	if err != nil {
@@ -24,16 +23,17 @@ func NewKVStore() (*BBoltStore, error) {
 	}
 	baseDir, _ := osMgr.GetAppDataDir()
 	dbPath := filepath.Join(baseDir, "data", "vectora.db")
+	return NewKVStoreAtPath(dbPath)
+}
 
+func NewKVStoreAtPath(dbPath string) (*BBoltStore, error) {
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
 		return nil, err
 	}
-
 	db, err := bbolt.Open(dbPath, 0600, nil)
 	if err != nil {
 		return nil, err
 	}
-
 	return &BBoltStore{db: db}, nil
 }
 
