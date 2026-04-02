@@ -11,6 +11,8 @@ tray_quit,Quit Vectora,Encerrar e Desligar Daemon,Cerrar Vectora,Quitter Vectora
 inst_welcome,Welcome to Vectora Setup,Bem-vindo à Instalação do Vectora,Bienvenido a la instalación de Vectora,Bienvenue dans l'installation de Vectora
 inst_select_lang,Select Installation Language:,Selecione o idioma de Instalação:,Seleccione el Idioma de Instalación:,Sélectionnez la langue d'installation :
 inst_btn_next,Next,Avançar p/ Próximo Passo,Siguiente,Suivant
+inst_step_path,Select Installation Folder:,Selecione a Pasta de Instalação:,Seleccione la carpeta de instalación:,Sélectionnez le dossier d'installation :
+inst_btn_browse,Browse...,Procurar...,Navegar...,Parcourir...
 inst_step_engine,Select your primary AI Engine,Selecione o Motor RAG a ser Utilizado,Seleccione su motor principal,Sélectionnez votre moteur d'IA
 inst_desc_gemini,Use Gemini API (Cloud) - Requires API Key,Usar Gemini API (Apenas Chave / Leve RAM),Usar Gemini API (Nube),Gemini API (Cloud)
 inst_desc_qwen,Use Qwen3 (Local) - Downloads heavy GGUF,Usar Qwen3 (100% Privado / Download Pesado),Usar Qwen3 (Local) - Descarga archivo GGUF,Qwen3 (Local) - Télécharge fichiers lourds

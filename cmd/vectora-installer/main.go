@@ -1,28 +1,31 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/Kaffyn/vectora/assets"
 	"github.com/Kaffyn/vectora/internal/i18n"
 	"github.com/jeandeaual/go-locale"
+	"golang.org/x/sys/windows/registry"
 )
+
+var installPath string
 
 func main() {
 	a := app.New()
 	w := a.NewWindow("Vectora Installer")
 	w.Resize(fyne.NewSize(600, 350))
-
-	// Associa o resource icone compativel à Window Tool do Fyne (Para Desktop Taskbar e Window Chrome)
 	w.SetIcon(fyne.NewStaticResource("logo", assets.IconData))
 
-	// Define idioma pautado na API Nativa do S.O (Windows GetSystemDefaultUILanguage ou registry)
 	userLoc, err := locale.GetLanguage()
 	if err == nil {
 		if strings.HasPrefix(userLoc, "pt") {
@@ -35,11 +38,10 @@ func main() {
 			i18n.SetLanguage("en")
 		}
 	} else {
-		// Fallback internacional seguro
 		i18n.SetLanguage("en")
 	}
 
-	var showStep1, showStep2, showStep3 func()
+	var showStep1, showStepPath, showStep2, showStep3 func()
 
 	// ---- PASSO 1: Boas Vindas & Idioma ----
 	showStep1 = func() {
@@ -65,7 +67,7 @@ func main() {
 		}
 
 		btn := widget.NewButton(i18n.T("inst_btn_next"), func() {
-			showStep2()
+			showStepPath()
 		})
 
 		content := container.NewVBox(
@@ -73,8 +75,45 @@ func main() {
 			widget.NewLabel(""), // Spacer
 			widget.NewLabelWithStyle(i18n.T("inst_select_lang"), fyne.TextAlignCenter, fyne.TextStyle{}),
 			container.NewCenter(langSelect),
-			widget.NewLabel(""), // Spacer
+			widget.NewLabel(""),
 			container.NewCenter(btn),
+		)
+		w.SetContent(content)
+	}
+
+	// ---- PASSO 1.5: Seleção de Diretório ----
+	showStepPath = func() {
+		title := widget.NewLabelWithStyle(i18n.T("inst_step_path"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+		
+		home, _ := os.UserHomeDir()
+		defaultPath := filepath.Join(home, "AppData", "Local", "Programs", "Vectora")
+		installPath = defaultPath
+
+		pathEntry := widget.NewEntry()
+		pathEntry.SetText(defaultPath)
+
+		btnFolder := widget.NewButton(i18n.T("inst_btn_browse"), func() {
+			dialog.ShowFolderOpen(func(lu fyne.ListableURI, err error) {
+				if lu != nil {
+					// Extrai caminho local seguro file://
+					pathEntry.SetText(lu.Path())
+					installPath = lu.Path()
+				}
+			}, w)
+		})
+
+		btnNext := widget.NewButton(i18n.T("inst_btn_next"), func() {
+			installPath = pathEntry.Text
+			showStep2() 
+		})
+
+		content := container.NewVBox(
+			title,
+			widget.NewLabel(""),
+			pathEntry,
+			btnFolder,
+			widget.NewLabel(""),
+			container.NewCenter(btnNext),
 		)
 		w.SetContent(content)
 	}
@@ -103,7 +142,7 @@ func main() {
 		w.SetContent(content)
 	}
 
-	// ---- PASSO 3: Download & Workspace Config ----
+	// ---- PASSO 3: Instalação & Escrita no Registro (App do Sistema) ----
 	showStep3 = func() {
 		title := widget.NewLabelWithStyle("...", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 		progress := widget.NewProgressBar()
@@ -112,18 +151,19 @@ func main() {
 		go func() {
 			title.SetText(i18n.T("inst_step_download"))
 			
-			// Usa inteiros para contornar truncamento subjacente de float64 do Golang (bug do 95%)
+			// Mocker da infraestrutura de cópia
 			for i := 0; i <= 20; i++ {
 				time.Sleep(time.Millisecond * 120)
 				progress.SetValue(float64(i) / 20.0)
 			}
 			
-			// Força o preenchimento de matriz final de 1.0 (100%)
+			// Registro efetivo no Windows
+			registerWindowsApp(installPath)
+
 			progress.SetValue(1.0)
 			
 			doneTxt := i18n.T("inst_done")
 			if doneTxt == "inst_done" {
-				// Safety fallback caso csv parser falhe via edge case de runtime embed OS limit
 				doneTxt = "Instalação Concluída com Sucesso!"
 			}
 			title.SetText(doneTxt)
@@ -146,4 +186,22 @@ func main() {
 
 	showStep1()
 	w.ShowAndRun()
+}
+
+// Criação de chaves no Regedit p/ Transformar o Vectora em Aplicativo Nativo Adicionar/Remover UI
+func registerWindowsApp(dst string) {
+	os.MkdirAll(dst, 0755)
+	
+	keyPath := `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`
+	key, _, err := registry.CreateKey(registry.CURRENT_USER, keyPath, registry.ALL_ACCESS)
+	if err == nil {
+		defer key.Close()
+		// Variáveis Ocultas Primordiais
+		key.SetStringValue("DisplayName", "Vectora")
+		key.SetStringValue("DisplayVersion", "1.0.0")
+		key.SetStringValue("Publisher", "Kaffyn")
+		key.SetStringValue("DisplayIcon", filepath.Join(dst, "vectora.exe"))
+		key.SetStringValue("UninstallString", filepath.Join(dst, "vectora-uninstaller.exe"))
+		key.SetStringValue("InstallLocation", dst)
+	}
 }
