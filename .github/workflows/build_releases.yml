@@ -1,0 +1,140 @@
+name: Build & Release Vectora
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  # Job para obter a versão do Vectora (baseado na tag ou sha)
+  get_version:
+    if: "contains(github.event.head_commit.message, '[gha]') || startsWith(github.ref, 'refs/tags/v')"
+    runs-on: ubuntu-latest
+    outputs:
+      vectora_version: ${{ steps.get_ver.outputs.version }}
+    steps:
+      - id: get_ver
+        run: |
+          if [[ "${{ github.ref }}" == "refs/tags/v"* ]]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+  # Jobs para chamar os workflows de build específicos por plataforma
+  build_windows:
+    needs: get_version
+    uses: ./.github/workflows/build_windows.yml
+    with:
+      target: windows_amd64.exe
+      arch: amd64
+      vectora_version: ${{ needs.get_version.outputs.vectora_version }}
+
+  build_linux_amd64:
+    needs: get_version
+    uses: ./.github/workflows/build_linux.yml
+    with:
+      target: linux_amd64
+      arch: amd64
+      vectora_version: ${{ needs.get_version.outputs.vectora_version }}
+
+  # Se houver binários llama.cpp para outras arquiteturas/OSes, adicione aqui
+  # build_linux_arm64:
+  #   needs: get_version
+  #   uses: ./.github/workflows/build_linux.yml
+  #   with:
+  #     target: linux_arm64
+  #     arch: arm64
+  #     vectora_version: ${{ needs.get_version.outputs.vectora_version }}
+
+  # build_windows_arm64:
+  #   needs: get_version
+  #   uses: ./.github/workflows/build_windows.yml
+  #   with:
+  #     target: windows_arm64.exe
+  #     arch: arm64
+  #     vectora_version: ${{ needs.get_version.outputs.vectora_version }}
+
+  build_macos_arm64:
+    needs: get_version
+    uses: ./.github/workflows/build_macos.yml
+    with:
+      target: darwin_arm64
+      arch: arm64
+      vectora_version: ${{ needs.get_version.outputs.vectora_version }}
+
+  # build_macos_amd64:
+  #   needs: get_version
+  #   uses: ./.github/workflows/build_macos.yml
+  #   with:
+  #     target: darwin_amd64
+  #     arch: amd64
+  #     vectora_version: ${{ needs.get_version.outputs.vectora_version }}
+
+  post-release:
+    name: 🚀 Final Delivery (GitHub Release)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    if: |
+      always() &&
+      needs.get_version.result == 'success' &&
+      (needs.build_windows.result == 'success' || needs.build_windows.result == 'skipped') &&
+      (needs.build_linux_amd64.result == 'success' || needs.build_linux_amd64.result == 'skipped') &&
+      (needs.build_macos_arm64.result == 'success' || needs.build_macos_arm64.result == 'skipped')
+    needs: [get_version, build_windows, build_linux_amd64, build_macos_arm64] # Incluir todos os jobs de build aqui
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Import dependency versions
+        shell: bash
+        run: |
+          grep -v '^#' deps.env | grep -v '^$' >> "$GITHUB_ENV"
+
+      - name: Download all matching Artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # PROJECT_ID vem do deps.env, deve ser "Vectora" ou similar
+        run: |
+          mkdir -p out
+          # Fetch all artifacts for the current run
+          ARTIFACTS=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)
+
+          # Download all matching artifacts
+          echo "$ARTIFACTS" | jq -c '.artifacts[]' | while read i; do
+            NAME=$(echo "$i" | jq -r '.name')
+            ID=$(echo "$i" | jq -r '.id')
+            
+            echo "Downloading artifact: $NAME"
+            gh api repos/${{ github.repository }}/actions/artifacts/$ID/zip > "out/$NAME.zip"
+            unzip -q -o "out/$NAME.zip" -d "out/$NAME/"
+            rm "out/$NAME.zip" # Remove o zip após descompactar
+          done
+
+      - name: Generate Checksums
+        run: |
+          cd out && sha256sum * > ../checksums.txt # Gera checksums para os arquivos descompactados
+
+      - name: Create GitHub Release
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Vectora v${{ needs.get_version.outputs.vectora_version }}
+          body: "Vectora Release - Motor de IA Multimodal Local e Híbrido." # Melhorar com body_path futuramente
+          prerelease: false
+          files: |
+            out/**/*
+            checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

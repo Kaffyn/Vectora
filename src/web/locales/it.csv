@@ -1,0 +1,38 @@
+key,one,other
+app_title,Vectora,Vectora
+app_subtitle,Modello di Addestramento IA,Modello di Addestramento IA
+config_title,Impostazioni,Impostazioni
+config_model,Modello Qwen,Modelli Qwen
+config_training,Fonte di Verità,Fonti di Verità
+config_training_none,Solo Progetto Locale,Solo Progetto Locale
+config_local_project_btn,Seleziona Cartella Progetto,Seleziona Cartella Progetto
+config_local_project_active,Progetto: {},Progetti: {}
+config_locale_placeholder,Lingua,Lingue
+history_title,Cronologia,Cronologia
+history_new,Nuova Chat,Nuove Chat
+history_empty,Nessuna cronologia disponibile,Nessuna conversazione trovata
+history_welcome,Benvenuto in Vectora,Benvenuto in Vectora
+time_now,Ora,Ora
+action_clear,Pulisci tutto,Pulisci tutto
+action_status_engine,Qwen Engine v1.0,Qwen Engine v1.0
+action_status_online,ONLINE,ONLINE
+input_placeholder,Quale file vuoi analizzare in Vectora?,Quali file vuoi analizzare in Vectora?
+input_process,Elabora Richiesta,Elabora Richiesta
+input_send,Invia,Invia
+input_line,Linea,Linee
+input_doc,DOC,DOC
+input_img,IMG,IMG
+input_code,Codice,Codice
+input_deep_memory,Memoria Profonda Attiva,Memoria Profonda Attiva
+input_shift_enter,Shift + Invio per nuova riga,Shift + Invio per nuova riga
+message_user,Utente,Utenti
+message_ai,IA di Vectora,IA di Vectora
+message_thinking,Recupero contesto...,Recupero contesti...
+message_retrieved,{} contesto recuperato,{} contesti recuperados
+message_copy,Copia,Copia
+message_share,Condividi,Condividi
+suggestion_vlaeg,Spiega Protocollo VLAEG,Spiega Protocolli VLAEG
+suggestion_arch,Migliora Architettura,Migliora Architetture
+suggestion_meta,Analizza Metadati,Analizza Metadati
+suggestion_help,Come posso aiutarti con la tua infrastruttura oggi?,Come posso aiutarti con la tua infrastruttura oggi?
+suggestion_desc,Analisi RAG profonda in tempo reale per l'automazione dei sistemi.,Analisi RAG profonda in tempo reale per l'automazione dei sistemi.
