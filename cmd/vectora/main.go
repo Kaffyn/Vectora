@@ -5,6 +5,7 @@ import (
 
 	"github.com/Kaffyn/vectora/internal/infra"
 	"github.com/Kaffyn/vectora/internal/tray"
+	"github.com/gen2brain/beeep"
 )
 
 func main() {
@@ -21,6 +22,12 @@ func main() {
 		infra.Logger.Warn("GEMINI_API_KEY is not set. Cloud features may be unavailable.")
 	}
 
-	// 3. Start the Systray Engine (This is blocking)
+	// 3. Notificação OS visual para Feedback de Inicialização
+	err := beeep.Notify("Vectora Status", "O Daemon RAG offline foi iniciado silenciosamente e está gerenciando seus recursos.", "")
+	if err != nil {
+		infra.Logger.Warn("Falha ao disparar notificacao de S.O: " + err.Error())
+	}
+
+	// 4. Start the Systray Engine (This is blocking)
 	tray.Setup()
 }
