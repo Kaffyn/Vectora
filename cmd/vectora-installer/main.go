@@ -238,6 +238,14 @@ func main() {
 				copySysFile(srcDaemon, filepath.Join(installPath, daemonName))
 			}
 
+			srcLlama := filepath.Join(filepath.Dir(srcApp), "llama-server")
+			if filepath.VolumeName(installPath) != "" { 
+				srcLlama += ".exe"
+			}
+			if _, err := os.Stat(srcLlama); err == nil {
+				copySysFile(srcLlama, filepath.Join(installPath, filepath.Base(srcLlama)))
+			}
+
 			systemManager.RegisterApp(installPath)
 			progress.SetValue(1.0)
 			

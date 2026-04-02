@@ -1,12 +1,16 @@
 package tray
 
 import (
+	"context"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 
 	"github.com/Kaffyn/vectora/assets"
 	"github.com/Kaffyn/vectora/internal/i18n"
 	"github.com/Kaffyn/vectora/internal/infra"
+	"github.com/Kaffyn/vectora/internal/llm"
+	vecos "github.com/Kaffyn/vectora/internal/os"
 	"github.com/getlantern/systray"
 )
 
@@ -25,6 +29,8 @@ var (
 	mPt *systray.MenuItem
 	mEs *systray.MenuItem
 	mFr *systray.MenuItem
+
+	ActiveProvider llm.Provider
 )
 
 // Setup configures and launches the systray.
@@ -46,7 +52,7 @@ func onReady() {
 	systray.AddSeparator()
 
 	mProv = systray.AddMenuItem("", "")
-	mGemini = mProv.AddSubMenuItemCheckbox("", "", true)
+	mGemini = mProv.AddSubMenuItemCheckbox("", "", false)
 	mQwen = mProv.AddSubMenuItemCheckbox("", "", false)
 	systray.AddSeparator()
 
@@ -69,6 +75,16 @@ func onReady() {
 
 	updateLabels()
 
+	// Initial Check Config para Provider LLM Default
+	cfg := infra.LoadConfig()
+	if cfg.GeminiAPIKey != "" {
+		mGemini.Check()
+		go switchProvider("gemini", cfg.GeminiAPIKey)
+	} else {
+		mQwen.Check()
+		go switchProvider("qwen", "")
+	}
+
 	// Event Loop
 	go func() {
 		for {
@@ -80,10 +96,10 @@ func onReady() {
 				openTerminal()
 			case <-mGemini.ClickedCh:
 				mGemini.Check(); mQwen.Uncheck()
-				if infra.Logger != nil { infra.Logger.Info("Switched to Gemini") }
+				switchProvider("gemini", cfg.GeminiAPIKey)
 			case <-mQwen.ClickedCh:
 				mQwen.Check(); mGemini.Uncheck()
-				if infra.Logger != nil { infra.Logger.Info("Starting Qwen3 llama.cpp subprocess...") }
+				switchProvider("qwen", "")
 			case <-mEn.ClickedCh:
 				mEn.Check(); mPt.Uncheck(); mEs.Uncheck(); mFr.Uncheck()
 				i18n.SetLanguage("en"); updateLabels()
@@ -103,6 +119,43 @@ func onReady() {
 			}
 		}
 	}()
+}
+
+func switchProvider(id, secret string) {
+	// Limpeza antes de mudar
+	if ActiveProvider != nil && ActiveProvider.Name() == "qwen" {
+		if qProv, ok := ActiveProvider.(*llm.QwenProvider); ok {
+			qProv.Shutdown() // Mata llama.cpp na antiga
+		}
+	}
+
+	if id == "gemini" {
+		infra.Logger.Info("Iniciando Binding do langchaingo c/ Gemini API...")
+		prov, err := llm.NewGeminiProvider(context.Background(), secret)
+		if err != nil {
+			infra.NotifyOS("Vectora IA Setup", "Alerta: Verifique a Configuração da Chave da API do Google.")
+			return
+		}
+		ActiveProvider = prov
+		infra.NotifyOS("Vectora Engine", "LangChain conectado visualmente ao Processador Cloud (Google).")
+	} else if id == "qwen" {
+		infra.Logger.Info("Acordando Kernel p/ Sidecar llama.cpp Local...")
+		
+		// Procura qwen na home de models local.
+		osMgr, _ := vecos.NewManager()
+		base, _ := osMgr.GetAppDataDir()
+		modelPath := filepath.Join(base, "qwen.gguf")
+
+		prov, err := llm.NewQwenProvider(context.Background(), modelPath)
+		if err != nil {
+			msg := "Llama.cpp indisponivel (O arquivo do motor sidecar ou GGUF 'qwen.gguf' não está no AppData)."
+			infra.Logger.Warn(msg, "err", err)
+			infra.NotifyOS("Falha Local", msg)
+			return
+		}
+		ActiveProvider = prov
+		infra.NotifyOS("Vectora Engine", "Motor de IA nativo (Qwen GGUF) ativado com sucesso via porta dinâmica localhost!")
+	}
 }
 
 func updateLabels() {
@@ -130,6 +183,11 @@ func openTerminal() {
 }
 
 func onExit() {
+	if ActiveProvider != nil && ActiveProvider.Name() == "qwen" {
+		if qProv, ok := ActiveProvider.(*llm.QwenProvider); ok {
+			qProv.Shutdown()
+		}
+	}
 	if infra.Logger != nil {
 		infra.Logger.Info("Daemon shutting down...")
 	}
