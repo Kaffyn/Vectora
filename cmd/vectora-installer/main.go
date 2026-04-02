@@ -74,7 +74,6 @@ func main() {
 	w.Resize(fyne.NewSize(620, 480))
 	w.SetIcon(fyne.NewStaticResource("logo", assets.IconData))
 
-	// ---- INITIALIZA OS-Level CROSS PLATFORM FAÇADE ----
 	systemManager, err := vecos.NewManager()
 	if err != nil {
 		dialog.ShowError(err, w)
@@ -96,7 +95,8 @@ func main() {
 		i18n.SetLanguage("en")
 	}
 
-	var showStepWelcome, showStepLang, showStepPath, showStepEngine, showStepInstall func()
+	var showStepWelcome, showStepLang, showStepPath, showStepInstall func()
+	var showStepConfigMode, showStepConfigGemini, showStepConfigQwen, showStepFinish func()
 	var showUninstallProgress, showAlreadyInstalled func(string)
 
 	showUninstallProgress = func(existingPath string) {
@@ -106,10 +106,7 @@ func main() {
 			progress,
 		)
 
-		var backFunc func() = nil
-		var nextFunc func() = nil 
-
-		wrapper := createLayout("Uninstalling Vectora", content, backFunc, nextFunc, "Finalizar")
+		wrapper := createLayout("Uninstalling Vectora", content, nil, nil, "Finalizar")
 		w.SetContent(wrapper)
 
 		go func() {
@@ -118,7 +115,6 @@ func main() {
 				progress.SetValue(float64(i) / 20.0)
 			}
 			
-			// Cross-Platform OS System Cleaning
 			systemManager.UnregisterApp(existingPath)
 			daemonBin := "vectora"
 			if filepath.VolumeName(existingPath) != "" { daemonBin = "vectora.exe" }
@@ -133,11 +129,9 @@ func main() {
 
 	showAlreadyInstalled = func(existingPath string) {
 		lbl := widget.NewLabel("O motor já detectou instâncias do Vectora residentes no seu ambiente.")
-		
 		btnUninstall := widget.NewButton("Desfazer Instalação Atual do Vectora (Wipe)", func() {
 			showUninstallProgress(existingPath)
 		})
-		
 		content := container.NewVBox(lbl, widget.NewLabel(""), container.NewHBox(btnUninstall))
 		w.SetContent(createLayout("App Detectado", content, nil, func(){ w.Close() }, "Sair"))
 	}
@@ -152,7 +146,6 @@ func main() {
 			text2, widget.NewLabel(""), widget.NewLabel(""),
 			text3,
 		)
-		
 		w.SetContent(createLayout("Vectora Setup", content, nil, showStepLang, "Avançar >"))
 	}
 
@@ -175,11 +168,7 @@ func main() {
 			showStepLang()
 		}
 
-		content := container.NewVBox(
-			widget.NewLabel(i18n.T("inst_select_lang")),
-			langSelect,
-		)
-		
+		content := container.NewVBox(widget.NewLabel(i18n.T("inst_select_lang")), langSelect)
 		w.SetContent(createLayout("Linguagem Padrão", content, showStepWelcome, showStepPath, "Avançar >"))
 	}
 
@@ -209,21 +198,9 @@ func main() {
 		
 		nextCmd := func() {
 			installPath = pathEntry.Text
-			showStepEngine()
+			showStepInstall()
 		}
-
 		w.SetContent(createLayout("Local de Instalação", content, showStepLang, nextCmd, "Avançar >"))
-	}
-
-	showStepEngine = func() {
-		radio := widget.NewRadioGroup([]string{
-			i18n.T("inst_desc_gemini"),
-			i18n.T("inst_desc_qwen"),
-		}, func(s string) {})
-		radio.SetSelected(i18n.T("inst_desc_gemini"))
-
-		content := container.NewVBox(widget.NewLabel("Defina qual Core fará o processamento local LLM:"), radio)
-		w.SetContent(createLayout("Motor Cognitivo", content, showStepPath, showStepInstall, "Avançar >"))
 	}
 
 	showStepInstall = func() {
@@ -240,14 +217,13 @@ func main() {
 
 		go func() {
 			for i := 0; i <= 20; i++ {
-				time.Sleep(time.Millisecond * 120)
+				time.Sleep(time.Millisecond * 30)
 				progress.SetValue(float64(i) / 20.0)
 			}
 			
 			os.MkdirAll(installPath, 0755)
 			srcApp, _ := os.Executable()
 			
-			// Resolução de nomes para compatibilidade Windows vs Unix Extension
 			uninstallerName := "vectora-uninstaller"
 			daemonName := "vectora"
 			if filepath.VolumeName(installPath) != "" { 
@@ -262,16 +238,64 @@ func main() {
 				copySysFile(srcDaemon, filepath.Join(installPath, daemonName))
 			}
 
-			// OS-Level Native Registration
 			systemManager.RegisterApp(installPath)
-
 			progress.SetValue(1.0)
-			doneContent := container.NewVBox(widget.NewLabel("Ambiente construído fisicamente no seu Hard Drive com sucesso!"))
-			w.SetContent(createLayout("Sucesso", doneContent, nil, func(){ w.Close() }, "Encerrar"))
+			
+			doneContent := container.NewVBox(widget.NewLabel("Arquivos extraídos e vínculos do S.O registrados com sucesso.\n\nAgora vamos configurar o Motor do Assistente."))
+			w.SetContent(createLayout("Instalação Concluída", doneContent, nil, showStepConfigMode, "Configurar IA >"))
 		}()
 	}
 
-	// Application Booting Logic
+	showStepConfigMode = func() {
+		radio := widget.NewRadioGroup([]string{
+			"Usar Gemini API (Apenas Chave / Leve RAM)",
+			"Usar Qwen3 (100% Privado / Download Pesado)",
+		}, func(s string) {})
+		radio.SetSelected("Usar Gemini API (Apenas Chave / Leve RAM)")
+
+		content := container.NewVBox(widget.NewLabel("Defina qual Core fará o processamento local LLM:"), radio)
+		
+		nextCmd := func() {
+			if radio.Selected == "Usar Gemini API (Apenas Chave / Leve RAM)" {
+				showStepConfigGemini()
+			} else {
+				showStepConfigQwen()
+			}
+		}
+		w.SetContent(createLayout("Motor Cognitivo", content, nil, nextCmd, "Avançar >"))
+	}
+
+	showStepConfigGemini = func() {
+		lbl := widget.NewLabel("Insira sua chave de API do Google AI Studio:")
+		entry := widget.NewPasswordEntry()
+		entry.SetPlaceHolder("AIzaSy...")
+		
+		content := container.NewVBox(lbl, entry, widget.NewLabel("Ela será arquivada e criptografada em segurança na sua máquina local."))
+		
+		nextCmd := func() {
+			//TODO: Lógica real para persistir a Config global enviada.
+			showStepFinish()
+		}
+		w.SetContent(createLayout("Validar Access Token", content, showStepConfigMode, nextCmd, "Avançar >"))
+	}
+
+	showStepConfigQwen = func() {
+		lbl := widget.NewLabel("O motor de IA Qwen3-0.6B será baixado em background pelo Daemon\nna Primeira Inicialização (Aprox 2GB exigidos em disco).")
+		
+		content := container.NewVBox(lbl)
+		
+		nextCmd := func() {
+			// TODO: Ativar prop na API config de Autostart Download
+			showStepFinish()
+		}
+		w.SetContent(createLayout("Download e Pesos (Weights)", content, showStepConfigMode, nextCmd, "Avançar >"))
+	}
+
+	showStepFinish = func() {
+		doneContent := container.NewVBox(widget.NewLabel("O Vectora foi instalado com sucesso."))
+		w.SetContent(createLayout("Sucesso", doneContent, nil, func(){ w.Close() }, "Encerrar"))
+	}
+
 	if isUninstallMode {
 		existingPath := systemManager.IsInstalled()
 		if existingPath != "" {
