@@ -72,7 +72,7 @@ func main() {
 	
 	w = a.NewWindow("Setup Vectora")
 	w.Resize(fyne.NewSize(620, 480))
-	w.SetIcon(fyne.NewStaticResource("logo", assets.IconData))
+	w.SetIcon(fyne.NewStaticResource("installer_icon", assets.InstallerIconData))
 
 	systemManager, err := vecos.NewManager()
 	if err != nil {
@@ -173,7 +173,7 @@ func main() {
 	}
 
 	showStepPath = func() {
-		defaultPath, _ := systemManager.GetAppDataDir()
+		defaultPath, _ := systemManager.GetInstallDir() // MUDA PARA PROGRAM FILES NO WINDOWS
 		if installPath == "" {
 			installPath = defaultPath
 		}

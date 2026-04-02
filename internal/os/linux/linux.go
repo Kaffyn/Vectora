@@ -29,6 +29,10 @@ func (m *LinuxManager) GetAppDataDir() (string, error) {
 	return filepath.Join(home, ".Vectora"), nil
 }
 
+func (m *LinuxManager) GetInstallDir() (string, error) {
+	return "/opt/vectora", nil
+}
+
 func (m *LinuxManager) StartLlamaEngine(modelPath string, port int) error {
 	m.state = "STARTING"
 	baseDir, err := m.GetAppDataDir()

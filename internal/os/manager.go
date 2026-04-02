@@ -21,6 +21,7 @@ const (
 // OSManager encapsula interações Nativas do Kernel Host para que Daemon e Instalador sejam universais.
 type OSManager interface {
 	GetAppDataDir() (string, error)
+	GetInstallDir() (string, error)
 	StartLlamaEngine(modelPath string, port int) error
 	StopLlamaEngine() error
 	GetEngineState() string

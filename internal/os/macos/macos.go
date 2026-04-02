@@ -29,6 +29,10 @@ func (m *MacosManager) GetAppDataDir() (string, error) {
 	return filepath.Join(home, ".Vectora"), nil
 }
 
+func (m *MacosManager) GetInstallDir() (string, error) {
+	return "/Applications/Vectora.app", nil
+}
+
 func (m *MacosManager) StartLlamaEngine(modelPath string, port int) error {
 	m.state = "STARTING"
 	baseDir, err := m.GetAppDataDir()

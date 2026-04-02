@@ -26,11 +26,21 @@ func NewManager() *WindowsManager {
 }
 
 func (m *WindowsManager) GetAppDataDir() (string, error) {
+	// Para dados do usuário e configurações (como o .env), continuamos usando a pasta do usuário
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(home, ".Vectora"), nil
+}
+
+func (m *WindowsManager) GetInstallDir() (string, error) {
+	// Para os executáveis, o padrão é Program Files no Windows
+	progFiles := os.Getenv("ProgramFiles")
+	if progFiles == "" {
+		progFiles = `C:\Program Files`
+	}
+	return filepath.Join(progFiles, "Kaffyn", "Vectora"), nil
 }
 
 func (m *WindowsManager) StartLlamaEngine(modelPath string, port int) error {
