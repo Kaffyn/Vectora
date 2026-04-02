@@ -2,9 +2,9 @@
   <rect width="256" height="256" rx="48" fill="#4F46E5"/>
   <path d="M 60 70 L 128 190 L 196 70" stroke="#FFFFFF" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
   <circle cx="128" cy="190" r="16" fill="#0EA5E9"/>
-  <!-- Installer Icon Badge (Box/Setup) -->
-  <rect x="140" y="140" width="100" height="100" rx="20" fill="#1E293B" stroke="#F1F5F9" stroke-width="8"/>
-  <path d="M 160 170 L 190 160 L 220 170 L 220 200 L 190 215 L 160 200 Z" fill="#F59E0B" stroke="#F59E0B" stroke-width="2"/>
-  <polyline points="160 170 190 185 220 170" fill="none" stroke="#1E293B" stroke-width="4"/>
-  <line x1="190" y1="185" x2="190" y2="215" stroke="#1E293B" stroke-width="4"/>
+  <g transform="translate(140, 140) scale(0.4)">
+    <rect width="256" height="256" rx="48" fill="#1E293B" stroke="#F1F5F9" stroke-width="20"/>
+    <path d="M 128 40 L 128 170 M 70 110 L 128 170 L 186 110" stroke="#F59E0B" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <rect x="50" y="200" width="156" height="25" rx="4" fill="#F59E0B"/>
+  </g>
 </svg>
