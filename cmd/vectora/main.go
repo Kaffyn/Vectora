@@ -2,16 +2,15 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 
-	"github.com/Kaffyn/vectora/internal/core"
 	"github.com/Kaffyn/vectora/internal/db"
 	"github.com/Kaffyn/vectora/internal/infra"
 	"github.com/Kaffyn/vectora/internal/ipc"
+	"github.com/Kaffyn/vectora/internal/llm"
 	vecos "github.com/Kaffyn/vectora/internal/os"
 	"github.com/Kaffyn/vectora/internal/tray"
 )
@@ -65,24 +64,9 @@ func main() {
 	if ipcErr != nil {
 		infra.Logger.Warn("Não foi possivel abrir o Socket UNIX IPC", "err", ipcErr)
 	} else {
-		// Cadastra as Rotas RPC
-		ipcServer.Register("workspace.query", func(ctx context.Context, payload json.RawMessage) (any, *ipc.IPCError) {
-			if tray.ActiveProvider == nil {
-				return nil, ipc.ErrProviderNotConfig
-			}
-			
-			var req core.QueryRequest
-			if err := json.Unmarshal(payload, &req); err != nil {
-				return nil, ipc.ErrIPCPayloadInvalid
-			}
-			
-			pipeline := core.NewPipeline(tray.ActiveProvider, vecStore, kvStore)
-			res, qErr := pipeline.Query(ctx, req)
-			if qErr != nil {
-				return nil, &ipc.IPCError{Code: "rag_err", Message: qErr.Error()}
-			}
-			
-			return res, nil
+		// Mapeia todas as rotas centralizadas RPC
+		ipc.RegisterRoutes(ipcServer, kvStore, vecStore, func() llm.Provider {
+			return tray.ActiveProvider
 		})
 		
 		go ipcServer.Start()
