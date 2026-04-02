@@ -23,7 +23,7 @@ func main() {
 	}
 
 	// 3. Notificação OS visual para Feedback de Inicialização
-	err := beeep.Notify("Vectora Status", "O Daemon RAG offline foi iniciado silenciosamente e está gerenciando seus recursos.", "")
+	err := beeep.Notify("Vectora Status", "O Vectora foi iniciado e está pronto para começar.", "")
 	if err != nil {
 		infra.Logger.Warn("Falha ao disparar notificacao de S.O: " + err.Error())
 	}
