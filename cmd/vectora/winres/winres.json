@@ -8,13 +8,7 @@
     "APP": {
       "0": {
         "executionLevel": "asInvoker",
-        "autoElevate": false,
         "dpiAwareness": "PerMonitorV2",
-        "supportedOS": [
-          "win8",
-          "win81",
-          "win10"
-        ],
         "theme": true
       }
     }
