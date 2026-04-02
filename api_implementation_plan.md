@@ -1,76 +1,94 @@
-# Implementação de Comunicação (API, IPC, e RPC)
+# Plano de Arquitetura de Comunicação e API (Vectora)
 
-Este documento dita a elaboração estruturada das camadas de comunicação do Vectora, fundamentais para a arquitetura Zero-State. Aqui detalhamos o fluxo de trânsito de dados entre o Orquestrador Central (Daemon) e os seus "braços" (Web UI, Terminal CLI e Clientes HTTP externos).
+Este plano traça o mapa definitivo de engenharia para o backend logístico do Vectora. Aqui integramos a espinha dorsal de Sockets com a exposição estendida e a infraestrutura local em Go.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> Precisamos validar a decisão de uso do pacote `net` padrão em Go para o Named Pipe no Windows. E também validar a taxonomia de Pastas para os roteadores (Handlers) IPC. Analise e aprove antes da execução!
+>
+> - O Toolkit Agêntico (Read, Write, Memory, Shell) sofrerá interações diretas via IPC ou via ACP.
+> - O Transporte de MCP servirá apenas requisições Standard I/O (StdIn/StdOut), significando que IDEs conectadas abrirão o daemon Vectora num container/stream isolado. Validar abordagem.
+
+---
 
 ## Proposed Changes
 
-### 1. Servidor e Cliente IPC (`internal/ipc`)
+### 1. Comunicação Interna Host (IPC: Inter-Process Communication)
 
-A comunicação base local entre binários do Vectora. Extingue APIs REST arcaicas que custariam performance local desnecessária.
+_Responsável por ligar o Daemon ao Web UI (Next.js/Wails) e CLI sem trafegar na stack HTTP Rest, economizando overhead brutal de TCP networking._
 
 #### [NEW] `internal/ipc/protocol.go`
 
-- Definição estrutural dos payloads (Request, Response, Eventos).
-- Definição da constante `Delimiter = '\n'` (Newline-Delimited JSON).
+- Protocolo `JSON-ND` assíncrono (Request/Response pareado por UUID).
+- Formato rigoroso sem bloqueios.
 
-#### [NEW] `internal/ipc/server.go`
+#### [NEW] `internal/ipc/server.go` e `client.go`
 
-- O Coração do Daemon. Escuta em **Unix Sockets** (`~/.Vectora/run/vectora.sock`) ou **Named Pipes** (`\\.\pipe\vectora` no Windows).
-- Mantém um mapa em memória de Conexões de Clientes Ativas concorrentemente.
-- Fornece módulo Broadcast para o Daemon emitir streaming (como `shell_stream_chunk`).
-
-#### [NEW] `internal/ipc/client.go`
-
-- O consumidor, utilizado pelo Wails (`cmd/vectora-web`) e Bubbletea (`cmd/vectora-cli`).
-- Fornece funções atreladas via Future/Promises gerando Requests (UUID) e aguardando na Channel lock correspondente até o daemon responder.
+- Escuta no SO Host: `~/.Vectora/run/vectora.sock` ou Pipe Global Win32.
+- **Handlers Distribuídos (`internal/ipc/handlers`)**:
+  - `workspace.query` (RAG puro)
+  - `session.history`
+  - `provider.set`
 
 ---
 
-### 2. Controladores de Rota (Handlers da API)
+### 2. Integração Externa de Rede (HTTP APIs)
 
-Os mapeamentos isolados para processamento de requisição. A placa mãe será responsável por ligar pacotes `internal/core`, `internal/tools` para responder o JSON via `internal/ipc`.
+_Conexões out-of-socket desenhadas para internet ou sub-redes._
 
-#### [NEW] `internal/ipc/handlers/workspace.go`
+#### [NEW] `internal/index/client.go`
 
-- Resolve chamadas `workspace.list`, `workspace.create`, e o poderoso `workspace.query` (Invoca Chunking RAG e LLM Predict).
-
-#### [NEW] `internal/ipc/handlers/provider.go`
-
-- Lida com a gravação segura de `GEMINI_API_KEY` (`provider.set`) e leitura de configuração (`provider.get`).
-
-#### [NEW] `internal/ipc/handlers/session.go`
-
-- Realiza parse do banco `BBolt` para empacotar todo o histórico de conversas em respostas JSON sob o método `session.history`.
+- Módulo HTTP cliente que consome o Vectora Index JSON.
+- Proxy-Aware (Herda config corporativo local).
+- Streamador de arquivos pesados (`.gguf` / bancos) que informa porcentagem via IPC Event Callbacks invés de segurar blocos de RAM enormes.
 
 ---
 
-### 3. Integração Externa (HTTP e RPC)
+### 3. Integração Cross-Software (MCP & ACP)
 
-#### [NEW] `internal/index/client.go` (HTTP API)
+_Padrões abertos arquitetados no repositório para expor o "Cérebro" de busca e edição do Vectora pra softwares de terceiros (Como Cursor e Plugins)._
 
-- Realizará Requisições HTTPS para o "Vectora Index" (O Marketplace de datasets).
-- Funcionalidade principal: `DownloadArchive(id string)`, baixando metadados e arquivos pesados chunk a chunk para evitar consumo brutal de RAM. Retorna percentual emitindo os frames pelo Evento IPC de Progresso na rede.
+#### [NEW] `internal/mcp/server.go` (Model Context Protocol)
 
-#### [NEW] `internal/mcp/server.go` (JSON-RPC)
+- Padrão oficial OpenSource para IA (Empregado pelo Claude Desktop / Cursor).
+- Escuta em **STDIO** (O processo Host invoca `vectora.exe --mcp`, e o daemon conversa exclusivamente via Pipe Padrão Terminal StdIn/Out usando JSON-RPC).
+- Transforma os `Workspaces` do Vectora em Ferramentas Universais acessíveis pela IDE local.
 
-- Modelo Model Context Protocol (Padrão Cursor / Claude).
-- Lê o `StdIn/StdOut` em vez de Sockets e encapsula o RAG (`workspace.query`) num Schema de "Tool" inteligível pela IDE do usuário.
+#### [NEW] `internal/acp/agent.go` (Agent Context Protocol)
+
+- Definição do Agente e empacotador isolado de contexto, abstraindo decisões para o "Agente interno" tomar caso seja chamado por fora.
+
+---
+
+### 4. Toolkit Engine (Cinto de Ferramentas da IA)
+
+_A biblioteca utilitária `internal/tools`. Os "Braços" que a LLM executa. Passarão pelo sistema de Undo em conformidade._
+
+#### [NEW] `internal/tools/engine.go`
+
+- O Registrador (`registry` de chamadas suportadas). Converte Payload do LLM Toolcall (Langchaingo) em structs físicas de Go.
+
+#### Mapeamento de Tools OBRIGATÓRIAS O.S
+
+1. **[NEW] `internal/tools/filesystem.go`**
+   - `read_file`, `write_file`, `read_folder`, `edit`.
+2. **[NEW] `internal/tools/search.go`**
+   - `find_files`, `grep_search`.
+3. **[NEW] `internal/tools/system.go`**
+   - `run_shell_command` (Execução isolada de Terminal streaming output).
+4. **[NEW] `internal/tools/memory.go`**
+   - `save_memory` (Chave-Valor no BBolt).
+   - `enter_plan_mode` (Ação Meta onde IA decide se fragmentar p/ resolver tarefa).
+5. **[NEW] `internal/tools/web.go`**
+   - `google_search` e `web_fetch`.
 
 ## Open Questions
 
 > [!WARNING]
->
-> 1. O cliente HTTP de download do Marketplace de Datasets (Index) precisará de Proxy Handling automático pelo OS para redes corporativas rígidas?
-> 2. O IPC Protocol precisa suportar SSL Mútuo de criptografia? Como são Sockets estritos no próprio sistema, acreditamos que Sockets locais já são isolados no kernel OS para processos do mesmo User, evitando o gasto brutal com criptografia TLS IPC in-memory. Concorda em fazermos Plaint-text por Sockets UNIX e Named Pipes?
+> Foi removida a menção de `GitBridge` como dependência externa via prompt nas configs do README. Pretende manter Backup local raw (cópia crua na pasta backups) para os reverts das modificações do SDK (`write_file`, `run_shell_command`) ao invés do Git Bridge antigo?
 
 ## Verification Plan
 
-### Automated Tests
-
-- Testes unitários puros isolados entre cliente e servidor subindo um TCP emulando Pipe, garantindo que enviar UUID-A recebe exatamente na Channel do cliente UUID-A.
-- Execução do Ping-Pong via binários cli/daemon pra verificação manual de Sockets em Background.
+1. Teste de `shell_stream`: Simularemos um `ping 8.8.8.8` gerando fluxo pro LLM.
+2. Testes STDIO do lado MCP consumindo pacote falso local.
+3. Teste exaustivo IPC Sockets para Zero-Delay.
