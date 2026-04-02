@@ -26,7 +26,7 @@ func (m *LinuxManager) GetAppDataDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".local", "share", "Vectora"), nil
+	return filepath.Join(home, ".Vectora"), nil
 }
 
 func (m *LinuxManager) StartLlamaEngine(modelPath string, port int) error {

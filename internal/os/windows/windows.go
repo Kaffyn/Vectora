@@ -30,7 +30,7 @@ func (m *WindowsManager) GetAppDataDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, "AppData", "Local", "Programs", "Vectora"), nil
+	return filepath.Join(home, ".Vectora"), nil
 }
 
 func (m *WindowsManager) StartLlamaEngine(modelPath string, port int) error {

@@ -221,7 +221,12 @@ func main() {
 				progress.SetValue(float64(i) / 20.0)
 			}
 			
+			// Hierarquia de Scaffolding Oficial ~/.Vectora
 			os.MkdirAll(installPath, 0755)
+			os.MkdirAll(filepath.Join(installPath, "data", "chroma"), 0755)
+			os.MkdirAll(filepath.Join(installPath, "logs"), 0755)
+			os.MkdirAll(filepath.Join(installPath, "backups"), 0755)
+
 			srcApp, _ := os.Executable()
 			
 			uninstallerName := "vectora-uninstaller"

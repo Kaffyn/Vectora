@@ -26,7 +26,7 @@ func (m *MacosManager) GetAppDataDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, "Library", "Application Support", "Vectora"), nil
+	return filepath.Join(home, ".Vectora"), nil
 }
 
 func (m *MacosManager) StartLlamaEngine(modelPath string, port int) error {
