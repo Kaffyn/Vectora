@@ -136,6 +136,12 @@ func switchProvider(id, secret string) {
 			infra.NotifyOS("Vectora IA Setup", "Alerta: Verifique a Configuração da Chave da API do Google.")
 			return
 		}
+		
+		// Persiste a chave se o login for bem-sucedido
+		if secret != "" {
+			infra.SaveConfig(&infra.Config{GeminiAPIKey: secret})
+		}
+
 		ActiveProvider = prov
 		infra.NotifyOS("Vectora Engine", "LangChain conectado visualmente ao Processador Cloud (Google).")
 	} else if id == "qwen" {

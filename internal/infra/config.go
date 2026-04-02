@@ -1,6 +1,7 @@
 package infra
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -33,4 +34,20 @@ func LoadConfig() *Config {
 	return &Config{
 		GeminiAPIKey: os.Getenv("GEMINI_API_KEY"),
 	}
+}
+
+// SaveConfig persiste chaves sensíveis como a GeminiAPIKey no arquivo .env do usuário.
+func SaveConfig(cfg *Config) error {
+	userProfile, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	envPath := filepath.Join(userProfile, ".Vectora", ".env")
+	
+	// Prepara o conteúdo do arquivo .env
+	content := fmt.Sprintf("GEMINI_API_KEY=%s\n", cfg.GeminiAPIKey)
+	
+	// Grava (ou sobrescreve) o arquivo
+	return os.WriteFile(envPath, []byte(content), 0600)
 }
