@@ -37,3 +37,4 @@ go.work.sum
 
 *.gguf
 *.db
+*.syso

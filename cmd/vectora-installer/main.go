@@ -24,7 +24,17 @@ func main() {
 	showStep1 = func() {
 		welcome := widget.NewLabelWithStyle(i18n.T("inst_welcome"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 		
-		langSelect := widget.NewSelect([]string{"English", "Português", "Español", "Français"}, func(s string) {
+		langSelect := widget.NewSelect([]string{"English", "Português", "Español", "Français"}, nil)
+		
+		// Set current selection base (before assigning hook to prevent infinite loop)
+		switch i18n.GetCurrentLang() {
+		case "en": langSelect.SetSelected("English")
+		case "pt": langSelect.SetSelected("Português")
+		case "es": langSelect.SetSelected("Español")
+		case "fr": langSelect.SetSelected("Français")
+		}
+
+		langSelect.OnChanged = func(s string) {
 			switch s {
 			case "English": i18n.SetLanguage("en")
 			case "Português": i18n.SetLanguage("pt")
@@ -32,14 +42,6 @@ func main() {
 			case "Français": i18n.SetLanguage("fr")
 			}
 			showStep1() // Reemite a view pra renderizar traduções vivas
-		})
-		
-		// Set current selection base
-		switch i18n.GetCurrentLang() {
-		case "en": langSelect.SetSelected("English")
-		case "pt": langSelect.SetSelected("Português")
-		case "es": langSelect.SetSelected("Español")
-		case "fr": langSelect.SetSelected("Français")
 		}
 
 		btn := widget.NewButton(i18n.T("inst_btn_next"), func() {
