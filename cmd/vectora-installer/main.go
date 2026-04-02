@@ -7,11 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"image/color"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/Kaffyn/vectora/assets"
@@ -21,6 +24,44 @@ import (
 )
 
 var installPath string
+var w fyne.Window
+
+// Engine de Layout Estilizado baseada nos Protótipos Visuais (Zyris)
+func createLayout(titleText string, content fyne.CanvasObject, backFunc func(), nextFunc func(), nextLabel string) *fyne.Container {
+	title := canvas.NewText(titleText, color.RGBA{R: 75, G: 58, B: 240, A: 255})
+	title.TextSize = 28
+	title.TextStyle = fyne.TextStyle{Bold: true}
+
+	footerBg := canvas.NewRectangle(color.RGBA{R: 11, G: 10, B: 16, A: 255})
+	
+	btnBack := widget.NewButton("Voltar", backFunc)
+	if backFunc == nil {
+		btnBack.Disable()
+	}
+	
+	btnNext := widget.NewButton(nextLabel, nextFunc)
+	if nextFunc == nil {
+		btnNext.Disable() // Força disable (Ex: Barra enchendo)
+	}
+
+	ecosystemLbl := canvas.NewText("Zyris Engine Ecosystem", color.RGBA{R: 200, G: 200, B: 200, A: 255})
+	ecosystemLbl.TextSize = 13
+
+	footerContent := container.NewHBox(
+		btnBack,
+		layout.NewSpacer(),
+		container.NewCenter(ecosystemLbl),
+		layout.NewSpacer(),
+		btnNext,
+	)
+
+	return container.NewBorder(
+		container.NewPadded(container.NewVBox(title, widget.NewLabel(""))), 
+		container.NewStack(footerBg, container.NewPadded(footerContent)),    
+		nil, nil,
+		container.NewPadded(content),
+	)
+}
 
 func main() {
 	isUninstallMode := false
@@ -29,8 +70,10 @@ func main() {
 	}
 
 	a := app.New()
-	w := a.NewWindow("Vectora Setup Engine")
-	w.Resize(fyne.NewSize(600, 350))
+	a.Settings().SetTheme(&zyrisTheme{}) // Injeta Cores Nativas do Setup
+	
+	w = a.NewWindow("Setup Vectora / ZyrisRAG")
+	w.Resize(fyne.NewSize(620, 480))
 	w.SetIcon(fyne.NewStaticResource("logo", assets.IconData))
 
 	userLoc, err := locale.GetLanguage()
@@ -48,18 +91,22 @@ func main() {
 		i18n.SetLanguage("en")
 	}
 
-	var showStep1, showStepPath, showStep2, showStep3 func()
-	var showAlreadyInstalled, showUninstallProgress func(string)
+	var showStepWelcome, showStepLang, showStepPath, showStepEngine, showStepInstall func()
+	var showUninstallProgress, showAlreadyInstalled func(string)
 
-	// ---- PASSO: Desinstalação Oficial UI ----
+	// ---- UI: Desinstalação Unificada ----
 	showUninstallProgress = func(existingPath string) {
-		title := widget.NewLabelWithStyle("Uninstalling / Removendo Vectora...", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 		progress := widget.NewProgressBar()
-		
-		btn := widget.NewButton("Close / Sair", func() {
-			w.Close()
-		})
-		btn.Hide()
+		content := container.NewVBox(
+			widget.NewLabel("Destruindo Instância Local e Links OLE do Windows..."),
+			progress,
+		)
+
+		var backFunc func() = nil
+		var nextFunc func() = nil // Desativado até terminar
+
+		wrapper := createLayout("Uninstalling Vectora", content, backFunc, nextFunc, "Finalizar")
+		w.SetContent(wrapper)
 
 		go func() {
 			for i := 0; i <= 20; i++ {
@@ -68,52 +115,45 @@ func main() {
 			}
 			
 			registry.DeleteKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`)
-			
-			daemonPath := filepath.Join(existingPath, "vectora.exe")
-			os.Remove(daemonPath)
-			
-			// Deleta o Ícone do Menu Iniciar!
+			os.Remove(filepath.Join(existingPath, "vectora.exe"))
 			removeStartMenuShortcut()
 			
 			progress.SetValue(1.0)
-			title.SetText("Successfully uninstalled / Desinstalado com sucesso.")
-			btn.Show()
-			title.Refresh()
+			
+			// Recria a tela liberando o botão direito
+			finalContent := container.NewVBox(widget.NewLabel("Desinstalação e Limpeza Concluídas com Sucesso."))
+			w.SetContent(createLayout("Desinstalado", finalContent, nil, func(){ w.Close() }, "Vazar"))
 		}()
-
-		w.SetContent(container.NewVBox(
-			widget.NewLabel(""),
-			title,
-			widget.NewLabel(""),
-			progress,
-			widget.NewLabel(""),
-			container.NewCenter(btn),
-		))
 	}
 
-	// ---- PASSO 0: Verificação Ativa ----
 	showAlreadyInstalled = func(existingPath string) {
-		lbl := widget.NewLabelWithStyle(i18n.T("inst_already"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+		lbl := widget.NewLabel("O motor já detectou instâncias do RAG residentes no seu ambiente.")
 		
-		btnUninstall := widget.NewButton(i18n.T("inst_btn_uninstall"), func() {
+		btnUninstall := widget.NewButton("Desfazer Instalação Atual (Wipe)", func() {
 			showUninstallProgress(existingPath)
 		})
 		
-		btnCancel := widget.NewButton("Cancel / Sair", func() {
-			w.Close()
-		})
-		
-		content := container.NewVBox(
-			widget.NewLabel(""),
-			lbl,
-			widget.NewLabel(""),
-			container.NewCenter(container.NewHBox(btnUninstall, btnCancel)),
-		)
-		w.SetContent(content)
+		content := container.NewVBox(lbl, widget.NewLabel(""), container.NewHBox(btnUninstall))
+		w.SetContent(createLayout("App Detecado", content, nil, func(){ w.Close() }, "Sair"))
 	}
 
-	showStep1 = func() {
-		welcome := widget.NewLabelWithStyle(i18n.T("inst_welcome"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+	// ---- PASSO 1: Boas Vindas Estilizado ----
+	showStepWelcome = func() {
+		text1 := widget.NewLabel("Bem-vindo(a) ao Assistente de Instalação do ZyrisRAG.")
+		text2 := widget.NewLabel("Este assistente ajudará você a configurar o ecossistema RAG\nno seu sistema local.")
+		text3 := widget.NewLabel("Clique em Avançar para continuar.")
+
+		content := container.NewVBox(
+			text1, widget.NewLabel(""),
+			text2, widget.NewLabel(""), widget.NewLabel(""),
+			text3,
+		)
+		
+		w.SetContent(createLayout("Vectora Setup", content, nil, showStepLang, "Avançar >"))
+	}
+
+	// ---- PASSO 1.5: Idioma ----
+	showStepLang = func() {
 		langSelect := widget.NewSelect([]string{"English", "Português", "Español", "Français"}, nil)
 		switch i18n.GetCurrentLang() {
 		case "en": langSelect.SetSelected("English")
@@ -129,33 +169,27 @@ func main() {
 			case "Español": i18n.SetLanguage("es")
 			case "Français": i18n.SetLanguage("fr")
 			}
-			showStep1()
+			showStepLang()
 		}
 
-		btn := widget.NewButton(i18n.T("inst_btn_next"), func() {
-			showStepPath()
-		})
-
 		content := container.NewVBox(
-			welcome,
-			widget.NewLabel(""), 
-			widget.NewLabelWithStyle(i18n.T("inst_select_lang"), fyne.TextAlignCenter, fyne.TextStyle{}),
-			container.NewCenter(langSelect),
-			widget.NewLabel(""),
-			container.NewCenter(btn),
+			widget.NewLabel(i18n.T("inst_select_lang")),
+			langSelect,
 		)
-		w.SetContent(content)
+		
+		w.SetContent(createLayout("Linguagem Padrão", content, showStepWelcome, showStepPath, "Avançar >"))
 	}
 
+	// ---- PASSO 2: Diretório com Input Dark ----
 	showStepPath = func() {
-		title := widget.NewLabelWithStyle(i18n.T("inst_step_path"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
-		
 		home, _ := os.UserHomeDir()
-		defaultPath := filepath.Join(home, "AppData", "Local", "Programs", "Vectora")
-		installPath = defaultPath
+		defaultPath := filepath.Join(home, "AppData", "Local", "ZyrisRAG", "bin")
+		if installPath == "" {
+			installPath = defaultPath
+		}
 
 		pathEntry := widget.NewEntry()
-		pathEntry.SetText(defaultPath)
+		pathEntry.SetText(installPath)
 
 		btnFolder := widget.NewButton(i18n.T("inst_btn_browse"), func() {
 			dialog.ShowFolderOpen(func(lu fyne.ListableURI, err error) {
@@ -166,60 +200,47 @@ func main() {
 			}, w)
 		})
 
-		btnNext := widget.NewButton(i18n.T("inst_btn_next"), func() {
-			installPath = pathEntry.Text
-			showStep2() 
-		})
-
 		content := container.NewVBox(
-			title,
-			widget.NewLabel(""),
-			pathEntry,
-			btnFolder,
-			widget.NewLabel(""),
-			container.NewCenter(btnNext),
+			widget.NewLabel("Selecione a pasta onde os executáveis serão instalados:"),
+			container.NewBorder(nil, nil, nil, btnFolder, pathEntry),
+			widget.NewLabel("O instalador criará automaticamente o diretório caso\nele não exista."),
 		)
-		w.SetContent(content)
+		
+		nextCmd := func() {
+			installPath = pathEntry.Text
+			showStepEngine()
+		}
+
+		w.SetContent(createLayout("Local de Instalação", content, showStepLang, nextCmd, "Avançar >"))
 	}
 
-	showStep2 = func() {
-		title := widget.NewLabelWithStyle(i18n.T("inst_step_engine"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
-
+	// ---- PASSO 3: Seleção Motor ----
+	showStepEngine = func() {
 		radio := widget.NewRadioGroup([]string{
 			i18n.T("inst_desc_gemini"),
 			i18n.T("inst_desc_qwen"),
 		}, func(s string) {})
 		radio.SetSelected(i18n.T("inst_desc_gemini"))
 
-		btn := widget.NewButton(i18n.T("inst_btn_next"), func() {
-			showStep3()
-		})
-
-		content := container.NewVBox(
-			title,
-			widget.NewLabel(""),
-			radio,
-			widget.NewLabel(""),
-			container.NewCenter(btn),
-		)
-		w.SetContent(content)
+		content := container.NewVBox(widget.NewLabel("Defina qual Core fará o processamento local LLM:"), radio)
+		w.SetContent(createLayout("Motor Cognitivo", content, showStepPath, showStepInstall, "Avançar >"))
 	}
 
-	// ---- PASSO 3: Instalação & Engine Cópias e Atalhos ----
-	showStep3 = func() {
-		title := widget.NewLabelWithStyle("...", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+	// ---- PASSO 4: Barra de Instalação ----
+	showStepInstall = func() {
 		progress := widget.NewProgressBar()
 		progress.SetValue(0.0)
 		
-		btn := widget.NewButton(i18n.T("inst_btn_finish"), func() {
-			w.Close()
-		})
-		btn.Hide()
+		content := container.NewVBox(
+			widget.NewLabel("Desempacotando e escrevendo manifestos no Windows..."),
+			progress,
+		)
+		
+		// Construtura travada
+		wrapper := createLayout("Instalando...", content, nil, nil, "Finalizar")
+		w.SetContent(wrapper)
 
 		go func() {
-			title.SetText(i18n.T("inst_step_download"))
-			title.Refresh()
-			
 			for i := 0; i <= 20; i++ {
 				time.Sleep(time.Millisecond * 120)
 				progress.SetValue(float64(i) / 20.0)
@@ -227,39 +248,22 @@ func main() {
 			
 			os.MkdirAll(installPath, 0755)
 			srcApp, _ := os.Executable()
-			
-			// 1. Instala o Desinstalador copiando o instalador para o diretório de destino
 			copySysFile(srcApp, filepath.Join(installPath, "vectora-uninstaller.exe"))
 
-			// 2. Transfere o Daemon real (vectora.exe) se ele estiver ao lado do Installer local!
 			srcDaemon := filepath.Join(filepath.Dir(srcApp), "vectora.exe")
 			if _, err := os.Stat(srcDaemon); err == nil {
 				copySysFile(srcDaemon, filepath.Join(installPath, "vectora.exe"))
 			}
 
-			// 3. Cadastra o App formalmente para ele ganhar ícone e Start Menu Searches
 			registerWindowsApp(installPath)
 			createStartMenuShortcut(installPath)
 
 			progress.SetValue(1.0)
 			
-			doneTxt := i18n.T("inst_done")
-			if doneTxt == "inst_done" {
-				doneTxt = "Instalação Concluída com Sucesso!"
-			}
-			title.SetText(doneTxt)
-			btn.Show()
-			title.Refresh()
+			// Recria a UI finalizando com sucesso e ativando o Botão Sair
+			doneContent := container.NewVBox(widget.NewLabel("Ambiente construído fisicamente no seu Driver C:\\ com sucesso!"))
+			w.SetContent(createLayout("Sucesso", doneContent, nil, func(){ w.Close() }, "Encerrar"))
 		}()
-
-		content := container.NewVBox(
-			title,
-			widget.NewLabel(""),
-			progress,
-			widget.NewLabel(""),
-			container.NewCenter(btn),
-		)
-		w.SetContent(content)
 	}
 
 	if isUninstallMode {
@@ -267,14 +271,14 @@ func main() {
 		if existingPath != "" {
 			showUninstallProgress(existingPath)
 		} else {
-			// Se o registry falhar o path atual serve como safety net fallback
 			execPath, _ := os.Executable()
 			showUninstallProgress(filepath.Dir(execPath))
 		}
 	} else if existingPath := checkInstalledPath(); existingPath != "" {
 		showAlreadyInstalled(existingPath)
 	} else {
-		showStep1()
+		// Abre o Fluxo UI Tematizado
+		showStepWelcome()
 	}
 
 	w.ShowAndRun()
@@ -308,13 +312,10 @@ func registerWindowsApp(dst string) {
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, keyPath, registry.ALL_ACCESS)
 	if err == nil {
 		defer key.Close()
-		key.SetStringValue("DisplayName", "Vectora")
+		key.SetStringValue("DisplayName", "ZyrisRAG Engine")
 		key.SetStringValue("DisplayVersion", "1.0.0")
 		key.SetStringValue("Publisher", "Kaffyn")
-		
-		// Mapeando do vectora.exe instalado oficial
-		targetExe := filepath.Join(dst, "vectora.exe")
-		key.SetStringValue("DisplayIcon", targetExe)
+		key.SetStringValue("DisplayIcon", filepath.Join(dst, "vectora.exe"))
 		key.SetStringValue("UninstallString", filepath.Join(dst, "vectora-uninstaller.exe")+" --uninstall")
 		key.SetStringValue("InstallLocation", dst)
 	}
@@ -323,20 +324,15 @@ func registerWindowsApp(dst string) {
 func createStartMenuShortcut(installDir string) {
 	appData := os.Getenv("APPDATA")
 	if appData == "" { return }
-	
-	programsDir := filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Vectora")
+	programsDir := filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "ZyrisRAG")
 	os.MkdirAll(programsDir, 0755)
 
-	shortcutPath := filepath.Join(programsDir, "Vectora.lnk")
-	targetPath := filepath.Join(installDir, "vectora.exe")
-	
-	// OLE Automation wrapper invisível via PS pra criar Symlink Win32 sem sujar dependências CGO
 	script := `
 $wshell = New-Object -ComObject WScript.Shell
-$shortcut = $wshell.CreateShortcut("` + shortcutPath + `")
-$shortcut.TargetPath = "` + targetPath + `"
+$shortcut = $wshell.CreateShortcut("` + filepath.Join(programsDir, "ZyrisRAG.lnk") + `")
+$shortcut.TargetPath = "` + filepath.Join(installDir, "vectora.exe") + `"
 $shortcut.WorkingDirectory = "` + installDir + `"
-$shortcut.IconLocation = "` + targetPath + `,0"
+$shortcut.IconLocation = "` + filepath.Join(installDir, "vectora.exe") + `,0"
 $shortcut.Save()
 `
 	exec.Command("powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", script).Run()
@@ -345,6 +341,5 @@ $shortcut.Save()
 func removeStartMenuShortcut() {
 	appData := os.Getenv("APPDATA")
 	if appData == "" { return }
-	programsDir := filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Vectora")
-	os.RemoveAll(programsDir)
+	os.RemoveAll(filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "ZyrisRAG"))
 }
