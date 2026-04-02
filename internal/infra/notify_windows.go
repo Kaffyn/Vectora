@@ -5,28 +5,28 @@ package infra
 import (
 	"log"
 	"os"
-	"path/filepath"
 
-	"github.com/Kaffyn/vectora/assets"
 	"github.com/go-toast/toast"
 )
 
 func NotifyOS(title, message string) error {
-	// A API do Action Center do Windows exige o caminho físico em Disco (Absolute Path) para desenhar imagens.
-	// Como a nossa logo está imbutida na memória (Go Embed), nós extraimos pra folder temporário da CPU:
-	iconPath := filepath.Join(os.TempDir(), "vectora_logo.ico")
-	if _, err := os.Stat(iconPath); os.IsNotExist(err) {
-		os.WriteFile(iconPath, assets.IconData, 0644)
+	// Dica de Windows 11 UX:
+	// O campo "toast.Notification.Icon" desenha a imagem no CORPO GIGANTE da notificação (AppLogoOverride).
+	// Para forçar o ícone a ir para a parte esquerda superior (O Header do App), o AppID
+	// deve apontar diretamente pro binário físico `.exe` que contém o manifesto de ícone injetado pelo rsrc.
+	execPath, err := os.Executable()
+	if err != nil {
+		execPath = "Vectora"
 	}
 
 	notification := toast.Notification{
-		AppID:   "Vectora", // Removido texto (Kaffyn), adotado nominal base
+		AppID:   execPath, 
 		Title:   title,
 		Message: message,
-		Icon:    iconPath,
+		// Removido 'Icon' explícito para não flutuar o icone gigante fora do lugar.
 	}
 	
-	err := notification.Push()
+	err = notification.Push()
 	if err != nil {
 		log.Println("Win32 Toast Notification falhou na infraestrutura:", err)
 	}
