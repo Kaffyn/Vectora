@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -22,7 +23,6 @@ import (
 var installPath string
 
 func main() {
-	// Flag detector for Unified Manager Mode
 	isUninstallMode := false
 	if len(os.Args) >= 2 && os.Args[1] == "--uninstall" {
 		isUninstallMode = true
@@ -67,11 +67,13 @@ func main() {
 				progress.SetValue(float64(i) / 20.0)
 			}
 			
-			// Remoção Categórica do Regedit e Binários
 			registry.DeleteKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`)
 			
 			daemonPath := filepath.Join(existingPath, "vectora.exe")
 			os.Remove(daemonPath)
+			
+			// Deleta o Ícone do Menu Iniciar!
+			removeStartMenuShortcut()
 			
 			progress.SetValue(1.0)
 			title.SetText("Successfully uninstalled / Desinstalado com sucesso.")
@@ -94,7 +96,6 @@ func main() {
 		lbl := widget.NewLabelWithStyle(i18n.T("inst_already"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 		
 		btnUninstall := widget.NewButton(i18n.T("inst_btn_uninstall"), func() {
-			// Encaminha UI local pra janela de progressão unificada
 			showUninstallProgress(existingPath)
 		})
 		
@@ -111,10 +112,8 @@ func main() {
 		w.SetContent(content)
 	}
 
-	// ---- PASSO 1: Boas Vindas & Idioma ----
 	showStep1 = func() {
 		welcome := widget.NewLabelWithStyle(i18n.T("inst_welcome"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
-		
 		langSelect := widget.NewSelect([]string{"English", "Português", "Español", "Français"}, nil)
 		switch i18n.GetCurrentLang() {
 		case "en": langSelect.SetSelected("English")
@@ -148,7 +147,6 @@ func main() {
 		w.SetContent(content)
 	}
 
-	// ---- PASSO 1.5: Seleção de Diretório ----
 	showStepPath = func() {
 		title := widget.NewLabelWithStyle(i18n.T("inst_step_path"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 		
@@ -184,7 +182,6 @@ func main() {
 		w.SetContent(content)
 	}
 
-	// ---- PASSO 2: Seleção de Provedor IA ----
 	showStep2 = func() {
 		title := widget.NewLabelWithStyle(i18n.T("inst_step_engine"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 
@@ -208,7 +205,7 @@ func main() {
 		w.SetContent(content)
 	}
 
-	// ---- PASSO 3: Instalação & Escrita no Registro (App do Sistema) ----
+	// ---- PASSO 3: Instalação & Engine Cópias e Atalhos ----
 	showStep3 = func() {
 		title := widget.NewLabelWithStyle("...", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 		progress := widget.NewProgressBar()
@@ -228,12 +225,22 @@ func main() {
 				progress.SetValue(float64(i) / 20.0)
 			}
 			
-			// Autoclonagem do Instalador como Desinstalador Autorizado na pasta final
 			os.MkdirAll(installPath, 0755)
 			srcApp, _ := os.Executable()
+			
+			// 1. Instala o Desinstalador copiando o instalador para o diretório de destino
 			copySysFile(srcApp, filepath.Join(installPath, "vectora-uninstaller.exe"))
 
+			// 2. Transfere o Daemon real (vectora.exe) se ele estiver ao lado do Installer local!
+			srcDaemon := filepath.Join(filepath.Dir(srcApp), "vectora.exe")
+			if _, err := os.Stat(srcDaemon); err == nil {
+				copySysFile(srcDaemon, filepath.Join(installPath, "vectora.exe"))
+			}
+
+			// 3. Cadastra o App formalmente para ele ganhar ícone e Start Menu Searches
 			registerWindowsApp(installPath)
+			createStartMenuShortcut(installPath)
+
 			progress.SetValue(1.0)
 			
 			doneTxt := i18n.T("inst_done")
@@ -257,7 +264,13 @@ func main() {
 
 	if isUninstallMode {
 		existingPath := checkInstalledPath()
-		showUninstallProgress(existingPath)
+		if existingPath != "" {
+			showUninstallProgress(existingPath)
+		} else {
+			// Se o registry falhar o path atual serve como safety net fallback
+			execPath, _ := os.Executable()
+			showUninstallProgress(filepath.Dir(execPath))
+		}
 	} else if existingPath := checkInstalledPath(); existingPath != "" {
 		showAlreadyInstalled(existingPath)
 	} else {
@@ -267,7 +280,6 @@ func main() {
 	w.ShowAndRun()
 }
 
-// Utilitario para replicar o wizard visual na pasta host pro Add/Remove
 func copySysFile(src, dst string) {
 	in, err := os.Open(src)
 	if err != nil { return }
@@ -299,10 +311,40 @@ func registerWindowsApp(dst string) {
 		key.SetStringValue("DisplayName", "Vectora")
 		key.SetStringValue("DisplayVersion", "1.0.0")
 		key.SetStringValue("Publisher", "Kaffyn")
-		key.SetStringValue("DisplayIcon", filepath.Join(dst, "vectora.exe"))
 		
-		// O painel do Windows agora lançará o instalador unificado com a flag
+		// Mapeando do vectora.exe instalado oficial
+		targetExe := filepath.Join(dst, "vectora.exe")
+		key.SetStringValue("DisplayIcon", targetExe)
 		key.SetStringValue("UninstallString", filepath.Join(dst, "vectora-uninstaller.exe")+" --uninstall")
 		key.SetStringValue("InstallLocation", dst)
 	}
+}
+
+func createStartMenuShortcut(installDir string) {
+	appData := os.Getenv("APPDATA")
+	if appData == "" { return }
+	
+	programsDir := filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Vectora")
+	os.MkdirAll(programsDir, 0755)
+
+	shortcutPath := filepath.Join(programsDir, "Vectora.lnk")
+	targetPath := filepath.Join(installDir, "vectora.exe")
+	
+	// OLE Automation wrapper invisível via PS pra criar Symlink Win32 sem sujar dependências CGO
+	script := `
+$wshell = New-Object -ComObject WScript.Shell
+$shortcut = $wshell.CreateShortcut("` + shortcutPath + `")
+$shortcut.TargetPath = "` + targetPath + `"
+$shortcut.WorkingDirectory = "` + installDir + `"
+$shortcut.IconLocation = "` + targetPath + `,0"
+$shortcut.Save()
+`
+	exec.Command("powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", script).Run()
+}
+
+func removeStartMenuShortcut() {
+	appData := os.Getenv("APPDATA")
+	if appData == "" { return }
+	programsDir := filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Vectora")
+	os.RemoveAll(programsDir)
 }
