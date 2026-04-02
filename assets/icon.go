@@ -2,30 +2,45 @@ package assets
 
 import (
 	"bytes"
+	_ "embed"
 	"image"
-	"image/color"
 	"image/png"
+	"log"
+
+	"github.com/srwiley/oksvg"
+	"github.com/srwiley/rasterx"
 )
+
+//go:embed logo.svg
+var logoSVG []byte
 
 var IconData []byte
 
 func init() {
-	// Cria uma imagem em memória de 16x16 pixels para injetar no tray
-	img := image.NewRGBA(image.Rect(0, 0, 16, 16))
-	blue := color.RGBA{R: 0, G: 122, B: 255, A: 255}
+	// 1. Decodifica o SVG do embed byte array
+	icon, err := oksvg.ReadIconStream(bytes.NewReader(logoSVG))
+	if err != nil {
+		log.Fatalf("Falha crítica ao ler VECTORA logo SVG incorporado: %v", err)
+	}
+
+	// 2. Traça o alvo na dimensão ideal, re-escalando o desenho do vetor pra 64x64 pixels do Systray
+	w, h := int(icon.ViewBox.W), int(icon.ViewBox.H)
+	icon.SetTarget(0, 0, float64(64), float64(64))
+
+	// 3. Renderiza o SVG vetorizado nativamente numa Matrix RGBA nova em RAM
+	rgba := image.NewRGBA(image.Rect(0, 0, 64, 64))
 	
-	for x := 0; x < 16; x++ {
-		for y := 0; y < 16; y++ {
-			// Desenha um círculo azul (raio = 8)
-			dx := x - 8
-			dy := y - 8
-			if dx*dx+dy*dy <= 64 {
-				img.Set(x, y, blue)
-			}
-		}
+	// Utiliza o scanner de software do Rasterx para desenhar na nossa Matrix Go pura
+	scanner := rasterx.NewScannerGV(w, h, rgba, rgba.Bounds())
+	dasher := rasterx.NewDasher(w, h, scanner)
+	icon.Draw(dasher, 1)
+
+	// 4. Codifica a Image construida pra byte buffer padrão de array com PNG format type (suportado pelo Windows native shell handle)
+	var buf bytes.Buffer
+	err = png.Encode(&buf, rgba)
+	if err != nil {
+		log.Fatalf("Falha ao codificar PNG array final da logo SVG: %v", err)
 	}
 	
-	var buf bytes.Buffer
-	png.Encode(&buf, img)
 	IconData = buf.Bytes()
 }
