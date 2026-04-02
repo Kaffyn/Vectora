@@ -134,9 +134,6 @@ Ao operar em modo MCP ou ACP, o Vectora expõe um conjunto compartilhado de ferr
 - **Sistema:** `run_shell_command`
 - **Memória:** `save_memory`, `enter_plan_mode`
 
-> [!IMPORTANT]
-> Toda ação de escrita ou execução de shell aciona um snapshot Git automático via `GitBridge` antes da execução. Qualquer ação agêntica pode ser completamente revertida com um único comando `undo`.
-
 ---
 
 ## Arquitetura
