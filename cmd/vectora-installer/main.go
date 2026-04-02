@@ -1,13 +1,12 @@
 package main
 
 import (
+	"image/color"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
-	"image/color"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -19,8 +18,8 @@ import (
 
 	"github.com/Kaffyn/vectora/assets"
 	"github.com/Kaffyn/vectora/internal/i18n"
+	vecos "github.com/Kaffyn/vectora/internal/os"
 	"github.com/jeandeaual/go-locale"
-	"golang.org/x/sys/windows/registry"
 )
 
 var installPath string
@@ -75,6 +74,13 @@ func main() {
 	w.Resize(fyne.NewSize(620, 480))
 	w.SetIcon(fyne.NewStaticResource("logo", assets.IconData))
 
+	// ---- INITIALIZA OS-Level CROSS PLATFORM FAÇADE ----
+	systemManager, err := vecos.NewManager()
+	if err != nil {
+		dialog.ShowError(err, w)
+		return
+	}
+
 	userLoc, err := locale.GetLanguage()
 	if err == nil {
 		if strings.HasPrefix(userLoc, "pt") {
@@ -112,9 +118,11 @@ func main() {
 				progress.SetValue(float64(i) / 20.0)
 			}
 			
-			registry.DeleteKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`)
-			os.Remove(filepath.Join(existingPath, "vectora.exe"))
-			removeStartMenuShortcut()
+			// Cross-Platform OS System Cleaning
+			systemManager.UnregisterApp(existingPath)
+			daemonBin := "vectora"
+			if filepath.VolumeName(existingPath) != "" { daemonBin = "vectora.exe" }
+			os.Remove(filepath.Join(existingPath, daemonBin))
 			
 			progress.SetValue(1.0)
 			
@@ -176,8 +184,7 @@ func main() {
 	}
 
 	showStepPath = func() {
-		home, _ := os.UserHomeDir()
-		defaultPath := filepath.Join(home, "AppData", "Local", "Programs", "Vectora")
+		defaultPath, _ := systemManager.GetAppDataDir()
 		if installPath == "" {
 			installPath = defaultPath
 		}
@@ -239,32 +246,41 @@ func main() {
 			
 			os.MkdirAll(installPath, 0755)
 			srcApp, _ := os.Executable()
-			copySysFile(srcApp, filepath.Join(installPath, "vectora-uninstaller.exe"))
+			
+			// Resolução de nomes para compatibilidade Windows vs Unix Extension
+			uninstallerName := "vectora-uninstaller"
+			daemonName := "vectora"
+			if filepath.VolumeName(installPath) != "" { 
+				uninstallerName += ".exe"
+				daemonName += ".exe"
+			}
+			
+			copySysFile(srcApp, filepath.Join(installPath, uninstallerName))
 
-			srcDaemon := filepath.Join(filepath.Dir(srcApp), "vectora.exe")
+			srcDaemon := filepath.Join(filepath.Dir(srcApp), daemonName)
 			if _, err := os.Stat(srcDaemon); err == nil {
-				copySysFile(srcDaemon, filepath.Join(installPath, "vectora.exe"))
+				copySysFile(srcDaemon, filepath.Join(installPath, daemonName))
 			}
 
-			registerWindowsApp(installPath)
-			createStartMenuShortcut(installPath)
+			// OS-Level Native Registration
+			systemManager.RegisterApp(installPath)
 
 			progress.SetValue(1.0)
-			
-			doneContent := container.NewVBox(widget.NewLabel("Ambiente construído fisicamente no seu Driver C:\\ com sucesso!"))
+			doneContent := container.NewVBox(widget.NewLabel("Ambiente construído fisicamente no seu Hard Drive com sucesso!"))
 			w.SetContent(createLayout("Sucesso", doneContent, nil, func(){ w.Close() }, "Encerrar"))
 		}()
 	}
 
+	// Application Booting Logic
 	if isUninstallMode {
-		existingPath := checkInstalledPath()
+		existingPath := systemManager.IsInstalled()
 		if existingPath != "" {
 			showUninstallProgress(existingPath)
 		} else {
 			execPath, _ := os.Executable()
 			showUninstallProgress(filepath.Dir(execPath))
 		}
-	} else if existingPath := checkInstalledPath(); existingPath != "" {
+	} else if existingPath := systemManager.IsInstalled(); existingPath != "" {
 		showAlreadyInstalled(existingPath)
 	} else {
 		showStepWelcome()
@@ -281,54 +297,4 @@ func copySysFile(src, dst string) {
 	if err != nil { return }
 	defer out.Close()
 	io.Copy(out, in)
-}
-
-func checkInstalledPath() string {
-	keyPath := `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`
-	key, err := registry.OpenKey(registry.CURRENT_USER, keyPath, registry.QUERY_VALUE)
-	if err == nil {
-		defer key.Close()
-		val, _, err := key.GetStringValue("InstallLocation")
-		if err == nil && val != "" {
-			return val
-		}
-	}
-	return ""
-}
-
-func registerWindowsApp(dst string) {
-	keyPath := `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`
-	key, _, err := registry.CreateKey(registry.CURRENT_USER, keyPath, registry.ALL_ACCESS)
-	if err == nil {
-		defer key.Close()
-		key.SetStringValue("DisplayName", "Vectora")
-		key.SetStringValue("DisplayVersion", "1.0.0")
-		key.SetStringValue("Publisher", "Kaffyn")
-		key.SetStringValue("DisplayIcon", filepath.Join(dst, "vectora.exe"))
-		key.SetStringValue("UninstallString", filepath.Join(dst, "vectora-uninstaller.exe")+" --uninstall")
-		key.SetStringValue("InstallLocation", dst)
-	}
-}
-
-func createStartMenuShortcut(installDir string) {
-	appData := os.Getenv("APPDATA")
-	if appData == "" { return }
-	programsDir := filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Vectora")
-	os.MkdirAll(programsDir, 0755)
-
-	script := `
-$wshell = New-Object -ComObject WScript.Shell
-$shortcut = $wshell.CreateShortcut("` + filepath.Join(programsDir, "Vectora.lnk") + `")
-$shortcut.TargetPath = "` + filepath.Join(installDir, "vectora.exe") + `"
-$shortcut.WorkingDirectory = "` + installDir + `"
-$shortcut.IconLocation = "` + filepath.Join(installDir, "vectora.exe") + `,0"
-$shortcut.Save()
-`
-	exec.Command("powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", script).Run()
-}
-
-func removeStartMenuShortcut() {
-	appData := os.Getenv("APPDATA")
-	if appData == "" { return }
-	os.RemoveAll(filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Vectora"))
 }

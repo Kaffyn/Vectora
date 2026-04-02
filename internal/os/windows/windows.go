@@ -3,11 +3,15 @@
 package windows
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"syscall"
+
+	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
 type WindowsManager struct {
@@ -26,7 +30,6 @@ func (m *WindowsManager) GetAppDataDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// Diretório Nativo exigido e estabelecido pelo OS Windows p/ Programas portáteis de Usuário
 	return filepath.Join(home, "AppData", "Local", "Programs", "Vectora"), nil
 }
 
@@ -39,11 +42,7 @@ func (m *WindowsManager) StartLlamaEngine(modelPath string, port int) error {
 	}
 
 	binaryPath := filepath.Join(baseDir, "llama-server.exe")
-
-	// Prepara a infraestrutura de GPU local (Vulkan/CUDA genérico para Win32 compilado).
 	m.cmd = exec.Command(binaryPath, "-m", modelPath, "--port", fmt.Sprintf("%d", port), "-ngl", "99")
-
-	// Syscall brutal para Windows: CREATE_NO_WINDOW proibe abrir aquele terminal feio e pop-up preto do cmd.
 	m.cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
 
 	err = m.cmd.Start()
@@ -53,8 +52,6 @@ func (m *WindowsManager) StartLlamaEngine(modelPath string, port int) error {
 	}
 
 	m.state = "RUNNING"
-	
-	// Cadeira auxiliar de Vigia de Morte do Processo (Evita Zumbis caso crashe).
 	go func() {
 		m.cmd.Wait()
 		m.state = "STOPPED"
@@ -75,4 +72,65 @@ func (m *WindowsManager) StopLlamaEngine() error {
 
 func (m *WindowsManager) GetEngineState() string {
 	return m.state
+}
+
+// ==== EXTENSÕES DE REGISTRO E SINGLETON ====
+
+func (m *WindowsManager) IsInstalled() string {
+	keyPath := `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`
+	key, err := registry.OpenKey(registry.CURRENT_USER, keyPath, registry.QUERY_VALUE)
+	if err == nil {
+		defer key.Close()
+		val, _, err := key.GetStringValue("InstallLocation")
+		if err == nil && val != "" {
+			return val
+		}
+	}
+	return ""
+}
+
+func (m *WindowsManager) RegisterApp(installDir string) {
+	keyPath := `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`
+	key, _, err := registry.CreateKey(registry.CURRENT_USER, keyPath, registry.ALL_ACCESS)
+	if err == nil {
+		defer key.Close()
+		key.SetStringValue("DisplayName", "Vectora")
+		key.SetStringValue("DisplayVersion", "1.0.0")
+		key.SetStringValue("Publisher", "Kaffyn")
+		key.SetStringValue("DisplayIcon", filepath.Join(installDir, "vectora.exe"))
+		key.SetStringValue("UninstallString", filepath.Join(installDir, "vectora-uninstaller.exe")+" --uninstall")
+		key.SetStringValue("InstallLocation", installDir)
+	}
+
+	appData := os.Getenv("APPDATA")
+	if appData != "" {
+		programsDir := filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Vectora")
+		os.MkdirAll(programsDir, 0755)
+		script := `
+$wshell = New-Object -ComObject WScript.Shell
+$shortcut = $wshell.CreateShortcut("` + filepath.Join(programsDir, "Vectora.lnk") + `")
+$shortcut.TargetPath = "` + filepath.Join(installDir, "vectora.exe") + `"
+$shortcut.WorkingDirectory = "` + installDir + `"
+$shortcut.IconLocation = "` + filepath.Join(installDir, "vectora.exe") + `,0"
+$shortcut.Save()
+`
+		exec.Command("powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", script).Run()
+	}
+}
+
+func (m *WindowsManager) UnregisterApp(installDir string) {
+	registry.DeleteKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`)
+	appData := os.Getenv("APPDATA")
+	if appData != "" {
+		os.RemoveAll(filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Vectora"))
+	}
+}
+
+func (m *WindowsManager) EnforceSingleInstance() error {
+	mutexName, _ := windows.UTF16PtrFromString("Global\\VectoraDaemonMutex_v1")
+	_, err := windows.CreateMutex(nil, false, mutexName)
+	if err == windows.ERROR_ALREADY_EXISTS {
+		return errors.New("instance_already_running")
+	}
+	return nil
 }

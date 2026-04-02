@@ -3,7 +3,9 @@
 package linux
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +14,7 @@ import (
 type LinuxManager struct {
 	cmd   *exec.Cmd
 	state string
+	portListener net.Listener
 }
 
 func NewManager() *LinuxManager {
@@ -23,7 +26,6 @@ func (m *LinuxManager) GetAppDataDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// Freedesktop.org Padrões FHS estritos para software invisível de usuário-espaço.
 	return filepath.Join(home, ".local", "share", "Vectora"), nil
 }
 
@@ -36,8 +38,6 @@ func (m *LinuxManager) StartLlamaEngine(modelPath string, port int) error {
 	}
 
 	binaryPath := filepath.Join(baseDir, "llama-server")
-
-	// Puxa dependências nativas Vulkan / System Libraries em Linux Host para LLM off-load pesado.
 	m.cmd = exec.Command(binaryPath, "-m", modelPath, "--port", fmt.Sprintf("%d", port), "-ngl", "99")
 
 	err = m.cmd.Start()
@@ -67,4 +67,48 @@ func (m *LinuxManager) StopLlamaEngine() error {
 
 func (m *LinuxManager) GetEngineState() string {
 	return m.state
+}
+
+// ==== EXTENSÕES DE REGISTRO E O.S FILES LINUX ====
+
+func (m *LinuxManager) IsInstalled() string {
+	home, _ := os.UserHomeDir()
+	desktopFile := filepath.Join(home, ".local", "share", "applications", "vectora.desktop")
+	if _, err := os.Stat(desktopFile); err == nil {
+		p, _ := m.GetAppDataDir()
+		return p
+	}
+	return ""
+}
+
+func (m *LinuxManager) RegisterApp(installDir string) {
+	os.MkdirAll(installDir, 0755)
+	
+	desktopContent := `[Desktop Entry]
+Name=Vectora
+Exec=` + filepath.Join(installDir, "vectora") + `
+Icon=vectora
+Type=Application
+Categories=Utility;
+Terminal=false`
+
+	home, _ := os.UserHomeDir()
+	desktopDir := filepath.Join(home, ".local", "share", "applications")
+	os.MkdirAll(desktopDir, 0755)
+	os.WriteFile(filepath.Join(desktopDir, "vectora.desktop"), []byte(desktopContent), 0644)
+}
+
+func (m *LinuxManager) UnregisterApp(installDir string) {
+	home, _ := os.UserHomeDir()
+	os.Remove(filepath.Join(home, ".local", "share", "applications", "vectora.desktop"))
+}
+
+// Adota Socket Binding mudo para Single-Instance System-wide Lock
+func (m *LinuxManager) EnforceSingleInstance() error {
+	l, err := net.Listen("tcp", "127.0.0.1:41785")
+	if err != nil {
+		return errors.New("instance_already_running")
+	}
+	m.portListener = l
+	return nil
 }

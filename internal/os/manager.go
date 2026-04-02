@@ -18,15 +18,22 @@ const (
 	EngineError    EngineState = "ERROR"
 )
 
-// OSManager consolida as funções vitais de ciclo de vida que o Daemon master requisitará.
+// OSManager encapsula interações Nativas do Kernel Host para que Daemon e Instalador sejam universais.
 type OSManager interface {
 	GetAppDataDir() (string, error)
 	StartLlamaEngine(modelPath string, port int) error
 	StopLlamaEngine() error
 	GetEngineState() string
+
+	// Sistema de Registro do Installer Level
+	IsInstalled() string
+	RegisterApp(installDir string)
+	UnregisterApp(installDir string)
+	
+	// Prevenção de Concorrência
+	EnforceSingleInstance() error
 }
 
-// NewManager cria a instância acoplada dinamicamente ao ambiente físico de execução (Linux, Mac, Win).
 func NewManager() (OSManager, error) {
 	switch runtime.GOOS {
 	case "windows":
@@ -36,6 +43,6 @@ func NewManager() (OSManager, error) {
 	case "linux":
 		return lin.NewManager(), nil
 	default:
-		return nil, fmt.Errorf("unsupported operating system environment: %s -> cross platform bindings unavailable", runtime.GOOS)
+		return nil, fmt.Errorf("unsupported operating system environment: %s", runtime.GOOS)
 	}
 }

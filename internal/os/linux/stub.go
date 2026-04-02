@@ -11,3 +11,7 @@ func (m *LinuxManager) GetAppDataDir() (string, error) { return "", errors.New("
 func (m *LinuxManager) StartLlamaEngine(string, int) error { return errors.New("inválido") }
 func (m *LinuxManager) StopLlamaEngine() error { return errors.New("inválido") }
 func (m *LinuxManager) GetEngineState() string { return "ERROR" }
+func (m *LinuxManager) IsInstalled() string { return "" }
+func (m *LinuxManager) RegisterApp(string) {}
+func (m *LinuxManager) UnregisterApp(string) {}
+func (m *LinuxManager) EnforceSingleInstance() error { return errors.New("inválido") }
