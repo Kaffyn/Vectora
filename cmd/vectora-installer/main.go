@@ -1,13 +1,17 @@
 package main
 
 import (
+	"strings"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+
+	"github.com/Kaffyn/vectora/assets"
 	"github.com/Kaffyn/vectora/internal/i18n"
+	"github.com/jeandeaual/go-locale"
 )
 
 func main() {
@@ -15,8 +19,25 @@ func main() {
 	w := a.NewWindow("Vectora Installer")
 	w.Resize(fyne.NewSize(600, 350))
 
-	// Idioma default OS inferido, mantendo fixo em PT por hora
-	i18n.SetLanguage("pt")
+	// Associa o resource icone compativel à Window Tool do Fyne (Para Desktop Taskbar e Window Chrome)
+	w.SetIcon(fyne.NewStaticResource("logo", assets.IconData))
+
+	// Define idioma pautado na API Nativa do S.O (Windows GetSystemDefaultUILanguage ou registry)
+	userLoc, err := locale.GetLanguage()
+	if err == nil {
+		if strings.HasPrefix(userLoc, "pt") {
+			i18n.SetLanguage("pt")
+		} else if strings.HasPrefix(userLoc, "es") {
+			i18n.SetLanguage("es")
+		} else if strings.HasPrefix(userLoc, "fr") {
+			i18n.SetLanguage("fr")
+		} else {
+			i18n.SetLanguage("en")
+		}
+	} else {
+		// Fallback internacional seguro
+		i18n.SetLanguage("en")
+	}
 
 	var showStep1, showStep2, showStep3 func()
 
@@ -26,7 +47,6 @@ func main() {
 		
 		langSelect := widget.NewSelect([]string{"English", "Português", "Español", "Français"}, nil)
 		
-		// Set current selection base (before assigning hook to prevent infinite loop)
 		switch i18n.GetCurrentLang() {
 		case "en": langSelect.SetSelected("English")
 		case "pt": langSelect.SetSelected("Português")
@@ -41,7 +61,7 @@ func main() {
 			case "Español": i18n.SetLanguage("es")
 			case "Français": i18n.SetLanguage("fr")
 			}
-			showStep1() // Reemite a view pra renderizar traduções vivas
+			showStep1()
 		}
 
 		btn := widget.NewButton(i18n.T("inst_btn_next"), func() {
@@ -51,7 +71,7 @@ func main() {
 		content := container.NewVBox(
 			welcome,
 			widget.NewLabel(""), // Spacer
-			widget.NewLabelWithStyle("Select Installation Language:", fyne.TextAlignCenter, fyne.TextStyle{}),
+			widget.NewLabelWithStyle(i18n.T("inst_select_lang"), fyne.TextAlignCenter, fyne.TextStyle{}),
 			container.NewCenter(langSelect),
 			widget.NewLabel(""), // Spacer
 			container.NewCenter(btn),
@@ -90,14 +110,14 @@ func main() {
 		
 		go func() {
 			for i := 0.0; i <= 1.0; i += 0.05 {
-				time.Sleep(time.Millisecond * 120) // Mocking real download delay
+				time.Sleep(time.Millisecond * 120)
 				progress.SetValue(i)
 			}
-			title.SetText("Instalação Concluída e Daemon Configurado! / Done!")
+			title.SetText(i18n.T("inst_done"))
 		}()
 
 		btn := widget.NewButton(i18n.T("inst_btn_finish"), func() {
-			w.Close() // Fecha e finaliza pipeline, acionando shell pro Daemon subir normal
+			w.Close()
 		})
 
 		content := container.NewVBox(
@@ -110,7 +130,6 @@ func main() {
 		w.SetContent(content)
 	}
 
-	// Lança pipeline
 	showStep1()
 	w.ShowAndRun()
 }
