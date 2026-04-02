@@ -2,11 +2,15 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
+	"strings"
+	"time"
 	"path/filepath"
 	"runtime"
 
+	"github.com/Kaffyn/vectora/internal/core"
 	"github.com/Kaffyn/vectora/internal/db"
 	"github.com/Kaffyn/vectora/internal/infra"
 	"github.com/Kaffyn/vectora/internal/ipc"
@@ -16,10 +20,27 @@ import (
 )
 
 func main() {
-	// CLI Flags & Mode handling
-	for _, arg := range os.Args {
-		if arg == "--tests" {
+	// [NOVO] CLI / Mode Handling
+	// Se houver argumentos, processamos como comandos ou testes.
+	if len(os.Args) > 1 {
+		arg := os.Args[1]
+		switch {
+		case arg == "--tests":
+			// Inicia o Tray em background e roda os testes integrados
+			go func() {
+				defer func() { recover() }() // Evita panic se fechar rápido demais
+				tray.Setup()
+			}()
+			time.Sleep(1 * time.Second)
 			runSystemIntegrityTests()
+			return
+		case arg == "--query" && len(os.Args) > 2:
+			// Modo API direta via terminal (Vectora --query "pergunta")
+			runDirectQuery(os.Args[2])
+			return
+		case !strings.HasPrefix(arg, "-"):
+			// Fallback: se passar texto direto, assume query
+			runDirectQuery(strings.Join(os.Args[1:], " "))
 			return
 		}
 	}
@@ -70,7 +91,7 @@ func main() {
 		})
 		
 		go ipcServer.Start()
-		defer ipcServer.Shutdown()
+		// O Shutdown será gerenciado pelo process cycle/os signal
 	}
 
 	// 5. Notificação OS visual para Feedback de Inicialização rápida
@@ -123,5 +144,42 @@ func runSystemIntegrityTests() {
 
 	log.Println("====================================")
 	log.Println("ALL CORE SYSTEMS OPERATIONAL (100%)")
+	
+	// Aguarda um pouco antes de fechar para garantir que o tray inicializou se foi pedido
+	time.Sleep(2 * time.Second)
+	log.Println("Closing tests...")
+}
+
+// runDirectQuery executa uma pergunta via terminal, usando o provedor Gemini padrão (ou configurado)
+func runDirectQuery(query string) {
+	fmt.Printf("🔍 Vectora Query: %s\n", query)
+	
+	infra.SetupLogger()
+	cfg := infra.LoadConfig()
+	if cfg.GeminiAPIKey == "" {
+		fmt.Println("[ERRO] Chave Gemini não configurada. Use o Tray para configurar ou adicione ao .env")
+		return
+	}
+
+	ctx := context.Background()
+	kvStore, _ := db.NewKVStore()
+	vecStore, _ := db.NewVectorStore()
+	
+	prov, err := llm.NewGeminiProvider(ctx, cfg.GeminiAPIKey)
+	if err != nil {
+		fmt.Printf("[ERRO] Falha ao iniciar provedor: %v\n", err)
+		return
+	}
+
+	pipeline := core.NewPipeline(prov, vecStore, kvStore)
+	res, err := pipeline.Query(ctx, core.QueryRequest{
+		Query: query,
+	})
+	if err != nil {
+		fmt.Printf("[ERRO] Falha na execução: %v\n", err)
+		return
+	}
+
+	fmt.Printf("\n🤖 Resposta:\n%s\n", res.Answer)
 }
 

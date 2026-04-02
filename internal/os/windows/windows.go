@@ -40,7 +40,7 @@ func (m *WindowsManager) GetInstallDir() (string, error) {
 	if progFiles == "" {
 		progFiles = `C:\Program Files`
 	}
-	return filepath.Join(progFiles, "Kaffyn", "Vectora"), nil
+	return filepath.Join(progFiles, "Vectora"), nil
 }
 
 func (m *WindowsManager) StartLlamaEngine(modelPath string, port int) error {
@@ -117,12 +117,12 @@ func (m *WindowsManager) RegisterApp(installDir string) {
 		programsDir := filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Vectora")
 		os.MkdirAll(programsDir, 0755)
 		script := `
-$wshell = New-Object -ComObject WScript.Shell
-$shortcut = $wshell.CreateShortcut("` + filepath.Join(programsDir, "Vectora.lnk") + `")
-$shortcut.TargetPath = "` + filepath.Join(installDir, "vectora.exe") + `"
-$shortcut.WorkingDirectory = "` + installDir + `"
-$shortcut.IconLocation = "` + filepath.Join(installDir, "vectora.exe") + `,0"
-$shortcut.Save()
+$WShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WShell.CreateShortcut("` + filepath.Join(programsDir, "Vectora.lnk") + `")
+$Shortcut.TargetPath = "` + filepath.Join(installDir, "vectora.exe") + `"
+$Shortcut.WorkingDirectory = "` + installDir + `"
+$Shortcut.IconLocation = "` + filepath.Join(installDir, "vectora.exe") + `,0"
+$Shortcut.Save()
 `
 		exec.Command("powershell", "-NoProfile", "-WindowStyle", "Hidden", "-Command", script).Run()
 	}

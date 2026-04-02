@@ -137,16 +137,16 @@ func main() {
 	}
 
 	showStepWelcome = func() {
-		text1 := widget.NewLabel("Bem-vindo(a) ao Assistente de Instalação do Vectora.")
+		text1 := widget.NewLabel(i18n.T("inst_welcome"))
 		text2 := widget.NewLabel("Este assistente ajudará você a configurar o ambiente de IA\nno seu sistema local.")
-		text3 := widget.NewLabel("Clique em Avançar para continuar.")
+		text3 := widget.NewLabel("Clique em " + i18n.T("inst_btn_next") + " para continuar.")
 
 		content := container.NewVBox(
 			text1, widget.NewLabel(""),
 			text2, widget.NewLabel(""), widget.NewLabel(""),
 			text3,
 		)
-		w.SetContent(createLayout("Vectora Setup", content, nil, showStepLang, "Avançar >"))
+		w.SetContent(createLayout("Vectora Setup", content, nil, showStepLang, i18n.T("inst_btn_next")+" >"))
 	}
 
 	showStepLang = func() {
