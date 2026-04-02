@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 
@@ -62,12 +63,26 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 		content = append(content, llms.TextParts(role, msg.Content))
 	}
 
+	var langchanTools []llms.Tool
+	for _, t := range req.Tools {
+		langchanTools = append(langchanTools, llms.Tool{
+			Type: "function",
+			Function: &llms.FunctionDefinition{
+				Name:        t.Name,
+				Description: t.Description,
+				Parameters:  json.RawMessage(t.Schema),
+			},
+		})
+	}
+
 	opts := []llms.CallOption{
 		llms.WithMaxTokens(req.MaxTokens),
 		llms.WithTemperature(float64(req.Temperature)),
 	}
-
-	// TODO: Fazer parse de Tools (req.Tools) em llms.Tool conforme a interface langchaingo
+	
+	if len(langchanTools) > 0 {
+		opts = append(opts, llms.WithTools(langchanTools))
+	}
 	
 	resp, err := p.client.GenerateContent(ctx, content, opts...)
 	if err != nil {
@@ -81,12 +96,20 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 
 	choice := resp.Choices[0]
 	
-	// TODO: Mapear ToolCalls geradas (choice.ToolCalls) na response
+	var tCalls []ToolCall
+	for _, lcTc := range choice.ToolCalls {
+		tCalls = append(tCalls, ToolCall{
+			ID:   lcTc.ID,
+			Name: lcTc.FunctionCall.Name,
+			Args: lcTc.FunctionCall.Arguments,
+		})
+	}
 	
 	return CompletionResponse{
-		Content: choice.Content,
+		Content:   choice.Content,
+		ToolCalls: tCalls,
 		Usage: TokenUsage{
-			// TODO: googleai metrics se fornecidas
+			// langchaingo ainda não exporta global token usage unificado, mocked out.
 		},
 	}, nil
 }

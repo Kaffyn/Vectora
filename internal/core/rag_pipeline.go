@@ -74,6 +74,15 @@ func (p *Pipeline) Query(ctx context.Context, req QueryRequest) (QueryResponse, 
 	// 5. Prepara Completude Agêntica
 	sysPrompt := "Você é o assistente IA Vectora. Auxilie na inferência e desenvolvimento local usando os Arquivos Abaixo:\n\n" + contextText + "\n[Preferências]\n" + userPrefs
 
+	var toolkit []llm.ToolDefinition
+	for _, tMatch := range p.Agent.Registry.GetAll() {
+		toolkit = append(toolkit, llm.ToolDefinition{
+			Name:        tMatch.Name(),
+			Description: tMatch.Description(),
+			Schema:      tMatch.Schema(),
+		})
+	}
+
 	llmTreq := llm.CompletionRequest{
 		SystemPrompt: sysPrompt,
 		Messages: []llm.Message{
@@ -81,6 +90,7 @@ func (p *Pipeline) Query(ctx context.Context, req QueryRequest) (QueryResponse, 
 		},
 		MaxTokens:   1500,
 		Temperature: 0.1, // Extrema exatidão
+		Tools:       toolkit, // Tool Registry Inteiro Disposto no Pipeline Master
 	}
 
 	// Completa c/ Google ou Local Qwen GGUF

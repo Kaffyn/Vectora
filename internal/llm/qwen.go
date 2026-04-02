@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -83,9 +84,25 @@ func (p *QwenProvider) Complete(ctx context.Context, req CompletionRequest) (Com
 		content = append(content, llms.TextParts(role, msg.Content))
 	}
 
+	var langchanTools []llms.Tool
+	for _, t := range req.Tools {
+		langchanTools = append(langchanTools, llms.Tool{
+			Type: "function",
+			Function: &llms.FunctionDefinition{
+				Name:        t.Name,
+				Description: t.Description,
+				Parameters:  json.RawMessage(t.Schema),
+			},
+		})
+	}
+	
 	opts := []llms.CallOption{
 		llms.WithMaxTokens(req.MaxTokens),
 		llms.WithTemperature(float64(req.Temperature)),
+	}
+
+	if len(langchanTools) > 0 {
+		opts = append(opts, llms.WithTools(langchanTools))
 	}
 
 	resp, err := p.client.GenerateContent(ctx, content, opts...)
@@ -97,8 +114,20 @@ func (p *QwenProvider) Complete(ctx context.Context, req CompletionRequest) (Com
 		return CompletionResponse{}, errors.New("llm_empty_response")
 	}
 
+	choice := resp.Choices[0]
+
+	var tCalls []ToolCall
+	for _, lcTc := range choice.ToolCalls {
+		tCalls = append(tCalls, ToolCall{
+			ID:   lcTc.ID,
+			Name: lcTc.FunctionCall.Name,
+			Args: lcTc.FunctionCall.Arguments,
+		})
+	}
+
 	return CompletionResponse{
-		Content: resp.Choices[0].Content,
+		Content: choice.Content,
+		ToolCalls: tCalls,
 	}, nil
 }
 

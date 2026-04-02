@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/Kaffyn/vectora/internal/core"
+	"github.com/Kaffyn/vectora/internal/ipc"
 )
 
 // MCP Server: Model Context Protocol.
@@ -57,7 +60,30 @@ func StartMCPServer(ctx context.Context) error {
 			fmt.Println(string(b)) // Despeja no Stdout pra IDE ler e acoplar a Tool
 		}
 		
-		// TODO: Adicionar "tools/call" para invocar nossa 'internal/core' e cuspir resultados.
+		if ok && method == "tools/call" {
+			params, _ := req["params"].(map[string]any)
+			name, _ := params["name"].(string)
+
+			if name == "ask_vectora" {
+				argsMap, _ := params["arguments"].(map[string]any)
+				query, _ := argsMap["query"].(string)
+				wsID, _ := argsMap["workspace_id"].(string)
+
+				// Dispara Cliente IPC pra Conversar com o Nosso Daemon em Background
+				ipcClient, _ := ipc.NewClient()
+				if ipcClient != nil && ipcClient.Connect() == nil {
+					var queryResp core.QueryResponse
+					reqStruct := core.QueryRequest{Query: query, WorkspaceID: wsID}
+					ipcClient.Send(ctx, "workspace.query", reqStruct, &queryResp)
+
+					// Responde JSON RPC V2 pro VSCode
+					escAns, _ := json.Marshal(queryResp.Answer)
+					resp := fmt.Sprintf(`{"jsonrpc": "2.0", "id": "%v", "result": {"content": [{"type": "text", "text": %s}]}}`, id, string(escAns))
+					fmt.Println(resp)
+					ipcClient.Close()
+				}
+			}
+		}
 	}
 
 	return nil
