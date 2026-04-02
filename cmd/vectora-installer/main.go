@@ -105,15 +105,29 @@ func main() {
 
 	// ---- PASSO 3: Download & Workspace Config ----
 	showStep3 = func() {
-		title := widget.NewLabelWithStyle(i18n.T("inst_step_download"), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+		title := widget.NewLabelWithStyle("...", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
 		progress := widget.NewProgressBar()
+		progress.SetValue(0.0)
 		
 		go func() {
-			for i := 0.0; i <= 1.0; i += 0.05 {
+			title.SetText(i18n.T("inst_step_download"))
+			
+			// Usa inteiros para contornar truncamento subjacente de float64 do Golang (bug do 95%)
+			for i := 0; i <= 20; i++ {
 				time.Sleep(time.Millisecond * 120)
-				progress.SetValue(i)
+				progress.SetValue(float64(i) / 20.0)
 			}
-			title.SetText(i18n.T("inst_done"))
+			
+			// Força o preenchimento de matriz final de 1.0 (100%)
+			progress.SetValue(1.0)
+			
+			doneTxt := i18n.T("inst_done")
+			if doneTxt == "inst_done" {
+				// Safety fallback caso csv parser falhe via edge case de runtime embed OS limit
+				doneTxt = "Instalação Concluída com Sucesso!"
+			}
+			title.SetText(doneTxt)
+			title.Refresh()
 		}()
 
 		btn := widget.NewButton(i18n.T("inst_btn_finish"), func() {
