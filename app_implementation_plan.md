@@ -69,7 +69,7 @@ Para manter o binário único:
 
 ## 7. Verificação de Sucesso
 
-- O binário final `vectora-web.exe` deve ter menos de 50MB.
+- O binário final `vectora-app.exe` deve ter menos de 50MB.
 - O tempo de boot (de clique até a tela de chat) deve ser inferior a 1.5s.
 - Nenhuma chamada `fetch` deve ser feita para domínios externos (Gemini é via Go).
 
