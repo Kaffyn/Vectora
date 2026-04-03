@@ -28,7 +28,7 @@ func init() {
 		return // Vazio
 	}
 
-	// Cabeçalho: key, en, pt, es, fr
+	// Header: key, en, pt, es, fr
 	headers := records[0][1:]
 	for _, lang := range headers {
 		dictionary[lang] = make(map[string]string)

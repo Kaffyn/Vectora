@@ -13,7 +13,7 @@ import (
 	"github.com/nu7hatch/gouuid"
 )
 
-// Snapshots de Arquivos Puros baseados na Root O.S
+// Local file snapshots based on OS-Specific AppData.
 func backupFileLocally(path string) string {
 	osMgr, _ := vecos.NewManager()
 	baseDir, _ := osMgr.GetAppDataDir()
@@ -45,7 +45,7 @@ func backupFileLocally(path string) string {
 type ReadFileTool struct{}
 
 func (t *ReadFileTool) Name() string        { return "read_file" }
-func (t *ReadFileTool) Description() string { return "Lê integralmente o conteúdo em texto de um arquivo local." }
+func (t *ReadFileTool) Description() string { return "Reads the entire text content of a local file." }
 func (t *ReadFileTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}`)
 }
@@ -64,7 +64,7 @@ func (t *ReadFileTool) Execute(ctx context.Context, args map[string]any) (ToolRe
 type WriteFileTool struct{}
 
 func (t *WriteFileTool) Name() string        { return "write_file" }
-func (t *WriteFileTool) Description() string { return "Cria ou sobrescreve por absoluto o conteúdo de um arquivo existente." }
+func (t *WriteFileTool) Description() string { return "Creates or overwrites the entire content of an existing file." }
 func (t *WriteFileTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"path":{"type":"string"},"content":{"type":"string"}},"required":["path","content"]}`)
 }
@@ -82,7 +82,7 @@ func (t *WriteFileTool) Execute(ctx context.Context, args map[string]any) (ToolR
 	if err != nil {
 		return ToolResult{IsError: true, Output: err.Error()}, nil
 	}
-	return ToolResult{Output: "Arquivo escrito com sucesso. (SnapID: " + snapID + ")", SnapshotID: snapID}, nil
+	return ToolResult{Output: "File written successfully. (SnapID: " + snapID + ")", SnapshotID: snapID}, nil
 }
 
 // ----------------------------------------------------
@@ -91,7 +91,7 @@ func (t *WriteFileTool) Execute(ctx context.Context, args map[string]any) (ToolR
 type ReadFolderTool struct{}
 
 func (t *ReadFolderTool) Name() string        { return "read_folder" }
-func (t *ReadFolderTool) Description() string { return "Lista arquivos e pastas irmãs dentro de um diretório base." }
+func (t *ReadFolderTool) Description() string { return "Lists files and child directories within a base directory." }
 func (t *ReadFolderTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}`)
 }
@@ -103,9 +103,9 @@ func (t *ReadFolderTool) Execute(ctx context.Context, args map[string]any) (Tool
 	}
 	var dirs []string
 	for _, e := range entries {
-		kind := "[Arquivo]"
+		kind := "[File]"
 		if e.IsDir() {
-			kind = "[Pasta]"
+			kind = "[Folder]"
 		}
 		dirs = append(dirs, fmt.Sprintf("%s %s", kind, e.Name()))
 	}
@@ -118,7 +118,7 @@ func (t *ReadFolderTool) Execute(ctx context.Context, args map[string]any) (Tool
 type EditTool struct{}
 
 func (t *EditTool) Name() string        { return "edit" }
-func (t *EditTool) Description() string { return "Substitui um bloco sequencial cirurgico de texto em um arquivo." }
+func (t *EditTool) Description() string { return "Replaces a specific sequential block of text in a file." }
 func (t *EditTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"path":{"type":"string"},"target":{"type":"string"},"replacement":{"type":"string"}},"required":["path","target","replacement"]}`)
 }
@@ -136,7 +136,7 @@ func (t *EditTool) Execute(ctx context.Context, args map[string]any) (ToolResult
 
 	strData := string(data)
 	if !strings.Contains(strData, target) {
-		return ToolResult{IsError: true, Output: "Alvo exato não encontrado. Furtividade de edição cancelada."}, nil
+		return ToolResult{IsError: true, Output: "Exactly target string not found. Stealth editing canceled."}, nil
 	}
 
 	newData := strings.Replace(strData, target, replace, 1)
@@ -145,5 +145,5 @@ func (t *EditTool) Execute(ctx context.Context, args map[string]any) (ToolResult
 		return ToolResult{IsError: true, Output: err.Error()}, nil
 	}
 
-	return ToolResult{Output: "Múltiplas linhas editadas com sucesso.", SnapshotID: snapID}, nil
+	return ToolResult{Output: "Multiple lines edited successfully.", SnapshotID: snapID}, nil
 }

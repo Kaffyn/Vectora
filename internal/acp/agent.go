@@ -5,8 +5,8 @@ import (
 	"github.com/Kaffyn/vectora/internal/tools"
 )
 
-// AgentContext atua como maestro sobre as ferramentas que a IA poderá visualizar.
-// Em um futuro as chamadas de ACP poderão rodar sandboxed.
+// AgentContext acts as a conductor over the tools that the AI can perceive.
+// In the future, ACP calls may run sandboxed.
 type AgentContext struct {
 	Registry *tools.Registry
 }
@@ -14,7 +14,7 @@ type AgentContext struct {
 func NewAgent(kvStore db.KVStore) *AgentContext {
 	reg := tools.NewRegistry()
 	
-	// Carrega Kit Base de Permissões
+	// Load Base Permissions Kit
 	reg.Register(&tools.ReadFileTool{})
 	reg.Register(&tools.WriteFileTool{})
 	reg.Register(&tools.ReadFolderTool{})

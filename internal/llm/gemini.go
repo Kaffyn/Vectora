@@ -5,29 +5,41 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/googleai"
 )
 
 type GeminiProvider struct {
-	client *googleai.GoogleAI
+	client       *googleai.GoogleAI
+	systemPrompt string
+	toolsSpec    string
 }
 
 func NewGeminiProvider(ctx context.Context, apiKey string) (*GeminiProvider, error) {
 	if apiKey == "" {
-		return nil, errors.New("gemini_api_key_required: a chave Gemini API não foi informada")
+		return nil, errors.New("gemini_api_key_required: Gemini API key was not provided")
 	}
 
-	// Langchaingo's GoogleAI costuma extrair de fallback vars, injetamos explicitamente em caso de falha silenciosa.
 	os.Setenv("GEMINI_API_KEY", apiKey)
 
-	client, err := googleai.New(ctx, googleai.WithAPIKey(apiKey), googleai.WithDefaultModel("gemini-1.5-flash"))
+	client, err := googleai.New(ctx, 
+		googleai.WithAPIKey(apiKey), 
+		googleai.WithDefaultModel("gemini-1.5-flash"),
+		googleai.WithDefaultEmbeddingModel("gemini-embedding-2-preview"),
+	)
 	if err != nil {
 		return nil, err
 	}
 	
-	return &GeminiProvider{client: client}, nil
+	p, t := LoadMasterInstructions()
+	
+	return &GeminiProvider{
+		client:       client,
+		systemPrompt: p,
+		toolsSpec:    t,
+	}, nil
 }
 
 func (p *GeminiProvider) Name() string {
@@ -41,41 +53,56 @@ func (p *GeminiProvider) IsConfigured() bool {
 func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error) {
 	var content []llms.MessageContent
 	
+	if req.SystemPrompt == "" {
+		req.SystemPrompt = p.systemPrompt + "\n\nAVAILABLE TOOLS SPECIFICATION (JSON SCHEMA):\n" + p.toolsSpec
+	}
+
 	if req.SystemPrompt != "" {
 		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, req.SystemPrompt))
 	}
 
 	for _, msg := range req.Messages {
-		var role llms.ChatMessageType
+		var chatRole llms.ChatMessageType
 		switch msg.Role {
 		case RoleUser:
-			role = llms.ChatMessageTypeHuman
+			chatRole = llms.ChatMessageTypeHuman
 		case RoleAssistant:
-			role = llms.ChatMessageTypeAI
+			chatRole = llms.ChatMessageTypeAI
 		case RoleSystem:
-			role = llms.ChatMessageTypeSystem
+			chatRole = llms.ChatMessageTypeSystem
 		case RoleTool:
-			role = llms.ChatMessageTypeTool
-		// Fallback amigável
+			chatRole = llms.ChatMessageTypeTool
 		default:
-			role = llms.ChatMessageTypeHuman 
+			chatRole = llms.ChatMessageTypeHuman 
 		}
-		content = append(content, llms.TextParts(role, msg.Content))
+		content = append(content, llms.TextParts(chatRole, msg.Content))
 	}
 
 	var langchanTools []llms.Tool
 	for _, t := range req.Tools {
+		var params interface{}
+		if err := json.Unmarshal(t.Schema, &params); err != nil {
+			params = nil // Fallback if schema is invalid
+		}
+
 		langchanTools = append(langchanTools, llms.Tool{
 			Type: "function",
 			Function: &llms.FunctionDefinition{
 				Name:        t.Name,
 				Description: t.Description,
-				Parameters:  json.RawMessage(t.Schema),
+				Parameters:  params,
 			},
 		})
 	}
 
+	modelName := req.Model
+	if modelName == "" {
+		modelName = "gemini-1.5-flash"
+	}
+	modelName = strings.TrimPrefix(modelName, "google/")
+
 	opts := []llms.CallOption{
+		llms.WithModel(modelName),
 		llms.WithMaxTokens(req.MaxTokens),
 		llms.WithTemperature(float64(req.Temperature)),
 	}
@@ -89,9 +116,8 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 		return CompletionResponse{}, err
 	}
 
-	// Mapeia Resposta
 	if len(resp.Choices) == 0 {
-		return CompletionResponse{}, errors.New("llm_empty_response: não houveram choices enviadas")
+		return CompletionResponse{}, errors.New("llm_empty_response: no choices were returned by the provider")
 	}
 
 	choice := resp.Choices[0]
@@ -108,14 +134,11 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 	return CompletionResponse{
 		Content:   choice.Content,
 		ToolCalls: tCalls,
-		Usage: TokenUsage{
-			// langchaingo ainda não exporta global token usage unificado, mocked out.
-		},
+		Usage: TokenUsage{},
 	}, nil
 }
 
 func (p *GeminiProvider) Embed(ctx context.Context, input string) ([]float32, error) {
-	// A camada de Embedding será baseada no `text-embedding-004` (Gemini embeddings default).
 	embClient, err := p.client.CreateEmbedding(ctx, []string{input})
 	if err != nil {
 		return nil, err
@@ -123,5 +146,5 @@ func (p *GeminiProvider) Embed(ctx context.Context, input string) ([]float32, er
 	if len(embClient) > 0 {
 		return embClient[0], nil
 	}
-	return nil, errors.New("gemini_embedding_failed: sem vetores retornados")
+	return nil, errors.New("gemini_embedding_failed: no vectors returned")
 }

@@ -73,7 +73,7 @@ func (m *LinuxManager) GetEngineState() string {
 	return m.state
 }
 
-// ==== EXTENSÕES DE REGISTRO E O.S FILES LINUX ====
+// ==== REGISTRY AND O.S FILES EXTENSIONS (LINUX) ====
 
 func (m *LinuxManager) IsInstalled() string {
 	home, _ := os.UserHomeDir()
@@ -85,7 +85,7 @@ func (m *LinuxManager) IsInstalled() string {
 	return ""
 }
 
-func (m *LinuxManager) RegisterApp(installDir string) {
+// Register application and create .desktop entry for Linux environments
 	os.MkdirAll(installDir, 0755)
 	
 	desktopContent := `[Desktop Entry]
@@ -107,7 +107,7 @@ func (m *LinuxManager) UnregisterApp(installDir string) {
 	os.Remove(filepath.Join(home, ".local", "share", "applications", "vectora.desktop"))
 }
 
-// Adota Socket Binding mudo para Single-Instance System-wide Lock
+// Adoption of silent Socket Binding for Single-Instance System-wide Lock
 func (m *LinuxManager) EnforceSingleInstance() error {
 	l, err := net.Listen("tcp", "127.0.0.1:41785")
 	if err != nil {

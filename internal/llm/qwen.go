@@ -2,53 +2,53 @@ package llm
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
+	"runtime"
 
-	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/openai" // Llama.cpp é OpenAI Server-Compatible nativamente
-	vecos "github.com/Kaffyn/vectora/internal/os"
+	"github.com/Kaffyn/vectora/internal/engines"
 )
 
 type QwenProvider struct {
-	client    *openai.LLM
-	port      int
-	osManager vecos.OSManager
+	process      *LlamaProcess
+	engineMgr    *engines.EngineManager
+	modelPath    string
+	binPath      string
+	systemPrompt string
+	toolsSpec    string
 }
 
-// Inicializa o Motor Físico do Qwen chamando o OS Manager para alocar llama.cpp.
+// NewQwenProvider initializes the engine via Zero-Port architecture.
 func NewQwenProvider(ctx context.Context, modelPath string) (*QwenProvider, error) {
-	osMgr, err := vecos.NewManager()
+	mgr, err := engines.NewManager()
 	if err != nil {
 		return nil, err
 	}
 
-	// Determinação dinâmica de Porta TCP
-	dynamicPort := 42781 // Poderiamos scanear, por agora é hardcoded alto.
-	
-	err = osMgr.StartLlamaEngine(modelPath, dynamicPort)
-	if err != nil {
-		return nil, fmt.Errorf("qwen_boot_failed: falha ao acoplar sidecar do llama.cpp (%v)", err)
+	binPath := mgr.GetBinaryPath("llama", "llama-cli")
+	if runtime.GOOS == "windows" {
+		binPath += ".exe"
 	}
 
-	// Espera inicial p/ binding TCP. Llama-server demora alguns MSp/ boot.
-	baseURL := fmt.Sprintf("http://127.0.0.1:%d/v1", dynamicPort)
-	
-	// Usa cliente nativo OpenAI que aponta p/ o host local do LLaMa
-	client, err := openai.New(
-		openai.WithBaseURL(baseURL),
-		openai.WithToken("local-qwen-offline"), // Mock key
+	// Starts the interactive Llama process with flags for STDIO IPC
+	proc, err := NewLlamaProcess(ctx, binPath, 
+		"--model", modelPath, 
+		"--interactive", 
+		"--simple-io",
+		"--no-display-prompt",
 	)
 	if err != nil {
-		osMgr.StopLlamaEngine()
-		return nil, err
+		return nil, fmt.Errorf("llama_start_failed: %v", err)
 	}
 
+	// Load instruction and tool specs from the master instructions.
+
 	return &QwenProvider{
-		client:    client,
-		port:      dynamicPort,
-		osManager: osMgr,
+		process:      proc,
+		engineMgr:    mgr,
+		modelPath:    modelPath,
+		binPath:      binPath,
+		systemPrompt: pInstr,
+		toolsSpec:    tSpec,
 	}, nil
 }
 
@@ -57,93 +57,48 @@ func (p *QwenProvider) Name() string {
 }
 
 func (p *QwenProvider) IsConfigured() bool {
-	return p.client != nil && p.osManager.GetEngineState() == string(vecos.EngineRunning)
+	return p.process != nil
 }
 
 func (p *QwenProvider) Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error) {
-	// Checa Saúde do Motor
-	if p.osManager.GetEngineState() != string(vecos.EngineRunning) {
-		return CompletionResponse{}, errors.New("llama_engine_offline: the qwen backend crashed or is stopped")
+	if p.process == nil {
+		return CompletionResponse{}, fmt.Errorf("qwen_offline: motor de inferência não iniciado")
 	}
 
-	var content []llms.MessageContent
-	if req.SystemPrompt != "" {
-		content = append(content, llms.TextParts(llms.ChatMessageTypeSystem, req.SystemPrompt))
+	// Resolve Master Instruction
+	masterPrompt := req.SystemPrompt
+	if masterPrompt == "" {
+		masterPrompt = p.systemPrompt + "\n\nAVAILABLE TOOLS (JSON SCHEMA):\n" + p.toolsSpec
 	}
 
-	for _, msg := range req.Messages {
-		var role llms.ChatMessageType
-		switch msg.Role {
-		case RoleUser:
-			role = llms.ChatMessageTypeHuman
-		case RoleAssistant:
-			role = llms.ChatMessageTypeAI
-		default:
-			role = llms.ChatMessageTypeHuman 
-		}
-		content = append(content, llms.TextParts(role, msg.Content))
+	// Builds the formatted history for interactive llama-cli
+	// In interactive mode, Llama keeps previous history in the KV Cache.
+	// We only send what is NEW.
+	var lastMsg string
+	if len(req.Messages) > 0 {
+		m := req.Messages[len(req.Messages)-1]
+		lastMsg = fmt.Sprintf("[%s]: %s\n", m.Role, m.Content)
 	}
 
-	var langchanTools []llms.Tool
-	for _, t := range req.Tools {
-		langchanTools = append(langchanTools, llms.Tool{
-			Type: "function",
-			Function: &llms.FunctionDefinition{
-				Name:        t.Name,
-				Description: t.Description,
-				Parameters:  json.RawMessage(t.Schema),
-			},
-		})
-	}
+	// TODO: On first Chat execution, p.process.SendPrompt sends the 'masterPrompt'.
+	// The return of this first call is currently ignored (Silent Setup).
 	
-	opts := []llms.CallOption{
-		llms.WithMaxTokens(req.MaxTokens),
-		llms.WithTemperature(float64(req.Temperature)),
-	}
-
-	if len(langchanTools) > 0 {
-		opts = append(opts, llms.WithTools(langchanTools))
-	}
-
-	resp, err := p.client.GenerateContent(ctx, content, opts...)
+	content, err := p.process.SendPrompt(ctx, lastMsg, req)
 	if err != nil {
 		return CompletionResponse{}, err
 	}
 
-	if len(resp.Choices) == 0 {
-		return CompletionResponse{}, errors.New("llm_empty_response")
-	}
-
-	choice := resp.Choices[0]
-
-	var tCalls []ToolCall
-	for _, lcTc := range choice.ToolCalls {
-		tCalls = append(tCalls, ToolCall{
-			ID:   lcTc.ID,
-			Name: lcTc.FunctionCall.Name,
-			Args: lcTc.FunctionCall.Arguments,
-		})
-	}
-
 	return CompletionResponse{
-		Content: choice.Content,
-		ToolCalls: tCalls,
+		Content: content,
 	}, nil
 }
 
 func (p *QwenProvider) Embed(ctx context.Context, input string) ([]float32, error) {
-	embClient, err := p.client.CreateEmbedding(ctx, []string{input})
-	if err != nil {
-		return nil, err
-	}
-	if len(embClient) > 0 {
-		return embClient[0], nil
-	}
-	return nil, errors.New("qwen_embedding_failed: sem vetores do llama.cpp")
+	return nil, fmt.Errorf("qwen_embed_not_implemented: inferência via pipes ainda foca em chat")
 }
 
 func (p *QwenProvider) Shutdown() {
-	if p.osManager != nil {
-		p.osManager.StopLlamaEngine()
+	if p.process != nil {
+		p.process.Close()
 	}
 }

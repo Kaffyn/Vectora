@@ -26,7 +26,7 @@ func NewManager() *WindowsManager {
 }
 
 func (m *WindowsManager) GetAppDataDir() (string, error) {
-	// Para dados do usuário e configurações (como o .env), continuamos usando a pasta do usuário
+	// For user data and settings (like .env), we continue to use the user's base folder.
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -35,7 +35,7 @@ func (m *WindowsManager) GetAppDataDir() (string, error) {
 }
 
 func (m *WindowsManager) GetInstallDir() (string, error) {
-	// Para os executáveis, o padrão é Program Files no Windows
+	// For executables, the default is Program Files on Windows.
 	progFiles := os.Getenv("ProgramFiles")
 	if progFiles == "" {
 		progFiles = `C:\Program Files`
@@ -53,7 +53,7 @@ func (m *WindowsManager) StartLlamaEngine(modelPath string, port int) error {
 
 	binaryPath := filepath.Join(baseDir, "llama-server.exe")
 	m.cmd = exec.Command(binaryPath, "-m", modelPath, "--port", fmt.Sprintf("%d", port), "-ngl", "99")
-	m.cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
+	m.cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000} // CREATE_NO_WINDOW
 
 	err = m.cmd.Start()
 	if err != nil {
@@ -84,7 +84,7 @@ func (m *WindowsManager) GetEngineState() string {
 	return m.state
 }
 
-// ==== EXTENSÕES DE REGISTRO E SINGLETON ====
+// ==== REGISTRY EXTENSIONS AND SINGLETON ====
 
 func (m *WindowsManager) IsInstalled() string {
 	keyPath := `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`
@@ -112,7 +112,7 @@ func (m *WindowsManager) RegisterApp(installDir string) {
 		key.SetStringValue("InstallLocation", installDir)
 	}
 
-	appData := os.Getenv("APPDATA")
+	// AppData Start Menu integration
 	if appData != "" {
 		programsDir := filepath.Join(appData, "Microsoft", "Windows", "Start Menu", "Programs", "Vectora")
 		os.MkdirAll(programsDir, 0755)
@@ -136,7 +136,7 @@ func (m *WindowsManager) UnregisterApp(installDir string) {
 	}
 }
 
-func (m *WindowsManager) EnforceSingleInstance() error {
+// Single instance prevention via Global Mutex
 	mutexName, _ := windows.UTF16PtrFromString("Global\\VectoraDaemonMutex_v1")
 	_, err := windows.CreateMutex(nil, false, mutexName)
 	if err == windows.ERROR_ALREADY_EXISTS {

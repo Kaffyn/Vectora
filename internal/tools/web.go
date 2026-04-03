@@ -17,14 +17,14 @@ import (
 type GoogleSearchTool struct{}
 
 func (t *GoogleSearchTool) Name() string        { return "google_search" }
-func (t *GoogleSearchTool) Description() string { return "Consome motor de busca Open Web para captar URLs e resultados orgânicos." }
+func (t *GoogleSearchTool) Description() string { return "Consumes Open Web search engine to capture URLs and organic results." }
 func (t *GoogleSearchTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"query":{"type":"string"}},"required":["query"]}`)
 }
 func (t *GoogleSearchTool) Execute(ctx context.Context, args map[string]any) (ToolResult, error) {
 	query, _ := args["query"].(string)
 
-	// Fetch HTML Lite no DuckDuckGo (Alternativa Zero-Key para Agentes Open Source)
+	// Fetch HTML Lite on DuckDuckGo (Zero-Key alternative for Open Source Agents)
 	reqURL := "https://html.duckduckgo.com/html/?q=" + url.QueryEscape(query)
 	
 	req, _ := http.NewRequestWithContext(ctx, "GET", reqURL, nil)
@@ -38,16 +38,16 @@ func (t *GoogleSearchTool) Execute(ctx context.Context, args map[string]any) (To
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return ToolResult{IsError: true, Output: fmt.Sprintf("Bloqueio Anti-Scraping ou Falha de Rede (Code: %d)", resp.StatusCode)}, nil
+		return ToolResult{IsError: true, Output: fmt.Sprintf("Anti-Scraping Block or Network Failure (Code: %d)", resp.StatusCode)}, nil
 	}
 
 	body, _ := io.ReadAll(resp.Body)
 	html := string(body)
 
-	// Parsing Mínimo sem lib externa (Captura a blocktext bruta inicial)
-	// Como a LLM lida incrivelmente bem com sujeira, enviamos o HTML capado:
+	// Minimal parsing without external lib (captures initial raw blocktext)
+	// As LLMs handle noise incredibly well, we send truncated HTML:
 	if len(html) > 4000 {
-		html = html[:4000] // Trunca p/ n estourar tokens
+		html = html[:4000] // Truncate to avoid token overflow
 	}
 
 	return ToolResult{Output: "DuckDuckGo RAW HTML Response:\n" + html}, nil
@@ -59,7 +59,7 @@ func (t *GoogleSearchTool) Execute(ctx context.Context, args map[string]any) (To
 type WebFetchTool struct{}
 
 func (t *WebFetchTool) Name() string        { return "web_fetch" }
-func (t *WebFetchTool) Description() string { return "Lê integralmente o corpo de uma URL e injeta o texto na janela de contexto da LLM." }
+func (t *WebFetchTool) Description() string { return "Reads the entire body of a URL and injects the text into the LLM context window." }
 func (t *WebFetchTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"url":{"type":"string"}},"required":["url"]}`)
 }
@@ -82,12 +82,12 @@ func (t *WebFetchTool) Execute(ctx context.Context, args map[string]any) (ToolRe
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return ToolResult{IsError: true, Output: "Falha de buffer HTTP: " + err.Error()}, nil
+		return ToolResult{IsError: true, Output: "HTTP buffer failure: " + err.Error()}, nil
 	}
 
 	text := string(body)
 	if len(text) > 8000 {
-		text = text[:8000] + "\n...(Trancated due Context Window Limit)..."
+		text = text[:8000] + "\n...(Truncated due to Context Window Limit)..."
 	}
 
 	return ToolResult{Output: text}, nil

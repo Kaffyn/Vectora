@@ -3,6 +3,6 @@
 package main
 
 func getInstallerAssets() map[string][]byte {
-	// Fallback para outros sistemas se os binários não estiverem disponíveis
+	// Fallback for other systems if binaries are not available
 	return map[string][]byte{}
 }

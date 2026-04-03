@@ -27,7 +27,7 @@ func LoadConfig() *Config {
 	}
 
 	// Try to load the .env file if it exists
-	if err := godotenv.Load(envPath); err != nil && !os.IsNotExist(err) {
+	if err := godotenv.Overload(envPath); err != nil && !os.IsNotExist(err) {
 		log.Printf("Warning: error loading .env file: %v", err)
 	}
 
@@ -36,7 +36,7 @@ func LoadConfig() *Config {
 	}
 }
 
-// SaveConfig persiste chaves sensíveis como a GeminiAPIKey no arquivo .env do usuário.
+// SaveConfig persists sensitive keys like GeminiAPIKey to the user's .env file.
 func SaveConfig(cfg *Config) error {
 	userProfile, err := os.UserHomeDir()
 	if err != nil {
@@ -45,9 +45,9 @@ func SaveConfig(cfg *Config) error {
 
 	envPath := filepath.Join(userProfile, ".Vectora", ".env")
 	
-	// Prepara o conteúdo do arquivo .env
+	// Prepare the .env file content
 	content := fmt.Sprintf("GEMINI_API_KEY=%s\n", cfg.GeminiAPIKey)
 	
-	// Grava (ou sobrescreve) o arquivo
+	// Write (or overwrite) the file
 	return os.WriteFile(envPath, []byte(content), 0600)
 }

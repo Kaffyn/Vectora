@@ -1,16 +1,16 @@
 {
-  "RT_GROUP_ICON": {
-    "APPICON": {
-      "0": "../../../assets/installer_icon.ico"
-    }
-  },
   "RT_MANIFEST": {
     "APP": {
       "0": {
-        "executionLevel": "asInvoker",
-        "dpiAwareness": "PerMonitorV2",
-        "theme": true
+        "executionLevel": "requireAdministrator",
+        "uiAccess": false,
+        "dpiAwareness": "PerMonitorV2"
       }
+    }
+  },
+  "RT_GROUP_ICON": {
+    "APPICON": {
+      "0": "../../../assets/installer_icon.ico"
     }
   }
 }

@@ -1,54 +1,66 @@
-# Plano de Implementação de Testes (E2E) Vectora: Zyris Engine RAG
+# Plano de Implementação: Testes de Integridade (End-to-End)
 
-Este documento serve como o Single Source of Truth para o novo conjunto de testes de integração contínua (End-to-End) dentro do binário original do Vectora. Abandonamos mocks em favor da verificação empírica do pipeline com dados de produção.
+Este plano descreve a estratégia de testes sistêmicos para garantir a confiabilidade do Vectora, focando na flag `--tests` no binário principal.
 
-## 1. Topologia da Bateria de Testes (Flag `--tests`)
+---
 
-O `cmd/vectora` já possui a ramificação para rodar testes internos (via flag `--tests`). Modificaremos esse fluxo para suportar a ingestão e o questionamento 100% verídicos usando a Gemini API.
+## 1. Visão Geral (Audit de Integridade)
 
-**O Fluxo Perfeito do Teste Integrado será:**
+O Vectora rejeita testes superficiais. O objetivo desta suite é simular o uso real do sistema sob condições adversas para validar o RAG, a Gestão de Memória e as Ferramentas.
 
-1. **Ativação Segura:** Inicializar o OS Manager e varrer a configuração `~/.Vectora/.env` em busca da chave do Gemini de segurança.
-2. **Mount Real (Arquitetura Efêmera):** Levantar um BBolt DataStore e um Chromem-Go isolados da sessão do usuário real (num temp dir e collection dummy `ws_zyris_test`).
-3. **Ingestão Vetorial:**
-   - Varredura de todo o banco de arquivos situado em `./data` (Onde repousa os `.xml` do _Zyris Engine_).
-   - Cortamos o texto (Chunking fixo de ~512 tokens).
-   - Instanciamos o provedor Gemini via Langchaingo (Provider) e solicitamos os `Embeddings`.
-   - Alimentamos o Chromem com os chunks assinados pelo Vector Math Gemini.
-4. **Resolução de RAG:**
-   - Disparamos a requisição ao `internal/core.Pipeline` passando `workspace.query` com perguntas como: _"Como instanciar um Singleton no Zyris Engine baseado no contrato XML?"_.
-   - A resposta deve ocorrer sem falhas e seu output exibido no terminal e verificado se a fonte `Sources` bateu com os XMLs corretos.
-5. **Teste de Tooling (Segurança):**
-   - Na mesma bateria, tentaremos instigar a LLM para salvar essa resposta escrevendo no disco (`write_file`), e testaremos a Bridge do Git checando se o arquivo `.bak` foi alocado pela rotina.
+- **Fisofia:** Padrão 300% (Happy Path, Negative, Edge Case).
+- **Ambiente:** Isola o bbolt e chromem-go em uma pasta temporária `/test_data` para evitar poluição.
 
-## 2. Tarefas e Fases de Codificação
+---
 
-### Fase 1: Extrator Real de Dados
+## 2. A Suite "Zyris Engine" (O Teste Real)
 
-- Criar a rotina `vectorizeTestData` para apontar no file-system `/data`, ler todos e apenas os arquivos com a extensão `.xml` e `.txt` associados ao Zyris, realizar o split e embedar usando o provider instanciado do Gemini.
+Para validar o RAG local e as Ferramentas, o sistema usará o **Zyris Engine** (uma base de arquivos estática complexa) como benchmark:
 
-### Fase 2: O Cliente IPC Integrado
+1. **Setup:** Criar um workspace temporário, ingerir arquivos `.xml` e `.txt` complexos (cerca de 500 chunks).
+2. **Indexing:** Iniciar a indexação via IPC e aguardar o evento `workspace.indexed`.
+3. **Query (RAG Test):** Fazer 5 perguntas difíceis sobre a arquitetura Zyris (ex: "Como funciona o buffer de áudio na ZyrisRAG?").
+4. **Tool Test:** Ordenar que o Agente ACP leia o arquivo, edite uma nota e reporte o snapshot do GitBridge.
+5. **Undo Test:** Verificar se o `undo` restaurou o arquivo original byte-a-byte.
 
-- Ao invés de invocar a Pipeline diretamente, queremos que o Teste se comporte como Frontend!
-- Então o teste vai rodar `go ipcServer.Start()` no backend e invocar internamente um Socket UDP/Pipe Client simulando Wails, submetendo:
-  ```json
-  {
-    "type": "request",
-    "method": "workspace.query",
-    "payload": {
-      "workspace_id": "zyris_test",
-      "query": "Me dê detalhes da entity Player."
-    }
-  }
-  ```
+---
 
-### Fase 3: Instrumentação do `main.go`
+## 3. Testes de Stress e Concorrência
 
-- A função atual `runSystemIntegrityTests()` será renomeada (ou movida para pacote apartado test logic) onde executaremos: `VerifyKVStore`, `VerifyVectorStore`, `VerifyIPCAndRag` e `Shutdown()`.
+- **IPC Latency:** Disparar 100 requisições simultâneas ao socket e validar a fila de resposta.
+- **Race conditions:** Rodar `go test -race` em todas as rotas do `internal/ipc`.
+- **Memory Leak:** Monitorar se o Daemon libera a memória após fechar 10 workspaces pesados.
 
-## User Review Required
+---
 
-> [!IMPORTANT]
->
-> 1. Como os testes agora englobam faturamento vivo de Tokens no Gemini (Embeddings e Completion), está ciente que rodá-los comente saldo do projeto, correto?
-> 2. Você deseja que eu prepare um Mock de SafetyNet para caso falhe a rede e devolva o erro HTTP 400+, parando a build graciosamente se cair o Gemini no teste?
+## 4. O Comitê de Auditoria (Flag `--tests`)
+
+A implementação no `main.go` deve seguir:
+
+```go
+func runSystemIntegrityTests() {
+    // 1. Iniciar Daemon em modo isolado
+    // 2. Rodar suite Core RAG
+    // 3. Rodar suite Tool Snapshots
+    // 4. Rodar suite IPC Protocol
+    // 5. Encerrar e limpar /test_data
+}
+```
+
+---
+
+## 5. Regras de Aceite dos Testes
+
+- **RN-TEST-01:** Nenhum teste pode falhar por problemas de rede (devem usar mocks ou modo offline puro).
+- **RN-TEST-02:** O tempo total de auditoria não deve passar de 3 minutos.
+- **RN-TEST-03:** Em caso de falha, o log detalhado deve ser salvo em `tests/logs/latest_fail.txt`.
+
+---
+
+## 6. Próximos Passos (Workflow de QA)
+
+1.  [ ] **Implementar Mocks:** Criar mocks para o Gemini API quando a rede estiver indisponível.
+2.  [ ] **Assets de Teste:** Inserir os arquivos de benchmark na pasta `tests/data/zyris`.
+3.  [ ] **CI/CD Sync:** Integrar a flag `--tests` no workflow do Github Actions.
+
+[Fim do Plano de Testes - Revisão 2026.04.03]

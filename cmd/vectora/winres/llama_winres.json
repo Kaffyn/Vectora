@@ -1,0 +1,15 @@
+{
+  "RT_GROUP_ICON": {
+    "APPICON": {
+      "0": "../../assets/llama_logo.ico"
+    }
+  },
+  "RT_MANIFEST": {
+    "APP": {
+      "0": {
+        "executionLevel": "asInvoker",
+        "dpiAwareness": "PerMonitorV2"
+      }
+    }
+  }
+}

@@ -16,11 +16,11 @@ func (m zyrisTheme) Color(n fyne.ThemeColorName, v fyne.ThemeVariant) color.Colo
 	case theme.ColorNamePrimary:
 		return color.RGBA{R: 75, G: 58, B: 240, A: 255}   // #4B3AF0 - Blurple Primary
 	case theme.ColorNameButton:
-		return color.RGBA{R: 28, G: 27, B: 41, A: 255}    // #1C1B29 - Botão Escuro
+		return color.RGBA{R: 28, G: 27, B: 41, A: 255}    // #1C1B29 - Dark Button
 	case theme.ColorNameHover:
-		return color.RGBA{R: 45, G: 43, B: 66, A: 255}    // Hover sobre componentes
+		return color.RGBA{R: 45, G: 43, B: 66, A: 255}    // Hover over components
 	case theme.ColorNameForeground:
-		return color.RGBA{R: 230, G: 230, B: 230, A: 255} // Texto claro
+		return color.RGBA{R: 230, G: 230, B: 230, A: 255} // Light Text
 	case theme.ColorNameInputBackground:
 		return color.RGBA{R: 20, G: 19, B: 30, A: 255}    // #14131E - Input Entry
 	case theme.ColorNamePlaceHolder:

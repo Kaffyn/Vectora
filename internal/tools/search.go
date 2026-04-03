@@ -16,17 +16,17 @@ import (
 type FindFilesTool struct{}
 
 func (t *FindFilesTool) Name() string        { return "find_files" }
-func (t *FindFilesTool) Description() string { return "Pesquisa por nomes ou trechos de arquivos através de uma árvore inteira recursivamente." }
+func (t *FindFilesTool) Description() string { return "Searches for file names or fragments across an entire tree recursively." }
 func (t *FindFilesTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"root_path":{"type":"string"},"pattern":{"type":"string"}},"required":["root_path","pattern"]}`)
 }
-// Falback nativo caso `find` falhe em SOs ríspidos
+// Native fallback if `find` fails on restrictive OS environments
 func (t *FindFilesTool) Execute(ctx context.Context, args map[string]any) (ToolResult, error) {
 	rootPath, _ := args["root_path"].(string)
 	pattern, _ := args["pattern"].(string)
 
 	if rootPath == "" {
-		return ToolResult{IsError: true, Output: "Insira uma pasta base de procura."}, nil
+		return ToolResult{IsError: true, Output: "Please provide a base search folder."}, nil
 	}
 
 	var cmd *exec.Cmd
@@ -49,7 +49,7 @@ func (t *FindFilesTool) Execute(ctx context.Context, args map[string]any) (ToolR
 type GrepSearchTool struct{}
 
 func (t *GrepSearchTool) Name() string        { return "grep_search" }
-func (t *GrepSearchTool) Description() string { return "Traz linhas de códigos exatas correspondentes à uma palavra sob uma pasta ou arquivo." }
+func (t *GrepSearchTool) Description() string { return "Finds exact lines of code matching a query within a folder or file." }
 func (t *GrepSearchTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"root_path":{"type":"string"},"query":{"type":"string"}},"required":["root_path","query"]}`)
 }
@@ -57,7 +57,7 @@ func (t *GrepSearchTool) Execute(ctx context.Context, args map[string]any) (Tool
 	rootPath, _ := args["root_path"].(string)
 	query, _ := args["query"].(string)
 
-	// Implementação em Go Puro recursivo para ser veloz + Compatível entre Mac/Linux/Win sem Ripgrep
+	// Pure Go recursive implementation for speed and cross-platform compatibility (Mac/Linux/Win) without Ripgrep
 	var matches []string
 
 	filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
@@ -67,7 +67,7 @@ func (t *GrepSearchTool) Execute(ctx context.Context, args map[string]any) (Tool
 		if !info.IsDir() {
 			data, e := os.ReadFile(path)
 			if e == nil && strings.Contains(string(data), query) {
-				// Evita overload listando apenas ocorrência do binário/arquivo
+				// Avoid overload by listing only the file occurrences.
 				matches = append(matches, path)
 			}
 		}
@@ -75,7 +75,7 @@ func (t *GrepSearchTool) Execute(ctx context.Context, args map[string]any) (Tool
 	})
 
 	if len(matches) == 0 {
-		return ToolResult{Output: "Nenhum arquivo apontou contendo este trecho exato de string."}, nil
+		return ToolResult{Output: "No files found containing this exact string fragment."}, nil
 	}
-	return ToolResult{Output: "Trechos de código encontrados dentro de:\n" + strings.Join(matches, "\n")}, nil
+	return ToolResult{Output: "Code fragments found within:\n" + strings.Join(matches, "\n")}, nil
 }

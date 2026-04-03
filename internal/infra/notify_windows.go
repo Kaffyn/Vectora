@@ -10,10 +10,10 @@ import (
 )
 
 func NotifyOS(title, message string) error {
-	// Dica de Windows 11 UX:
-	// O campo "toast.Notification.Icon" desenha a imagem no CORPO GIGANTE da notificação (AppLogoOverride).
-	// Para forçar o ícone a ir para a parte esquerda superior (O Header do App), o AppID
-	// deve apontar diretamente pro binário físico `.exe` que contém o manifesto de ícone injetado pelo rsrc.
+	// Windows 11 UX Tip:
+	// The "toast.Notification.Icon" field draws the image in the LARGE BODY of the notification (AppLogoOverride).
+	// To force the icon to the top-left (App Header), the AppID
+	// must point directly to the physical `.exe` binary that contains the icon manifest injected by rsrc.
 	execPath, err := os.Executable()
 	if err != nil {
 		execPath = "Vectora"
@@ -23,12 +23,12 @@ func NotifyOS(title, message string) error {
 		AppID:   execPath, 
 		Title:   title,
 		Message: message,
-		// Removido 'Icon' explícito para não flutuar o icone gigante fora do lugar.
+		// Removed explicit 'Icon' to avoid floating a massive icon out of place.
 	}
 	
 	err = notification.Push()
 	if err != nil {
-		log.Println("Win32 Toast Notification falhou na infraestrutura:", err)
+		log.Println("Win32 Toast Notification failed in infrastructure:", err)
 	}
 	return err
 }

@@ -32,7 +32,7 @@ AI Base Model (Qwen / Gemini)     ← always present, fully general
               ↓
          Your Question
               ↓
-        Retrieval across active workspaces
+         Retrieval across active workspaces
               ↓
            Answer
 ```
@@ -79,7 +79,7 @@ Expose any workspace as an MCP server, feeding precise context directly into too
 Vectora supports two providers out of the box, with the engine built to accommodate more in the future:
 
 **Qwen (Local / Offline)**
-Runs entirely on your hardware via `llama.cpp`. No internet required. Supports text and code using the Qwen3 models (see section below for details). Ideal for fully private workflows.
+Runs entirely on your hardware via `llama-cli` using its Zero-Port pipe architecture. No internet required. Supports text and code using the Qwen3 models (see section below for details). Ideal for fully private workflows.
 
 **Gemini (Cloud / Multimodal)**
 Uses your own Gemini API key, stored only in your local config. Unlocks multimodal indexing — PDFs, images, and audio are all supported. The key never leaves your machine.
@@ -117,7 +117,7 @@ Vectora is not a single app — it is an ecosystem of interfaces sharing a commo
 
 | Interface           | Description                                                                                               |
 | ------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Systray**         | The core daemon. Lives near your clock, orchestrates everything, ~5MB RAM.                                |
+| **Systray**         | The core daemon. Lives near your clock, orchestrates everything, ~100MB RAM.                                |
 | **Web UI (Wails)**  | Local desktop app powered by Next.js. Chat interface, workspace management, settings, and Index browsing. |
 | **CLI (Bubbletea)** | Terminal interface. Minimal footprint, instant response.                                                  |
 | **MCP Server**      | Exposes Vectora's knowledge to external AI tools and IDEs.                                                |
@@ -135,7 +135,7 @@ When operating in MCP or ACP mode, Vectora exposes a shared set of tools built f
 - **Memory:** `save_memory`, `enter_plan_mode`
 
 > [!IMPORTANT]
-> Every write or shell action triggers an automatic Git snapshot via `GitBridge` before execution. Any agentic action can be fully rolled back with a single `undo` command.
+> Every write or shell action triggers an automatic snapshot via `internal/git` before execution. Any agentic action can be fully rolled back with a single `undo` command.
 
 ---
 
@@ -148,14 +148,14 @@ Vectora is written entirely in Go. The core runs as a lightweight systray daemon
 | Vector DB       | chromem-go               | Semantic search and embeddings                              |
 | Key-Value DB    | bbolt                    | Chat history, logs, config                                  |
 | AI Engine       | langchaingo              | LLM and embedding provider abstraction (Gemini, extensible) |
-| Local Inference | llama.cpp (sidecar)      | Offline model execution (Qwen)                              |
+| Local Inference | llama-cli (pipes)        | Offline model execution (Qwen3)                             |
 | Installer       | Fyne                     | Cross-platform setup wizard                                 |
 | Tray            | systray                  | Core daemon and orchestrator                                |
-| Web UI          | Wails + Next.js (static) | Local desktop chat interface                                |
+| Web UI          | Wails + Next.js (static) | Local desktop chat interface (located in `internal/app`)    |
 | CLI             | Bubbletea                | Terminal interface                                          |
 | Index Server    | Go (net/http)            | Vector dataset catalog and distribution                     |
 
-The Web UI is built with Next.js in static export mode, embedded into the Wails binary via `go:embed`. The frontend communicates with the Go backend through Wails bindings — no HTTP server, no Node.js runtime, direct JS→Go function calls.
+The Web UI is built with Next.js in static export mode from `internal/app`, embedded into the Wails binary via `go:embed`. The frontend communicates with the Go backend through Wails bindings — no HTTP server, no Node.js runtime, direct JS→Go function calls.
 
 Designed to operate under **4GB of RAM** on modest hardware.
 

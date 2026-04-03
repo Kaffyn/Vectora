@@ -15,7 +15,7 @@ type BBoltStore struct {
 	db *bbolt.DB
 }
 
-// Inicializa a conexão com o Banco bbolt raiz. 
+// Initialize the root bbolt KV store connection.
 func NewKVStore() (*BBoltStore, error) {
 	osMgr, err := vecos.NewManager()
 	if err != nil {
@@ -52,7 +52,7 @@ func (s *BBoltStore) Get(ctx context.Context, bucket string, key string) ([]byte
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(bucket))
 		if b == nil {
-			return fmt.Errorf("bbolt_bucket_empty: a gaveta '%s' não existe", bucket)
+			return fmt.Errorf("bbolt_bucket_empty: bucket '%s' not found", bucket)
 		}
 		v := b.Get([]byte(key))
 		if v != nil {

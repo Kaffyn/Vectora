@@ -1,65 +1,84 @@
-# Revisão Arquitetural Sistêmica: Ecossistema de APIs Vectora
+# Plano de Implementação: Camada de API e IPC (Inter-Process Communication)
 
-Após a implementação basal dos Sockets e Módulos Estruturais, detectamos interdependências profundas que requerem orquestração impecável. Este plano definitivo formaliza as regras de tráfego de dados cruzados entre todo o Backend (Daemon/Tray -> LLMs -> Bancos BD -> Ferramentas).
-
-## User Review Required
-
-> [!IMPORTANT]
->
-> - O Wails IPC (_Web UI_) irá abstrair chamadas do React e enviá-las num pipeline nativo do Go diretamente para o socket IPC Socket UNIX do Daemon. Assim não abrimos portas HTTP na máquina do usuário. Valide se concorda.
-> - O MCP Server roda isoladamente quando invocado pelo VSCode/Cursor (`vectora.exe --mcp`). Ele deverá renegociar acesso seguro ao Chromem-Go independentemente, mas não instanciará _llama.cpp_ para evitar conflitos de GPU com o Daemon.
+Este plano detalha a arquitetura de comunicação entre o Daemon Central e suas Interfaces (Web, CLI, MCP), assegurando o fluxo de dados em tempo real e isolamento total de estado.
 
 ---
 
-## Revisão de Fluxo Integrado (Como os módulos se tocam)
+## 1. Definição Tecnológica
 
-### 1. Comunicação Wails Front-End ↔ RPC IPC Daemon (`vectora-web` -> `internal/ipc`)
+O Vectora rejeita o uso de servidores HTTP locais para o core de comunicação devido à latência de handshake TCP e à exposição de portas locais.
 
-- O Next.js/React fará chamada assíncrona p/ Wails: `window.go.main.App.WorkspaceQuery("id", "pergunta")`.
-- A Go Struct do Wails agirá puramente como um Proxy (Router): Constrói a mensagem ND-JSON e emite no `client.Send("workspace.query")`.
-- O Daemon `vectora.exe` principal (Unix Socket Master) recebe o pulso, invoca o pipeline RAG, aciona evento de Stream pro UI e devolve a resposta final.
-
-### 2. Ciclo Sidecar (`tray` ↔ `internal/llm/qwen` ↔ `llama-server.exe`)
-
-- Quando o usuário no Systray escolhe o modo **Qwen GGUF Offline**:
-  1. A `tray` inicializa a Factory `NewQwenProvider()`.
-  2. O O.S. Manager entra em ação, busca o binário nativo na raiz `~/.Vectora/` e starta o Subprocesso local (42781 tcp).
-  3. O provedor injeta um client `langchaingo` falsificando requisições OpenAI `v1/chat/completions` em apontamento direto para o localhost limpo.
-  4. Quando o Systray é finalizado (Quit) ou há troca de motor (Gemini), a interface atesta limpeza matando a Thread OS do `llama-server`.
-
-### 3. Workflow de I/O em LangChain (`internal/llm` ↔ `internal/acp` ↔ `internal/tools`)
-
-- Todas as Tool calls descritas no schema do Langchaingo devem realizar unmarshal nativo nos structs do Go.
-- Quando a LLM solicita acesso (Ex: `write_file`):
-  1. O `internal/acp` (Agent Context) invoca a Tool através do "ExecuteStringArgs".
-  2. A própria ferramenta instigada executa antes um _Backup_ automático raw gerando SnapID em `%USERPROFILE%/.Vectora/backups`.
-  3. Só então o FS nativo é tocado via O.S. (Garantindo Regra Zero-Risco de modificação sem reverter).
-
-### 4. Persistência de Contexto Duplo (`internal/db`)
-
-- **Memória Linear (`bbolt`)**: Persiste a estrutura de preferência do usuário (Keys, Workspaces Meta) e Histórico de Chat. Injetado na Tool `save_memory` via AgentContext pra dar lembrança pro LLM.
-- **RAG Geométrico (`chromem-go`)**: Atuará de mãos dadas com a Action `workspace.query`. Assim que um Dataset é indexado/baixado pelo Cliente HTTP `internal/index`, ele vai pra gaveta vetorial com Namespaces Isolados. A função de Embebing do Langchaingo mapea todo documento em "Chunks", que mergulharam individualmente encapsulados no Struct `db.Chunk`.
+- **Windows:** Named Pipes (`\\.\pipe\vectora`).
+- **Linux/macOS:** Unix Domain Sockets (`~/.Vectora/run/vectora.sock`).
+- **Codificação:** JSON-ND (Newline Delimited) para suporte nativo a streaming sem cabeçalhos pesados.
 
 ---
 
-## Proximas Frentes de Adoção (Checklist Arquitetural)
+## 2. Estrutura do Servidor IPC (`internal/ipc/server.go`)
 
-Para solidificar os links que acabam de nascer nos pacotes desacoplados da `/internal`:
+O servidor é implementado em Go puro e gerenciado pelo Daemon.
 
-#### [MODIFY] `internal/acp/agent.go`
+### 2.1 O Ciclo de Vida do Socket
 
-- Injetar o repositório DB físico (BBoltStore) no inicializador do Agent Context, permitindo que a _Tool_ `save_memory` funcione perfeitamente.
+1. **Iniciação:** O Daemon cria o arquivo de socket (ou Named Pipe) no boot.
+2. **Registro de Rotas:** O `RegisterRoutes()` mapeia strings de comando (`workspace.query`, etc.) para funções do `internal/core`.
+3. **Loop de Aceite:** Escuta e redireciona conexões para goroutines paralelas.
+4. **Encerramento:** Garante o `cleanup` do arquivo de socket para evitar conflitos no próximo boot.
 
-#### [NEW] `internal/core/rag_pipeline.go`
+---
 
-- Será a Placa Mãe Real! Fiará as conexões em tempo real do DB Vectorial (Chromem) -> Chamada ao Prompt -> Invoca a LLM (Gemini/Qwen) -> Ativa o Evento do IPC pra desenhar na tela Web.
+## 3. Contrato de Mensagens (O Envelope)
 
-## Open Questions
+Toda mensagem IPC segue o mesmo envelope:
 
-> [!WARNING]
-> Dado que o Wails é o empacotador de Janelas do Windows/Mac, a única dependência que o instalador vai colocar além do Daemon (`vectora.exe`) na raiz do `%USERPROFILE%/.Vectora` é o binário principal `vectora-web.exe`. Ou você prefere fundir o Wails e o Daemon no MESMO código binário unificado usando as Views Nativas do Wails invés de processos IPC independentes? (Recomendo fortemente IPC Separado pra não "sujar" o Daemon Systray com WebView memory footprint).
+```json
+{
+  "id": "uuid-v4-string",
+  "method": "string.name",
+  "type": "request | response | event",
+  "payload": { ... },
+  "error": null
+}
+```
 
-## Verification Plan
+### 3.1 Lista de Métodos e payloads Revisitada
 
-1. Revisaremos o Mockup Pipeline do Core injetando Chunks artificais na camada `internal/db` para aferir busca em menos de 100ms.
-2. Validar que o Wails Router dispara perfeitamente no Socket Linux/Win32 via IPC Ping.
+| Método                | Payload In           | Resposta                    |
+| --------------------- | -------------------- | --------------------------- |
+| **`workspace.query`** | `{"ws_id", "query"}` | `{"answer", "sources"}`     |
+| **`workspace.index`** | `{"ws_id", "path"}`  | `{"job_id", "status"}`      |
+| **`tool.execute`**    | `{"tool", "args"}`   | `{"result", "snapshot_id"}` |
+| **`provider.set`**    | `{"name", "key"}`    | `{"configured": true}`      |
+
+---
+
+## 4. O Sistema de Eventos (Push Notifications)
+
+O Daemon pode empurrar eventos para as interfaces sem um pedido prévio (ex: progresso de indexação).
+
+```json
+{
+  "id": "event-uuid",
+  "type": "event",
+  "method": "index.progress",
+  "payload": { "ws_id": "godot", "percent": 45 }
+}
+```
+
+---
+
+## 5. Próximos Passos de Implementação (API Refactor)
+
+1.  [ ] **Fallback IPC:** Se o Named Pipe falhar no Windows (ex: privilégio), disparar um fallback para TCP Local-Only via flag.
+2.  [ ] **Criptografia Simétrica (Opcional):** Implementar um handshake de chave simples (Handshake Secret) gerado pelo Daemon no boot para encriptar payloads que contenham chaves de API.
+3.  [ ] **Multiplexação de Clientes:** Suportar que o CLI e o Web UI estejam conectados simultaneamente e vejam o mesmo histórico de chat em tempo real.
+
+---
+
+## 6. Regras de Negócio (API)
+
+- **RN-API-01:** O payload de erro deve sempre conter um `code` amigável à Web UI (snake_case) e uma `message` legível.
+- **RN-API-02:** Conexões inativas por mais de 30 minutos devem ser fechadas para preservar RAM no Daemon.
+- **RN-API-03:** Todas as chamadas ao IPC devem ser logadas em `internal/infra/logger.go` para auditoria de segurança (GitBridge).
+
+[Fim do Plano de API - Revisão 2026.04.03]

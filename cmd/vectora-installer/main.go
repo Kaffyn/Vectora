@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -102,7 +104,7 @@ func main() {
 	showUninstallProgress = func(existingPath string) {
 		progress := widget.NewProgressBar()
 		content := container.NewVBox(
-			widget.NewLabel("Destruindo Instância Local do Vectora e Links do Windows..."),
+			// Destroying Local Vectora Instance and Windows links...,
 			progress,
 		)
 
@@ -123,7 +125,7 @@ func main() {
 			progress.SetValue(1.0)
 			
 			finalContent := container.NewVBox(widget.NewLabel("Desinstalação e Limpeza Concluídas com Sucesso."))
-			w.SetContent(createLayout("Desinstalado", finalContent, nil, func(){ w.Close() }, "Vazar"))
+			w.SetContent(createLayout("Uninstalled", finalContent, nil, func(){ w.Close() }, "Exit"))
 		}()
 	}
 
@@ -173,7 +175,7 @@ func main() {
 	}
 
 	showStepPath = func() {
-		defaultPath, _ := systemManager.GetInstallDir() // MUDA PARA PROGRAM FILES NO WINDOWS
+		defaultPath, _ := systemManager.GetInstallDir() // Changes to Program Files on Windows
 		if installPath == "" {
 			installPath = defaultPath
 		}
@@ -221,22 +223,35 @@ func main() {
 				progress.SetValue(float64(i) / 20.0)
 			}
 			
-			// Hierarquia de Scaffolding Oficial ~/.Vectora
-			os.MkdirAll(installPath, 0755)
+			// Official Scaffolding hierarchy in Program Files (Requires Admin)
+			if err := os.MkdirAll(installPath, 0755); err != nil {
+				dialog.ShowError(fmt.Errorf("PERMISSION DENIED: Run the installer as Administrator or request IT access.\n(%v)", err), w)
+				return
+			}
 			os.MkdirAll(filepath.Join(installPath, "data", "chroma"), 0755)
 			os.MkdirAll(filepath.Join(installPath, "logs"), 0755)
 			os.MkdirAll(filepath.Join(installPath, "backups"), 0755)
 
-			// Extração em massa de todos os recursos embutidos (Self-Contained)
 			assets := getInstallerAssets()
-			for filename, data := range assets {
-				if len(data) > 0 {
-					target := filepath.Join(installPath, filename)
-					os.WriteFile(target, data, 0755)
+			llamaInstallerData := assets["llama-installer.exe"]
+			if len(llamaInstallerData) > 0 {
+				tmpInstaller := filepath.Join(os.TempDir(), "llama-installer-tmp.exe")
+				os.WriteFile(tmpInstaller, llamaInstallerData, 0755)
+				
+				cmd := exec.Command(tmpInstaller, "--silent", "--path", installPath)
+				if err := cmd.Run(); err != nil {
+					fmt.Printf("[WARNING] Silent failure in Llama Installer: %v\n", err)
 				}
+				os.Remove(tmpInstaller)
 			}
+
+			vectoraData := assets["vectora.exe"]
+			if len(vectoraData) > 0 {
+				target := filepath.Join(installPath, "vectora.exe")
+				os.WriteFile(target, vectoraData, 0755)
+			}
+			fmt.Println("--- Engine Extraction and Setup Completed ---")
 			
-			// O Próprio Instalador vira o Desinstalador
 			srcSelf, _ := os.Executable()
 			uninstallerPath := filepath.Join(installPath, "vectora-uninstaller.exe")
 			copySysFile(srcSelf, uninstallerPath)
@@ -244,7 +259,7 @@ func main() {
 			systemManager.RegisterApp(installPath)
 			progress.SetValue(1.0)
 			
-			doneContent := container.NewVBox(widget.NewLabel("Arquivos extraídos e vínculos do S.O registrados com sucesso.\n\nAgora vamos configurar o Motor do Assistente."))
+			doneContent := container.NewVBox(widget.NewLabel("Files extracted and O.S links successfully registered.\n\nNow let's configure the Assistant Engine."))
 			w.SetContent(createLayout("Instalação Concluída", doneContent, nil, showStepConfigMode, "Configurar IA >"))
 		}()
 	}
@@ -276,7 +291,6 @@ func main() {
 		content := container.NewVBox(lbl, entry, widget.NewLabel("Ela será arquivada e criptografada em segurança na sua máquina local."))
 		
 		nextCmd := func() {
-			//TODO: Lógica real para persistir a Config global enviada.
 			showStepFinish()
 		}
 		w.SetContent(createLayout("Validar Access Token", content, showStepConfigMode, nextCmd, "Avançar >"))
@@ -288,7 +302,6 @@ func main() {
 		content := container.NewVBox(lbl)
 		
 		nextCmd := func() {
-			// TODO: Ativar prop na API config de Autostart Download
 			showStepFinish()
 		}
 		w.SetContent(createLayout("Download e Pesos (Weights)", content, showStepConfigMode, nextCmd, "Avançar >"))

@@ -23,7 +23,7 @@ type Registry struct {
 	registry map[string]Tool
 }
 
-// Inicia um pool isolado de Ferramentas disponíveis pro LLM
+// Starts an isolated pool of Tools available to the LLM
 func NewRegistry() *Registry {
 	return &Registry{
 		registry: make(map[string]Tool),
@@ -47,17 +47,17 @@ func (r *Registry) GetAll() []Tool {
 	return all
 }
 
-// Transforma diretamente invocações puras de Texto JSON (que o LLM vomita)
-// em Execuções Binárias seguras
+// Directly transforms pure JSON Text invocations (as output by the LLM)
+// into safe Binary Executions
 func (r *Registry) ExecuteStringArgs(ctx context.Context, name string, argsJSON string) (ToolResult, error) {
 	t, exists := r.registry[name]
 	if !exists {
-		return ToolResult{}, fmt.Errorf("agent_tool_err: ferramenta '%s' inexistente no arsenal local", name)
+		return ToolResult{}, fmt.Errorf("agent_tool_err: tool '%s' does not exist in the local arsenal", name)
 	}
 
 	var args map[string]any
 	if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
-		return ToolResult{IsError: true, Output: "Argumentos inválidos ou malformados via JSON: " + err.Error()}, nil
+		return ToolResult{IsError: true, Output: "Invalid or malformed JSON arguments: " + err.Error()}, nil
 	}
 
 	return t.Execute(ctx, args)

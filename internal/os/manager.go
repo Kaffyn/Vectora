@@ -18,7 +18,7 @@ const (
 	EngineError    EngineState = "ERROR"
 )
 
-// OSManager encapsula interações Nativas do Kernel Host para que Daemon e Instalador sejam universais.
+// OSManager encapsulates Native Host Kernel interactions so that the Daemon and Installer are cross-platform.
 type OSManager interface {
 	GetAppDataDir() (string, error)
 	GetInstallDir() (string, error)
@@ -26,12 +26,12 @@ type OSManager interface {
 	StopLlamaEngine() error
 	GetEngineState() string
 
-	// Sistema de Registro do Installer Level
+	// Installer-Level Registration System
 	IsInstalled() string
 	RegisterApp(installDir string)
 	UnregisterApp(installDir string)
 	
-	// Prevenção de Concorrência
+	// Concurrency Prevention
 	EnforceSingleInstance() error
 }
 

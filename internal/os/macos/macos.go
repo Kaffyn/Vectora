@@ -73,7 +73,7 @@ func (m *MacosManager) GetEngineState() string {
 	return m.state
 }
 
-// ==== EXTENSÕES MAC OS ====
+// ==== MAC OS EXTENSIONS ====
 
 func (m *MacosManager) IsInstalled() string {
 	p, _ := m.GetAppDataDir()
@@ -83,16 +83,16 @@ func (m *MacosManager) IsInstalled() string {
 	return ""
 }
 
+// Only instantiate the structural directory
 func (m *MacosManager) RegisterApp(installDir string) {
-	// Apenas instanciar o dir estrutural
 	os.MkdirAll(installDir, 0755)
 }
 
 func (m *MacosManager) UnregisterApp(installDir string) {
-	// Cleanup manual em Unix
+	// Manual cleanup on Unix
 }
 
-// Para MacOS, Mutex Win32 inexiste. Faremos lock via TCP invisível (Standard UNIX approach sem Syscalls libc sujas).
+// For macOS, Win32 Mutex does not exist. We use an invisible TCP lock (Standard UNIX approach).
 func (m *MacosManager) EnforceSingleInstance() error {
 	l, err := net.Listen("tcp", "127.0.0.1:41785")
 	if err != nil {

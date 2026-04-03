@@ -10,7 +10,7 @@ import (
 type ShellTool struct{}
 
 func (t *ShellTool) Name() string        { return "run_shell_command" }
-func (t *ShellTool) Description() string { return "Injeta e executa um script/comando diretamente no Kernel Shell do sistema hospedeiro." }
+func (t *ShellTool) Description() string { return "Injects and executes a script/command directly into the host system's Kernel Shell." }
 func (t *ShellTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"command":{"type":"string"}},"required":["command"]}`)
 }
@@ -24,12 +24,12 @@ func (t *ShellTool) Execute(ctx context.Context, args map[string]any) (ToolResul
 		cmd = exec.CommandContext(ctx, "bash", "-c", cmdStr)
 	}
 
-	// Warning de Streaming:
-	// Num cenário futuro a 'StdoutPipe' rodará integrada ao daemon.ipc.Broadcast para live-steaming
-	// Por hora estamos aguardando a finalização integral via CombinedOutput().
+	// Streaming Warning:
+	// In the future, 'StdoutPipe' will run integrated with daemon.ipc.Broadcast for live-streaming.
+	// For now, we are awaiting full completion via CombinedOutput().
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return ToolResult{IsError: true, Output: "Shell Falhou!\nOutput: " + string(out) + "\nMotivo: " + err.Error()}, nil
+		return ToolResult{IsError: true, Output: "Shell Failed!\nOutput: " + string(out) + "\nReason: " + err.Error()}, nil
 	}
 
 	return ToolResult{Output: string(out)}, nil

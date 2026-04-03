@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
-	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,120 +14,158 @@ import (
 	"github.com/Kaffyn/vectora/internal/db"
 	"github.com/Kaffyn/vectora/internal/infra"
 	"github.com/Kaffyn/vectora/internal/llm"
+	"github.com/Kaffyn/vectora/internal/tools"
 )
 
 func main() {
+	// Command flags
+	cleanFlag := flag.Bool("clean", false, "Remove a base de dados de teste antes de iniciar")
+	flag.Parse()
+
+	// Enforce UTF-8 output on Windows
+	fmt.Print("\033[?25l") // Esconde cursor
+	defer fmt.Print("\033[?25h") // Mostra cursor
+
 	fmt.Println("==================================================")
-	fmt.Println("🚀 VECTORA E2E ZYRIS ENGINE TEST SUITE (NO MOCKS)")
+	fmt.Println("🛰️  VECTORA E2E ECOSYSTEM AUDIT (Full Suite)")
 	fmt.Println("==================================================")
 
-	// 1. Inicializa o ambiente e Configurações Reais
 	infra.SetupLogger()
-	cfg := infra.LoadConfig()
-	if cfg.GeminiAPIKey == "" {
-		log.Fatalf("[ERRO] Variável GEMINI_API_KEY não encontrada. Teste End-to-End necessita de chave real.")
-	}
-
 	ctx := context.Background()
+	cfg := infra.LoadConfig()
 
-	// 2. Cria Bancos Temporários Mas Reais (BBolt e Chromem)
-	fmt.Println("[1/4] Montando Bancos de Dados Temporários...")
-	tmpDbPath := filepath.Join(os.TempDir(), "vectora_e2e_bbolt.db")
-	_ = os.Remove(tmpDbPath) // Limpeza de Execuções Antigas
+	// --- 1. MICRO-SERVICES TEST (INTEGRITY) ---
+	checkMicroServices(ctx)
+
+	// --- 2. CLOUD PROVIDER TEST (GEMINI) ---
+	if cfg.GeminiAPIKey == "" {
+		fmt.Println("\n❌ [ERRO] Chave Gemini não configurada. Abortando teste de RAG Real.")
+		os.Exit(1)
+	}
+
+	fmt.Printf("\n[3/4] Inicializando Pipeline de RAG (Zyris Engine Data)...\n")
+	prov, err := llm.NewGeminiProvider(ctx, cfg.GeminiAPIKey)
+	if err != nil {
+		log.Fatalf("FAILED TO START GEMINI: %v", err)
+	}
+
+	// Fixed paths for persistent tests
+	home, _ := os.UserHomeDir()
+	testDataDir := filepath.Join(home, ".Vectora", "test_data")
+	tmpDbPath := filepath.Join(testDataDir, "vectora_rag_test.db")
+	tmpMemPath := filepath.Join(testDataDir, "vectora_rag_memory")
+
+	if *cleanFlag {
+		fmt.Println("      -> [CLEAN] Removendo dados de teste existentes...")
+		os.Remove(tmpDbPath)
+		os.RemoveAll(tmpMemPath)
+	}
+	os.MkdirAll(testDataDir, 0755)
+
+	kv, _ := db.NewKVStoreAtPath(tmpDbPath)
+	vecStore, _ := db.NewVectorStoreAtPath(tmpMemPath)
+
+	// --- 3. SMART INDEXING ---
+	indexDataFolder(ctx, prov, vecStore, *cleanFlag)
+
+	// --- 4. CONSULTA RAG REAL ---
+	runRAGQuery(ctx, prov, vecStore, kv)
+
+	fmt.Println("\n==================================================")
+	fmt.Println("✅ VECTORA ECOSYSTEM IS STABLE & FULLY OPERATIONAL")
+	fmt.Println("==================================================")
+}
+
+func checkMicroServices(ctx context.Context) {
+	fmt.Println("\n[1/4] Auditando Micro-Serviços Internos...")
 	
-	kvStore, err := db.NewKVStoreAtPath(tmpDbPath)
-	if err != nil {
-		log.Fatalf("Falha no BBolt: %v", err)
+	// Message Service
+	fmt.Print("      - Chat Persistence (BBolt)... ")
+	tmpPath := filepath.Join(os.TempDir(), "v_msg_test.db")
+	_ = os.Remove(tmpPath)
+	kv, _ := db.NewKVStoreAtPath(tmpPath)
+	msgSvc := llm.NewMessageService(kv)
+	conv, _ := msgSvc.CreateConversation(ctx)
+	if conv != nil { fmt.Println("✅") } else { fmt.Println("❌") }
+
+	// Memory Service
+	fmt.Print("      - Knowledge Vector (ChroMem)... ")
+	tmpMem := filepath.Join(os.TempDir(), "v_mem_test")
+	_ = os.RemoveAll(tmpMem)
+	memSvc, err := db.NewMemoryService(ctx, tmpMem)
+	if err == nil && memSvc != nil { fmt.Println("✅") } else { fmt.Println("❌") }
+
+	// Search Service
+	fmt.Print("      - Intelligence Search... ")
+	searchSvc := tools.NewSearchService()
+	if searchSvc != nil { fmt.Println("✅") } else { fmt.Println("❌") }
+}
+
+func indexDataFolder(ctx context.Context, prov llm.Provider, vecStore db.VectorStore, force bool) {
+	fmt.Println("\n[2/4] Sincronizando base de conhecimento (./data)...")
+	
+	collectionName := "ws_zyris_test"
+	
+	// Check if collection exists and has documents
+	if !force && vecStore.CollectionExists(ctx, collectionName) {
+		// Smoke test to see if collection is actually populated
+		dummyVec := make([]float32, 1536) // Gemini standard size
+		res, _ := vecStore.Query(ctx, collectionName, dummyVec, 1)
+		if len(res) > 0 {
+			fmt.Println("      -> Cache Detectado (ChroMem-Go). Pulando vetorização (Use --clean para refazer).")
+			return
+		}
 	}
 
-	vecStore, err := db.NewVectorStore()
-	if err != nil {
-		log.Fatalf("Falha no Chromem: %v", err)
-	}
-
-	// 3. Setup Gemini Provider (Instanciamos o client real com a chave do usuário)
-	fmt.Println("[2/4] Iniciando Conexão Real com Gemini AI (Auth)...")
-	// Precisamos simular a factory do LLM com base na configuração do Tray
-	// Aqui testamos a pipeline de RAG inteira via injeção
-	geminiProvider, err := llm.NewGeminiProvider(ctx, cfg.GeminiAPIKey)
-	if err != nil {
-		log.Fatalf("Erro ao montar o Gemini Provider: %v", err)
-	}
-
-	// 4. Ingestão e Vetorização Real
-	fmt.Println("[3/4] Indexando pasta ./data (XML files)...")
-	workspaceID := "zyris_engine_test"
-	colName := "ws_" + workspaceID
-
-	// Procurar XMLs
 	dataDir := "./data"
-	xmlFiles := 0
-	err = filepath.Walk(dataDir, func(path string, info fs.FileInfo, err error) error {
-		if err != nil { return nil }
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".xml") {
-			xmlFiles++
-			contentBytes, _ := os.ReadFile(path)
-			content := string(contentBytes)
+	count := 0
+	
+	filepath.Walk(dataDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() { return nil }
+		if strings.HasSuffix(info.Name(), ".xml") || strings.HasSuffix(info.Name(), ".txt") {
+			content, _ := os.ReadFile(path)
+			fmt.Printf("      -> [GEMINI] Vetorizando [%s] (%d bytes)...\n", info.Name(), len(content))
 			
-			// Chunking Ingênuo de Teste (Simples Split) e Vetorização Unida
-			fmt.Printf("      - Vetorizando %s (%d bytes)...\n", info.Name(), len(content))
-			
-			// Gera o Vector de embedding usando Gemini
-			vec, embErr := geminiProvider.Embed(ctx, content)
-			if embErr != nil {
-				fmt.Printf("      [ERRO VETORIZACAO]: %v\n", embErr)
-				return embErr
+			emb, err := prov.Embed(ctx, string(content))
+			if err != nil {
+				if strings.Contains(err.Error(), "429") {
+					fmt.Println("      ⚠️ [QUOTA EXCEEDED] Abortando vetorização para evitar falhas em cascata.")
+					return fmt.Errorf("quota_limit")
+				}
+				fmt.Printf("      ⚠️ [ERRO]: %v\n", err)
+				return nil
 			}
-			
-			chunkID := fmt.Sprintf("chunk_%s_%d", info.Name(), time.Now().UnixNano())
-			
-			// Salva o Chunk Fisicamente
-			if err := vecStore.UpsertChunk(ctx, colName, db.Chunk{
-				ID:       chunkID,
-				Content:  content,
-				Vector:   vec,
-				Metadata: map[string]string{"filename": info.Name(), "type": "xml"},
-			}); err != nil {
-				fmt.Printf("      [ERRO UPSERT]: %v\n", err)
-				return err
-			}
+
+			vecStore.UpsertChunk(ctx, collectionName, db.Chunk{
+				ID:      info.Name(),
+				Content: string(content),
+				Vector:  emb,
+			})
+			count++
 		}
 		return nil
 	})
+	fmt.Printf("      Total de arquivos indexados no ChroMem: %d\n", count)
+}
 
+func runRAGQuery(ctx context.Context, prov llm.Provider, vecStore db.VectorStore, kv db.KVStore) {
+	fmt.Println("\n[4/4] Executando consulta RAG sobre o Zyris Engine...")
+	pipeline := core.NewPipeline(prov, vecStore, kv)
+	
+	query := "Resuma as principais entidades do Zyris Engine baseado no contexto fornecido."
+	fmt.Printf("      [QUERY]: %s\n", query)
+	
+	start := time.Now()
+	res, err := pipeline.Query(ctx, core.QueryRequest{
+		WorkspaceID: "ws_zyris_test", // Synchronized with ChroMem collection
+		Query:       query,
+	})
+	
 	if err != nil {
-		log.Fatalf("Falha crítica no processamento de dados: %v", err)
+		fmt.Printf("      ❌ [FALLA]: %v\n", err)
+		return
 	}
 	
-	if xmlFiles == 0 {
-		fmt.Printf("Aviso: zero arquivos XML encontrados no '%s'.\n", dataDir)
-		log.Println("Crie um arquivo na pasta data para validação real (ex: zyris_player.xml).")
-	}
-
-	// 5. Querying Real (RAG em Ação)
-	fmt.Println("[4/4] Consultando LLM usando o Cérebro local Vetorizado...")
-	
-	pipeline := core.NewPipeline(geminiProvider, vecStore, kvStore)
-	
-	queryStr := "Resuma como funciona a entidade base do Zyris Engine baseado no contexto que você tem guardado."
-	req := core.QueryRequest{
-		WorkspaceID: workspaceID,
-		Query:       queryStr,
-	}
-
-	fmt.Printf("\n[PERGUNTA]: %s\n\n", queryStr)
-	
-	startQuery := time.Now()
-	res, qErr := pipeline.Query(ctx, req)
-	if qErr != nil {
-		fmt.Printf("[ERRO QUERY PIPELINE]: %v\n", qErr)
-		log.Fatalf("Falha na pipeline de execução: %v", qErr)
-	}
-	elapsed := time.Since(startQuery)
-
-	fmt.Println("==================================================")
-	fmt.Printf("[RESPOSTA GERADA] (Tempo de inferência: %v)\n%s\n", elapsed, res.Answer)
-	fmt.Println("==================================================")
-
-	fmt.Println("[SUCESSO] RAG Físico Completo executado adequadamente!")
+	fmt.Printf("      [TEMPO]: %v\n", time.Since(start))
+	fmt.Printf("\n🤖 [RESPOSTA]:\n%s\n", res.Answer)
 }

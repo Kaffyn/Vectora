@@ -12,12 +12,12 @@ import (
 )
 
 // MCP Server: Model Context Protocol.
-// Operado via Pipes de StdIn/StdOut brutos para IDEs de terceiros plugar nosso "Cérebro Local".
+// Operated via raw StdIn/StdOut Pipes for third-party IDEs to plug into our "Local Brain".
 
 func StartMCPServer(ctx context.Context) error {
 	scanner := bufio.NewScanner(os.Stdin)
 	
-	// Limite alto devido a JSON-RPC payloads
+	// High limit due to JSON-RPC payloads
 	buf := make([]byte, 4*1024*1024)
 	scanner.Buffer(buf, len(buf))
 
@@ -26,7 +26,7 @@ func StartMCPServer(ctx context.Context) error {
 		var req map[string]any
 		
 		if err := json.Unmarshal(line, &req); err != nil {
-			continue // Silence. O Pipe pode ter sujeiras
+			continue // Silence. The Pipe might have noise.
 		}
 
 		// Checagem JSON-RPC 2.0 Base
@@ -34,7 +34,7 @@ func StartMCPServer(ctx context.Context) error {
 		id, _ := req["id"]
 
 		if ok && method == "tools/list" {
-			// Expõe a Tool Canônica "ask_vectora" nativamente via Cursor IDE!
+			// Exposes the canonical "ask_vectora" tool natively via Cursor IDE!
 			resp := map[string]any{
 				"jsonrpc": "2.0",
 				"id":      id,
@@ -57,7 +57,7 @@ func StartMCPServer(ctx context.Context) error {
 			}
 			
 			b, _ := json.Marshal(resp)
-			fmt.Println(string(b)) // Despeja no Stdout pra IDE ler e acoplar a Tool
+			fmt.Println(string(b)) // Dumps to Stdout for the IDE to read and attach the Tool.
 		}
 		
 		if ok && method == "tools/call" {
@@ -69,7 +69,7 @@ func StartMCPServer(ctx context.Context) error {
 				query, _ := argsMap["query"].(string)
 				wsID, _ := argsMap["workspace_id"].(string)
 
-				// Dispara Cliente IPC pra Conversar com o Nosso Daemon em Background
+				// Triggers IPC Client to talk to our Background Daemon.
 				ipcClient, _ := ipc.NewClient()
 				if ipcClient != nil && ipcClient.Connect() == nil {
 					var queryResp core.QueryResponse

@@ -14,7 +14,7 @@ type ChromemStore struct {
 	db *chromem.DB
 }
 
-// Instancia persistência baseada em pastas para Embeddings. 
+// Initialize folder-based persistence for embeddings using chromem-go.
 func NewVectorStore() (*ChromemStore, error) {
 	osMgr, err := vecos.NewManager()
 	if err != nil {
@@ -32,7 +32,7 @@ func NewVectorStoreAtPath(path string) (*ChromemStore, error) {
 
 	db, err := chromem.NewPersistentDB(path, false)
 	if err != nil {
-		return nil, fmt.Errorf("vectora_internal_err: falha silenciosa no binding do chromem persistent db: %w", err)
+		return nil, fmt.Errorf("vectora_internal_err: silent failure in chromem persistent db binding: %w", err)
 	}
 
 	return &ChromemStore{db: db}, nil

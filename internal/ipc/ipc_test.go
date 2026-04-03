@@ -18,7 +18,7 @@ func TestIPCFullCycle_Memory(t *testing.T) {
 
 	addr := filepath.Join(tmpDir, "test.sock")
 	if runtime.GOOS == "windows" {
-		addr = "127.0.0.1:42785" // Porta de Teste
+		addr = "127.0.0.1:42785" // Test Port
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

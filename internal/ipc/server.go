@@ -29,7 +29,7 @@ type Server struct {
 }
 
 func NewServer() (*Server, error) {
-	// Determinação Absoluta do Local do Socket (.Vectora)
+	// Absolute determination of the Socket location (.Vectora)
 	osMgr, err := vecos.NewManager()
 	if err != nil {
 		return nil, err
@@ -64,19 +64,18 @@ func (s *Server) Start() error {
 	var err error
 
 	if runtime.GOOS == "windows" {
-		// Named Pipes não costumam ser suportados perfeitamente via net padrão se não preparadas.
-		// Em Go, `winio` era usado antes do 1.20, mas agora usaremos uma porta TCP de loopback fixa/segura
-		// OU manteremos Unix Sockets experimentais no Windows (no r1.22 AF_UNIX é suportado no Windows 10/11)
+		// Named Pipes often require specific handling in Go.
+		// Older versions used winio, but we now use AF_UNIX for Windows 10/11 or TCP loopback fallback.
 		
-		// Fallback inteligente para Windows moderno (Windows 10 Build 17063+ tem AF_UNIX)
+		// Smart fallback for modern Windows (Windows 10 Build 17063+ supports AF_UNIX)
 		addr := `\\.\pipe\vectora`
 		l, err = net.Listen("unix", addr) 
 		if err != nil {
-			// Alternativa fallback (Hard TCP loopback) se o kernel OS não suportar AF_UNIX pipes.
+			// Fallback (Hard TCP loopback) if the OS kernel does not support AF_UNIX pipes.
 			l, err = net.Listen("tcp", "127.0.0.1:42780")
 		}
 	} else {
-		// Clean antigo sock se crashou 
+		// Clean old socket if it crashed
 		os.Remove(s.addr)
 		l, err = net.Listen("unix", s.addr)
 	}
@@ -95,7 +94,7 @@ func (s *Server) Start() error {
 				case <-s.ctx.Done():
 					return // Server encerrou gracioso
 				default:
-					log.Println("Falha silenciosa ao aceitar socket:", err)
+					log.Println("Silent failure accepting socket:", err)
 					continue
 				}
 			}
@@ -120,7 +119,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	}()
 
 	scanner := bufio.NewScanner(conn)
-	// Limite Customizado (RN-IPC-04: Size Limit ~4MB)
+	// Custom limit (RN-IPC-04: Size Limit ~4MB)
 	buf := make([]byte, 4*1024*1024)
 	scanner.Buffer(buf, len(buf))
 
@@ -137,19 +136,19 @@ func (s *Server) handleConnection(conn net.Conn) {
 		}
 
 		if msg.Type != MsgTypeRequest {
-			continue // Servidor IPC só engole "request" puro e reage. Ele não ouve respostas porque ele é o master.
+			continue // IPC server only consumes "request" and reacts. It doesn't listen to responses because it is the master.
 		}
 
 		handler, exists := s.handlers[msg.Method]
 		if !exists {
 			s.sendError(conn, msg.ID, &IPCError{
 				Code: "ipc_method_unknown", 
-				Message: fmt.Sprintf("Metodo '%s' não existe no registry.", msg.Method),
+				Message: fmt.Sprintf("Method '%s' does not exist in the registry.", msg.Method),
 			})
 			continue
 		}
 
-		// Roda O Endpoitn e Serializa
+		// Execute the endpoint and serialize
 		go func(m IPCMessage) {
 			resData, ipcErr := handler(s.ctx, m.Payload)
 			
@@ -188,7 +187,7 @@ func (s *Server) sendError(conn net.Conn, id string, ipcErr *IPCError) {
 	s.writeMessage(conn, resp)
 }
 
-// Broadcast Emite alertas para TUDO o Que Estiver Connectado na Tela (Para Barras de Progresso!)
+// Broadcast emits alerts to ALL connected clients (e.g., for progress bars)
 func (s *Server) Broadcast(method string, payloadData any) {
 	b, _ := json.Marshal(payloadData)
 	eventMsg := IPCMessage{

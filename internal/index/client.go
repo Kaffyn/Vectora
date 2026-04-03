@@ -16,13 +16,13 @@ type Client struct {
 
 func NewClient() *Client {
 	return &Client{
-		BaseURL: "https://index.vectora.org/v1", // Registry canônico O.S.S
-		HTTP:    &http.Client{Timeout: 60 * time.Second}, // Tolera mirrors lentos
+		BaseURL: "https://index.vectora.org/v1", // Canonical O.S.S Registry
+		HTTP:    &http.Client{Timeout: 60 * time.Second}, // Tolerate slow mirrors
 	}
 }
 
-// DownloadArchive traz GGUFs ou Snapshots pesados em Chunks pra não explodir a RAM.
-// Utiliza um callback 'onProgress' que a Placa Mãe (internal/ipc/server.go) atrela ao Broadcast.
+// DownloadArchive fetches heavy GGUFs or Snapshots in Chunks to avoid RAM explosion.
+// Uses an 'onProgress' callback that the Motherboard (internal/ipc/server.go) attaches to the Broadcast.
 func (c *Client) DownloadArchive(ctx context.Context, id string, destPath string, onProgress func(percent float64)) error {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/datasets/%s/download", c.BaseURL, id), nil)
 	if err != nil {
@@ -36,7 +36,7 @@ func (c *Client) DownloadArchive(ctx context.Context, id string, destPath string
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("index_client_err: Servidor respondeu com código %d", resp.StatusCode)
+		return fmt.Errorf("index_client_err: Server responded with code %d", resp.StatusCode)
 	}
 
 	out, err := os.Create(destPath)
@@ -45,11 +45,11 @@ func (c *Client) DownloadArchive(ctx context.Context, id string, destPath string
 	}
 	defer out.Close()
 
-	// Leitor de Stream Inteligente
+	// Intelligent Stream Reader
 	totalBytes := resp.ContentLength
 	var downloaded int64
 
-	buf := make([]byte, 32*1024) // Chunks limitados em 32KB
+	buf := make([]byte, 32*1024) // Chunks limited to 32KB
 	for {
 		if ctx.Err() != nil {
 			return ctx.Err()

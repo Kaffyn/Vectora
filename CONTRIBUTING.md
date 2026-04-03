@@ -14,9 +14,9 @@ Vectora is built around three non-negotiable principles:
 
 **Local first.** Every core feature must work without internet access. Cloud providers (Gemini) are opt-in extensions, never dependencies.
 
-**Low footprint.** The systray daemon must remain under 5MB RAM. The full system must operate under 4GB RAM on modest hardware. Every dependency added must justify its memory and binary size cost.
+**Low footprint.** The systray daemon must remain under 100MB RAM RSS in idle. The full system must operate under 4GB RAM on modest hardware. Every dependency added must justify its memory and binary size cost.
 
-**Pure Go where possible.** Avoid CGO bindings, heavy C++ dependencies, and runtime interpreters unless there is no viable Go alternative. Exceptions are `llama.cpp` (inference sidecar) and `Fyne` (installer, CGO/OpenGL).
+**Pure Go where possible.** Avoid CGO bindings, heavy C++ dependencies, and runtime interpreters unless there is no viable Go alternative. Exceptions are `Fyne` (installer, CGO/OpenGL) and `llama-cli` (used as a sidecar via pipes).
 
 ---
 
@@ -27,9 +27,7 @@ Vectora follows standard Go project layout conventions.
 ```markdown
 vectora/
 ├── cmd/                        # Binary entry points (one per executable)
-│   ├── vectora/                # Main orchestrator (systray daemon)
-│   │   └── main.go
-│   ├── vectora-cli/            # CLI binary (Bubbletea)
+│   ├── vectora/                # Main orchestrator (systray daemon) & CLI
 │   │   └── main.go
 │   ├── vectora-web/            # Web UI binary (Wails)
 │   │   └── main.go
@@ -37,6 +35,10 @@ vectora/
 │       └── main.go
 │
 ├── internal/                   # Private packages (not importable externally)
+│   ├── app/                    # Next.js frontend (Source code and Assets)
+│   │   ├── app/                # Next.js App Router
+│   │   ├── components/         # React Components
+│   │   └── public/             # Static Assets
 │   ├── core/                   # Business logic: RAG pipeline, workspace management
 │   │   ├── rag.go
 │   │   ├── workspace.go
@@ -47,7 +49,7 @@ vectora/
 │   ├── llm/                    # LLM provider abstraction
 │   │   ├── provider.go         # Interface definition
 │   │   ├── gemini.go           # Gemini implementation
-│   │   └── qwen.go             # Qwen/llama.cpp implementation
+│   │   └── qwen.go             # Qwen/llama-cli implementation
 │   ├── ipc/                    # IPC server and client (systray ↔ interfaces)
 │   │   ├── server.go
 │   │   └── client.go
@@ -61,6 +63,8 @@ vectora/
 │   │   └── memory.go           # save_memory, enter_plan_mode
 │   ├── git/                    # GitBridge: snapshot and rollback
 │   │   └── bridge.go
+│   ├── engines/                # Binary management for sidecars
+│   │   └── manager.go
 │   ├── mcp/                    # MCP server implementation
 │   │   └── server.go
 │   ├── acp/                    # ACP agent implementation
@@ -70,10 +74,6 @@ vectora/
 │
 ├── pkg/                        # Public packages (safe to import externally)
 │   └── vectorakit/             # SDK for external integrations (future)
-│
-├── web/                        # Next.js frontend (embedded via Wails)
-│   ├── src/
-│   └── package.json
 │
 ├── assets/                     # Embedded static assets (icons, default configs)
 ├── scripts/                    # Build, release, and setup scripts
@@ -93,8 +93,8 @@ vectora/
 - `cmd/` contains only entry points. No business logic lives here — only initialization, flag parsing, and wiring.
 - `internal/` is where all logic lives. Packages here cannot be imported by external projects.
 - `pkg/` is reserved for code intentionally exposed to external consumers. Do not add to `pkg/` without discussion.
-- `web/` is the Next.js frontend. It is embedded into the Wails binary at build time and must not depend on any external CDN at runtime.
-- Cross-cutting concerns (logging, config, errors) belong in `internal/` sub-packages, not scattered across features.
+- `app/` is the Next.js frontend. It is embedded into the Wails binary at build time and must not depend on any external CDN at runtime.
+- Cross-cutting concerns (logging, config, errors) belong in `internal/infra/`, not scattered across features.
 
 ---
 
@@ -106,9 +106,9 @@ The `cmd/vectora` binary is the single source of truth for application state. It
 
 ```markdown
 cmd/vectora (systray daemon)
-    └── IPC Server
-            ├── cmd/vectora-cli   (spawned on demand)
+    └── IPC Server (Named Pipes / Unix Sockets)
             ├── cmd/vectora-web   (spawned on demand)
+            ├── vectora chat / cli (integrated into daemon binary)
             └── MCP / ACP clients (external)
 ```
 
@@ -116,11 +116,11 @@ No interface binary holds state. They are stateless clients. If an interface cra
 
 ### IPC Contract
 
-All communication between the daemon and interfaces goes through the IPC layer in `internal/ipc`. Adding a new interface means implementing the IPC client, not duplicating core logic.
+All communication between the daemon and interfaces goes through the IPC layer in `internal/ipc`. Adding a new interface means implementing the IPC client, not duplicating core logic. The protocol is JSON-ND for streaming efficiency.
 
 ### LLM Provider Interface
 
-All LLM interactions go through the `internal/llm.Provider` interface. New providers must implement this interface. No provider-specific code leaks into `internal/core`.
+All LLM interactions go through the `internal/llm.Provider` interface. New providers must implement this interface. No provider-specific code leaks into `internal/core`. Local inference (Qwen) is handled via zero-port process pipes (`internal/llm/protocol_llama.go`).
 
 ```markdowngo
 type Provider interface {
@@ -132,11 +132,11 @@ type Provider interface {
 
 ### Tool Execution and GitBridge
 
-Every tool in `internal/tools` that performs a write or shell operation must call `internal/git.Bridge.Snapshot()` before execution. This is mandatory, not optional. The snapshot enables the `undo` command across all interfaces.
+Every tool in `internal/tools` that performs a write or shell operation must call `internal/git.Bridge.Snapshot()` before execution. This is mandatory, not optional. The snapshot enables the `undo` command across all interfaces, providing industrial-grade rollback safety.
 
 ### Workspace Isolation
 
-Each workspace maps to an isolated chromem-go collection and a dedicated bbolt bucket. Workspaces must never share a collection or cross-query without explicit user intent. The `internal/core` package enforces this boundary.
+Each workspace maps to an isolated chromem-go collection and a dedicated bbolt bucket. Workspaces must never share a collection or cross-query without explicit user intent. The `internal/core` package enforces this boundary at the ingestion and retrieval layers.
 
 ---
 
@@ -145,7 +145,7 @@ Each workspace maps to an isolated chromem-go collection and a dedicated bbolt b
 These rules define constraints that must be respected across the entire codebase.
 
 **BR-01 — RAM Budget**
-The systray daemon must not exceed 5MB RSS at idle. The full system (daemon + one active interface + one loaded workspace) must not exceed 4GB RSS. Any PR that measurably degrades this must include justification.
+The systray daemon must not exceed 100MB RSS at idle. The full system (daemon + one active interface + one loaded workspace) must not exceed 4GB RSS. Any PR that measurably degrades this must include justification and profiling data.
 
 **BR-02 — No Network in Core**
 `internal/core`, `internal/db`, `internal/tools`, and `internal/git` must not make outbound network calls. Network access is restricted to `internal/llm` (provider calls) and `internal/index` (Index client).
@@ -157,13 +157,13 @@ A workspace may only read from its own vector collection. Cross-workspace querie
 No tool may write to the filesystem or execute shell commands without a prior Git snapshot via `internal/git.Bridge`. Tests must verify snapshot creation before write operations.
 
 **BR-05 — Provider Abstraction**
-No file outside `internal/llm` may import a provider SDK directly (Gemini SDK, llama.cpp bindings). Provider details are fully encapsulated.
+No file outside `internal/llm` may import a provider SDK directly (Gemini SDK, llama-cli pipes). Provider details are fully encapsulated.
 
 **BR-06 — Interface Statelessness**
-Interface binaries (`vectora-cli`, `vectora-web`) hold no application state. All state lives in the daemon. Interfaces are disposable.
+Interface binaries (`vectora-web`, CLI modes) hold no application state. All state lives in the daemon. Interfaces are disposable and should reconnect to the IPC on restart.
 
 **BR-07 — Embedded Frontend**
-The Next.js frontend must be fully buildable and functional without any external CDN dependency. All assets must be embeddable via `go:embed`.
+The Next.js frontend must be fully buildable and functional without any external CDN dependency. All assets must be embeddable via `go:embed` from `internal/app/out`.
 
 **BR-08 — Index Curation**
 The Vectora Index client (`internal/index`) may only download datasets that carry a valid Kaffyn review signature. The client must reject unsigned or tampered datasets at download time.
@@ -176,36 +176,33 @@ The Vectora Index client (`internal/index`) may only download datasets that carr
 
 - Go 1.22+
 - Node.js 20+ (for the web frontend)
+- Bun (for frontend builds)
 - Wails CLI (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
-- `llama.cpp` binary (for local inference, optional for development)
+- `llama-cli` binary (for local inference, managed via `internal/engines`)
 
 ### Building
 
 ```bash
-# Build all binaries
-make build
+# Build all binaries via powershell script
+./build.ps1
 
-# Build a specific binary
+# Build a specific binary via Makefile
 make build-tray
-make build-cli
 make build-web
 make build-installer
 
 # Run the daemon in development mode
-make dev
+go run ./cmd/vectora daemon
 ```
 
 ### Testing
 
 ```bash
 # Run all tests
-make test
+go test ./...
 
-# Run integration tests only
-make test-integration
-
-# Run with race detector
-make test-race
+# Run the integration suite using the daemon flag
+go run ./cmd/vectora --tests
 ```
 
 All PRs must pass the full test suite including the race detector before review.
@@ -240,7 +237,7 @@ Commits that skip the convention will not be merged.
 
 - Every PR must reference an open issue.
 - PRs touching `internal/core` or `internal/db` require two approvals.
-- PRs must not introduce new CGO dependencies without prior discussion in the issue.
+- PRs must not introduce new CGO dependencies without prior discussion.
 - All new public functions in `internal/` must have Go doc comments.
 - Breaking changes to the IPC contract require a migration path documented in the PR.
 

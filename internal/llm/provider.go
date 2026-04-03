@@ -2,15 +2,7 @@ package llm
 
 import (
 	"context"
-)
-
-type Role string
-
-const (
-	RoleUser      Role = "user"
-	RoleAssistant Role = "assistant"
-	RoleSystem    Role = "system"
-	RoleTool      Role = "tool"
+	"os"
 )
 
 type Message struct {
@@ -27,7 +19,7 @@ type ToolDefinition struct {
 type ToolCall struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
-	Args string `json:"args"` // JSON string de argumentos gerados
+	Args string `json:"args"` // JSON string of generated arguments
 }
 
 type TokenUsage struct {
@@ -37,6 +29,7 @@ type TokenUsage struct {
 }
 
 type CompletionRequest struct {
+	Model        string
 	Messages     []Message
 	SystemPrompt string
 	MaxTokens    int
@@ -50,11 +43,22 @@ type CompletionResponse struct {
 	Usage     TokenUsage `json:"usage"`
 }
 
-// Provider abstrai qualquer LLM Backend (Qwen/Gemini/OpenAI) sob a interface unida do Vectora,
+// Provider abstracts any LLM Backend (Qwen/Gemini/OpenAI) under Vectora's unified interface.
 // assegurado internamente via langchaingo.
 type Provider interface {
 	Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error)
 	Embed(ctx context.Context, input string) ([]float32, error)
 	Name() string
 	IsConfigured() bool
+}
+
+// LoadMasterInstructions reads prompt and tool files from the instruct folder.
+func LoadMasterInstructions() (string, string) {
+	promptPath := `C:\Users\bruno\Desktop\Vectora\internal\llm\instruct\prompt.txt`
+	toolsPath := `C:\Users\bruno\Desktop\Vectora\internal\llm\instruct\tools.json`
+
+	prompt, _ := os.ReadFile(promptPath)
+	tools, _ := os.ReadFile(toolsPath)
+
+	return string(prompt), string(tools)
 }

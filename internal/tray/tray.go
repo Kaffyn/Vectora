@@ -75,7 +75,7 @@ func onReady() {
 
 	updateLabels()
 
-	// Initial Check Config para Provider LLM Default
+	// Initial Config Check for Default LLM Provider
 	cfg := infra.LoadConfig()
 	if cfg.GeminiAPIKey != "" {
 		mGemini.Check()
@@ -113,7 +113,7 @@ func onReady() {
 				mFr.Check(); mEn.Uncheck(); mPt.Uncheck(); mFr.Uncheck()
 				i18n.SetLanguage("fr"); updateLabels()
 			case <-mSet.ClickedCh:
-				if infra.Logger != nil { infra.Logger.Info("Open Settings (Abre app Wails na view Settings)") }
+				if infra.Logger != nil { infra.Logger.Info("Open Settings (Opens Wails app in Settings view)") }
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 			}
@@ -122,45 +122,45 @@ func onReady() {
 }
 
 func switchProvider(id, secret string) {
-	// Limpeza antes de mudar
+	// Cleanup before switching
 	if ActiveProvider != nil && ActiveProvider.Name() == "qwen" {
 		if qProv, ok := ActiveProvider.(*llm.QwenProvider); ok {
-			qProv.Shutdown() // Mata llama.cpp na antiga
+			qProv.Shutdown() // Terminate llama.cpp in the old provider
 		}
 	}
 
 	if id == "gemini" {
-		infra.Logger.Info("Iniciando Binding do langchaingo c/ Gemini API...")
+		infra.Logger.Info("Initializing langchaingo binding with Gemini API...")
 		prov, err := llm.NewGeminiProvider(context.Background(), secret)
 		if err != nil {
-			infra.NotifyOS("Vectora IA Setup", "Alerta: Verifique a Configuração da Chave da API do Google.")
+			infra.NotifyOS("Vectora AI Setup", "Alert: Verify Google API Key Configuration.")
 			return
 		}
 		
-		// Persiste a chave se o login for bem-sucedido
+		// Persist key if login is successful
 		if secret != "" {
 			infra.SaveConfig(&infra.Config{GeminiAPIKey: secret})
 		}
 
 		ActiveProvider = prov
-		infra.NotifyOS("Vectora Engine", "LangChain conectado visualmente ao Processador Cloud (Google).")
+		infra.NotifyOS("Vectora Engine", "LangChain visually connected to Cloud Processor (Google).")
 	} else if id == "qwen" {
-		infra.Logger.Info("Acordando Kernel p/ Sidecar llama.cpp Local...")
+		infra.Logger.Info("Waking Kernel for llama.cpp Local Sidecar...")
 		
-		// Procura qwen na home de models local.
+		// Search for qwen in the local models home.
 		osMgr, _ := vecos.NewManager()
 		base, _ := osMgr.GetAppDataDir()
 		modelPath := filepath.Join(base, "qwen.gguf")
 
 		prov, err := llm.NewQwenProvider(context.Background(), modelPath)
 		if err != nil {
-			msg := "Llama.cpp indisponivel (O arquivo do motor sidecar ou GGUF 'qwen.gguf' não está no AppData)."
+			msg := "Llama.cpp unavailable (Motor sidecar or GGUF 'qwen.gguf' not found in AppData)."
 			infra.Logger.Warn(msg, "err", err)
-			infra.NotifyOS("Falha Local", msg)
+			infra.NotifyOS("Local Failure", msg)
 			return
 		}
 		ActiveProvider = prov
-		infra.NotifyOS("Vectora Engine", "Motor de IA nativo (Qwen GGUF) ativado com sucesso via porta dinâmica localhost!")
+		infra.NotifyOS("Vectora Engine", "Native AI Engine (Qwen GGUF) activated successfully via dynamic pipes!")
 	}
 }
 

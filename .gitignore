@@ -38,3 +38,4 @@ go.work.sum
 *.gguf
 *.db
 *.syso
+*.sha256

@@ -9,8 +9,8 @@ import (
 	"github.com/Kaffyn/vectora/internal/llm"
 )
 
-// Pipeline orquestra dados entre o LLM (Interface) e o VectorDB (Armazenamento).
-// Ela é instanciada e retida pelo Daemon SystemTray.
+// Pipeline orchestrates data between the LLM (Interface) and the VectorDB (Storage).
+// It is instantiated and held by the SystemTray Daemon.
 type Pipeline struct {
 	LLM      llm.Provider
 	VectorDB db.VectorStore
@@ -18,7 +18,7 @@ type Pipeline struct {
 	Agent    *acp.AgentContext
 }
 
-// Placa Mãe que acopla todos os módulos soltos para injetar queries.
+// Motherboard that couples all loose modules to inject queries.
 func NewPipeline(provider llm.Provider, vectorStore db.VectorStore, kvStore db.KVStore) *Pipeline {
 	return &Pipeline{
 		LLM:      provider,
@@ -38,27 +38,27 @@ type QueryResponse struct {
 	Sources []db.ScoredChunk
 }
 
-// O RAG (Retrieval-Augmented Generation) Canônico do Vectora.
+// Validates the canonical RAG (Retrieval-Augmented Generation) of Vectora.
 func (p *Pipeline) Query(ctx context.Context, req QueryRequest) (QueryResponse, error) {
 	if p.LLM == nil || !p.LLM.IsConfigured() {
-		return QueryResponse{}, errors.New("pipeline_err: LLM provider não injetado ou não configurado na Bandeja (Tray)")
+		return QueryResponse{}, errors.New("pipeline_err: LLM provider not injected or not configured in the SystemTray")
 	}
 
-	// 1. Embendamento Nativo
+	// 1. Native Embedding
 	vector, err := p.LLM.Embed(ctx, req.Query)
 	if err != nil {
 		return QueryResponse{}, err
 	}
 
-	// 2. Nearest Neighbors no Banco KNN Chromem
-	// TOP K travado em 5 para evitar poluição de LLM window em baixa RAM.
+	// 2. Nearest Neighbors in Chromem KNN Database
+	// TOP K locked at 5 to avoid LLM context window bloating on low RAM environments.
 	resChunks, err := p.VectorDB.Query(ctx, "ws_"+req.WorkspaceID, vector, 5)
 	if err != nil {
-		// Zero-Shot Fallback. Se coleção é vazia ele apenas ignora.
+		// Zero-Shot Fallback. If the collection is empty, it just ignores.
 		resChunks = []db.ScoredChunk{}
 	}
 
-	// 3. Empena os Bloquinhos Textuais
+	// 3. Flatten the textual chunks
 	contextText := ""
 	for _, doc := range resChunks {
 		if filename, ok := doc.Metadata["filename"]; ok {
@@ -67,11 +67,11 @@ func (p *Pipeline) Query(ctx context.Context, req QueryRequest) (QueryResponse, 
 		contextText += doc.Content + "\n---\n"
 	}
 
-	// 4. Injeta Memória Universal Local do User (Se existir preferência)
+	// 4. Inject Local Universal User Memory (If preferences exist)
 	rawMem, _ := p.KVStore.Get(ctx, "memories", "user_preferences")
 	userPrefs := string(rawMem)
 
-	// 5. Prepara Completude Agêntica
+	// 5. Prepare Agentic Completeness
 	sysPrompt := "Você é o assistente IA Vectora. Auxilie na inferência e desenvolvimento local usando os Arquivos Abaixo:\n\n" + contextText + "\n[Preferências]\n" + userPrefs
 
 	var toolkit []llm.ToolDefinition
@@ -89,7 +89,7 @@ func (p *Pipeline) Query(ctx context.Context, req QueryRequest) (QueryResponse, 
 			{Role: llm.RoleUser, Content: req.Query},
 		},
 		MaxTokens:   1500,
-		Temperature: 0.1, // Extrema exatidão
+		Temperature: 0.1, // Extreme precision
 		Tools:       toolkit, // Tool Registry Inteiro Disposto no Pipeline Master
 	}
 
@@ -99,14 +99,14 @@ func (p *Pipeline) Query(ctx context.Context, req QueryRequest) (QueryResponse, 
 		return QueryResponse{}, err
 	}
 
-	// 6. Hook Agêntico: Se o LLM Cuspiu Ferramentas
+	// 6. Agentic Hook: If the LLM outputted Tools
 	if len(resp.ToolCalls) > 0 {
 		for _, tc := range resp.ToolCalls {
 			tr, trErr := p.Agent.Registry.ExecuteStringArgs(ctx, tc.Name, tc.Args)
 			_ = tr 
 			_ = trErr
 			// Futuro: Recursividade ReAct. Retro-injetamos "tr" no LLM pra re-pensar. 
-			// (Limitaremos o Loop máximo p/ proteger RAM local)
+			// (Limit maximum Loop to protect local RAM)
 		}
 	}
 

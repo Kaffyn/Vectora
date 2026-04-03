@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-// Chunk representa um fragmento de texto enriquecido e indexável com seus metadados.
+// Chunk represents an enriched and indexable text fragment with its metadata.
 type Chunk struct {
 	ID       string
 	Content  string
@@ -12,13 +12,13 @@ type Chunk struct {
 	Vector   []float32
 }
 
-// ScoredChunk estende um Chunk anexando a Similaridade baseada em busca Cosmos (KNN).
+// ScoredChunk extends a Chunk by attaching Similarity based on Cosmos search (KNN).
 type ScoredChunk struct {
 	Chunk
 	Score float32
 }
 
-// VectorStore provê abstração do Banco de Vetores (Chromem-go).
+// VectorStore provides an abstraction for the Vector Database (Chromem-go).
 type VectorStore interface {
 	UpsertChunk(ctx context.Context, collection string, chunk Chunk) error
 	Query(ctx context.Context, collection string, queryVector []float32, topK int) ([]ScoredChunk, error)
@@ -26,7 +26,7 @@ type VectorStore interface {
 	CollectionExists(ctx context.Context, collection string) bool
 }
 
-// KVStore provê abstração do Banco Analítico (BBolt).
+// KVStore provides an abstraction for the Analytical Database (BBolt).
 type KVStore interface {
 	Set(ctx context.Context, bucket string, key string, value []byte) error
 	Get(ctx context.Context, bucket string, key string) ([]byte, error)

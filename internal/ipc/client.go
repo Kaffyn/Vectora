@@ -22,7 +22,7 @@ type Client struct {
 	ctx         context.Context
 	cancel      context.CancelFunc
 	
-	// Hook flexível acionado quando a API Server lança Broadcasts de streaming:
+	// Flexible hook triggered when the API Server emits streaming Broadcasts:
 	OnEvent     func(method string, payload json.RawMessage)
 }
 
@@ -35,7 +35,7 @@ func NewClient() (*Client, error) {
 	
 	var addr string
 	if runtime.GOOS == "windows" {
-		addr = `\\.\pipe\vectora` // Se AF_UNIX falhar, o cliente testará a fallback
+		addr = `\\.\pipe\vectora` // If AF_UNIX fails, the client will test the fallback
 	} else {
 		addr = filepath.Join(baseDir, "run", "vectora.sock")
 	}
@@ -56,7 +56,7 @@ func (c *Client) Connect() error {
 
 	if runtime.GOOS == "windows" {
 		conn, err = net.Dial("unix", c.addr)
-		if err != nil { // Fallback Loopback TCP Hostado pelo Server.go no Win32
+		if err != nil { // Fallback Loopback TCP Hosted by Server.go on Win32
 			conn, err = net.Dial("tcp", "127.0.0.1:42780")
 		}
 	} else {
@@ -107,20 +107,23 @@ func (c *Client) listenForResponses() {
 }
 
 // Send (RPC Caller)
-// Exemplo de Invocação no Cliente Go puro ou via Bridge JS Wails:
+// Example of Invocation in pure Go Client or via JS Wails Bridge:
 // cl.Send(context.Background(), "workspace.query", reqStruct, &resStruct)
 func (c *Client) Send(ctx context.Context, method string, payload any, responseDest any) error {
+	bPayload, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	return c.SendRaw(ctx, method, bPayload, responseDest)
+}
+
+func (c *Client) SendRaw(ctx context.Context, method string, bPayload []byte, responseDest any) error {
 	if c.conn == nil {
 		return errors.New("ipc_client: não conectado")
 	}
 
 	u, _ := uuid.NewV4()
 	id := u.String()
-
-	bPayload, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
 
 	msg := IPCMessage{
 		ID:      id,
@@ -138,7 +141,6 @@ func (c *Client) Send(ctx context.Context, method string, payload any, responseD
 	c.pending[id] = ch
 	c.pendingLock.Unlock()
 
-	// Escreve na rede
 	if _, err := c.conn.Write(bMsg); err != nil {
 		c.pendingLock.Lock()
 		delete(c.pending, id)
@@ -146,7 +148,6 @@ func (c *Client) Send(ctx context.Context, method string, payload any, responseD
 		return err
 	}
 
-	// Aguarda resposta da Channel Promise acoplada pelo Receiver do Scanner
 	select {
 	case <-ctx.Done():
 		c.pendingLock.Lock()
@@ -157,8 +158,11 @@ func (c *Client) Send(ctx context.Context, method string, payload any, responseD
 		if resMsg.Error != nil {
 			return errors.New(resMsg.Error.Message)
 		}
-		
 		if responseDest != nil {
+			if b, ok := responseDest.(*[]byte); ok {
+				*b = resMsg.Payload
+				return nil
+			}
 			return json.Unmarshal(resMsg.Payload, responseDest)
 		}
 		return nil
