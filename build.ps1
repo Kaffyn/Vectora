@@ -45,8 +45,8 @@ Write-Host "[6/8] Compilando Instalador Administrativo (Fyne)..." -ForegroundCol
 Push-Location cmd/vectora-installer
 go run github.com/tc-hib/go-winres@latest make --in winres/winres.json
 Pop-Location
-go build -ldflags="-s -w -H windowsgui" -o vectora-installer.exe ./cmd/vectora-installer
-if (-not (Test-Path "vectora-installer.exe")) { throw "FALHA: vectora-installer.exe não foi gerado." }
+go build -ldflags="-s -w -H windowsgui" -o vectora-setup.exe ./cmd/vectora-installer
+if (-not (Test-Path "vectora-setup.exe")) { throw "FALHA: vectora-setup.exe não foi gerado." }
 
 # 7. Build dos Testes
 Write-Host "[7/8] Compilando Suite de Testes..." -ForegroundColor Yellow
