@@ -95,8 +95,11 @@ export default function HomeClient({
             sources: m.sources || [],
           }))
         }));
-        setSessions(loaded);
-        setCurrentSessionId(loaded[0].id);
+        const firstSession = loaded[0];
+        if (firstSession) {
+          setSessions(loaded);
+          setCurrentSessionId(firstSession.id);
+        }
       } catch {
         // Go offline → keep in-memory default
       }
@@ -161,8 +164,8 @@ export default function HomeClient({
   React.useEffect(() => {
     const checkStatus = async () => {
       try {
-        const resp = await fetch('/api/health', { method: 'GET' });
-        setIsOnline(resp.ok);
+        const data = await callVectora("app.health", {});
+        setIsOnline(!!data);
       } catch {
         setIsOnline(false);
       }
@@ -172,16 +175,46 @@ export default function HomeClient({
     return () => clearInterval(interval);
   }, []);
 
+  // Helper to parse cookies on the client
+  const getCookie = (name: string) => {
+    if (typeof document === 'undefined') return null;
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(';').shift();
+    return null;
+  };
+
+  // Re-hydration: Detect locale on mount and sync with Go Core
+  React.useEffect(() => {
+    const hydratateLocale = async () => {
+      const saved = getCookie("zyris_locale") as Locale;
+      if (saved && saved !== locale) {
+        handleLocaleChange(saved);
+      } else {
+        // Even if using default 'en', ensure we have latest translations from Go
+        try {
+          const data = await callVectora("i18n.get", { locale: locale });
+          if (data) setTArr(data);
+        } catch (e) {
+          console.error("IPC i18n Handshake Failed", e);
+        }
+      }
+    };
+    hydratateLocale();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleLocaleChange = async (newLocale: Locale) => {
     setLocale(newLocale);
-    document.cookie = `zyris_locale=${newLocale}; Max-Age=31536000; Path=/; SameSite=Lax`;
+    if (typeof document !== 'undefined') {
+      document.cookie = `zyris_locale=${newLocale}; Max-Age=31536000; Path=/; SameSite=Lax`;
+    }
     try {
-      // Added timestamp to bust cache
-      const resp = await fetch(`/api/v1/i18n?locale=${newLocale}&t=${Date.now()}`);
-      const data = await resp.json();
-      setTArr(data);
+      // Request translations from the Go Engine via IPC bridge
+      const data = await callVectora("i18n.get", { locale: newLocale });
+      if (data) setTArr(data);
     } catch (e) {
-      console.error("Failed to load translations", e);
+      console.error("Failed to load translations from Engine", e);
     }
   };
 
@@ -201,9 +234,10 @@ export default function HomeClient({
     setIsTyping(true);
 
     // Persist user message to SQLite via Go
-    fetch(`${API}/conversations/${currentSessionId}/messages`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: 'user', content })
+    callVectora("message.add", { 
+      conversationId: currentSessionId, 
+      role: 'user', 
+      content 
     }).catch(() => {});
 
     try {
@@ -243,10 +277,7 @@ export default function HomeClient({
     setSessions([newChat, ...sessions]);
     setCurrentSessionId(newId);
     // Persist to Go SQLite
-    fetch(`${API}/conversations`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: newId, title })
-    }).catch(() => {});
+    callVectora("chat.create", { id: newId, title }).catch(() => {});
   };
 
   const handleClearSession = (id: string) => {
@@ -257,26 +288,25 @@ export default function HomeClient({
         setCurrentSessionId(reset.id);
         return [reset];
       }
-      if (currentSessionId === id) setCurrentSessionId(remaining[0].id);
+      if (currentSessionId === id && remaining.length > 0) {
+        const first = remaining[0];
+        if (first) setCurrentSessionId(first.id);
+      }
       return remaining;
     });
-    fetch(`${API}/conversations/${id}`, { method: 'DELETE' }).catch(() => {});
+    callVectora("chat.delete", { id }).catch(() => {});
   };
 
   const handleClearAll = () => {
-    const reset: ChatSession = { id: Date.now().toString(), title: "history_welcome", last: "time_now", messages: [] };
     // Delete all existing
-    sessions.forEach(s => fetch(`${API}/conversations/${s.id}`, { method: 'DELETE' }).catch(() => {}));
+    sessions.forEach(s => callVectora("chat.delete", { id: s.id }).catch(() => {}));
     setSessions([reset]);
     setCurrentSessionId(reset.id);
   };
 
   const handleRenameSession = (id: string, newTitle: string) => {
     setSessions(prev => prev.map(s => s.id === id ? { ...s, title: newTitle } : s));
-    fetch(`${API}/conversations/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: newTitle })
-    }).catch(() => {});
+    callVectora("chat.rename", { id, title: newTitle }).catch(() => {});
   };
 
   return (

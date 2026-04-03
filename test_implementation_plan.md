@@ -19,7 +19,7 @@ Para validar o RAG local e as Ferramentas, o sistema usará o **Zyris Engine** (
 
 1. **Setup:** Criar um workspace temporário, ingerir arquivos `.xml` e `.txt` complexos (cerca de 500 chunks).
 2. **Indexing:** Iniciar a indexação via IPC e aguardar o evento `workspace.indexed`.
-3. **Query (RAG Test):** Fazer 5 perguntas difíceis sobre a arquitetura Zyris (ex: "Como funciona o buffer de áudio na ZyrisRAG?").
+3. **Query (RAG Test):** Fazer 5 perguntas difíceis sobre a arquitetura Zyris (ex: "Como funciona o buffer de áudio na Vectora?").
 4. **Tool Test:** Ordenar que o Agente ACP leia o arquivo, edite uma nota e reporte o snapshot do GitBridge.
 5. **Undo Test:** Verificar se o `undo` restaurou o arquivo original byte-a-byte.
 

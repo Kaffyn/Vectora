@@ -16,7 +16,7 @@ time_now,Agora,Agora
 action_clear,Limpar tudo,Limpar tudo
 action_status_engine,Qwen Engine v1.0,Qwen Engine v1.0
 action_status_online,ONLINE,ONLINE
-input_placeholder,Qual arquivo você quer analisar do ZyrisRAG?,Qual arquivo você quer analisar do ZyrisRAG?
+input_placeholder,Qual arquivo você quer analisar do Vectora?,Qual arquivo você quer analisar do Vectora?
 input_process,Processar Pedido,Processar Pedidos
 input_send,Enviar,Enviar
 input_line,Linha,Linhas

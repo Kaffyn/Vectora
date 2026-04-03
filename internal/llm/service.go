@@ -19,14 +19,34 @@ func NewMessageService(store db.KVStore) *MessageService {
 	return &MessageService{store: store}
 }
 
-// CreateConversation generates a new chat session.
-func (s *MessageService) CreateConversation(ctx context.Context) (*Conversation, error) {
+// CreateConversation generates a new chat session with an optional custom ID and title.
+func (s *MessageService) CreateConversation(ctx context.Context, id, title string) (*Conversation, error) {
+	if id == "" {
+		id = uuid.New().String()
+	}
 	conv := &Conversation{
-		ID:        uuid.New().String(),
+		ID:        id,
+		Title:     title,
 		Messages:  []ChatMessage{},
 		UpdatedAt: time.Now(),
 	}
 	return conv, s.SaveConversation(ctx, conv)
+}
+
+// RenameConversation updates ONLY the title metadata.
+func (s *MessageService) RenameConversation(ctx context.Context, id, newTitle string) error {
+	conv, err := s.GetConversation(ctx, id)
+	if err != nil {
+		return err
+	}
+	conv.Title = newTitle
+	conv.UpdatedAt = time.Now()
+	return s.SaveConversation(ctx, conv)
+}
+
+// DeleteConversation removes a session from the persistent store.
+func (s *MessageService) DeleteConversation(ctx context.Context, id string) error {
+	return s.store.Delete(ctx, "conversations", id)
 }
 
 // GetConversation retrieves a chat from the store.

@@ -200,7 +200,7 @@ export function Sidebar({
               type="text"
               autoFocus
               className="w-full h-8 flex items-center justify-between px-2.5 rounded-lg bg-white/[0.02] border border-indigo-500/40 text-[9px] text-white/70 outline-none font-mono placeholder:text-white/20 transition-all"
-              placeholder="Ex: C:\Users\bruno\Desktop\ZyrisRAG"
+              placeholder="Ex: C:\Users\bruno\Desktop\Vectora"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const val = e.currentTarget.value;

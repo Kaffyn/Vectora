@@ -22,6 +22,7 @@ type ChatMessage struct {
 // Conversation represents the full history of a chat.
 type Conversation struct {
 	ID        string        `json:"id"`
+	Title     string        `json:"title"`
 	Messages  []ChatMessage `json:"messages"`
 	UpdatedAt time.Time     `json:"updated_at"`
 }

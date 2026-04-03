@@ -2,29 +2,14 @@ import React from "react";
 import HomeClient from "./home-client";
 import { getTranslations } from "../lib/i18n";
 import type { Locale } from "../lib/i18n";
-import { headers, cookies } from "next/headers";
 
 /**
  * Server Component: Zyris Dashboard Root.
- * Detects locale from headers and serves the hydration payload to HomeClient.
+ * We render a static baseline for Wails/Desktop.
+ * Client-side hydration (home-client.tsx) handles dynamic i18n detection from cookies.
  */
 export default async function Home() {
-  const cookieStore = await cookies();
-  const savedLocale = cookieStore.get("zyris_locale")?.value as Locale;
-  
-  let locale: Locale = "en";
-
-  if (savedLocale) {
-    locale = savedLocale;
-  } else {
-    const headersList = await headers();
-    const acceptLanguage = headersList.get("accept-language") || "en";
-    
-    if (acceptLanguage.includes("en")) locale = "en";
-    else if (acceptLanguage.includes("es")) locale = "es";
-    else if (acceptLanguage.includes("it")) locale = "it";
-  }
-
+  const locale: Locale = "en";
   const translations = getTranslations(locale);
 
   return (
