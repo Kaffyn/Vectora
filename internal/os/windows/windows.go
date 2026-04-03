@@ -100,6 +100,7 @@ func (m *WindowsManager) IsInstalled() string {
 }
 
 func (m *WindowsManager) RegisterApp(installDir string) {
+	appData := os.Getenv("APPDATA")
 	keyPath := `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`
 	key, _, err := registry.CreateKey(registry.CURRENT_USER, keyPath, registry.ALL_ACCESS)
 	if err == nil {
@@ -136,7 +137,8 @@ func (m *WindowsManager) UnregisterApp(installDir string) {
 	}
 }
 
-// Single instance prevention via Global Mutex
+// EnforceSingleInstance prevents multiple daemons from running using a Global Mutex
+func (m *WindowsManager) EnforceSingleInstance() error {
 	mutexName, _ := windows.UTF16PtrFromString("Global\\VectoraDaemonMutex_v1")
 	_, err := windows.CreateMutex(nil, false, mutexName)
 	if err == windows.ERROR_ALREADY_EXISTS {

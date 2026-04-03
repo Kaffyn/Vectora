@@ -1,16 +1,10 @@
 {
   "name": "Vectora",
   "project": "wails",
-    "assetdir": "internal/app/out",
-    "reloadnode": "internal/app",
-    "main:dir": "cmd/vectora-web",
-    "frontend:dir": "internal/app",
-    "frontend:install": "bun install",
-    "frontend:build": "bun run build",
-    "frontend:dev": "bun run dev",
-    "frontend:dev:watcher": "bun run dev",
-    "frontend:dev:serverUrl": "http://localhost:3000",
-    "wailsjsdir": "internal/app/lib/wailsjs",
+  "assetdir": "internal/app/out",
+  "reloadnode": "internal/app",
+  "frontend:dir": "internal/app",
+  "wailsjsdir": "internal/app/lib/wailsjs",
   "author": {
     "name": "Kaffyn",
     "email": "contact@kaffyn.ai"

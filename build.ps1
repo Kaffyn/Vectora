@@ -1,8 +1,6 @@
-$ErrorActionPreference = "Stop"
-
-Write-Host "==============================================" -ForegroundColor Cyan
-Write-Host " VECTORA FULL STACK BUILD (Daemon + App + CLI)" -ForegroundColor Cyan
-Write-Host "==============================================" -ForegroundColor Cyan
+# 0. Ambiente de Compilação (Enforce Architecture)
+$env:GOOS = "windows"
+$env:GOARCH = "amd64"
 
 # 1. Limpeza
 Write-Host "[1/8] Limpando binarios antigos..." -ForegroundColor Gray
@@ -20,7 +18,7 @@ Pop-Location
 # 3. Build do App Desktop (Wails)
 Write-Host "[3/8] Compilando App Desktop (Wails Interface)..." -ForegroundColor Yellow
 # O Wails build na pasta raiz lê o wails.json que já configuramos
-wails build -clean -o vectora-web.exe
+wails build -clean -platform windows/amd64 -o vectora-web.exe
 if (-not (Test-Path "build/bin/vectora-web.exe")) { throw "FALHA: vectora-web.exe não foi gerado pelo Wails." }
 Copy-Item "build/bin/vectora-web.exe" "vectora-web.exe" -Force
 
