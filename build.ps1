@@ -17,10 +17,11 @@ Pop-Location
 
 # 3. Build do App Desktop (Wails)
 Write-Host "[3/8] Compilando App Desktop (Wails Interface)..." -ForegroundColor Yellow
-# O Wails build na pasta raiz lê o wails.json que já configuramos
+Push-Location cmd/vectora-app
 wails build -clean -platform windows/amd64 -o vectora-app.exe
-if (-not (Test-Path "build/bin/vectora-app.exe")) { throw "FALHA: vectora-app.exe não foi gerado pelo Wails." }
-Copy-Item "build/bin/vectora-app.exe" "vectora-app.exe" -Force
+Pop-Location
+if (-not (Test-Path "cmd/vectora-app/build/bin/vectora-app.exe")) { throw "FALHA: vectora-app.exe não foi gerado pelo Wails." }
+Copy-Item "cmd/vectora-app/build/bin/vectora-app.exe" "vectora-app.exe" -Force
 
 # 4. Build do Daemon (vectora.exe)
 Write-Host "[4/8] Compilando Daemon (Vectora Engine)..." -ForegroundColor Yellow

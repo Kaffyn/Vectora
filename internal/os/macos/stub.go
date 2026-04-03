@@ -9,6 +9,7 @@ type MacosManager struct{}
 func NewManager() *MacosManager { return nil }
 func (m *MacosManager) GetAppDataDir() (string, error) { return "", errors.New("não aplicável") }
 func (m *MacosManager) GetInstallDir() (string, error) { return "", errors.New("não aplicável") }
+func (m *MacosManager) IsRunningAsAdmin() bool { return false }
 func (m *MacosManager) StartLlamaEngine(string, int) error { return errors.New("inválido") }
 func (m *MacosManager) StopLlamaEngine() error { return errors.New("inválido") }
 func (m *MacosManager) GetEngineState() string { return "ERROR" }
