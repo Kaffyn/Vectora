@@ -31,6 +31,9 @@ if (-not (Test-Path "vectora.exe")) { throw "FALHA: vectora.exe não foi gerado.
 Write-Host "[5/8] Compilando Llama-Installer (Standalone)..." -ForegroundColor Yellow
 if (!(Test-Path "cmd/llama/assets")) { New-Item -ItemType Directory -Path "cmd/llama/assets" | Out-Null }
 Copy-Item "internal/os/windows/llama-b8583/*" "cmd/llama/assets" -Force
+Push-Location cmd/llama
+go run github.com/tc-hib/go-winres@latest make --in winres/winres.json
+Pop-Location
 go build -o llama-installer.exe ./cmd/llama
 if (-not (Test-Path "llama-installer.exe")) { throw "FALHA: llama-installer.exe não foi gerado." }
 Remove-Item -Path "cmd/llama/assets" -Recurse -Force

@@ -82,6 +82,19 @@ func main() {
 		return
 	}
 
+	// FORCE UAC Elevation if not admin
+	if !systemManager.IsRunningAsAdmin() {
+		// Attempt to restart as admin
+		exe, _ := os.Executable()
+		cwd, _ := os.Getwd()
+		args := strings.Join(os.Args[1:], " ")
+
+		cmd := exec.Command("powershell", "Start-Process", "-FilePath", fmt.Sprintf("'%s'", exe), "-ArgumentList", fmt.Sprintf("'%s'", args), "-Verb", "runas", "-WorkingDirectory", fmt.Sprintf("'%s'", cwd))
+		if err := cmd.Start(); err == nil {
+			os.Exit(0)
+		}
+	}
+
 	userLoc, err := locale.GetLanguage()
 	if err == nil {
 		if strings.HasPrefix(userLoc, "pt") {

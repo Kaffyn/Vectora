@@ -2,6 +2,7 @@
   "name": "Vectora",
   "project": "wails",
   "outputfilename": "vectora-app.exe",
+  "main:dir": "cmd/vectora-app",
   "assetdir": "internal/app/out",
   "reloadnode": "internal/app",
   "frontend:dir": "internal/app",

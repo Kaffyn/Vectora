@@ -1,0 +1,28 @@
+{
+  "RT_GROUP_ICON": {
+    "APPICON": {
+      "0": "../../assets/llama_logo.ico"
+    }
+  },
+  "VERSION_INFO": {
+    "0": {
+      "Fixed": {
+        "FileFlagsMask": "3f",
+        "FileType": "01"
+      },
+      "String": {
+        "CompanyName": "Kaffyn AI",
+        "FileDescription": "Llama Model Installer for Vectora",
+        "FileVersion": "1.0.0.0",
+        "InternalName": "llama-installer",
+        "LegalCopyright": "Copyright (C) 2026 Kaffyn AI",
+        "OriginalFilename": "llama-installer.exe",
+        "ProductName": "Llama Engine",
+        "ProductVersion": "1.0.0.0"
+      },
+      "Var": {
+        "040904b0": [1033, 1200]
+      }
+    }
+  }
+}

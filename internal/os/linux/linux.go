@@ -33,6 +33,10 @@ func (m *LinuxManager) GetInstallDir() (string, error) {
 	return "/opt/vectora", nil
 }
 
+func (m *LinuxManager) IsRunningAsAdmin() bool {
+	return os.Geteuid() == 0
+}
+
 func (m *LinuxManager) StartLlamaEngine(modelPath string, port int) error {
 	m.state = "STARTING"
 	baseDir, err := m.GetAppDataDir()
@@ -85,7 +89,7 @@ func (m *LinuxManager) IsInstalled() string {
 	return ""
 }
 
-// Register application and create .desktop entry for Linux environments
+func (m *LinuxManager) RegisterApp(installDir string) {
 	os.MkdirAll(installDir, 0755)
 	
 	desktopContent := `[Desktop Entry]

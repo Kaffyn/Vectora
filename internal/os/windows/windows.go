@@ -146,3 +146,12 @@ func (m *WindowsManager) EnforceSingleInstance() error {
 	}
 	return nil
 }
+func (m *WindowsManager) IsRunningAsAdmin() bool {
+	// Standard Windows check for administrative privileges: try to open a physical drive
+	f, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+	if err != nil {
+		return false
+	}
+	f.Close()
+	return true
+}

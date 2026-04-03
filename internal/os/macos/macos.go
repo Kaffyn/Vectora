@@ -33,6 +33,10 @@ func (m *MacosManager) GetInstallDir() (string, error) {
 	return "/Applications/Vectora.app", nil
 }
 
+func (m *MacosManager) IsRunningAsAdmin() bool {
+	return os.Geteuid() == 0
+}
+
 func (m *MacosManager) StartLlamaEngine(modelPath string, port int) error {
 	m.state = "STARTING"
 	baseDir, err := m.GetAppDataDir()

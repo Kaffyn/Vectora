@@ -22,6 +22,7 @@ const (
 type OSManager interface {
 	GetAppDataDir() (string, error)
 	GetInstallDir() (string, error)
+	IsRunningAsAdmin() bool
 	StartLlamaEngine(modelPath string, port int) error
 	StopLlamaEngine() error
 	GetEngineState() string
