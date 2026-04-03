@@ -225,7 +225,7 @@ export default function HomeClient({
         behavior: "smooth",
       });
     }
-  }, [currentSession.messages, isTyping]);
+  }, [currentSession?.messages, isTyping]);
 
   const handleSendMessage = async (content: string) => {
     const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content };
@@ -298,6 +298,7 @@ export default function HomeClient({
   };
 
   const handleClearAll = () => {
+    const reset: ChatSession = { id: Date.now().toString(), title: "history_welcome", last: "time_now", messages: [] };
     // Delete all existing
     sessions.forEach(s => callVectora("chat.delete", { id: s.id }).catch(() => {}));
     setSessions([reset]);
@@ -356,7 +357,7 @@ export default function HomeClient({
         
         <div ref={scrollRef} className="flex-1 overflow-y-auto pt-24 px-6 lg:px-12 pb-40 custom-scrollbar relative z-10">
           <div className="max-w-4xl mx-auto flex flex-col gap-3">
-            {currentSession.messages.length === 0 && (
+            {!currentSession?.messages?.length && (
               <div className="flex flex-col items-center justify-center pt-20 text-center animate-in fade-in zoom-in duration-1000">
                 <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-8 shadow-2xl">
                   <Zap className="w-8 h-8 text-indigo-400" />
@@ -374,7 +375,7 @@ export default function HomeClient({
               </div>
             )}
 
-            {currentSession.messages.map((msg) => (
+            {currentSession?.messages?.map((msg) => (
               <Message key={msg.id} role={msg.role} content={msg.content} sources={msg.sources} t={t} />
             ))}
 
@@ -383,7 +384,7 @@ export default function HomeClient({
         </div>
 
         <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/90 to-transparent pt-10 z-20">
-          <ChatInput onSend={handleSendMessage} disabled={isTyping} t={t} isCompact={currentSession.messages.length > 0} />
+          <ChatInput onSend={handleSendMessage} disabled={isTyping} t={t} isCompact={(currentSession?.messages?.length ?? 0) > 0} />
         </div>
       </main>
     </div>

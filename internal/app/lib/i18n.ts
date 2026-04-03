@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Locale, Translations } from './i18n-types';
+import type { Locale, Translations } from './i18n-types';
 export type { Locale, Translations };
 
 /**
@@ -52,13 +52,13 @@ function parseCSV(csvContent: string): Translations {
     if (columns && columns.length > 0) {
       const key = columns[0];
       if (key) {
-        translations[key] = {};
+        const entry: any = {};
         headers.forEach((header, index) => {
           if (index > 0 && columns[index] !== undefined) {
-            // @ts-ignore
-            translations[key][header] = columns[index];
+            entry[header] = columns[index];
           }
         });
+        translations[key] = entry;
       }
     }
   }
@@ -80,7 +80,6 @@ export function createTranslate(locale: Locale = 'en') {
     if (count !== undefined) {
       const pluralKey = pluralRules.select(count);
       // Fallback from specific key ('few') to 'other'
-      // @ts-ignore
       result = entry[pluralKey] || entry.other || entry.one || key;
     } else {
       result = entry.one || entry.other || key;
