@@ -1,7 +1,7 @@
 {
   "RT_GROUP_ICON": {
     "APPICON": {
-      "0": "../../assets/llama_logo.ico"
+      "0": "../../../assets/llama_logo.ico"
     }
   },
   "VERSION_INFO": {
