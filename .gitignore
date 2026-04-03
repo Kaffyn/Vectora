@@ -39,3 +39,4 @@ go.work.sum
 *.db
 *.syso
 *.sha256
+*.d.ts
