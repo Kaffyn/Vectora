@@ -5,13 +5,11 @@ const nextConfig = {
     unoptimized: true,
   },
   trailingSlash: true,
-  // Desativa o Hono de build do Next.js já que o Wails servirá apenas estáticos
-  webpack: (config) => {
-    config.externals.push({
-      'hono/vercel': 'commonjs hono/vercel',
-    });
-    return config;
-  },
+  /* 
+   * Turbopack: Default build engine in Next.js 16.
+   * Setted to empty object to avoid custom config error.
+   */
+  turbopack: {},
 };
 
 export default nextConfig;

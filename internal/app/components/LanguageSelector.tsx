@@ -7,7 +7,7 @@ import {
   SelectValue 
 } from "./ui/select";
 import { Globe } from "lucide-react";
-import { Locale } from "../lib/i18n-types";
+import type { Locale } from "../lib/i18n-types";
 
 interface LanguageSelectorProps {
   currentLocale: Locale;

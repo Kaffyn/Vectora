@@ -5,7 +5,7 @@ import { Sidebar } from "../components/Sidebar";
 import { ChatInput } from "../components/ChatInput";
 import { Message } from "../components/Message";
 import { Zap, Brain, Sparkles, Database, ChevronRight } from "lucide-react";
-import { Locale, Translations } from "../lib/i18n-types";
+import type { Locale, Translations } from "../lib/i18n-types";
 import { LanguageSelector } from "../components/LanguageSelector";
 import { SuggestionCard } from "../components/SuggestionCard";
 import { callVectora } from "../lib/ipc-bridge";

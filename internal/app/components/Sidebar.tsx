@@ -1,7 +1,7 @@
 import React from "react";
 import { Zap, Trash2, Plus, MessageSquare, Database, Layers, ChevronDown, ChevronLeft, FolderOpen, MoreHorizontal, Pencil, Check } from "lucide-react";
 import * as Select from "@radix-ui/react-select";
-import { Locale } from "../lib/i18n-types";
+import type { Locale } from "../lib/i18n-types";
 
 interface ChatSession {
   id: string;

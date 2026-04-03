@@ -1,6 +1,7 @@
 import React from "react";
 import HomeClient from "./home-client";
-import { getTranslations, Locale } from "../lib/i18n";
+import { getTranslations } from "../lib/i18n";
+import type { Locale } from "../lib/i18n";
 import { headers, cookies } from "next/headers";
 
 /**

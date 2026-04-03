@@ -6,6 +6,12 @@ import { callVectora } from '@/lib/ipc-client';
  * Atua como uma ponte leve entre o Frontend e o Daemon Go via IPC.
  */
 
+/**
+ * Force dynamic for Next.js 16 to avoid static generation attempts 
+ * during build, even if ignoring this route in export.
+ */
+export const dynamic = 'force-dynamic';
+
 async function handleIPC(req: NextRequest) {
   const url = new URL(req.url);
   const path = url.pathname.replace('/api/v1/', '');
@@ -21,7 +27,7 @@ async function handleIPC(req: NextRequest) {
   const method = routeMap[path] || path;
   
   try {
-    let payload = {};
+    let payload: any = {};
     if (req.method === 'POST' || req.method === 'PATCH') {
       payload = await req.json();
     } else {

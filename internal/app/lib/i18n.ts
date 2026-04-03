@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { Locale, Translations } from './i18n-types';
+export type { Locale, Translations };
 
 /**
  * Loads and parses the specific i18n CSV file for a locale.
