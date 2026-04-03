@@ -85,8 +85,8 @@ func checkMicroServices(ctx context.Context) {
 	_ = os.Remove(tmpPath)
 	kv, _ := db.NewKVStoreAtPath(tmpPath)
 	msgSvc := llm.NewMessageService(kv)
-	conv, _ := msgSvc.CreateConversation(ctx)
-	if conv != nil { fmt.Println("✅") } else { fmt.Println("❌") }
+	_, err := msgSvc.CreateConversation(ctx, "test-id", "Test Conversation")
+	if err == nil { fmt.Println("✅") } else { fmt.Println("❌") }
 
 	// Memory Service
 	fmt.Print("      - Knowledge Vector (ChroMem)... ")
