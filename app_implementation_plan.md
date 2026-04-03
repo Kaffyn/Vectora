@@ -6,7 +6,7 @@ Este plano descreve o desenvolvimento da interface gráfica principal do Vectora
 
 ## 1. Stack Tecnológica e Localização
 
-O Web UI é embarcado no binário `cmd/vectora-web`.
+O Web UI é embarcado no binário `cmd/vectora-app`.
 
 - **Frontend:** `internal/app/` (Next.js 14, App Router).
 - **Backend Bridge:** Go + Wails v3.
@@ -19,7 +19,7 @@ O Web UI é embarcado no binário `cmd/vectora-web`.
 
 O Web UI é um **cliente IPC** que utiliza o Wails como transportador.
 
-1.  **Go Bindings (`cmd/vectora-web/app.go`):** O Go expõe uma struct `App` que contém o `ipcClient`.
+1.  **Go Bindings (`cmd/vectora-app/app.go`):** O Go expõe uma struct `App` que contém o `ipcClient`.
 2.  **JS Proxy:** O Frontend chama `window.go.main.App.CallIPC(method, payload)`.
 3.  **Encapsulamento:** O Next.js não sabe que o Daemon existe; ele fala apenas com o Proxy do Wails.
 
@@ -47,7 +47,7 @@ Para manter o binário único:
 
 1.  Rodar `bun run build` dentro de `internal/app/`.
 2.  O Next.js gera a pasta `out/` (Static Export).
-3.  O `cmd/vectora-web/main.go` usa `//go:embed internal/app/out` para injetar o site no binário.
+3.  O `cmd/vectora-app/main.go` usa `//go:embed internal/app/out` para injetar o site no binário.
 
 ---
 

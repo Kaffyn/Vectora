@@ -18,6 +18,7 @@ import (
 	"github.com/Kaffyn/vectora/internal/tray"
 	"github.com/Kaffyn/vectora/internal/cli"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -105,13 +106,20 @@ func runDaemon() {
 	}
 
 	infra.SetupLogger()
+	
+	// Load global configuration from %USERPROFILE%/.Vectora/.env
+	appDataDir, _ := systemManager.GetAppDataDir()
+	envPath := filepath.Join(appDataDir, ".env")
+	if err := godotenv.Load(envPath); err != nil {
+		infra.Logger.Warn(fmt.Sprintf("Global config (.env) not found at: %s. Using defaults.", envPath))
+	}
+
 	infra.Logger.Info("Starting Vectora Daemon (Micro-Services Mode)...")
 
 	kvStore, _ := db.NewKVStore()
 	vecStore, _ := db.NewVectorStore()
 	appCtx := context.Background()
 	msgService := llm.NewMessageService(kvStore)
-	appDataDir, _ := systemManager.GetAppDataDir()
 	memService, _ := db.NewMemoryService(appCtx, filepath.Join(appDataDir, "data", "memory"))
 	searchService := tools.NewSearchService()
 

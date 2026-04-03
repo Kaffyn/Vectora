@@ -58,7 +58,7 @@ vectora/
 ├── cmd/                        # Apenas pontos de entrada. Sem lógica de negócio.
 │   ├── vectora/                # Daemon systray (orquestrador central)
 │   ├── vectora-cli/            # Binário CLI (Bubbletea)
-│   ├── vectora-web/            # Binário Web UI (Wails)
+│   ├── vectora-app/            # Binário Web UI (Wails)
 │   └── vectora-installer/      # Binário do instalador (Fyne)
 │
 ├── internal/                   # Toda a lógica de negócio. Não importável externamente.
@@ -136,7 +136,7 @@ Login do Sistema
 
 ## 5. WEB UI: ARQUITETURA WAILS + NEXT.JS
 
-O Web UI (`cmd/vectora-web`) é uma aplicação Wails que embarca o frontend Next.js como export estático.
+O Web UI (`cmd/vectora-app`) é uma aplicação Wails que embarca o frontend Next.js como export estático.
 
 ### 5.1 Modelo de Build
 
@@ -178,7 +178,7 @@ O Web UI é a interface principal voltada ao usuário. Seu escopo inclui: a expe
 
 ### 5.4 Regras do Web UI
 
-- **RN-WEB-01:** A struct App em `cmd/vectora-web` não deve conter lógica de negócio. É uma camada fina de binding que delega todas as chamadas ao cliente IPC.
+- **RN-WEB-01:** A struct App em `cmd/vectora-app` não deve conter lógica de negócio. É uma camada fina de binding que delega todas as chamadas ao cliente IPC.
 - **RN-WEB-02:** Nenhuma chamada direta a banco de dados ou LLM pode originar da struct App do Wails. Todos os dados fluem via IPC para o daemon.
 - **RN-WEB-03:** O build Next.js deve passar `next build` com `output: 'export'` sem erros antes de qualquer PR tocando `web/` ser mergeado.
 - **RN-WEB-04:** Métodos de binding do Wails devem seguir as mesmas convenções de nomenclatura definidas na Seção 12.

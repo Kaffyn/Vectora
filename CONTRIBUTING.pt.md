@@ -29,7 +29,7 @@ vectora/
 ├── cmd/                        # Pontos de entrada dos binários (um por executável)
 │   ├── vectora/                # Orquestrador principal (daemon systray) & CLI
 │   │   └── main.go
-│   ├── vectora-web/            # Binário Web UI (Wails)
+│   ├── vectora-app/            # Binário Web UI (Wails)
 │   │   └── main.go
 │   └── vectora-installer/      # Binário do instalador (Fyne)
 │       └── main.go
@@ -107,7 +107,7 @@ O binário `cmd/vectora` é a única fonte de verdade para o estado da aplicaç�
 ```markdown
 cmd/vectora (daemon systray)
     └── Servidor IPC
-            ├── cmd/vectora-web   (iniciado sob demanda)
+            ├── cmd/vectora-app   (iniciado sob demanda)
             ├── vectora chat / cli (embutido no daemon)
             └── clientes MCP / ACP (externos)
 ```

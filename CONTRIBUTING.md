@@ -29,7 +29,7 @@ vectora/
 ├── cmd/                        # Binary entry points (one per executable)
 │   ├── vectora/                # Main orchestrator (systray daemon) & CLI
 │   │   └── main.go
-│   ├── vectora-web/            # Web UI binary (Wails)
+│   ├── vectora-app/            # Web UI binary (Wails)
 │   │   └── main.go
 │   └── vectora-installer/      # Installer binary (Fyne)
 │       └── main.go
@@ -107,7 +107,7 @@ The `cmd/vectora` binary is the single source of truth for application state. It
 ```markdown
 cmd/vectora (systray daemon)
     └── IPC Server (Named Pipes / Unix Sockets)
-            ├── cmd/vectora-web   (spawned on demand)
+            ├── cmd/vectora-app   (spawned on demand)
             ├── vectora chat / cli (integrated into daemon binary)
             └── MCP / ACP clients (external)
 ```
@@ -160,7 +160,7 @@ No tool may write to the filesystem or execute shell commands without a prior Gi
 No file outside `internal/llm` may import a provider SDK directly (Gemini SDK, llama-cli pipes). Provider details are fully encapsulated.
 
 **BR-06 — Interface Statelessness**
-Interface binaries (`vectora-web`, CLI modes) hold no application state. All state lives in the daemon. Interfaces are disposable and should reconnect to the IPC on restart.
+Interface binaries (`vectora-app`, CLI modes) hold no application state. All state lives in the daemon. Interfaces are disposable and should reconnect to the IPC on restart.
 
 **BR-07 — Embedded Frontend**
 The Next.js frontend must be fully buildable and functional without any external CDN dependency. All assets must be embeddable via `go:embed` from `internal/app/out`.

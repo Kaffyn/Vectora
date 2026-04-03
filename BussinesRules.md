@@ -40,14 +40,14 @@ Every feature must be proven by at least **3 variations** in the same test suite
 
 These are the non-negotiable constraints from which all rules derive.
 
-| Pillar                  | Constraint                                                                                                                                                    |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Local First**         | Every core feature must work without internet. Cloud providers are opt-in, never dependencies.                                                                |
-| **Low Footprint**       | Systray daemon ≤ 100MB RSS at idle. Full system ≤ 4GB RSS under load.                                                                                           |
+| Pillar                  | Constraint                                                                                                                                                     |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Local First**         | Every core feature must work without internet. Cloud providers are opt-in, never dependencies.                                                                 |
+| **Low Footprint**       | Systray daemon ≤ 100MB RSS at idle. Full system ≤ 4GB RSS under load.                                                                                          |
 | **Pure Go**             | No CGO, no C++ dependencies, no runtime interpreters unless no viable Go alternative exists. Exceptions: `llama-cli` (subprocess sidecar), `Fyne` (installer). |
-| **No Shared State**     | Interface binaries hold zero application state. All state lives in the daemon.                                                                                |
-| **Write Protection**    | No filesystem write or shell execution may occur without a prior GitBridge snapshot.                                                                          |
-| **Workspace Isolation** | No workspace may read from another workspace's vector collection at the storage layer.                                                                        |
+| **No Shared State**     | Interface binaries hold zero application state. All state lives in the daemon.                                                                                 |
+| **Write Protection**    | No filesystem write or shell execution may occur without a prior GitBridge snapshot.                                                                           |
+| **Workspace Isolation** | No workspace may read from another workspace's vector collection at the storage layer.                                                                         |
 
 ---
 
@@ -57,7 +57,7 @@ These are the non-negotiable constraints from which all rules derive.
 vectora/
 ├── cmd/                        # Entry points only. No business logic.
 │   ├── vectora/                # Systray daemon (core orchestrator) & CLI
-│   ├── vectora-web/            # Web UI binary (Wails)
+│   ├── vectora-app/            # Web UI binary (Wails)
 │   └── vectora-installer/      # Installer binary (Fyne)
 │
 ├── internal/                   # All business logic. Not importable externally.
@@ -127,7 +127,7 @@ System Login
 
 ## 5. WEB UI: WAILS + NEXT.JS ARCHITECTURE
 
-The Web UI (`cmd/vectora-web`) is a Wails application that embeds the Next.js frontend as a static export from `internal/app`.
+The Web UI (`cmd/vectora-app`) is a Wails application that embeds the Next.js frontend as a static export from `internal/app`.
 
 ### 5.1 Build Model
 
@@ -141,7 +141,7 @@ The Web UI (`cmd/vectora-web`) is a Wails application that embeds the Next.js fr
 The frontend communicates with the Go backend exclusively through **Wails bindings** which resolve to **IPC calls** to the daemon.
 
 ```go
-// Go — App struct methods in cmd/vectora-web act as an IPC proxy
+// Go — App struct methods in cmd/vectora-app act as an IPC proxy
 type App struct {
     ipcClient *ipc.Client
 }
@@ -199,11 +199,11 @@ All messages are **newline-delimited JSON** (JSON-ND). Each message follows a st
 
 ### 7.3 IPC Methods
 
-| Method | Payload | Description |
-| --- | --- | --- |
-| `workspace.query` | `{ query, context[] }` | RAG Answer |
-| `workspace.index` | `{ path }` | Async indexing |
-| `tool.execute` | `{ tool, args }` | Agentic action |
+| Method            | Payload                | Description    |
+| ----------------- | ---------------------- | -------------- |
+| `workspace.query` | `{ query, context[] }` | RAG Answer     |
+| `workspace.index` | `{ path }`             | Async indexing |
+| `tool.execute`    | `{ tool, args }`       | Agentic action |
 
 ---
 

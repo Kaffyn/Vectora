@@ -41,6 +41,8 @@ func NewQwenProvider(ctx context.Context, modelPath string) (*QwenProvider, erro
 	}
 
 	// Load instruction and tool specs from the master instructions.
+	pInstr := ""
+	tSpec := ""
 
 	return &QwenProvider{
 		process:      proc,

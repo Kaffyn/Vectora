@@ -9,7 +9,7 @@ Este documento atua como o **Single Source of Truth (SSOT)** absoluto para a con
 O ecossistema Vectora é segmentado nos seguintes binários finais:
 
 1. **`cmd/vectora` (Daemon):** Processo residente em Go `(~50-100MB RAM)`. Possui todo o estado do sistema, a API do backend, os serviços de RAG e do motor LLM.
-2. **`cmd/vectora-web` (Web UI):** Frontend rodando Wails Go + Next.js (SSG). Interface Rica primária.
+2. **`cmd/vectora-app` (Web UI):** Frontend rodando Wails Go + Next.js (SSG). Interface Rica primária.
 3. **`cmd/vectora-cli` (CLI):** Aplicação de terminal baseada em Bubbletea (TUI rápida).
 4. **`cmd/vectora-installer` (Setup):** Instalador Fyne (CGO) contendo extraidor de Llama.cpp embutido e downloader HTTP para GGUF do Qwen3.
 5. **Sidecar Llama.cpp (Processo Filho):** Instanciado pelo Daemon na porta dinâmica de localhost para inferências offline GGUF.
@@ -126,7 +126,7 @@ _Tabela Opcional de Eventos Essenciais:_
 
 ---
 
-## 4. Frontend Web e Wails Bridge (`web/` e `cmd/vectora-web`)
+## 4. Frontend Web e Wails Bridge (`web/` e `cmd/vectora-app`)
 
 ### 4.1 Estrutura Next.js App Router (React 18/19)
 
