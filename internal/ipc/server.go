@@ -7,11 +7,14 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
+	"io"
 
 	vecos "github.com/Kaffyn/vectora/internal/os"
 )
@@ -108,6 +111,55 @@ func (s *Server) Start() error {
 	}()
 
 	return nil
+}
+
+// StartDevHTTP starts a transient HTTP bridge for Next.js 'bun dev' mode.
+// This is NOT compiled in production Wails builds in a real scenario, 
+// but here we keep it for local iteration flexibility.
+func (s *Server) StartDevHTTP(port int) {
+	mux := http.NewServeMux()
+	
+	mux.HandleFunc("/api/v1/", func(w http.ResponseWriter, r *http.Request) {
+		// Enable CORS for local Next.js dev server
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PATCH")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		method := strings.TrimPrefix(r.URL.Path, "/api/v1/")
+		handler, exists := s.handlers[method]
+		if !exists {
+			http.Error(w, fmt.Sprintf("Method '%s' not found", method), http.StatusNotFound)
+			return
+		}
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Failed to read request body", http.StatusBadRequest)
+			return
+		}
+
+		// Execute the logic via our unified router
+		resData, ipcErr := handler(s.ctx, json.RawMessage(body))
+		
+		w.Header().Set("Content-Type", "application/json")
+		if ipcErr != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]any{"error": ipcErr})
+			return
+		}
+
+		json.NewEncoder(w).Encode(resData)
+	})
+
+	log.Printf("🌐 IPC-HTTP Bridge Active at http://localhost:%d/api/v1 (Dev Mode Only)", port)
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), mux); err != nil {
+		log.Printf("Failed to start Dev HTTP Bridge: %v", err)
+	}
 }
 
 func (s *Server) handleConnection(conn net.Conn) {

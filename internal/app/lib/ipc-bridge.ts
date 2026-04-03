@@ -18,15 +18,20 @@ export async function callVectora(method: string, payload: any = {}): Promise<an
     }
 
     // 2. Fallback to Hono/Next API (Useful for Traditional Web Development)
-    console.warn("Wails Bindings not found. Using HTTP fallback...");
-    const response = await fetch(`/api/v1/${method}`, {
+    // 2. Fallback to Local Go Daemon (Useful for Browser Iteration)
+    const isDev = process.env.NODE_ENV === 'development';
+    const baseUrl = isDev ? "http://localhost:42700/api/v1" : "/api/v1";
+    
+    console.warn(`Wails Bindings not found. Using ${isDev ? 'Local Daemon' : 'HTTP'} fallback...`);
+    
+    const response = await fetch(`${baseUrl}/${method}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: payloadStr
     });
 
     if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
+        throw new Error(`HTTP Error: ${response.status} from ${method}`);
     }
 
     return response.json();

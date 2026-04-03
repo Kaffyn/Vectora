@@ -118,6 +118,10 @@ func runDaemon() {
 	ipcServer, _ := ipc.NewServer()
 	ipc.RegisterRoutes(ipcServer, kvStore, vecStore, func() llm.Provider { return tray.ActiveProvider }, msgService, memService, searchService)
 	go ipcServer.Start()
+	
+	// Start the Dev HTTP Bridge in background for bun dev / browser debugging.
+	// Only affects local dev experience, as SSG build for Wails won't use it.
+	go ipcServer.StartDevHTTP(42700)
 
 	infra.NotifyOS("Vectora", "Operational Assistant.")
 	tray.Setup()
