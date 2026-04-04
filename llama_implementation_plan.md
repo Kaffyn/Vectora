@@ -1,55 +1,55 @@
-# Llama Package Manager Implementation Plan
+# PLANO DE IMPLEMENTAÇÃO: LLAMA PACKAGE MANAGER (LPM)
 
-Este plano detalha a transição do Vectora para um sistema de Gerenciamento de Pacotes Llama dinâmico. O objetivo é remover o "peso morto" dos binários do instalador principal e oferecer suporte nativo e otimizado para cada variante de hardware (NVIDIA/CUDA, AMD/VULKAN, CPU/AVX2).
-
-## Objetivos Estratégicos
-
-1. **Suporte Multi-Variante**: Detectar automaticamente se o usuário possui GPU NVIDIA (CUDA), suporte a Vulkan ou apenas CPU (AVX2/AVX512).
-2. **Download sob Demanda**: Baixar os binários diretamente das [Releases Oficiais do llama.cpp (b8583)](https://github.com/ggml-org/llama.cpp/releases/tag/b8583).
-3. **Separação de Preocupações**: O instalador do Vectora foca na interface e no motor; o Llama Manager cuida da IA local.
-4. **Extensibilidade**: Facilitar a atualização para novas versões do Llama (ex: b8600) através de uma simples atualização de catálogo JSON/Map.
-
-## Mudanças Propostas
-
-### 1. Novo Pacote: `internal/llama/manager`
-
-Este será o cérebro do gerenciamento de versões.
-
-- **`discovery.go`**: Lógica de "Hardware Probing".
-  - Verificar presença de `vulkan-1.dll`.
-  - Verificar `nvidia-smi` ou APIs DXGI para CUDA.
-  - Verificar flags de CPU via `runtime` e `cpuinfo`.
-- **`catalog.go`**: Mapeamento de versões.
-  - Exemplo: `b8583` -> `win-vulkan-x64.zip`, `win-avx2-x64.zip`, etc.
-- **`fetcher.go`**: Motor de Download e Extração.
-  - Download com barra de progresso (via CLI/App).
-  - Verificação de integridade SHA256.
-  - Extração para `%USERPROFILE%/.Vectora/packages/llama/b8583/[variante]`.
-
-### 2. Integração com o Motor (`internal/os`)
-
-- **`windows.go`**: O `StartLlamaEngine` deixará de buscar um caminho fixo. Ele consultará o `LlamaManager` para obter o `CurrentActivePath()`.
-- Se o binário não for encontrado, o Vectora disparará um evento de "Requisitos Faltantes" para a interface.
-
-### 3. Reformulação do Build System (`build.ps1`)
-
-- **REMOVER**: O passo `[5/8] Compilando Llama-Installer`.
-- **REMOVER**: A cópia de binários pesados de `internal/os/windows/llama-b8583`.
-- **ADICIONAR**: Um novo comando na CLI: `vectora llama install b8583 --auto`.
-
-## Plano de Verificação
-
-### Testes Automatizados
-
-- Simular diferentes saídas de hardware para validar a lógica de escolha da variante (Mock Probing).
-- Validar a extração e resolução de caminhos em ambiente de teste temporário.
-
-### Verificação Manual
-
-1. Remover a pasta de pacotes e abrir o Vectora: Garantir que ele ofereça o download do Llama.
-2. Verificar no log qual variante foi escolhida (ex: "Hardware Detectado: NVIDIA -> Baixando variant CUDA").
-3. Testar o `Stop/Start` com diferentes versões instaladas simultaneamente.
+Este documento detalha a arquitetura do Llama Package Manager do Vectora — o subsistema responsável por detectar capacidades de hardware, baixar a build correta do llama.cpp do repositório oficial, gerenciar versões instaladas e se comunicar com cada variante de binário via STDIO.
 
 ---
 
-_Assinado: Antigravity AI Engine_
+## 1. Definição do Problema
+
+O `llama.cpp` não é um binário único. Cada release oficial distribui mais de uma dúzia de variantes diferenciadas por:
+- **Sistema operacional**: Windows, Linux, macOS
+- **CPU**: AVX, AVX2, AVX512, NEON (ARM)
+- **GPU**: CUDA (v11/v12), Vulkan, Metal (macOS)
+
+Um gerenciador de pacotes resolve a inflação do instalador e garante a performance máxima em cada hardware.
+
+---
+
+## 2. Estrutura do Repositório (`internal/engines/`)
+
+- `catalog.go`: Definições de tipo e registro de versões.
+- `detector.go`: Detecção de capacidades de hardware (GPU/CPU).
+- `downloader.go`: Download com suporte a resume (.partial).
+- `extractor.go`: Extração ZIP seletiva (apenas binário e DLLs).
+- `integrity.go`: Verificação SHA256 obrigatória.
+- `manager.go`: Orquestrador de ciclo de vida (Install, Switch, Active).
+- `process.go`: Gerenciamento do processo via JSON-ND (STDIO).
+- `paths.go`: Resolução de caminhos (~/.vectora/engines/...).
+
+---
+
+## 3. Fluxo de Primeiro Boot
+
+1. **Daemon Inicia**: Detecta hardware via `detector.go`.
+2. **Setup Required**: Se nenhum engine estiver instalado, emite `engine.setup_required`.
+3. **Download**: UI solicita `engine.install` para o `RecommendedBackend`.
+4. **Pronto**: Engine é verificado, extraído e iniciado via `process.go`.
+
+---
+
+## 4. Regras Críticas (RN)
+
+- **RN-LPM-01**: Instalador Vectora < 20MB (sem embutir llama.cpp).
+- **RN-LPM-02**: Verificação SHA256 obrigatória antes de cada execução.
+- **RN-LPM-04**: Comunicação exclusiva via STDIO (sem portas TCP).
+- **RN-LPM-06**: Armazenamento em User-Space (sem necessidade de Admin para o Engine).
+- **RN-LPM-09**: Catálogo embarcado via `go:embed` (imutável em runtime).
+- **RN-LPM-10**: Proibido rodar duas instâncias de llama-cli simultaneamente.
+
+---
+
+## 5. Próximos Passos (Sprint 1)
+
+1. Implementar o `catalog.json` e as estruturas de dados.
+2. Desenvolver o `detector.go` com probe de DLLs/Syscalls no Windows.
+3. Criar o orquestrador `manager.go` e integrar ao boot do Daemon.

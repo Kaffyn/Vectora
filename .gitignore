@@ -40,3 +40,4 @@ go.work.sum
 *.syso
 *.sha256
 *.d.ts
+/internal/app/lib

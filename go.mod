@@ -4,6 +4,7 @@ go 1.26.1
 
 require (
 	fyne.io/fyne/v2 v2.7.3
+	github.com/Kaffyn/vectora v0.0.0-20260403192131-4277d9fc26d3
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0

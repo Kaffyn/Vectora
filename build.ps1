@@ -4,7 +4,7 @@ $env:GOARCH = "amd64"
 
 # 1. Limpeza
 Write-Host "[1/8] Limpando binarios antigos..." -ForegroundColor Gray
-Remove-Item vectora.exe, vectora-app.exe, vectora-installer.exe, vectora-tests.exe, llama-installer.exe -ErrorAction SilentlyContinue
+Remove-Item vectora.exe, vectora-app.exe, vectora-setup.exe, vectora-tests.exe, llama-installer.exe -ErrorAction SilentlyContinue
 
 # 2. Build do Frontend (Next.js via Bun)
 Write-Host "[2/8] Exportando Frontend (Next.js SSG via Bun)..." -ForegroundColor Yellow
