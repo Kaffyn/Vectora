@@ -68,6 +68,8 @@ func main() {
 	systemManager, _ := vecos.NewManager()
 	if systemManager != nil && !systemManager.IsRunningAsAdmin() {
 		// Attempt to restart as admin
+		exe, _ := os.Executable()
+		cwd, _ := os.Getwd()
 		args := strings.Join(os.Args[1:], " ")
 
 		psCmd := fmt.Sprintf("Start-Process -FilePath '%s' -Verb runas -WorkingDirectory '%s'", exe, cwd)

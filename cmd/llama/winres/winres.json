@@ -19,9 +19,6 @@
         "OriginalFilename": "llama-installer.exe",
         "ProductName": "Llama Engine",
         "ProductVersion": "1.0.0.0"
-      },
-      "Var": {
-        "040904b0": [1033, 1200]
       }
     }
   }
