@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"runtime"
 
-	lin "github.com/Kaffyn/vectora/internal/os/linux"
-	mac "github.com/Kaffyn/vectora/internal/os/macos"
-	win "github.com/Kaffyn/vectora/internal/os/windows"
+	lin "github.com/Kaffyn/Vectora/internal/os/linux"
+	mac "github.com/Kaffyn/Vectora/internal/os/macos"
+	win "github.com/Kaffyn/Vectora/internal/os/windows"
 )
 
 type EngineState string
@@ -31,7 +31,7 @@ type OSManager interface {
 	IsInstalled() string
 	RegisterApp(installDir string)
 	UnregisterApp(installDir string)
-	
+
 	// Concurrency Prevention
 	EnforceSingleInstance() error
 }

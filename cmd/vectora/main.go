@@ -9,18 +9,19 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Kaffyn/vectora/internal/db"
-	"github.com/Kaffyn/vectora/internal/infra"
-	"github.com/Kaffyn/vectora/internal/ipc"
-	"github.com/Kaffyn/vectora/internal/llm"
-	vecos "github.com/Kaffyn/vectora/internal/os"
-	"github.com/Kaffyn/vectora/internal/tools"
-	"github.com/Kaffyn/vectora/internal/tray"
-	"github.com/Kaffyn/vectora/internal/cli"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/joho/godotenv"
 	"strings"
 	"syscall"
+
+	"github.com/Kaffyn/Vectora/internal/cli"
+	"github.com/Kaffyn/Vectora/internal/db"
+	"github.com/Kaffyn/Vectora/internal/infra"
+	"github.com/Kaffyn/Vectora/internal/ipc"
+	"github.com/Kaffyn/Vectora/internal/llm"
+	vecos "github.com/Kaffyn/Vectora/internal/os"
+	"github.com/Kaffyn/Vectora/internal/tools"
+	"github.com/Kaffyn/Vectora/internal/tray"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -94,7 +95,7 @@ func runTUI() {
 			fmt.Printf("Failed to start daemon: %v\n", err)
 			return
 		}
-		
+
 		// Wait for the socket to be ready
 		maxRetries := 10
 		for i := 0; i < maxRetries; i++ {
@@ -126,7 +127,7 @@ func runDaemon() {
 	}
 
 	infra.SetupLogger()
-	
+
 	// Load global configuration from %USERPROFILE%/.Vectora/.env
 	appDataDir, _ := systemManager.GetAppDataDir()
 	envPath := filepath.Join(appDataDir, ".env")
@@ -146,7 +147,7 @@ func runDaemon() {
 	ipcServer, _ := ipc.NewServer()
 	ipc.RegisterRoutes(ipcServer, kvStore, vecStore, func() llm.Provider { return tray.ActiveProvider }, msgService, memService, searchService)
 	go ipcServer.Start()
-	
+
 	// Start the Dev HTTP Bridge in background for bun dev / browser debugging.
 	// Only affects local dev experience, as SSG build for Wails won't use it.
 	go ipcServer.StartDevHTTP(42700)

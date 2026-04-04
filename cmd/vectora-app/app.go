@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/Kaffyn/vectora/internal/ipc"
+
+	"github.com/Kaffyn/Vectora/internal/ipc"
 )
 
 // App struct
 type App struct {
-	ctx        context.Context
-	ipcClient  *ipc.Client
+	ctx       context.Context
+	ipcClient *ipc.Client
 }
 
 // NewApp creates a new App application struct
@@ -21,19 +22,19 @@ func NewApp() *App {
 // so we can call the runtime methods
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	
+
 	// Initializes the IPC client to connect with the Daemon
 	client, err := ipc.NewClient()
 	if err != nil {
 		fmt.Printf("Falha ao criar cliente IPC: %v\n", err)
 		return
 	}
-	
+
 	// Attempt to connect (Silent Daemon boot should be managed by the caller or here)
 	if err := client.Connect(); err != nil {
 		fmt.Printf("Aviso: Daemon offline no boot do App. %v\n", err)
 	}
-	
+
 	a.ipcClient = client
 }
 

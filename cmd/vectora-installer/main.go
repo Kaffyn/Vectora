@@ -19,9 +19,9 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/Kaffyn/vectora/assets"
-	"github.com/Kaffyn/vectora/internal/i18n"
-	vecos "github.com/Kaffyn/vectora/internal/os"
+	"github.com/Kaffyn/Vectora/assets"
+	"github.com/Kaffyn/Vectora/internal/i18n"
+	vecos "github.com/Kaffyn/Vectora/internal/os"
 	"github.com/jeandeaual/go-locale"
 )
 
@@ -34,15 +34,15 @@ func createLayout(titleText string, content fyne.CanvasObject, backFunc func(), 
 	title.TextStyle = fyne.TextStyle{Bold: true}
 
 	footerBg := canvas.NewRectangle(color.RGBA{R: 11, G: 10, B: 16, A: 255})
-	
+
 	btnBack := widget.NewButton("Voltar", backFunc)
 	if backFunc == nil {
 		btnBack.Disable()
 	}
-	
+
 	btnNext := widget.NewButton(nextLabel, nextFunc)
 	if nextFunc == nil {
-		btnNext.Disable() 
+		btnNext.Disable()
 	}
 
 	ecosystemLbl := canvas.NewText("Kaffyn Ecosystem", color.RGBA{R: 200, G: 200, B: 200, A: 255})
@@ -57,8 +57,8 @@ func createLayout(titleText string, content fyne.CanvasObject, backFunc func(), 
 	)
 
 	return container.NewBorder(
-		container.NewPadded(container.NewVBox(title, widget.NewLabel(""))), 
-		container.NewStack(footerBg, container.NewPadded(footerContent)),    
+		container.NewPadded(container.NewVBox(title, widget.NewLabel(""))),
+		container.NewStack(footerBg, container.NewPadded(footerContent)),
 		nil, nil,
 		container.NewPadded(content),
 	)
@@ -69,7 +69,7 @@ func main() {
 	if systemManager != nil && !systemManager.IsRunningAsAdmin() {
 		// Attempt to restart as admin
 		args := strings.Join(os.Args[1:], " ")
-		
+
 		psCmd := fmt.Sprintf("Start-Process -FilePath '%s' -Verb runas -WorkingDirectory '%s'", exe, cwd)
 		if args != "" {
 			psCmd += fmt.Sprintf(" -ArgumentList '%s'", args)
@@ -88,8 +88,8 @@ func main() {
 	}
 
 	a := app.New()
-	a.Settings().SetTheme(&zyrisTheme{}) 
-	
+	a.Settings().SetTheme(&zyrisTheme{})
+
 	w = a.NewWindow("Setup Vectora")
 	w.Resize(fyne.NewSize(620, 480))
 	w.SetIcon(fyne.NewStaticResource("installer_icon", assets.InstallerIconData))
@@ -136,16 +136,18 @@ func main() {
 				time.Sleep(time.Millisecond * 60)
 				progress.SetValue(float64(i) / 20.0)
 			}
-			
+
 			systemManager.UnregisterApp(existingPath)
 			daemonBin := "vectora"
-			if filepath.VolumeName(existingPath) != "" { daemonBin = "vectora.exe" }
+			if filepath.VolumeName(existingPath) != "" {
+				daemonBin = "vectora.exe"
+			}
 			os.Remove(filepath.Join(existingPath, daemonBin))
-			
+
 			progress.SetValue(1.0)
-			
+
 			finalContent := container.NewVBox(widget.NewLabel("Desinstalação e Limpeza Concluídas com Sucesso."))
-			w.SetContent(createLayout("Uninstalled", finalContent, nil, func(){ w.Close() }, "Exit"))
+			w.SetContent(createLayout("Uninstalled", finalContent, nil, func() { w.Close() }, "Exit"))
 		}()
 	}
 
@@ -155,7 +157,7 @@ func main() {
 			showUninstallProgress(existingPath)
 		})
 		content := container.NewVBox(lbl, widget.NewLabel(""), container.NewHBox(btnUninstall))
-		w.SetContent(createLayout("App Detectado", content, nil, func(){ w.Close() }, "Sair"))
+		w.SetContent(createLayout("App Detectado", content, nil, func() { w.Close() }, "Sair"))
 	}
 
 	showStepWelcome = func() {
@@ -174,18 +176,26 @@ func main() {
 	showStepLang = func() {
 		langSelect := widget.NewSelect([]string{"English", "Português", "Español", "Français"}, nil)
 		switch i18n.GetCurrentLang() {
-		case "en": langSelect.SetSelected("English")
-		case "pt": langSelect.SetSelected("Português")
-		case "es": langSelect.SetSelected("Español")
-		case "fr": langSelect.SetSelected("Français")
+		case "en":
+			langSelect.SetSelected("English")
+		case "pt":
+			langSelect.SetSelected("Português")
+		case "es":
+			langSelect.SetSelected("Español")
+		case "fr":
+			langSelect.SetSelected("Français")
 		}
 
 		langSelect.OnChanged = func(s string) {
 			switch s {
-			case "English": i18n.SetLanguage("en")
-			case "Português": i18n.SetLanguage("pt")
-			case "Español": i18n.SetLanguage("es")
-			case "Français": i18n.SetLanguage("fr")
+			case "English":
+				i18n.SetLanguage("en")
+			case "Português":
+				i18n.SetLanguage("pt")
+			case "Español":
+				i18n.SetLanguage("es")
+			case "Français":
+				i18n.SetLanguage("fr")
 			}
 			showStepLang()
 		}
@@ -217,7 +227,7 @@ func main() {
 			container.NewBorder(nil, nil, nil, btnFolder, pathEntry),
 			widget.NewLabel("O instalador criará automaticamente o diretório caso\nele não exista."),
 		)
-		
+
 		nextCmd := func() {
 			installPath = pathEntry.Text
 			showStepInstall()
@@ -228,12 +238,12 @@ func main() {
 	showStepInstall = func() {
 		progress := widget.NewProgressBar()
 		progress.SetValue(0.0)
-		
+
 		content := container.NewVBox(
 			widget.NewLabel("Desempacotando binários do ecossistema e escrevendo manifestos..."),
 			progress,
 		)
-		
+
 		wrapper := createLayout("Instalando...", content, nil, nil, "Finalizar")
 		w.SetContent(wrapper)
 
@@ -242,7 +252,7 @@ func main() {
 				time.Sleep(time.Millisecond * 30)
 				progress.SetValue(float64(i) / 20.0)
 			}
-			
+
 			// Official Scaffolding hierarchy in Program Files (Requires Admin)
 			if err := os.MkdirAll(installPath, 0755); err != nil {
 				dialog.ShowError(fmt.Errorf("PERMISSION DENIED: Run the installer as Administrator or request IT access.\n(%v)", err), w)
@@ -257,7 +267,7 @@ func main() {
 			if len(llamaInstallerData) > 0 {
 				tmpInstaller := filepath.Join(os.TempDir(), "llama-installer-tmp.exe")
 				os.WriteFile(tmpInstaller, llamaInstallerData, 0755)
-				
+
 				cmd := exec.Command(tmpInstaller, "--silent", "--path", installPath)
 				if err := cmd.Run(); err != nil {
 					fmt.Printf("[WARNING] Silent failure in Llama Installer: %v\n", err)
@@ -271,14 +281,14 @@ func main() {
 				os.WriteFile(target, vectoraData, 0755)
 			}
 			fmt.Println("--- Engine Extraction and Setup Completed ---")
-			
+
 			srcSelf, _ := os.Executable()
 			uninstallerPath := filepath.Join(installPath, "vectora-uninstaller.exe")
 			copySysFile(srcSelf, uninstallerPath)
 
 			systemManager.RegisterApp(installPath)
 			progress.SetValue(1.0)
-			
+
 			doneContent := container.NewVBox(widget.NewLabel("Files extracted and O.S links successfully registered.\n\nNow let's configure the Assistant Engine."))
 			w.SetContent(createLayout("Instalação Concluída", doneContent, nil, showStepConfigMode, "Configurar IA >"))
 		}()
@@ -292,7 +302,7 @@ func main() {
 		radio.SetSelected("Usar Gemini API (Apenas Chave / Leve RAM)")
 
 		content := container.NewVBox(widget.NewLabel("Defina qual Core fará o processamento local LLM:"), radio)
-		
+
 		nextCmd := func() {
 			if radio.Selected == "Usar Gemini API (Apenas Chave / Leve RAM)" {
 				showStepConfigGemini()
@@ -307,9 +317,9 @@ func main() {
 		lbl := widget.NewLabel("Insira sua chave de API do Google AI Studio:")
 		entry := widget.NewPasswordEntry()
 		entry.SetPlaceHolder("AIzaSy...")
-		
+
 		content := container.NewVBox(lbl, entry, widget.NewLabel("Ela será arquivada e criptografada em segurança na sua máquina local."))
-		
+
 		nextCmd := func() {
 			showStepFinish()
 		}
@@ -318,9 +328,9 @@ func main() {
 
 	showStepConfigQwen = func() {
 		lbl := widget.NewLabel("O motor de IA Qwen3-0.6B será baixado em background pelo Daemon\nna Primeira Inicialização (Aprox 2GB exigidos em disco).")
-		
+
 		content := container.NewVBox(lbl)
-		
+
 		nextCmd := func() {
 			showStepFinish()
 		}
@@ -329,7 +339,7 @@ func main() {
 
 	showStepFinish = func() {
 		doneContent := container.NewVBox(widget.NewLabel("O Vectora foi instalado com sucesso."))
-		w.SetContent(createLayout("Sucesso", doneContent, nil, func(){ w.Close() }, "Encerrar"))
+		w.SetContent(createLayout("Sucesso", doneContent, nil, func() { w.Close() }, "Encerrar"))
 	}
 
 	if isUninstallMode {
@@ -351,10 +361,14 @@ func main() {
 
 func copySysFile(src, dst string) {
 	in, err := os.Open(src)
-	if err != nil { return }
+	if err != nil {
+		return
+	}
 	defer in.Close()
 	out, err := os.Create(dst)
-	if err != nil { return }
+	if err != nil {
+		return
+	}
 	defer out.Close()
 	io.Copy(out, in)
 }

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	vecos "github.com/Kaffyn/vectora/internal/os"
+	vecos "github.com/Kaffyn/Vectora/internal/os"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"

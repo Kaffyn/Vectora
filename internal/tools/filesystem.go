@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	vecos "github.com/Kaffyn/vectora/internal/os"
-	"github.com/nu7hatch/gouuid"
+	vecos "github.com/Kaffyn/Vectora/internal/os"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 // Local file snapshots based on OS-Specific AppData.
@@ -63,8 +63,10 @@ func (t *ReadFileTool) Execute(ctx context.Context, args map[string]any) (ToolRe
 // ----------------------------------------------------
 type WriteFileTool struct{}
 
-func (t *WriteFileTool) Name() string        { return "write_file" }
-func (t *WriteFileTool) Description() string { return "Creates or overwrites the entire content of an existing file." }
+func (t *WriteFileTool) Name() string { return "write_file" }
+func (t *WriteFileTool) Description() string {
+	return "Creates or overwrites the entire content of an existing file."
+}
 func (t *WriteFileTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"path":{"type":"string"},"content":{"type":"string"}},"required":["path","content"]}`)
 }
@@ -90,8 +92,10 @@ func (t *WriteFileTool) Execute(ctx context.Context, args map[string]any) (ToolR
 // ----------------------------------------------------
 type ReadFolderTool struct{}
 
-func (t *ReadFolderTool) Name() string        { return "read_folder" }
-func (t *ReadFolderTool) Description() string { return "Lists files and child directories within a base directory." }
+func (t *ReadFolderTool) Name() string { return "read_folder" }
+func (t *ReadFolderTool) Description() string {
+	return "Lists files and child directories within a base directory."
+}
 func (t *ReadFolderTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}`)
 }
@@ -117,8 +121,10 @@ func (t *ReadFolderTool) Execute(ctx context.Context, args map[string]any) (Tool
 // ----------------------------------------------------
 type EditTool struct{}
 
-func (t *EditTool) Name() string        { return "edit" }
-func (t *EditTool) Description() string { return "Replaces a specific sequential block of text in a file." }
+func (t *EditTool) Name() string { return "edit" }
+func (t *EditTool) Description() string {
+	return "Replaces a specific sequential block of text in a file."
+}
 func (t *EditTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"path":{"type":"string"},"target":{"type":"string"},"replacement":{"type":"string"}},"required":["path","target","replacement"]}`)
 }

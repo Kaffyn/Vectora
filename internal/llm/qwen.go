@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/Kaffyn/vectora/internal/engines"
+	"github.com/Kaffyn/Vectora/internal/engines"
 )
 
 type QwenProvider struct {
@@ -30,9 +30,9 @@ func NewQwenProvider(ctx context.Context, modelPath string) (*QwenProvider, erro
 	}
 
 	// Starts the interactive Llama process with flags for STDIO IPC
-	proc, err := NewLlamaProcess(ctx, binPath, 
-		"--model", modelPath, 
-		"--interactive", 
+	proc, err := NewLlamaProcess(ctx, binPath,
+		"--model", modelPath,
+		"--interactive",
 		"--simple-io",
 		"--no-display-prompt",
 	)
@@ -84,7 +84,7 @@ func (p *QwenProvider) Complete(ctx context.Context, req CompletionRequest) (Com
 
 	// TODO: On first Chat execution, p.process.SendPrompt sends the 'masterPrompt'.
 	// The return of this first call is currently ignored (Silent Setup).
-	
+
 	content, err := p.process.SendPrompt(ctx, lastMsg, req)
 	if err != nil {
 		return CompletionResponse{}, err

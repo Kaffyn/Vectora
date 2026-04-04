@@ -1,7 +1,7 @@
 package cli
 
 import (
-	"github.com/Kaffyn/vectora/internal/ipc"
+	"github.com/Kaffyn/Vectora/internal/ipc"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"

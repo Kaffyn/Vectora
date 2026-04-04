@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	vecos "github.com/Kaffyn/vectora/internal/os"
+	vecos "github.com/Kaffyn/Vectora/internal/os"
 	"github.com/philippgille/chromem-go"
 )
 
@@ -77,7 +77,7 @@ func (s *ChromemStore) Query(ctx context.Context, collection string, queryVector
 			Score: doc.Similarity,
 		})
 	}
-	
+
 	return results, nil
 }
 

@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/Kaffyn/vectora/internal/core"
-	"github.com/Kaffyn/vectora/internal/db"
-	"github.com/Kaffyn/vectora/internal/llm"
-	"github.com/Kaffyn/vectora/internal/tools"
+	"github.com/Kaffyn/Vectora/internal/core"
+	"github.com/Kaffyn/Vectora/internal/db"
+	"github.com/Kaffyn/Vectora/internal/llm"
+	"github.com/Kaffyn/Vectora/internal/tools"
 
 	"fmt"
 	"os"
@@ -42,7 +42,7 @@ func RegisterRoutes(
 		}
 
 		p := core.NewPipeline(provider, vecStore, kvStore)
-		
+
 		res, err := p.Query(ctx, req)
 		if err != nil {
 			return nil, &IPCError{Code: "pipeline_execution_failed", Message: err.Error()}

@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	vecos "github.com/Kaffyn/vectora/internal/os"
+	vecos "github.com/Kaffyn/Vectora/internal/os"
 	"go.etcd.io/bbolt"
 )
 

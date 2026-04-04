@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Kaffyn/vectora/internal/core"
-	"github.com/Kaffyn/vectora/internal/ipc"
+	"github.com/Kaffyn/Vectora/internal/core"
+	"github.com/Kaffyn/Vectora/internal/ipc"
 )
 
 // MCP Server: Model Context Protocol.
@@ -16,7 +16,7 @@ import (
 
 func StartMCPServer(ctx context.Context) error {
 	scanner := bufio.NewScanner(os.Stdin)
-	
+
 	// High limit due to JSON-RPC payloads
 	buf := make([]byte, 4*1024*1024)
 	scanner.Buffer(buf, len(buf))
@@ -24,7 +24,7 @@ func StartMCPServer(ctx context.Context) error {
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		var req map[string]any
-		
+
 		if err := json.Unmarshal(line, &req); err != nil {
 			continue // Silence. The Pipe might have noise.
 		}
@@ -55,11 +55,11 @@ func StartMCPServer(ctx context.Context) error {
 					},
 				},
 			}
-			
+
 			b, _ := json.Marshal(resp)
 			fmt.Println(string(b)) // Dumps to Stdout for the IDE to read and attach the Tool.
 		}
-		
+
 		if ok && method == "tools/call" {
 			params, _ := req["params"].(map[string]any)
 			name, _ := params["name"].(string)

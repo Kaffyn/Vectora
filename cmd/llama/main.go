@@ -10,7 +10,7 @@ import (
 	"strings"
 	"syscall"
 
-	vecos "github.com/Kaffyn/vectora/internal/os"
+	vecos "github.com/Kaffyn/Vectora/internal/os"
 )
 
 func main() {

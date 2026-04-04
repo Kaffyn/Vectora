@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -14,9 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"io"
 
-	vecos "github.com/Kaffyn/vectora/internal/os"
+	vecos "github.com/Kaffyn/Vectora/internal/os"
 )
 
 type RouterFunc func(ctx context.Context, payload json.RawMessage) (any, *IPCError)
@@ -38,7 +38,7 @@ func NewServer() (*Server, error) {
 		return nil, err
 	}
 	baseDir, _ := osMgr.GetAppDataDir()
-	
+
 	var addr string
 	if runtime.GOOS == "windows" {
 		addr = `\\.\pipe\vectora`
@@ -69,10 +69,10 @@ func (s *Server) Start() error {
 	if runtime.GOOS == "windows" {
 		// Named Pipes often require specific handling in Go.
 		// Older versions used winio, but we now use AF_UNIX for Windows 10/11 or TCP loopback fallback.
-		
+
 		// Smart fallback for modern Windows (Windows 10 Build 17063+ supports AF_UNIX)
 		addr := `\\.\pipe\vectora`
-		l, err = net.Listen("unix", addr) 
+		l, err = net.Listen("unix", addr)
 		if err != nil {
 			// Fallback (Hard TCP loopback) if the OS kernel does not support AF_UNIX pipes.
 			l, err = net.Listen("tcp", "127.0.0.1:42780")
@@ -114,17 +114,17 @@ func (s *Server) Start() error {
 }
 
 // StartDevHTTP starts a transient HTTP bridge for Next.js 'bun dev' mode.
-// This is NOT compiled in production Wails builds in a real scenario, 
+// This is NOT compiled in production Wails builds in a real scenario,
 // but here we keep it for local iteration flexibility.
 func (s *Server) StartDevHTTP(port int) {
 	mux := http.NewServeMux()
-	
+
 	mux.HandleFunc("/api/v1/", func(w http.ResponseWriter, r *http.Request) {
 		// Enable CORS for local Next.js dev server
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PATCH")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		
+
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
@@ -145,7 +145,7 @@ func (s *Server) StartDevHTTP(port int) {
 
 		// Execute the logic via our unified router
 		resData, ipcErr := handler(s.ctx, json.RawMessage(body))
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		if ipcErr != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -194,7 +194,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 		handler, exists := s.handlers[msg.Method]
 		if !exists {
 			s.sendError(conn, msg.ID, &IPCError{
-				Code: "ipc_method_unknown", 
+				Code:    "ipc_method_unknown",
 				Message: fmt.Sprintf("Method '%s' does not exist in the registry.", msg.Method),
 			})
 			continue
@@ -203,7 +203,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 		// Execute the endpoint and serialize
 		go func(m IPCMessage) {
 			resData, ipcErr := handler(s.ctx, m.Payload)
-			
+
 			resp := IPCMessage{
 				ID:   m.ID,
 				Type: MsgTypeResponse,

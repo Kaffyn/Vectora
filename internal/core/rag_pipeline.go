@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Kaffyn/vectora/internal/acp"
-	"github.com/Kaffyn/vectora/internal/db"
-	"github.com/Kaffyn/vectora/internal/llm"
+	"github.com/Kaffyn/Vectora/internal/acp"
+	"github.com/Kaffyn/Vectora/internal/db"
+	"github.com/Kaffyn/Vectora/internal/llm"
 )
 
 // Pipeline orchestrates data between the LLM (Interface) and the VectorDB (Storage).
@@ -89,7 +89,7 @@ func (p *Pipeline) Query(ctx context.Context, req QueryRequest) (QueryResponse, 
 			{Role: llm.RoleUser, Content: req.Query},
 		},
 		MaxTokens:   1500,
-		Temperature: 0.1, // Extreme precision
+		Temperature: 0.1,     // Extreme precision
 		Tools:       toolkit, // Tool Registry Inteiro Disposto no Pipeline Master
 	}
 
@@ -103,9 +103,9 @@ func (p *Pipeline) Query(ctx context.Context, req QueryRequest) (QueryResponse, 
 	if len(resp.ToolCalls) > 0 {
 		for _, tc := range resp.ToolCalls {
 			tr, trErr := p.Agent.Registry.ExecuteStringArgs(ctx, tc.Name, tc.Args)
-			_ = tr 
+			_ = tr
 			_ = trErr
-			// Futuro: Recursividade ReAct. Retro-injetamos "tr" no LLM pra re-pensar. 
+			// Futuro: Recursividade ReAct. Retro-injetamos "tr" no LLM pra re-pensar.
 			// (Limit maximum Loop to protect local RAM)
 		}
 	}

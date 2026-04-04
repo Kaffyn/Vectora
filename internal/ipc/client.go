@@ -10,8 +10,8 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/nu7hatch/gouuid"
-	vecos "github.com/Kaffyn/vectora/internal/os"
+	vecos "github.com/Kaffyn/Vectora/internal/os"
+	uuid "github.com/nu7hatch/gouuid"
 )
 
 type Client struct {
@@ -21,9 +21,9 @@ type Client struct {
 	pendingLock sync.Mutex
 	ctx         context.Context
 	cancel      context.CancelFunc
-	
+
 	// Flexible hook triggered when the API Server emits streaming Broadcasts:
-	OnEvent     func(method string, payload json.RawMessage)
+	OnEvent func(method string, payload json.RawMessage)
 }
 
 func NewClient() (*Client, error) {
@@ -32,7 +32,7 @@ func NewClient() (*Client, error) {
 		return nil, err
 	}
 	baseDir, _ := osMgr.GetAppDataDir()
-	
+
 	var addr string
 	if runtime.GOOS == "windows" {
 		addr = `\\.\pipe\vectora` // If AF_UNIX fails, the client will test the fallback

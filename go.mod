@@ -1,4 +1,4 @@
-module github.com/Kaffyn/vectora
+module github.com/Kaffyn/Vectora
 
 go 1.26.1
 
