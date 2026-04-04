@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"fyne.io/fyne/v2"
@@ -64,6 +65,23 @@ func createLayout(titleText string, content fyne.CanvasObject, backFunc func(), 
 }
 
 func main() {
+	systemManager, _ := vecos.NewManager()
+	if systemManager != nil && !systemManager.IsRunningAsAdmin() {
+		// Attempt to restart as admin
+		args := strings.Join(os.Args[1:], " ")
+		
+		psCmd := fmt.Sprintf("Start-Process -FilePath '%s' -Verb runas -WorkingDirectory '%s'", exe, cwd)
+		if args != "" {
+			psCmd += fmt.Sprintf(" -ArgumentList '%s'", args)
+		}
+
+		cmd := exec.Command("powershell", psCmd)
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		if err := cmd.Start(); err == nil {
+			os.Exit(0)
+		}
+	}
+
 	isUninstallMode := false
 	if len(os.Args) >= 2 && os.Args[1] == "--uninstall" {
 		isUninstallMode = true
@@ -76,23 +94,12 @@ func main() {
 	w.Resize(fyne.NewSize(620, 480))
 	w.SetIcon(fyne.NewStaticResource("installer_icon", assets.InstallerIconData))
 
+	// Re-get manager for logic
 	systemManager, err := vecos.NewManager()
 	if err != nil {
-		dialog.ShowError(err, w)
+		w.SetContent(widget.NewLabel("FALHA: Erro ao carregar System Manager."))
+		w.ShowAndRun()
 		return
-	}
-
-	// FORCE UAC Elevation if not admin
-	if !systemManager.IsRunningAsAdmin() {
-		// Attempt to restart as admin
-		exe, _ := os.Executable()
-		cwd, _ := os.Getwd()
-		args := strings.Join(os.Args[1:], " ")
-
-		cmd := exec.Command("powershell", "Start-Process", "-FilePath", fmt.Sprintf("'%s'", exe), "-ArgumentList", fmt.Sprintf("'%s'", args), "-Verb", "runas", "-WorkingDirectory", fmt.Sprintf("'%s'", cwd))
-		if err := cmd.Start(); err == nil {
-			os.Exit(0)
-		}
 	}
 
 	userLoc, err := locale.GetLanguage()

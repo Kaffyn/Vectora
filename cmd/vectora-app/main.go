@@ -3,6 +3,13 @@ package main
 import (
 	"embed"
 
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"syscall"
+
+	vecos "github.com/Kaffyn/vectora/internal/os"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -12,6 +19,25 @@ import (
 var assets embed.FS
 
 func main() {
+	systemManager, _ := vecos.NewManager()
+	if systemManager != nil && !systemManager.IsRunningAsAdmin() {
+		// Attempt to restart as admin
+		exe, _ := os.Executable()
+		cwd, _ := os.Getwd()
+		args := strings.Join(os.Args[1:], " ")
+
+		psCmd := fmt.Sprintf("Start-Process -FilePath '%s' -Verb runas -WorkingDirectory '%s'", exe, cwd)
+		if args != "" {
+			psCmd += fmt.Sprintf(" -ArgumentList '%s'", args)
+		}
+
+		cmd := exec.Command("powershell", psCmd)
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		if err := cmd.Start(); err == nil {
+			os.Exit(0)
+		}
+	}
+
 	// Create an instance of the app structure
 	app := NewApp()
 

@@ -19,11 +19,31 @@ import (
 	"github.com/Kaffyn/vectora/internal/cli"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
+	"strings"
+	"syscall"
 )
 
 func main() {
+	systemManager, _ := vecos.NewManager()
+	if systemManager != nil && !systemManager.IsRunningAsAdmin() {
+		// Attempt to restart as admin
+		exe, _ := os.Executable()
+		cwd, _ := os.Getwd()
+		args := strings.Join(os.Args[1:], " ")
+
+		cmd := exec.Command("powershell", fmt.Sprintf("Start-Process -FilePath '%s' -Verb runas -WorkingDirectory '%s'", exe, cwd))
+		if args != "" {
+			cmd = exec.Command("powershell", fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList '%s' -Verb runas -WorkingDirectory '%s'", exe, args, cwd))
+		}
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		if err := cmd.Start(); err == nil {
+			os.Exit(0)
+		}
+	}
+
 	if len(os.Args) < 2 {
-		printHelp()
+		// Default to daemon mode if double-clicked or run without args
+		runDaemon()
 		return
 	}
 

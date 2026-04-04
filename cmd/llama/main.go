@@ -4,11 +4,35 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
+	"syscall"
+
+	vecos "github.com/Kaffyn/vectora/internal/os"
 )
 
 func main() {
+	systemManager, _ := vecos.NewManager()
+	if systemManager != nil && !systemManager.IsRunningAsAdmin() {
+		// Attempt to restart as admin
+		exe, _ := os.Executable()
+		cwd, _ := os.Getwd()
+		args := strings.Join(os.Args[1:], " ")
+
+		psCmd := fmt.Sprintf("Start-Process -FilePath '%s' -Verb runas -WorkingDirectory '%s'", exe, cwd)
+		if args != "" {
+			psCmd += fmt.Sprintf(" -ArgumentList '%s'", args)
+		}
+
+		cmd := exec.Command("powershell", psCmd)
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+		if err := cmd.Start(); err == nil {
+			os.Exit(0)
+		}
+	}
+
 	silent := flag.Bool("silent", false, "Executa em modo silencioso (sem interface)")
 	path := flag.String("path", "", "Pasta de destino para o motor Llama-CPP")
 	flag.Parse()
