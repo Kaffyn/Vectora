@@ -1,24 +1,28 @@
 {
   "RT_GROUP_ICON": {
-    "APPICON": {
-      "0": "../../../assets/llama_logo.ico"
+    "APP": {
+      "0000": [
+        "../../assets/llama_logo.ico"
+      ]
     }
   },
-  "VERSION_INFO": {
-    "0": {
+  "RT_VERSION": {
+    "V1": {
       "Fixed": {
-        "FileFlagsMask": "3f",
-        "FileType": "01"
+        "FileVersion": [1, 0, 0, 0],
+        "ProductVersion": [1, 0, 0, 0]
       },
-      "String": {
-        "CompanyName": "Kaffyn AI",
-        "FileDescription": "Llama Model Installer for Vectora",
-        "FileVersion": "1.0.0.0",
-        "InternalName": "llama-installer",
-        "LegalCopyright": "Copyright (C) 2026 Kaffyn AI",
-        "OriginalFilename": "llama-installer.exe",
-        "ProductName": "Llama Engine",
-        "ProductVersion": "1.0.0.0"
+      "Info": {
+        "0000": {
+          "CompanyName": "Kaffyn AI",
+          "FileDescription": "Llama Engine Backend for Vectora",
+          "FileVersion": "1.0.0.0",
+          "InternalName": "llama-installer",
+          "LegalCopyright": "Copyright (C) 2026 Kaffyn AI",
+          "OriginalFilename": "llama-installer.exe",
+          "ProductName": "Vectora Llama Controller",
+          "ProductVersion": "1.0.0.0"
+        }
       }
     }
   }

@@ -14,7 +14,7 @@ import (
 	"github.com/Kaffyn/Vectora/internal/db"
 	"github.com/Kaffyn/Vectora/internal/infra"
 	"github.com/Kaffyn/Vectora/internal/llm"
-	"github.com/Kaffyn/vectora/internal/tools"
+	"github.com/Kaffyn/Vectora/internal/tools"
 )
 
 func main() {
