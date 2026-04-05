@@ -265,22 +265,22 @@ func main() {
 			os.MkdirAll(filepath.Join(installPath, "backups"), 0755)
 
 			assets := getInstallerAssets()
-			llamaInstallerData := assets["llama-installer.exe"]
-			if len(llamaInstallerData) > 0 {
-				tmpInstaller := filepath.Join(os.TempDir(), "llama-installer-tmp.exe")
-				os.WriteFile(tmpInstaller, llamaInstallerData, 0755)
 
-				cmd := exec.Command(tmpInstaller, "--silent", "--path", installPath)
-				if err := cmd.Run(); err != nil {
-					fmt.Printf("[WARNING] Silent failure in Llama Installer: %v\n", err)
-				}
-				os.Remove(tmpInstaller)
+			// Extract all binaries
+			binariesToExtract := []string{
+				"vectora.exe",
+				"vectora-app.exe",
+				"vectora-cli.exe",
+				"lpm.exe",
 			}
 
-			vectoraData := assets["vectora.exe"]
-			if len(vectoraData) > 0 {
-				target := filepath.Join(installPath, "vectora.exe")
-				os.WriteFile(target, vectoraData, 0755)
+			for _, binName := range binariesToExtract {
+				if binData, exists := assets[binName]; exists && len(binData) > 0 {
+					target := filepath.Join(installPath, binName)
+					if err := os.WriteFile(target, binData, 0755); err != nil {
+						fmt.Printf("[WARNING] Failed to extract %s: %v\n", binName, err)
+					}
+				}
 			}
 			fmt.Println("--- Engine Extraction and Setup Completed ---")
 

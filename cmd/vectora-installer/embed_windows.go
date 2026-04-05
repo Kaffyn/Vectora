@@ -7,16 +7,20 @@ import _ "embed"
 //go:embed vectora.exe
 var vectoraExe []byte
 
-//go:embed llama-installer.exe
-var llamaInstallerExe []byte
-
 //go:embed vectora-app.exe
 var vectoraAppExe []byte
 
+//go:embed vectora-cli.exe
+var vectoraCliExe []byte
+
+//go:embed lpm.exe
+var lpmExe []byte
+
 func getInstallerAssets() map[string][]byte {
 	return map[string][]byte{
-		"vectora.exe":         vectoraExe,
-		"llama-installer.exe": llamaInstallerExe,
-		"vectora-app.exe":     vectoraAppExe,
+		"vectora.exe":     vectoraExe,
+		"vectora-app.exe": vectoraAppExe,
+		"vectora-cli.exe": vectoraCliExe,
+		"lpm.exe":         lpmExe,
 	}
 }

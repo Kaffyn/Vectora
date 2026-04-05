@@ -1,8 +1,8 @@
 # Vectora
 
 > [!TIP]
-> Read this file in another language.
-> English [README.md] | Portuguese [README.pt.md]
+> Read this file in another language | Leia esse arquivo em outro idioma.
+> [English](README.md) | [Portugues](README.pt.md)
 
 **A private NotebookLM that runs entirely on your machine.**
 
