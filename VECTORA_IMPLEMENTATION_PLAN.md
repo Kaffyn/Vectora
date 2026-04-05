@@ -1,22 +1,9 @@
-# VECTORA: PLANO DE IMPLEMENTAÇÃO CONSOLIDADO (v2.0)
+# VECTORA: PLANO DE IMPLEMENTAÇÃO (v2.0)
 
-**Status:** Engineering Specification — Unified Blueprint
-**Versão:** 2.0 (Consolidated from 7 distributed plans)
+**Status:** Engineering Specification
+**Versão:** 2.0
 **Data:** 2026-04-05
-**Single Source of Truth:** Este documento substitui todos os planos descentralizados anteriores
-
----
-
-## CONTEXTO E MOTIVAÇÃO
-
-O Vectora estava fragmentado em **7 planos de implementação isolados** (`agent_`, `api_`, `app_`, `cli_`, `llama_`, `index_`, `test_`), causando:
-
-1. **Inconsistência Arquitetural:** Decisões de design eram locais e não globais
-2. **Duplicação de Conceitos:** Regras de negócio repetidas ou conflitantes
-3. **Overhead Cognitivo:** Impossível ter visão holística sem 7 leituras paralelas
-4. **Manutenção Custosa:** Mudanças em um plano não refletiam nos outros
-
-**Solução:** Consolidar em um **único documento denso (880+ linhas)** que detalha cada subsistema em ordem de implementação e interdependência, mantendo rigor arquitetural absoluto.
+**Single Source of Truth:** Especificação arquitetural oficial do Vectora
 
 ---
 
@@ -24,59 +11,78 @@ O Vectora estava fragmentado em **7 planos de implementação isolados** (`agent
 
 ### 1.1 Visão de Sistema Integrado
 
-O Vectora é um assistente IA desktop completo com três interfaces primárias, um daemon central e subsistemas especializados:
+O Vectora é um assistente IA desktop completo com duas interfaces primárias (Web UI e CLI), um daemon central, protocolos de integração (MCP) e agência (ACP), além de subsistemas especializados:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    APLICAÇÃO VECTORA                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐  │
-│  │  Web UI      │  │  CLI (TUI)   │  │  MCP Servidor    │  │
-│  │ (Wails+Next) │  │ (Bubbletea)  │  │ (Cursor/VSCode)  │  │
-│  └──────┬───────┘  └──────┬───────┘  └────────┬─────────┘  │
-│         │                 │                    │             │
-│         └─────────────────┼────────────────────┘             │
-│                           │ IPC (JSON-ND)                    │
-│                    ┌──────▼──────┐                           │
-│                    │   DAEMON    │                           │
-│                    │  (Go Core)  │                           │
-│                    │  ~100MB RAM │                           │
-│                    └──────┬──────┘                           │
-│                           │                                  │
-│       ┌───────────────────┼───────────────────┐              │
-│       │                   │                   │              │
-│   ┌───▼────┐         ┌───▼──────┐      ┌────▼────┐         │
-│   │   IPC  │         │   Core   │      │  Tools  │         │
-│   │ Server │         │   RAG    │      │ & ACP   │         │
-│   └────────┘         │ Pipeline │      └────┬────┘         │
-│                      └───┬──────┘            │               │
-│                          │                  │               │
-│       ┌──────────────────┼──────────────────┘               │
-│       │                  │                                  │
-│   ┌───▼────────┐  ┌─────▼────────┐                         │
-│   │   Storage  │  │     LLM      │                         │
-│   │ (bbolt +   │  │  Providers   │                         │
-│   │  chromem)  │  │ (Qwen + Gemi)│                         │
-│   └────────────┘  └──────┬───────┘                         │
-│                          │                                 │
-│                 ┌────────▼────────┐                        │
-│                 │  Sidecar Llama  │                        │
-│                 │  (Processo Filho)                        │
-│                 └─────────────────┘                        │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph Interfaces["🖥️ INTERFACES"]
+        WebUI["Web UI<br/>(Wails + Next.js)"]
+        CLI["CLI - TUI<br/>(Bubbletea)"]
+    end
+
+    subgraph External["🔗 EXTERNAL PROTOCOLS"]
+        MCP["MCP Server<br/>(Cursor/VSCode)"]
+    end
+
+    subgraph Communication["📡 COMUNICAÇÃO"]
+        IPC["IPC Server<br/>(JSON-ND)<br/>Windows: Named Pipes<br/>Unix: Domain Sockets"]
+    end
+
+    subgraph Daemon["🔷 DAEMON - Go Core ~100MB RAM"]
+        subgraph CoreSystems["Core Systems"]
+            RAGPipeline["RAG Pipeline<br/>Orchestration"]
+            Tools["Tools & ACP<br/>& MCP Server"]
+        end
+
+        subgraph StorageLayer["Storage & Data"]
+            BBolt["BBolt<br/>(Key-Value)"]
+            ChromemGo["Chromem-Go<br/>(Vector DB)"]
+        end
+
+        subgraph LLMLayer["LLM Providers"]
+            Gemini["Gemini API<br/>(Cloud)"]
+            Qwen["Qwen Local<br/>(GGUF)"]
+        end
+    end
+
+    subgraph Sidecar["⚙️ SIDECAR PROCESS"]
+        Llama["Llama.cpp<br/>(Child Process)"]
+    end
+
+    WebUI -->|IPC| IPC
+    CLI -->|IPC| IPC
+    MCP -.->|IPC| IPC
+
+    IPC --> RAGPipeline
+    IPC --> Tools
+
+    RAGPipeline --> BBolt
+    RAGPipeline --> ChromemGo
+    RAGPipeline --> Gemini
+    RAGPipeline --> Qwen
+
+    Qwen -->|STDIO| Llama
+    Tools --> BBolt
+
+    style Interfaces fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
+    style External fill:#764ba2,stroke:#333,stroke-width:2px,color:#fff
+    style Communication fill:#f093fb,stroke:#333,stroke-width:2px,color:#fff
+    style Daemon fill:#4facfe,stroke:#333,stroke-width:2px,color:#fff
+    style CoreSystems fill:#43e97b,stroke:#333,stroke-width:1px,color:#fff
+    style StorageLayer fill:#fa709a,stroke:#333,stroke-width:1px,color:#fff
+    style LLMLayer fill:#f5af19,stroke:#333,stroke-width:1px,color:#000
+    style Sidecar fill:#feca57,stroke:#333,stroke-width:2px,color:#000
 ```
 
 ### 1.2 Binários Finais
 
-| Binário | Localização | Rol | Tamanho | RAM |
-|---------|-------------|-----|--------|-----|
-| `vectora` | `cmd/vectora/` | Daemon central, orquestrador IPC, sistema de bandeja | ~5MB | ~100MB |
-| `vectora-app` | `cmd/vectora-app/` | Web UI embarcado (Wails + Next.js SSG) | ~40MB | ~150MB (com renderer) |
-| `vectora-cli` | `cmd/vectora/` (subcomando) | Interface Terminal baseada em Bubbletea | ~8MB | <10MB |
-| `vectora-installer` | `cmd/vectora-installer/` | Setup wizard (Fyne GUI) com downloader de llama.cpp | ~15MB | ~50MB |
-| `llama-sidecar` | `cmd/llama/` | Processo filho gerenciado, wrapper STDIO para llama.cpp | ~2MB | Dinâmico |
+| Binário             | Localização                 | Rol                                                     | Tamanho | RAM                   |
+| ------------------- | --------------------------- | ------------------------------------------------------- | ------- | --------------------- |
+| `vectora`           | `cmd/vectora/`              | Daemon central, orquestrador IPC, sistema de bandeja    | ~5MB    | ~100MB                |
+| `vectora-app`       | `cmd/vectora-app/`          | Web UI embarcado (Wails + Next.js SSG)                  | ~40MB   | ~150MB (com renderer) |
+| `vectora-cli`       | `cmd/vectora/` (subcomando) | Interface Terminal baseada em Bubbletea                 | ~8MB    | <10MB                 |
+| `vectora-installer` | `cmd/vectora-installer/`    | Setup wizard (Fyne GUI) com downloader de llama.cpp     | ~15MB   | ~50MB                 |
+| `llama-sidecar`     | `cmd/llama/`                | Processo filho gerenciado, wrapper STDIO para llama.cpp | ~2MB    | Dinâmico              |
 
 ### 1.3 Padrão de Armazenamento e Diretórios
 
@@ -185,7 +191,7 @@ func Error(ctx context.Context, msg string, args ...any)
 
 ### 3.1 Servidor IPC (`internal/ipc/server.go`)
 
-**Responsabilidade:** Ponte central entre as interfaces (Web, CLI, MCP) e o daemon.
+**Responsabilidade:** Ponte central entre as interfaces (Web, CLI) e o daemon. Também atende requisições MCP (protocolo de integração).
 
 **Transporte:**
 - **Windows:** Named Pipes (`\\.\pipe\vectora`)
@@ -226,22 +232,22 @@ func Error(ctx context.Context, msg string, args ...any)
 
 **Tipos de Mensagem:**
 
-| Tipo | Fluxo | Exemplo |
-|------|-------|---------|
-| `request` | Cliente → Daemon | `{"method": "workspace.query", "payload": {...}}` |
-| `response` | Daemon → Cliente | `{"id": "...", "type": "response", "payload": {...}, "error": null}` |
-| `event` | Daemon → Cliente (push) | `{"method": "index.progress", "payload": {...}}` |
+| Tipo       | Fluxo                   | Exemplo                                                              |
+| ---------- | ----------------------- | -------------------------------------------------------------------- |
+| `request`  | Cliente → Daemon        | `{"method": "workspace.query", "payload": {...}}`                    |
+| `response` | Daemon → Cliente        | `{"id": "...", "type": "response", "payload": {...}, "error": null}` |
+| `event`    | Daemon → Cliente (push) | `{"method": "index.progress", "payload": {...}}`                     |
 
 ### 3.3 Métodos e Contratos
 
-| Método | Payload In | Resposta | Descrição |
-|--------|-----------|----------|-----------|
-| `workspace.query` | `{"ws_id": "...", "query": "..."}` | `{"answer": "...", "sources": [...], "thinking": "..."}` | Consulta RAG |
-| `workspace.index` | `{"ws_id": "...", "path": "..."}` | `{"job_id": "...", "status": "running"}` | Iniciar indexação |
-| `workspace.create` | `{"name": "...", "description": "..."}` | `{"ws_id": "...", "indexed": false}` | Criar workspace |
-| `tool.execute` | `{"tool": "read_file", "args": {...}}` | `{"result": "...", "snapshot_id": "..."}` | Executar ferramenta |
-| `provider.set` | `{"provider": "gemini", "key": "..."}` | `{"configured": true}` | Configurar LLM |
-| `history.list` | `{"ws_id": "...", "limit": 20}` | `{"messages": [...]}` | Listar histórico |
+| Método             | Payload In                              | Resposta                                                 | Descrição           |
+| ------------------ | --------------------------------------- | -------------------------------------------------------- | ------------------- |
+| `workspace.query`  | `{"ws_id": "...", "query": "..."}`      | `{"answer": "...", "sources": [...], "thinking": "..."}` | Consulta RAG        |
+| `workspace.index`  | `{"ws_id": "...", "path": "..."}`       | `{"job_id": "...", "status": "running"}`                 | Iniciar indexação   |
+| `workspace.create` | `{"name": "...", "description": "..."}` | `{"ws_id": "...", "indexed": false}`                     | Criar workspace     |
+| `tool.execute`     | `{"tool": "read_file", "args": {...}}`  | `{"result": "...", "snapshot_id": "..."}`                | Executar ferramenta |
+| `provider.set`     | `{"provider": "gemini", "key": "..."}`  | `{"configured": true}`                                   | Configurar LLM      |
+| `history.list`     | `{"ws_id": "...", "limit": 20}`         | `{"messages": [...]}`                                    | Listar histórico    |
 
 ### 3.4 Sistema de Eventos (Push Notifications)
 
