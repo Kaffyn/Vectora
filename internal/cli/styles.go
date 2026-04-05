@@ -13,38 +13,73 @@ var (
 	DarkGray  = lipgloss.Color("#1B1B1B")
 	BgColor   = lipgloss.Color("#0B0A10")
 	Accent    = lipgloss.Color("#00FFD1")
+	Gold      = lipgloss.Color("#FFB800")
+	Green     = lipgloss.Color("#00D64F")
+	Red       = lipgloss.Color("#FF4565")
 
-	// Estilos do Terminal
+	// Main Title Style
 	StyleTitle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(Blue).
-			Padding(1, 2)
+			FontSize(16)
 
-	StyleStatus = lipgloss.NewStyle().
+	StyleSubtitle = lipgloss.NewStyle().
 			Foreground(LightGray).
-			PaddingLeft(2)
+			FontSize(12)
 
-	StyleInput = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(DeepBlue).
-			Padding(0, 1)
+	// Model/Status Badge
+	StyleModelBadge = lipgloss.NewStyle().
+			Background(DeepBlue).
+			Foreground(Accent).
+			Padding(0, 1).
+			Bold(true).
+			MarginLeft(1)
 
+	StylePlanBadge = lipgloss.NewStyle().
+			Foreground(Gold).
+			Bold(true)
+
+	// Message Styles
 	StyleBotMsg = lipgloss.NewStyle().
 			Foreground(LightGray).
-			Border(lipgloss.Border{Left: "┃"}).
+			Border(lipgloss.Border{Left: "▌"}).
 			BorderForeground(Purple).
 			PaddingLeft(2).
+			PaddingRight(1).
 			MarginBottom(1)
 
 	StyleUserMsg = lipgloss.NewStyle().
 			Foreground(Accent).
 			Bold(true).
+			MarginTop(1).
+			MarginBottom(0)
+
+	StyleSystemMsg = lipgloss.NewStyle().
+			Foreground(Gold).
+			Italic(true).
+			MarginTop(1).
+			MarginBottom(1)
+
+	// Input Style
+	StyleInput = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(DeepBlue).
+			Padding(0, 1).
 			MarginTop(1)
 
-	StyleModelBadge = lipgloss.NewStyle().
-			Background(DeepBlue).
+	StylePrompt = lipgloss.NewStyle().
+			Foreground(Blue).
+			Bold(true)
+
+	// Info/Help Style
+	StyleHelp = lipgloss.NewStyle().
 			Foreground(LightGray).
-			Padding(0, 1).
-			Bold(true).
-			MarginLeft(2)
+			Italic(true)
+
+	StyleLoading = lipgloss.NewStyle().
+			Foreground(Accent)
+
+	// Header divider
+	StyleDivider = lipgloss.NewStyle().
+			Foreground(DeepBlue)
 )

@@ -51,7 +51,10 @@
       "Bash(timeout 3 bin/vectora-daemon.exe daemon)",
       "Bash(bash build-all.sh)",
       "Bash(bin/vectora-cli.exe --help)",
-      "Bash(bin/vectora.exe chat:*)"
+      "Bash(bin/vectora.exe chat:*)",
+      "Bash(mkdir -p /tmp/vectora-install-test)",
+      "Read(//c/Users/bruno/Desktop/Vectora __NEW_LINE_b21df6c7abd85238__ echo === VECTORA INSTALLER TEST \\(End-to-End\\) === echo echo Test 1: Installation with Qwen 0.6B model bin/vectora-installer.exe install --path /tmp/**)",
+      "Bash(1 __NEW_LINE_b21df6c7abd85238__ echo echo '=== Installation Result ===' ls -lh /tmp/vectora-install-test/)"
     ]
   }
 }

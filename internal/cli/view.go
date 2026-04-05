@@ -1,37 +1,83 @@
 package cli
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
 
 func (m Model) View() string {
-	header := StyleTitle.Render("VECTORA AI") + StyleModelBadge.Render("LOCAL SYSTEM")
-	
-	var footer strings.Builder
-	if m.showMenu {
-		footer.WriteString(lipgloss.NewStyle().Foreground(Purple).Bold(true).Render("\n COMMANDS: /quit  /models  /tools  /mcp \n"))
-	}
+	// Header with title and model info
+	header := m.renderHeader()
 
-	if m.loading {
-		footer.WriteString("\n " + m.spinner.View() + " PROCESSANDO...")
-	} else {
-		footer.WriteString("\n" + StyleInput.Render(m.textInput.View()))
-	}
+	// Main content area
+	content := m.renderContent()
 
-	return header + "\n\n" + m.viewport.View() + footer.String()
+	// Input area
+	inputArea := m.renderInput()
+
+	// Combine all
+	return header + "\n" + content + "\n" + inputArea
 }
 
-func (m Model) renderChat() string {
+func (m Model) renderHeader() string {
+	title := StyleTitle.Render("VECTORA AI")
+	model := StyleModelBadge.Render("LOCAL_SYSTEM")
+
+	headerLine := title + " " + model
+	divider := StyleDivider.Render(strings.Repeat("─", 70))
+
+	return headerLine + "\n" + divider
+}
+
+func (m Model) renderContent() string {
+	if len(m.messages) == 0 {
+		welcomeMsg := StyleSystemMsg.Render("Welcome to Vectora AI!")
+		help := StyleHelp.Render("Type your message or '/?' for commands")
+		return welcomeMsg + "\n" + help
+	}
+
 	var sb strings.Builder
 	for _, msg := range m.messages {
 		if msg.Role == "user" {
-			sb.WriteString(StyleUserMsg.Render("YOU: " + msg.Content))
-		} else {
-			sb.WriteString(StyleBotMsg.Render(msg.Content))
+			// User message with "YOU:" prefix
+			userLabel := StyleUserMsg.Render("YOU:")
+			userContent := StyleUserMsg.Render(msg.Content)
+			sb.WriteString(userLabel + " " + userContent + "\n\n")
+		} else if msg.Role == "assistant" {
+			// Bot message with border
+			botContent := StyleBotMsg.Render(msg.Content)
+			sb.WriteString(botContent + "\n")
 		}
-		sb.WriteString("\n")
 	}
 	return sb.String()
+}
+
+func (m Model) renderInput() string {
+	if m.loading {
+		loader := StyleLoading.Render(m.spinner.View())
+		status := StyleLoading.Render(" Processing...")
+		return loader + status
+	}
+
+	inputPrompt := StylePrompt.Render(">>> ")
+	inputField := m.textInput.View()
+
+	inputBox := StyleInput.Render(inputPrompt + inputField)
+
+	// Add help text
+	var help string
+	if m.showMenu {
+		help = StyleHelp.Render("\n📋 Commands: /help  /model  /reset  /quit")
+	} else {
+		help = StyleHelp.Render("\n💡 Type /? for help")
+	}
+
+	return inputBox + help
+}
+
+func (m Model) renderChat() string {
+	// Deprecated - use renderContent instead
+	return m.renderContent()
 }
