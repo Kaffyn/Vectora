@@ -172,40 +172,370 @@ The Vectora Index client (`internal/index`) may only download datasets that carr
 
 ## Development Setup
 
-### Requirements
+### System Requirements
 
-- Go 1.22+
-- Node.js 20+ (for the web frontend)
-- Bun (for frontend builds)
-- Wails CLI (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
-- `llama-cli` binary (for local inference, managed via `internal/engines`)
+Before you begin, ensure you have the following:
 
-### Building
+- **Go 1.22+** (primary backend language)
+- **Node.js 20+** (for the web frontend)
+- **Bun 1.0+** (fast JavaScript package manager and runtime)
+- **Wails CLI 2.5+** (Go + Webview desktop framework)
+- **Git 2.30+** (version control)
+- **CMake 3.20+** (optional, for building C/C++ dependencies)
+
+### Installation Instructions
+
+Choose your operating system below and follow the step-by-step guide.
+
+---
+
+#### Windows (PowerShell)
+
+**Step 1: Install Go**
+
+```powershell
+# Option A: Using Chocolatey
+choco install golang
+
+# Option B: Manual installation
+# Download from https://go.dev/dl/
+# Run the installer and follow the prompts
+# Add Go to PATH if not done automatically
+
+# Verify installation
+go version
+```
+
+**Step 2: Install Git**
+
+```powershell
+# Using Chocolatey
+choco install git
+
+# Or download from https://git-scm.com/download/win
+# Verify installation
+git --version
+```
+
+**Step 3: Install Node.js and Bun**
+
+```powershell
+# Install Node.js
+choco install nodejs
+
+# Verify Node.js
+node --version
+npm --version
+
+# Install Bun
+powershell -Command "irm bun.sh/install.ps1 | iex"
+
+# Add Bun to PATH (if needed)
+$env:Path += ";$env:USERPROFILE\.bun\bin"
+
+# Verify Bun
+bun --version
+```
+
+**Step 4: Install Wails CLI**
+
+```powershell
+# Install Wails
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+# Verify installation
+wails --version
+
+# If wails not found, add Go bin to PATH
+$env:Path += ";$env:USERPROFILE\go\bin"
+```
+
+**Step 5: Clone Repository and Install Dependencies**
+
+```powershell
+# Clone the repository
+git clone https://github.com/Kaffyn/Vectora.git
+cd Vectora
+
+# Install Go dependencies
+go mod download
+go mod tidy
+
+# Install frontend dependencies
+cd internal/app
+bun install
+cd ..\..
+```
+
+---
+
+#### macOS
+
+**Step 1: Install Homebrew** (if not already installed)
 
 ```bash
-# Build all binaries via powershell script
-./build.ps1
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
 
-# Build a specific binary via Makefile
-make build-tray
-make build-web
-make build-installer
+**Step 2: Install Go**
 
-# Run the daemon in development mode
-go run ./cmd/vectora daemon
+```bash
+# Using Homebrew
+brew install go@1.22
+
+# Add to PATH in ~/.zshrc or ~/.bash_profile
+echo 'export PATH="/usr/local/opt/go@1.22/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# Verify installation
+go version
+```
+
+**Step 3: Install Git**
+
+```bash
+# Using Homebrew
+brew install git
+
+# Verify installation
+git --version
+```
+
+**Step 4: Install Node.js and Bun**
+
+```bash
+# Install Node.js
+brew install node
+
+# Verify Node.js
+node --version
+npm --version
+
+# Install Bun
+curl -fsSL https://bun.sh/install | bash
+
+# Add Bun to PATH in ~/.zshrc
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+source ~/.zshrc
+
+# Verify Bun
+bun --version
+```
+
+**Step 5: Install Wails CLI**
+
+```bash
+# Install Wails
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+# Verify installation
+wails --version
+```
+
+**Step 6: Clone Repository and Install Dependencies**
+
+```bash
+# Clone the repository
+git clone https://github.com/Kaffyn/Vectora.git
+cd Vectora
+
+# Install Go dependencies
+go mod download
+go mod tidy
+
+# Install frontend dependencies
+cd internal/app
+bun install
+cd ../..
+```
+
+---
+
+#### Linux (Ubuntu/Debian)
+
+**Step 1: Install Go**
+
+```bash
+# Download the latest Go release
+cd /tmp
+wget https://go.dev/dl/go1.22.linux-amd64.tar.gz
+
+# Extract to /usr/local
+sudo tar -C /usr/local -xzf go1.22.linux-amd64.tar.gz
+
+# Add Go to PATH in ~/.bashrc
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+source ~/.bashrc
+
+# Verify installation
+go version
+```
+
+**Step 2: Install Git**
+
+```bash
+# Using apt
+sudo apt-get update
+sudo apt-get install git -y
+
+# Verify installation
+git --version
+```
+
+**Step 3: Install Node.js and Bun**
+
+```bash
+# Install Node.js via NodeSource repository
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install nodejs -y
+
+# Verify Node.js
+node --version
+npm --version
+
+# Install Bun
+curl -fsSL https://bun.sh/install | bash
+
+# Add Bun to PATH in ~/.bashrc
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+source ~/.bashrc
+
+# Verify Bun
+bun --version
+```
+
+**Step 4: Install Build Dependencies**
+
+```bash
+# Required for Wails on Linux
+sudo apt-get install libgtk-3-dev libwebkit2gtk-4.0-dev -y
+
+# Optional but recommended
+sudo apt-get install build-essential -y
+```
+
+**Step 5: Install Wails CLI**
+
+```bash
+# Install Wails
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+# Verify installation
+wails --version
+```
+
+**Step 6: Clone Repository and Install Dependencies**
+
+```bash
+# Clone the repository
+git clone https://github.com/Kaffyn/Vectora.git
+cd Vectora
+
+# Install Go dependencies
+go mod download
+go mod tidy
+
+# Install frontend dependencies
+cd internal/app
+bun install
+cd ../..
+```
+
+---
+
+### Building the Project
+
+Once all dependencies are installed, you can build Vectora:
+
+**Option 1: Build All Components (Recommended)**
+
+```bash
+# Windows (PowerShell)
+.\build.ps1
+
+# macOS/Linux (Make)
+make build-all
+```
+
+Output binaries are in the `./build/` directory:
+- `vectora` (Daemon)
+- `vectora-app` (Web UI)
+- `vectora-cli` (Terminal UI)
+- `vectora-setup.exe` (Installer, Windows only)
+
+**Option 2: Build Individual Components**
+
+```bash
+# Build just the daemon
+go build -o ./build/vectora ./cmd/vectora
+
+# Build the web UI
+cd internal/app && bun run build
+cd ../..
+go build -o ./build/vectora-app ./cmd/vectora-app
+
+# Build the CLI
+go build -o ./build/vectora-cli ./cmd/vectora-cli
 ```
 
 ### Testing
 
 ```bash
-# Run all tests
-go test ./...
+# Run all tests with race detector
+go test -v -race -count=1 ./...
 
-# Run the integration suite using the daemon flag
+# Run only a specific package
+go test -v ./internal/ipc
+
+# Run with coverage report
+go test -coverprofile=coverage.out ./...
+go tool cover -html=coverage.out
+
+# Run integration tests
 go run ./cmd/vectora --tests
 ```
 
-All PRs must pass the full test suite including the race detector before review.
+**Important:** All PRs must pass the full test suite including the race detector before review.
+
+### Development Workflow
+
+```bash
+# 1. Start the daemon in debug mode
+go run ./cmd/vectora daemon --log-level=DEBUG
+
+# 2. In another terminal, start the web UI dev server
+cd internal/app
+bun run dev
+
+# 3. Or run the CLI
+go run ./cmd/vectora chat --workspace <workspace-id>
+```
+
+### Troubleshooting
+
+**"command not found: go"**
+- Ensure Go is installed and in your PATH
+- Check: `echo $PATH` (Linux/macOS) or `echo %PATH%` (Windows)
+- Re-open terminal after installation
+
+**"wails: command not found"**
+- Ensure `$GOPATH/bin` is in your PATH
+- Run: `export PATH=$PATH:$(go env GOPATH)/bin` (Linux/macOS)
+- Run: `$env:Path += ";$(go env GOPATH)\bin"` (Windows PowerShell)
+
+**"Module not found" errors during build**
+- Run: `go mod download && go mod tidy`
+
+**Build failures on Windows**
+- Ensure PowerShell is running as Administrator
+- Run: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+
+**Tests fail with "port already in use"**
+- Kill existing Vectora processes
+- Windows: `Get-Process vectora | Stop-Process -Force`
+- Linux/macOS: `pkill -f vectora`
 
 ---
 

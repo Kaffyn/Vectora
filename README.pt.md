@@ -74,21 +74,118 @@ Exponha qualquer workspace como um servidor MCP, fornecendo contexto preciso dir
 
 ---
 
+## Instalação
+
+### Requisitos de Sistema
+
+- **Windows 10+**, **macOS 11+**, ou **Linux** (Ubuntu/Debian)
+- **4GB RAM mínimo** (8GB recomendado)
+- **500MB espaço em disco** mínimo (mais para modelos maiores)
+
+### Download e Instalação
+
+1. **Baixe o instalador** de [última release](https://github.com/Kaffyn/Vectora/releases)
+   - Windows: `vectora-setup.exe`
+   - macOS: `vectora-setup.dmg` (em breve)
+   - Linux: Instruções de instalação (em breve)
+
+2. **Execute o instalador:**
+   - Windows: Clique duplo em `vectora-setup.exe` e siga o assistente
+   - O instalador detectará automaticamente seu hardware e recomendará um modelo de IA ideal
+
+3. **Primeira Execução:**
+   - Vectora aparecerá na bandeja do sistema
+   - Clique para abrir a interface web no seu navegador padrão
+   - Ou abra pelo Menu Iniciar → Vectora
+
+### Configuração
+
+**Opção 1: Qwen (Local / Offline)** — Recomendado para privacidade
+- Nenhuma configuração necessária para funcionalidade básica
+- Vectora baixa automaticamente Qwen3-7B na primeira execução
+- Escolha um modelo diferente nas configurações se desejar
+- Modelos são armazenados localmente em `%USERPROFILE%\.Vectora\models\`
+
+**Opção 2: Gemini (Nuvem / Multimodal)**
+- Vá para Configurações → Provedores de LLM
+- Clique em "Configurar Gemini"
+- Cole sua chave da API Gemini
+- A chave é criptografada e armazenada apenas na sua máquina
+
+### Compilando do Código-Fonte
+
+Se você quer compilar o Vectora você mesmo:
+
+1. **Clone o repositório:**
+   ```bash
+   git clone https://github.com/Kaffyn/Vectora.git
+   cd Vectora
+   ```
+
+2. **Instale as dependências:**
+   - Veja [CONTRIBUTING.pt.md](CONTRIBUTING.pt.md) para instruções de configuração detalhadas
+   - Requer Go 1.22+, Node.js 20+, e Bun
+
+3. **Compile todos os componentes:**
+   ```bash
+   # Windows (PowerShell)
+   .\build.ps1
+
+   # macOS/Linux (Make)
+   make build-all
+   ```
+
+4. **Execute a aplicação:**
+   ```bash
+   ./build/vectora
+   ```
+
+### Resolução de Problemas de Instalação
+
+**"Windows protegeu seu PC"** ao executar o instalador
+- Clique em "Mais informações" → "Executar mesmo assim"
+- Isso é normal para instaladores não assinados; seus arquivos são seguros
+
+**O instalador fecha imediatamente**
+- Tente executar como Administrador: Clique direito → "Executar como administrador"
+- Verifique se seu antivírus não está bloqueando o instalador
+
+**Não consegue encontrar Vectora após a instalação**
+- Verifique sua bandeja do sistema (canto inferior direito no Windows, canto superior direito no macOS)
+- Ou procure por "Vectora" no Menu Iniciar
+
+**Modelos não baixam ou chat não funciona**
+- Certifique-se de ter conexão com internet (necessária para configuração inicial)
+- Verifique Configurações → Avançado para logs
+- Veja [CONTRIBUTING.pt.md](CONTRIBUTING.pt.md) para resolução de problemas detalhada
+
+### Obtendo Ajuda
+
+- **Documentação:** Veja [CONTRIBUTING.pt.md](CONTRIBUTING.pt.md) para guias de desenvolvedores
+- **Problemas:** [Reporte bugs no GitHub](https://github.com/Kaffyn/Vectora/issues)
+- **Dúvidas:** Inicie uma [Discussão](https://github.com/Kaffyn/Vectora/discussions)
+
+---
+
 ## Provedores de IA
 
 O Vectora suporta dois provedores nativamente, com o motor construído para acomodar mais no futuro:
 
 **Qwen3 (Local / Offline)**
-Roda inteiramente no seu hardware via `llama-cli` usando a arquitetura Zero-Port de pipes. Sem necessidade de internet. Suporta texto e código usando os modelos Qwen3 (veja seção abaixo para detalhes). Ideal para fluxos de trabalho totalmente privados.
+Roda inteiramente no seu hardware via `llama-cli` usando a arquitetura Zero-Port de pipes. Sem necessidade de internet. Suporta a linhagem Qwen3 — desde modelos generalizados leves (0.6B, 1.7B, 4B, 8B) até variantes especializadas de raciocínio e código (veja seção abaixo para detalhes). Ideal para fluxos de trabalho totalmente privados.
 
 **Gemini (Nuvem / Multimodal)**
 Usa sua própria chave de API Gemini, armazenada apenas na sua config local. Desbloqueia indexação multimodal — PDFs, imagens e áudio são todos suportados. A chave nunca sai da sua máquina.
 
 Ambos os provedores incluem modelos de embedding dedicados. O Vectora não depende de um serviço de embedding separado.
 
-## Modelos Oficiais Qwen3
+## Modelos Oficiais Qwen3 e Qwen3.5
 
-O Vectora suporta a nova linhagem **Qwen3**, otimizada para diferentes frentes de desenvolvimento:
+O Vectora suporta as novas linhagens **Qwen3** e **Qwen3.5**, otimizadas para diferentes frentes de desenvolvimento:
+
+**Propósito Geral & Instruct**
+
+- **Qwen3 (0.6B/1.7B/4B/8B):** Modelos leves de seguimento de instruções para tarefas gerais, resumização e geração de conteúdo. Footprint pequeno, ideal para ambientes com recursos limitados.
 
 **Código & Raciocínio**
 
@@ -107,7 +204,7 @@ O Vectora suporta a nova linhagem **Qwen3**, otimizada para diferentes frentes d
 
 **RAG & Embeddings**
 
-- **Qwen3-Embedding (0.6B/4B/8B):** Os motores de busca vetorial que alimentam o chromem-go. **Recomendamos a versão 0.6B** para o limite rigoroso de 2GB de RAM, garantindo que o contexto do seu código seja recuperado com precisão sem comprometer a performance do sistema.
+- **Qwen3-Embedding (0.6B/4B/8B):** Os motores de busca vetorial que alimentam o chromem-go. **Recomendamos a versão 0.6B** para o limite rigoroso de 4GB de RAM, garantindo que o contexto do seu código seja recuperado com precisão sem comprometer a performance do sistema.
 
 ---
 
@@ -115,13 +212,13 @@ O Vectora suporta a nova linhagem **Qwen3**, otimizada para diferentes frentes d
 
 O Vectora não é um único app — é um ecossistema de interfaces compartilhando um core comum via IPC, tudo orquestrado por um daemon leve no systray:
 
-| Interface           | Descrição                                                                                             |
-| ------------------- | ----------------------------------------------------------------------------------------------------- |
-| **Systray**         | O daemon central. Vive perto do relógio, orquestra tudo, consome ~100MB de RAM.                       |
+| Interface           | Descrição                                                                                                   |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Systray**         | O daemon central. Vive perto do relógio, orquestra tudo, consome ~100MB de RAM.                             |
 | **Web UI (Wails)**  | App desktop local powered by Next.js. Interface de chat, gestão de workspaces, config e navegação no Index. |
-| **CLI (Bubbletea)** | Interface de terminal. Footprint mínimo, resposta instantânea.                                        |
-| **Servidor MCP**    | Expõe o conhecimento do Vectora para ferramentas de IA externas e IDEs.                               |
-| **Agente ACP**      | Modo agente autônomo com acesso ao sistema de arquivos e terminal.                                    |
+| **CLI (Bubbletea)** | Interface de terminal. Footprint mínimo, resposta instantânea.                                              |
+| **Servidor MCP**    | Expõe o conhecimento do Vectora para ferramentas de IA externas e IDEs.                                     |
+| **Agente ACP**      | Modo agente autônomo com acesso ao sistema de arquivos e terminal.                                          |
 
 ---
 
@@ -143,17 +240,17 @@ Ao operar em modo MCP ou ACP, o Vectora expõe um conjunto compartilhado de ferr
 
 O Vectora é escrito inteiramente em Go. O core roda como um daemon leve no systray e inicia outras interfaces sob demanda via IPC.
 
-| Componente      | Tecnologia               | Papel                                                       |
-| --------------- | ------------------------ | ----------------------------------------------------------- |
-| Vector DB       | chromem-go               | Busca semântica e embeddings                                |
-| Key-Value DB    | bbolt                    | Histórico de chat, logs, configuração                       |
-| Motor de IA     | langchaingo              | Abstração de LLM e provedor de embedding (Gemini, expansível) |
-| Inferência Local| llama-cli (pipes)        | Execução de modelos offline (Qwen3)                         |
-| Instalador      | Fyne                     | Assistente de configuração multiplataforma                  |
-| Tray            | systray                  | Daemon central e orquestrador                               |
-| Web UI          | Wails + Next.js (estático) | Interface de chat desktop local (em `internal/app`)         |
-| CLI             | Bubbletea                | Interface de terminal                                       |
-| Index Server    | Go (net/http)            | Catálogo e distribuição de datasets vetoriais               |
+| Componente       | Tecnologia                 | Papel                                                         |
+| ---------------- | -------------------------- | ------------------------------------------------------------- |
+| Vector DB        | chromem-go                 | Busca semântica e embeddings                                  |
+| Key-Value DB     | bbolt                      | Histórico de chat, logs, configuração                         |
+| Motor de IA      | langchaingo                | Abstração de LLM e provedor de embedding (Gemini, expansível) |
+| Inferência Local | llama-cli (pipes)          | Execução de modelos offline (Qwen3)                           |
+| Instalador       | Fyne                       | Assistente de configuração multiplataforma                    |
+| Tray             | systray                    | Daemon central e orquestrador                                 |
+| Web UI           | Wails + Next.js (estático) | Interface de chat desktop local (em `internal/app`)           |
+| CLI              | Bubbletea                  | Interface de terminal                                         |
+| Index Server     | Go (net/http)              | Catálogo e distribuição de datasets vetoriais                 |
 
 O Web UI é construído com Next.js em modo de exportação estática a partir de `internal/app`, embarcado no binário Wails via `go:embed`. O frontend se comunica com o backend em Go através de bindings do Wails — sem servidor HTTP, sem runtime Node.js, chamadas diretas de funções JS→Go.
 

@@ -74,12 +74,105 @@ Expose any workspace as an MCP server, feeding precise context directly into too
 
 ---
 
+## Installation
+
+### System Requirements
+
+- **Windows 10+**, **macOS 11+**, or **Linux** (Ubuntu/Debian)
+- **4GB RAM minimum** (8GB recommended)
+- **500MB disk space** minimum (more for larger models)
+
+### Download and Install
+
+1. **Download the installer** from the [latest release](https://github.com/Kaffyn/Vectora/releases)
+   - Windows: `vectora-setup.exe`
+   - macOS: `vectora-setup.dmg` (coming soon)
+   - Linux: Installation instructions (coming soon)
+
+2. **Run the installer:**
+   - Windows: Double-click `vectora-setup.exe` and follow the wizard
+   - The installer will automatically detect your hardware and recommend an optimal AI model
+
+3. **First Run:**
+   - Vectora will appear in your system tray
+   - Click to open the Web UI in your default browser
+   - Or open from Start Menu → Vectora
+
+### Configuration
+
+**Option 1: Qwen (Local / Offline)** — Recommended for privacy
+- No setup required for basic functionality
+- Vectora automatically downloads Qwen3-7B on first run
+- Choose a different model from settings if desired
+- Models are stored locally in `%USERPROFILE%\.Vectora\models\`
+
+**Option 2: Gemini (Cloud / Multimodal)**
+- Go to Settings → LLM Providers
+- Click "Configure Gemini"
+- Paste your Gemini API key
+- Key is encrypted and stored only on your machine
+
+### Building from Source
+
+If you want to build Vectora yourself:
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Kaffyn/Vectora.git
+   cd Vectora
+   ```
+
+2. **Install dependencies:**
+   - See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed setup instructions
+   - Requires Go 1.22+, Node.js 20+, and Bun
+
+3. **Build all components:**
+   ```bash
+   # Windows (PowerShell)
+   .\build.ps1
+
+   # macOS/Linux (Make)
+   make build-all
+   ```
+
+4. **Run the application:**
+   ```bash
+   ./build/vectora
+   ```
+
+### Troubleshooting Installation
+
+**"Windows protected your PC"** when running installer
+- Click "More info" → "Run anyway"
+- This is normal for unsigned installers; your files are safe
+
+**Installer closes immediately**
+- Try running as Administrator: Right-click → "Run as administrator"
+- Check your antivirus isn't blocking the installer
+
+**Can't find Vectora after installation**
+- Check your system tray (bottom-right corner on Windows, top-right on macOS)
+- Or search for "Vectora" in Start Menu
+
+**Models won't download or chat doesn't work**
+- Ensure you have internet connection (required for initial setup)
+- Check Settings → Advanced for logs
+- See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed troubleshooting
+
+### Getting Help
+
+- **Documentation:** See [CONTRIBUTING.md](CONTRIBUTING.md) for developer guides
+- **Issues:** [Report bugs on GitHub](https://github.com/Kaffyn/Vectora/issues)
+- **Questions:** Start a [Discussion](https://github.com/Kaffyn/Vectora/discussions)
+
+---
+
 ## AI Providers
 
 Vectora supports two providers out of the box, with the engine built to accommodate more in the future:
 
 **Qwen (Local / Offline)**
-Runs entirely on your hardware via `llama-cli` using its Zero-Port pipe architecture. No internet required. Supports text and code using the Qwen3 models (see section below for details). Ideal for fully private workflows.
+Runs entirely on your hardware via `llama-cli` using its Zero-Port pipe architecture. No internet required. Supports the Qwen3 lineage — from lightweight general-purpose models (0.6B, 1.7B, 4B, 8B) to specialized reasoning and coding variants (see section below for details). Ideal for fully private workflows.
 
 **Gemini (Cloud / Multimodal)**
 Uses your own Gemini API key, stored only in your local config. Unlocks multimodal indexing — PDFs, images, and audio are all supported. The key never leaves your machine.
@@ -88,7 +181,11 @@ Both providers include dedicated embedding models. Vectora does not rely on a se
 
 ## Qwen Official Models
 
-Vectora supports the new **Qwen3** lineage, optimized for different development fronts:
+Vectora supports the new **Qwen3** and **Qwen3.5** lineage, optimized for different development fronts:
+
+**General Purpose & Instruct**
+
+- **Qwen3 (0.6B/1.7B/4B/8B):** Lightweight instruction-following models for general tasks, summarization, and content generation. Small footprint, ideal for resource-constrained environments.
 
 **Coding & Reasoning**
 
@@ -117,7 +214,7 @@ Vectora is not a single app — it is an ecosystem of interfaces sharing a commo
 
 | Interface           | Description                                                                                               |
 | ------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Systray**         | The core daemon. Lives near your clock, orchestrates everything, ~100MB RAM.                                |
+| **Systray**         | The core daemon. Lives near your clock, orchestrates everything, ~100MB RAM.                              |
 | **Web UI (Wails)**  | Local desktop app powered by Next.js. Chat interface, workspace management, settings, and Index browsing. |
 | **CLI (Bubbletea)** | Terminal interface. Minimal footprint, instant response.                                                  |
 | **MCP Server**      | Exposes Vectora's knowledge to external AI tools and IDEs.                                                |
