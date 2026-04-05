@@ -45,7 +45,9 @@
       "Bash(bin/mpm-test.exe search:*)",
       "Bash(bin/mpm-test.exe active:*)",
       "Bash(go test:*)",
-      "Bash(grep -A 10 \"type DownloadProgress\" internal/engines/*.go)"
+      "Bash(grep -A 10 \"type DownloadProgress\" internal/engines/*.go)",
+      "Bash(timeout 5 bin/vectora-daemon.exe)",
+      "Bash(grep -n \"func runDaemon\" cmd/vectora/*.go)"
     ]
   }
 }

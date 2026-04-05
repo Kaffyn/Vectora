@@ -139,8 +139,26 @@ func performCLIInstall() error {
 		if cliModel == "" {
 			cliModel = "qwen3-1.7b"
 		}
-		if !cliSilent {
-			fmt.Printf("  ✓ Modelo: %s\n", cliModel)
+
+		// Tentar instalar modelo via IPC se daemon estiver rodando
+		ipcInstaller, err := NewIPCModelInstaller()
+		if err == nil {
+			defer ipcInstaller.Close()
+			if !cliSilent {
+				fmt.Printf("⬇️  Instalando modelo %s via daemon...\n", cliModel)
+			}
+			if err := ipcInstaller.InstallModel(cliModel); err == nil {
+				if !cliSilent {
+					fmt.Printf("  ✓ Modelo %s instalado via IPC\n", cliModel)
+				}
+			} else {
+				if !cliSilent {
+					fmt.Printf("  ⚠️  Não foi possível instalar via daemon: %v\n", err)
+					fmt.Printf("  ℹ️  Modelo será instalado quando daemon iniciar\n")
+				}
+			}
+		} else if !cliSilent {
+			fmt.Printf("  ℹ️  Modelo será instalado quando daemon %s iniciar\n", cliModel)
 		}
 	}
 
