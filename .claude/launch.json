@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Frontend (Next.js)",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "Backend Daemon (Go)",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "./cmd/vectora"],
+      "port": 0
+    }
+  ]
+}

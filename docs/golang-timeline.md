@@ -5,12 +5,22 @@
 ---
 
 ## Sumário
-
 1. [Origem e Filosofia](#1-origem-e-filosofia)
 2. [CGO e Interoperabilidade com C](#2-cgo-e-interoperabilidade-com-c)
 3. [Sidecars e Go Bindings Externos](#3-sidecars-e-go-bindings-externos)
 4. [Linha do Tempo: Versões do Go com Ecossistema Paralelo](#4-linha-do-tempo-versões-do-go-com-ecossistema-paralelo)
 5. [Frameworks Web](#5-frameworks-web)
+   - 5.1 `net/http` puro (stdlib)
+   - 5.2 `gorilla/mux` (2012–2023, arquivado)
+   - **5.3 `gin-gonic/gin` (2014–presente)**
+   - **5.4 `labstack/echo` (2015–presente)**
+   - 5.5 `go-chi/chi` (2016–presente)
+   - 5.6 `gofiber/fiber` (2020–presente)
+   - 5.7 Martini (descontinuado)
+   - 5.8 Beego (declinando)
+   - 5.9 Buffalo (nicho)
+   - 5.10 Frameworks gRPC
+   - 5.11 Antes dos frameworks
 6. [CLI e TUI](#6-cli-e-tui)
 7. [GUI e Desktop](#7-gui-e-desktop)
 8. [Banco de Dados e Persistência](#8-banco-de-dados-e-persistência)
@@ -749,27 +759,9 @@ func (s *Stack[T]) Pop() (T, bool) {
 
 **Mudanças técnicas:**
 
-- **Generic type aliases** — `type Alias[T any] = SomeType[T]` completamente suportado
-- **`tool` directives em `go.mod`** — dependências de ferramentas de desenvolvimento rastreadas no `go.mod` sem o hack `tools.go`
-- **Swiss Tables** para mapas built-in — nova implementação de hash map baseada em Swiss Tables (Google). Mapas 2-5x mais rápidos em operações típicas
-- **`testing.T.Context()`** — contexto cancelado ao fim do teste
-- **`testing.T.Chdir()`** — muda diretório de trabalho para o teste
-- **`crypto/rand`** melhorado: `Text()` para strings aleatórias seguras; getrandom via vDSO no Linux 6.11+
-- **`go:wasmexport`** — exporta funções Go para host WASM
-- PGO: 2-3% adicional
-- **Swiss Tables**: 2-3% de melhoria geral em benchmarks
+- **G## 5. Frameworks Web
 
-**Ecossistema 1.24:**
-
-- `tmc/langchaingo` com suporte completo a tool calling e streaming
-- Ecossistema de IA em Go crescendo rapidamente
-
----
-
-## 5. Frameworks Web
-
-### 5.1 `net/http` puro (stdlib, desde Go 1.0)
-
+### 5.1 `net/http` puro (stdlib)
 A stdlib do Go inclui um servidor HTTP production-grade. Muitas organizações usam `net/http` diretamente sem framework adicional, especialmente após Go 1.22 que adicionou roteamento com métodos e path parameters ao `ServeMux`.
 
 ```go
@@ -778,44 +770,87 @@ mux.HandleFunc("GET /users/{id}", getUserHandler)
 mux.HandleFunc("POST /users", createUserHandler)
 http.ListenAndServe(":8080", mux)
 ```
-
-**Antes de 1.22**: `net/http` não suportava path parameters nem métodos no padrão. Roteadores externos eram necessários para qualquer API REST.
+Antes de 1.22: `net/http` não suportava path parameters nem métodos no padrão. Roteadores externos eram necessários para qualquer API REST.
 
 ### 5.2 `gorilla/mux` (2012–2023, arquivado)
-
 Primeiro roteador Go de amplo uso. Suportava path parameters (`/users/{id}`), regex, métodos HTTP, subrouters. Por anos foi o padrão de fato para APIs Go.
-
 Arquivado em dezembro de 2022. Projetos migraram para `chi`, `echo`, `gin`, ou stdlib 1.22+. Ainda tem ~36M downloads/mês por legado.
 
 ### 5.3 `gin-gonic/gin` (2014–presente)
-
 O framework web mais popular do Go. Usa `httprouter` (radix tree) internamente. API estilo Martini mas 40x mais rápido. Features: binding de JSON/XML/Form, validação, middleware chain, grupos de rotas, recovery de panic, logging.
+*Uso:* Ideal para APIs de alta performance, microserviços e projetos onde a produtividade e a comunidade são prioritárias.
+*Status:* Dominante na indústria Go.
 
 ```go
-r := gin.Default()
-r.GET("/users/:id", func(c *gin.Context) {
-    id := c.Param("id")
-    c.JSON(200, gin.H{"id": id})
-})
-r.Run(":8080")
+// Exemplo Gin
+func main() {
+    r := gin.Default() // Já inclui Logger e Recovery
+
+    // Rota simples
+    r.GET("/hello", func(c *gin.Context) {
+        c.JSON(200, gin.H{"message": "hello"})
+    })
+
+    // Rota com parâmetros dinâmicos
+    r.GET("/users/:id", func(c *gin.Context) {
+        id := c.Param("id")
+        c.JSON(200, gin.H{"user_id": id})
+    })
+
+    // Middlewares fáceis de adicionar
+    r.Use(gin.Recovery())
+    
+    r.Run(":8080")
+}
 ```
 
-48% dos desenvolvedores Go o usam em 2025. Principal crítica: não é compatível com `http.Handler` padrão da stdlib — middlewares escritos para `net/http` não funcionam diretamente.
+**Vantagens:**
+- **Ecossistema:** Possui o maior número de plugins (`gin-contrib`) para CORS, Swagger, Auth, etc.
+- **Sintaxe:** Extremamente limpa e intuitiva.
+- **Performance:** Alta, graças ao `httprouter`.
+- **Comunidade:** A maior base de usuários e documentação.
+
+**Desvantagens:**
+- Não é totalmente compatível com a interface `http.Handler` padrão da stdlib (alguns middlewares externos podem exigir adaptação).
 
 ### 5.4 `labstack/echo` (2015–presente)
-
-Framework com API limpa, performance próxima ao Gin. Compatible com `http.Handler`. Features embutidas: binding, validação, auto TLS (Let's Encrypt), HTTP/2, WebSocket, rate limiting, CORS. Muito usado em enterprise.
+Framework com API limpa, performance próxima ao Gin (frequentemente empatada em benchmarks). Compatible com `http.Handler`. Features embutidas: binding, validação, auto TLS (Let's Encrypt), HTTP/2, WebSocket, rate limiting, CORS. Muito usado em enterprise.
+*Uso:* Escolha ideal quando se deseja uma estrutura robusta nativa sem depender de muitos plugins externos, ou quando a compatibilidade total com a stdlib é crítica.
 
 ```go
-e := echo.New()
-e.GET("/users/:id", func(c echo.Context) error {
-    return c.JSON(200, map[string]string{"id": c.Param("id")})
-})
-e.Start(":8080")
+// Exemplo Echo
+func main() {
+    e := echo.New()
+
+    // Middleware global
+    e.Use(middleware.Logger())
+    e.Use(middleware.Recover())
+
+    // Rotas
+    e.GET("/hello", func(c echo.Context) error {
+        return c.JSON(http.StatusOK, map[string]string{"message": "hello"})
+    })
+
+    e.GET("/users/:id", func(c echo.Context) error {
+        id := c.Param("id")
+        return c.JSON(http.StatusOK, map[string]string{"user_id": id})
+    })
+
+    e.Start(":8080")
+}
 ```
 
-### 5.5 `go-chi/chi` (2016–presente)
+**Vantagens:**
+- **Validação Nativa:** Possui sistema de validação e binding robusto integrado.
+- **Compatibilidade:** Totalmente compatível com `http.Handler`.
+- **Estrutura:** Incentiva separação clara de rotas e handlers.
+- **Performance:** Levemente superior em alguns benchmarks sintéticos, mas na prática é muito similar ao Gin.
 
+**Desvantagens:**
+- Curva de aprendizado ligeiramente maior que o Gin devido à verbosidade extra em alguns casos.
+- Ecossistema de plugins menor que o do Gin.
+
+### 5.5 `go-chi/chi` (2016–presente)
 Roteador minimalista compatível 100% com `net/http` e `context`. Zero dependências externas. ~1000 linhas de código. Extremamente popular em microserviços onde controle total é necessário. Qualquer middleware `http.Handler` funciona sem wrapper.
 
 ```go
@@ -827,34 +862,36 @@ http.ListenAndServe(":8080", r)
 ```
 
 ### 5.6 `gofiber/fiber` (2020–presente)
-
 Inspirado no Express.js (Node.js). Construído sobre `fasthttp` em vez de `net/http` — pode ser 10x mais rápido em benchmarks sintéticos. Familiar para desenvolvedores Node.js. Trade-off: não é compatível com `http.Handler` da stdlib.
-
-```go
-app := fiber.New()
-app.Get("/users/:id", func(c *fiber.Ctx) error {
-    return c.JSON(fiber.Map{"id": c.Params("id")})
-})
-app.Listen(":8080")
-```
-
 11% dos devs Go em 2025. Crescimento rápido pela familiaridade com Express.
 
 ### 5.7 Martini (2013–descontinuado)
-
 Primeiro framework Go de alto nível estilo Ruby/Sinatra. Usava reflexão pesada. Autor descontinuou em 2014 por problemas de performance. Impactou o design do Gin (que veio como alternativa rápida).
 
 ### 5.8 Beego (2012–presente, declining)
-
 Framework MVC completo no estilo Django/Rails. Inclui ORM, geração de código (`bee` CLI), sistema de sessões, cache, i18n. Muito popular nos anos iniciais (2013-2017), especialmente na China. Declining por preferência do ecossistema Go por ferramentas menores e composáveis.
 
 ### 5.9 Buffalo (2016–presente)
-
 Framework "full-stack" para Go. Inclui: geração de código, webpack integration, ActiveRecord-style ORM (pop), sistema de templates (plush), hot reloading, task runner. Ideal para desenvolvedores Rails migrando para Go. Menos popular que Gin/Echo mas com nicho específico.
 
 ### 5.10 Frameworks gRPC
+`google.golang.org/grpc` (2014–presente) — implementação oficial do gRPC para Go. Define serviços via Protocol Buffers, gera stubs Go, suporta streaming bidirecional, interceptors (equivalente a middleware), integração com Kubernetes/Istio. Padrão para comunicação inter-serviços em Go.
+`connectrpc/connect-go` (2022–presente) — alternativa ao gRPC que usa HTTP/1.1 e HTTP/2 naturalmente. Mais amigável para debugging (requests são JSON legível em cURL). Desenvolvido pelo mesmo time do Buf.
 
-**`google.golang.org/grpc`** (2014–presente) — implementação oficial do gRPC para Go. Define serviços via Protocol Buffers, gera stubs Go, suporta streaming bidirecional, interceptors (equivalente a middleware), integração com Kubernetes/Istio. Padrão para comunicação inter-serviços em Go.
+### 5.11 Antes dos frameworks: `net/http` puro e alternativas
+Em 2012-2013, antes de Gin e Echo, Go web era feito diretamente com `net/http`:
+
+```go
+// 2012 — Go web sem framework
+http.HandleFunc("/users/", func(w http.ResponseWriter, r *http.Request) {
+    id := strings.TrimPrefix(r.URL.Path, "/users/")
+    // parsing manual de path, sem router, sem binding
+    json.NewEncoder(w).Encode(map[string]string{"id": id})
+})
+http.ListenAndServe(":8080", nil)
+```
+
+Antes do Go, sistemas web em Go simplesmente não existiam — a linguagem era nova. Para sistemas existentes migrando para Go, o padrão era Go como backend de API e qualquer outra linguagem na frente, ou Go como substituto de scripts Python/Ruby.�o com Kubernetes/Istio. Padrão para comunicação inter-serviços em Go.
 
 **`connectrpc/connect-go`** (2022–presente) — alternativa ao gRPC que usa HTTP/1.1 e HTTP/2 naturalmente. Mais amigável para debugging (requests são JSON legível em cURL). Desenvolvido pelo mesmo time do Buf.
 

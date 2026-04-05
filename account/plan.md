@@ -1,91 +1,50 @@
-A criação de uma **Kaffyn Account** (SSO Centralizado) é uma decisão estratégica brilhante que resolve problemas de usabilidade, segurança e escalabilidade para todo o ecossistema.
+# Implementação: Kaffyn Account (Identity & SSO)
 
-Abaixo está a definição detalhada das responsabilidades dessa conta, estruturada para atender tanto ao usuário final quanto à arquitetura técnica da Kaffyn.
+Este documento detalha o plano de desenvolvimento para a **Kaffyn Account**, a espinha dorsal de identidade e segurança de todo o ecossistema Kaffyn/Vectora. O objetivo é fornecer um SSO robusto, seguro e compatível com OIDC para unificar a experiência entre o Vectora Desktop e o Vectora Web.
 
----
+## User Review Required
 
-### 🏛️ Arquitetura da Kaffyn Account (SSO Centralizado)
+> [!IMPORTANT]
+> **Gestão de Segredos**: Propomos o uso do **HashiCorp Vault** para o "Credential Vault". Isso exige uma infraestrutura de gerenciamento de chaves (KMS) robusta. Devemos considerar uma implementação customizada em Go usando AES-GCM como fallback para ambientes de desenvolvimento?
+> **Provedor de Identidade**: Decidiremos entre usar o **Casbin** (para RBAC customizado) ou um framework completo como **Zitadel/Keycloak**. A recomendação atual é construir o core em Go Puro + Casbin para total controle sobre o fluxo de roteamento de modelos.
 
-A conta não é apenas um "login", mas um **Hub de Identidade e Gestão de Credenciais**. Ela atua como uma camada de abstração entre os serviços da Kaffyn e os provedores externos (Google, Qwen, Claude, etc.).
+## Proposed Changes
 
-#### 1. Gerenciamento Centralizado de Credenciais (Credential Vault)
+### [Component Name] cmd/account
 
-- **Responsabilidade:** Armazenar de forma segura as chaves de API, tokens OAuth e segredos dos provedores externos (Qwen, Gemini, Google, Claude, AWS, etc.).
-- **Como funciona:**
-  - O usuário autentica-se **uma vez** com a Kaffyn Account.
-  - A Kaffyn Account faz o "handshake" com o provedor externo (ex: Google OAuth2) e obtém o token.
-  - O token é criptografado e armazenado no **Vault da Kaffyn**, nunca exposto ao código do Vectora ou outros apps.
-  - Quando o Vectora precisa chamar a API do Google, ele solicita à Kaffyn Account um token temporário e revogável.
-- **Benefício:** O usuário não precisa gerenciar 50 chaves de API diferentes em arquivos `.env` ou configurações locais. Se uma chave expirar, ela é renovada centralmente sem intervenção do usuário.
+#### [NEW] [main.go](file:///c:/Users/bruno/Desktop/Vectora/account/cmd/main.go)
 
-#### 2. Orquestração de Roteamento de Modelos (Model Router)
+Ponto de entrada do serviço de identidade. Inicialização do Gin/Echo server e conexão com Postgres/Redis.
 
-- **Responsabilidade:** Decidir qual LLM usar baseado nas permissões e créditos vinculados à conta.
-- **Como funciona:**
-  - A conta define quais modelos estão disponíveis (ex: "Plano Pro tem acesso ao Qwen3-80B", "Plano Free só tem Qwen3-7B").
-  - O Vectora App (local) consulta a conta para saber se pode usar o modelo local ou se deve rotear para a nuvem da Kaffyn (se configurado).
-  - No **Vectora Web**, a conta decide automaticamente o roteamento (ex: "Usar Qwen via API interna da Kaffyn" vs "Usar Gemini direto do usuário").
+### [Component Name] internal/auth
 
-#### 3. Sistema de RBAC Granular por Produto (Product-Specific Access)
+#### [NEW] [oidc.go](file:///c:/Users/bruno/Desktop/Vectora/account/internal/auth/oidc.go)
 
-- **Responsabilidade:** Garantir o princípio de **Menor Privilégio** entre os produtos da Kaffyn.
-- **Lógica de Acesso:**
-  - A conta possui permissões globais (ex: "Pode ler meu Google Drive").
-  - Cada produto (Vectora, Vectora Web, futuro "Kaffyn Notes", etc.) declara suas necessidades na hora da conexão.
-  - **Exemplo Prático:**
-    - **Vectora:** Solicita acesso `read:docs` (para indexar PDFs). ✅ Permitido.
-    - **Vectora Web:** Solicita acesso `read:docs` + `write:chat_history`. ✅ Permitido.
-    - **Futuro App "Kaffyn Calendar":** Solicita acesso `read:calendar`. ❌ **Negado** (o usuário nunca autorizou isso para este app específico, mesmo estando logado).
-- **Implementação Técnica:**
-  - Uso de **OAuth Scopes** específicos por aplicação.
-  - Um painel de controle onde o usuário vê: _"Quais apps têm acesso aos seus dados?"_.
+Implementação do provedor OpenID Connect (OIDC). Gerenciamento de sub-protocolos OAuth 2.1.
 
-#### 4. Sincronização de Estado e Workspaces (Cross-Device Sync)
+#### [NEW] [rbac.go](file:///c:/Users/bruno/Desktop/Vectora/account/internal/auth/rbac.go)
 
-- **Responsabilidade:** Manter a consistência entre o **Vectora App (Desktop)** e o **Vectora Web**.
-- **Como funciona:**
-  - Metadados dos workspaces (nomes, configurações, status de indexação) são sincronizados via conta.
-  - **Diferença Crítica:** Os _dados brutos_ (vetores, embeddings) permanecem locais no Desktop (privacidade total) ou na VPS da Kaffyn (Web), mas a **estrutura lógica** (qual workspace está ativo, histórico de chat resumido) é sincronizada.
-  - Isso permite começar um chat no desktop e continuar no navegador sem perder o contexto da sessão.
+Lógica de controle de acesso baseada em papéis (RBAC) com suporte a JSONB para permissões específicas de produtos.
 
-#### 5. Gestão de Assinaturas e Limites (Billing & Quotas)
+### [Component Name] internal/vault
 
-- **Responsabilidade:** Controlar limites de uso baseados no plano da conta.
-- **Funcionalidades:**
-  - Monitorar cota de processamento (tokens/queries) para o Vectora Web.
-  - Gerenciar licenças de modelos premium (ex: Qwen3-Coder-Next 80B).
-  - Bloquear acesso a recursos avançados se a assinatura expirar.
+#### [NEW] [encryption.go](file:///c:/Users/bruno/Desktop/Vectora/account/internal/vault/encryption.go)
 
----
+Camada de abstração para o Credential Vault. Integração com HashiCorp Vault ou fallback AES-GCM.
 
-### 🔒 Fluxo de Autenticação (Exemplo de Uso)
+## Open Questions
 
-1.  **Login:** Usuário acessa o **Vectora App** ou **Vectora Web**.
-2.  **Redirecionamento:** Redirecionado para `auth.kaffyn.com` (SSO).
-3.  **Autenticação:** Login único (Email/Google/Microsoft).
-4.  **Consentimento:**
-    - _Prompt:_ "O Vectora deseja acessar seu Google Drive para indexar documentos."
-    - _Usuário:_ "Permitir".
-    - _Token:_ Gerado e vinculado à conta.
-5.  **Uso:**
-    - O Vectora App (Go) pede ao daemon local: "Preciso de docs do Drive".
-    - Daemon consulta a Kaffyn Account (via IPC seguro ou token JWT).
-    - Token é usado para buscar dados.
-6.  **Isolamento:**
-    - Se o usuário abrir o **futuro app "Kaffyn Finance"**, ele verá um prompt diferente: "Este app quer acessar sua conta bancária".
-    - Mesmo logado na mesma conta, o Financeiro **não terá** acesso automático aos dados do Drive que foram dados ao Vectora.
+> [!WARNING]
+> **Sincronização Offline**: Como o Vectora Desktop funciona offline, o que acontece quando o usuário altera uma permissão de workspace ou rotaciona uma chave no Kaffyn Account enquanto o Desktop está desconectado? Precisamos de uma **Fila de Sincronização Local** no Daemon do Vectora.
 
----
+## Verification Plan
 
-### 📋 Resumo das Responsabilidades da Kaffyn Account
+### Automated Tests
 
-| Área              | Responsabilidade Principal                                                 | Benefício para o Usuário                                            |
-| :---------------- | :------------------------------------------------------------------------- | :------------------------------------------------------------------ |
-| **Segurança**     | Armazenamento criptografado de todas as Chaves/API Keys externas.          | Não precisa salvar chaves no PC; renovação automática.              |
-| **Privacidade**   | Controle granular de escopo (RBAC) por produto.                            | Saber exatamente quem tem acesso a quê; evitar vazamentos cruzados. |
-| **UX**            | Single Sign-On (SSO) para todos os produtos Kaffyn.                        | Login único; experiência fluida entre Desktop e Web.                |
-| **Gestão**        | Centralização de credenciais de múltiplos provedores (Qwen, Google, etc.). | Foco no trabalho, não na configuração de APIs.                      |
-| **Sincronização** | Sincronização de metadados e estado entre dispositivos.                    | Continuidade de fluxo de trabalho (Desktop ↔ Web).                  |
-| **Comercial**     | Gestão de planos, limites e faturamento unificado.                         | Uma única fatura para todos os produtos; upgrade fácil.             |
+- Testes de integração simulando o fluxo de "Authorization Code Grant" entre o Vectora Web e a Kaffyn Account.
+- Testes de estresse no Redis para garantir que a rotação de tokens JWT suporte picos de tráfego.
 
-Esta estrutura transforma a **Kaffyn Account** no **núcleo de confiança** do ecossistema, permitindo que o Vectora mantenha sua promessa de privacidade local enquanto oferece a conveniência de um serviço conectado e moderno.
+### Manual Verification
+
+- Validar o login via SSO no ambiente de desenvolvimento.
+- Verificar se as chaves de API cifradas no Postgres não podem ser lidas sem a chave mestra do Vault.
