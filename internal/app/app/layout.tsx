@@ -1,30 +1,19 @@
-import type { Metadata } from "next";
-import { Inter, Geist } from "next/font/google";
-import "../styles/globals.css";
-import { cn } from "@/lib/utils";
-
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
-
-const inter = Inter({ subsets: ["latin"] });
+import type { Metadata } from 'next'
+import './globals.css'
 
 export const metadata: Metadata = {
-  title: "ZyrisRAG | Multimodal AI Brain",
-  description:
-    "Deep technical memory for integration with Godot and Zyris Engine.",
-};
+  title: 'Vectora',
+  description: 'A private NotebookLM that runs entirely on your machine',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="pt-BR" className={cn("dark", "font-sans", geist.variable)}>
-      <body
-        className={`${inter.className} bg-background text-foreground antialiased`}
-      >
-        {children}
-      </body>
+    <html lang="pt-BR">
+      <body className="bg-zinc-950 text-zinc-50">{children}</body>
     </html>
-  );
+  )
 }

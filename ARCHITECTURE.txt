@@ -1,0 +1,289 @@
+VECTORA BACKEND ARCHITECTURE
+=============================
+
+LAYERED ARCHITECTURE DIAGRAM
+
+┌─────────────────────────────────────────────────────┐
+│            APPLICATION LAYER                         │
+│  CLI / Desktop App / Installer                       │
+│  (Vectora Frontend Components)                       │
+└──────────────────┬──────────────────────────────────┘
+                   │
+                   │ IPC Protocol (JSON)
+                   ↓
+┌─────────────────────────────────────────────────────┐
+│            IPC COMMUNICATION LAYER                   │
+├─────────────────────────────────────────────────────┤
+│  Server                                              │
+│  ├─ Types: Request/Response/Event messages           │
+│  ├─ Handler: Message routing and processing         │
+│  ├─ Connection: Multi-client management             │
+│  └─ Protocol: JSON message format                   │
+│                                                      │
+│  Client                                              │
+│  ├─ Connection: Establish server link              │
+│  ├─ Send: Message transmission                      │
+│  ├─ Wait: Response handling with timeout            │
+│  └─ Close: Clean disconnect                         │
+└──────────────┬──────────────────────────┬───────────┘
+               │                          │
+               │                          │
+               ↓                          ↓
+    ┌──────────────────┐      ┌──────────────────┐
+    │  BUSINESS LOGIC  │      │   STORAGE LAYER  │
+    ├──────────────────┤      ├──────────────────┤
+    │ Handler Registry │      │  BoltDB Store    │
+    │  ├─ ping         │      │  ├─ Buckets      │
+    │  ├─ server.info  │      │  ├─ CRUD Ops     │
+    │  ├─ db.stats     │      │  ├─ Transactions │
+    │  ├─ workspace.*  │      │  └─ Persistence │
+    │  └─ more...      │      └──────────────────┘
+    └──────────────────┘
+               │
+               ↓
+┌─────────────────────────────────────────────────────┐
+│          INFRASTRUCTURE LAYER                        │
+├─────────────────────────────────────────────────────┤
+│  Config                                              │
+│  ├─ Load: .env file + environment variables         │
+│  ├─ Validate: Constraints and limits                │
+│  └─ Provide: Default values and overrides           │
+│                                                      │
+│  Logger                                              │
+│  ├─ Format: JSON structured logging                 │
+│  ├─ Output: File + console                          │
+│  ├─ Levels: DEBUG, INFO, WARN, ERROR               │
+│  └─ Thread-safe: Mutex protected                    │
+└─────────────────────────────────────────────────────┘
+
+
+DATA FLOW DIAGRAM
+
+Client Request
+    ↓
+[IPC Client] sends JSON message via socket/pipe
+    ↓
+[IPC Server] receives and parses message
+    ↓
+[Handler Registry] routes to appropriate handler
+    ↓
+[Handler] processes request using business logic
+    ├─ May read from [Database Store]
+    ├─ May write to [Database Store]
+    ├─ May access [Configuration]
+    └─ May write to [Logger]
+    ↓
+[Handler] returns response
+    ↓
+[IPC Server] sends JSON response
+    ↓
+[IPC Client] receives response
+    ↓
+Client Response
+
+
+COMPONENT DETAILS
+
+Infrastructure Layer
+====================
+
+Config (config.go - 145 lines)
+- Type: Configuration Management
+- Dependencies: Standard library only
+- Responsibilities:
+  * Load configuration from .env file
+  * Override with environment variables
+  * Validate configuration values
+  * Provide defaults
+  * Expose configuration to application
+- Thread Safety: Safe (no shared state)
+- Error Handling: Comprehensive with context
+
+Logger (logger.go - 77 lines)
+- Type: Logging System
+- Dependencies: Standard library (log/slog)
+- Responsibilities:
+  * Initialize JSON handler
+  * Create file and console output
+  * Set log levels
+  * Provide global logger instance
+- Thread Safety: Mutex protected global
+- Error Handling: File operations wrapped
+
+
+IPC Communication Layer
+=======================
+
+Types (types.go - 97 lines)
+- Type: Protocol Definition
+- Responsibilities:
+  * Define message types
+  * Define message structure
+  * Provide helper methods
+  * Support marshaling/unmarshaling
+- Thread Safety: Immutable data
+- Error Handling: JSON parsing errors
+
+Server (server.go - 247 lines)
+- Type: IPC Server
+- Dependencies: Standard library (net, bufio, json)
+- Responsibilities:
+  * Listen on IPC port/socket
+  * Accept connections
+  * Route messages to handlers
+  * Manage connection lifecycle
+  * Graceful shutdown
+- Thread Safety: RWMutex for handlers, Mutex for connections
+- Error Handling: Connection errors, parse errors
+
+Client (client.go - 135 lines)
+- Type: IPC Client
+- Dependencies: Standard library
+- Responsibilities:
+  * Connect to IPC server
+  * Send messages
+  * Wait for responses
+  * Handle timeouts
+  * Close connection
+- Thread Safety: Mutex protected
+- Error Handling: Connection, send, receive errors
+
+
+Database Layer
+==============
+
+Store (store.go - 241 lines)
+- Type: Data Persistence
+- Dependencies: go.etcd.io/bbolt
+- Responsibilities:
+  * Initialize BoltDB
+  * Create and manage buckets
+  * Implement workspace CRUD
+  * Implement document storage
+  * Implement metadata storage
+  * Provide database statistics
+- Thread Safety: Mutex protected transactions
+- Error Handling: Database operation errors
+
+Buckets:
+- workspaces: Workspace configurations
+- documents: Document content
+- embeddings: Vector embeddings
+- metadata: System metadata
+- sessions: User sessions
+- settings: User settings
+- snapshots: State snapshots
+
+
+Application Layer
+=================
+
+Daemon (main.go - 266 lines)
+- Type: Service Entry Point
+- Responsibilities:
+  * Load configuration
+  * Initialize logger
+  * Initialize database
+  * Setup IPC server
+  * Register handlers
+  * Handle signals
+  * Implement graceful shutdown
+
+Handlers:
+1. ping
+   - Input: (empty)
+   - Output: {pong: true, timestamp}
+
+2. server.info
+   - Input: (empty)
+   - Output: {version, uptime, maxClients, environment}
+
+3. db.stats
+   - Input: (empty)
+   - Output: {buckets, page_count, page_size, freeAlloc}
+
+4. workspace.save
+   - Input: {workspace, data}
+   - Output: {success, workspace}
+
+5. workspace.get
+   - Input: {workspace}
+   - Output: (workspace data)
+
+6. workspace.list
+   - Input: (empty)
+   - Output: {workspaces[], count}
+
+7. workspace.delete
+   - Input: {workspace}
+   - Output: {success, workspace}
+
+
+DEPLOYMENT ARCHITECTURE
+
+┌─────────────────────────────────────────┐
+│  Vectora Daemon (Single Binary)          │
+│  - Config: ~/.Vectora/.env              │
+│  - Database: ~/.Vectora/db/vectora.db  │
+│  - Logs: ~/.Vectora/logs/daemon.log    │
+│  - Socket: ~/.Vectora/run/vectora.sock │
+└─────────────────────────────────────────┘
+        ↑           ↑           ↑
+        │           │           │
+ IPC Socket    Config File  Database File
+
+
+SCALING CONSIDERATIONS
+
+Current Design:
+- Single daemon instance
+- In-memory handler map
+- File-based database
+- Concurrent connection handling (configurable max)
+- Thread-safe operations
+
+Future Enhancements:
+- Database clustering
+- Handler distribution
+- Load balancing
+- Monitoring/metrics
+- Authentication/authorization
+
+
+TECHNOLOGY STACK
+
+Language: Go 1.22
+Build System: Go build
+Testing: Built-in testing package
+Dependencies:
+- go.etcd.io/bbolt (Database)
+- Standard library for IPC/JSON
+
+Cross-Platform:
+- Windows (TCP)
+- Linux (Unix socket)
+- macOS (Unix socket)
+
+
+ERROR HANDLING STRATEGY
+
+Application Errors:
+- Wrapped with context
+- Propagated to caller
+- Logged appropriately
+
+Connection Errors:
+- Connection reset handling
+- Client disconnect handling
+- Timeout management
+
+Database Errors:
+- Transaction rollback
+- Error wrapping
+- Safe state recovery
+
+Configuration Errors:
+- Validation on load
+- Sensible defaults
+- Clear error messages
+

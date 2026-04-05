@@ -1,0 +1,222 @@
+VECTORA COMPLETE DIRECTORY STRUCTURE
+====================================
+
+vectora/
+├── build/
+│   └── (Windows executable output location)
+├── cmd/
+│   ├── vectora/                      # Main daemon entry point
+│   │   ├── main.go
+│   │   ├── app.go                    # App initialization
+│   │   ├── cli.go                    # CLI command handling
+│   │   └── flags.go                  # CLI flags
+│   │
+│   ├── vectora-app/                  # Desktop app wrapper
+│   │   ├── main.go
+│   │   └── frontend.go               # Wails integration
+│   │
+│   └── vectora-installer/            # Windows installer wizard
+│       ├── main.go
+│       └── wizard.go                 # Setup wizard flow
+│
+├── internal/
+│   ├── infra/                        # Infrastructure & configuration
+│   │   ├── config.go                 # Configuration management
+│   │   ├── logger.go                 # Structured logging
+│   │   └── env.go                    # Environment variables
+│   │
+│   ├── ipc/                          # Inter-process communication
+│   │   ├── server.go                 # IPC server (socket/pipe)
+│   │   ├── message.go                # Message protocol
+│   │   └── handlers.go               # Request handlers
+│   │
+│   ├── db/                           # Data persistence layer
+│   │   ├── db.go                     # Database interface
+│   │   ├── migrations.go             # Schema migrations
+│   │   └── query.go                  # Query builder
+│   │
+│   ├── core/                         # Core business logic
+│   │   ├── engine.go                 # Main execution engine
+│   │   ├── workspace.go              # Workspace management
+│   │   └── registry.go               # Tool/component registry
+│   │
+│   ├── llm/                          # LLM provider abstraction
+│   │   ├── provider.go               # Provider interface
+│   │   ├── gemini.go                 # Google Gemini provider
+│   │   └── qwen.go                   # Qwen LLM provider
+│   │
+│   ├── engines/                      # AI processing engines
+│   │   ├── rag.go                    # RAG pipeline
+│   │   ├── cache.go                  # Response caching
+│   │   └── fallback.go               # Fallback logic
+│   │
+│   ├── acp/                          # Anthropic Compute Protocol
+│   │   ├── tool.go                   # Tool registry
+│   │   ├── security.go               # Security rules
+│   │   └── executor.go               # Tool execution
+│   │
+│   ├── tools/                        # Built-in tools
+│   │   ├── filesystem.go             # File operations
+│   │   ├── web.go                    # Web search
+│   │   └── shell.go                  # Shell commands
+│   │
+│   ├── git/                          # Git integration
+│   │   ├── bridge.go                 # Git command wrapper
+│   │   ├── operations.go             # Git operations
+│   │   └── snapshot.go               # Workspace snapshots
+│   │
+│   └── app/                          # Frontend (Next.js + React)
+│       ├── app/
+│       │   ├── page.tsx              # Root page
+│       │   ├── layout.tsx            # Root layout
+│       │   └── globals.css           # Global styles
+│       │
+│       ├── components/               # React components
+│       │   ├── Header.tsx
+│       │   ├── Sidebar.tsx
+│       │   └── ChatPanel.tsx
+│       │
+│       ├── hooks/                    # Custom React hooks
+│       │   ├── useChat.ts
+│       │   └── useWorkspace.ts
+│       │
+│       ├── store/                    # State management
+│       │   ├── store.ts
+│       │   ├── chat.ts
+│       │   └── workspace.ts
+│       │
+│       ├── services/                 # API services
+│       │   ├── api.ts                # REST/gRPC client
+│       │   └── ipc.ts                # IPC client
+│       │
+│       ├── utils/                    # Utility functions
+│       │   ├── formatters.ts
+│       │   └── validators.ts
+│       │
+│       ├── styles/                   # CSS modules
+│       │   ├── theme.css
+│       │   └── components.css
+│       │
+│       └── public/                   # Static assets
+│           └── favicon.ico
+│
+├── pkg/                              # Public packages
+│   ├── types/                        # Type definitions
+│   │   ├── types.go                  # Core types
+│   │   ├── messages.go               # Message types
+│   │   └── config.go                 # Config structs
+│   │
+│   └── utils/                        # Utility functions
+│       ├── string.go                 # String utilities
+│       ├── file.go                   # File utilities
+│       └── validation.go             # Validation helpers
+│
+├── tests/                            # Test suite
+│   ├── integration/                  # Integration tests
+│   │   └── integration_test.go
+│   │
+│   ├── e2e/                          # End-to-end tests
+│   │   └── e2e_test.go
+│   │
+│   ├── fixtures/                     # Test fixtures
+│   │   └── fixtures.go
+│   │
+│   └── mocks/                        # Mock objects
+│       └── mocks.go
+│
+├── docs/                             # Documentation
+│   ├── README.md                     # Getting started
+│   ├── ARCHITECTURE.md               # System architecture
+│   └── API.md                        # API documentation
+│
+├── scripts/                          # Build & utility scripts
+│   ├── build.sh                      # Build script
+│   ├── test.sh                       # Test runner
+│   └── deploy.sh                     # Deployment script
+│
+├── Root Configuration Files:
+│   ├── .env                          # Environment variables
+│   ├── .gitignore                    # Git ignore rules
+│   ├── go.mod                        # Go module definition
+│   ├── go.sum                        # Go dependencies lock
+│   ├── Makefile                      # Build targets (Unix)
+│   ├── build.ps1                     # Build targets (Windows)
+│   ├── package.json                  # Node.js dependencies
+│   ├── tsconfig.json                 # TypeScript configuration
+│   ├── next.config.js                # Next.js configuration
+│   └── tailwind.config.js            # Tailwind CSS configuration
+
+KEY RESPONSIBILITIES BY LAYER
+==============================
+
+Backend (Go):
+- cmd/vectora: Main daemon orchestrator
+- internal/infra: Config, logging, environment
+- internal/ipc: Client-daemon communication
+- internal/core: Business logic, RAG pipeline
+- internal/db: Data persistence (bbolt, chromem-go)
+- internal/llm: LLM provider integration
+- internal/acp: Tool registry and execution
+- pkg/*: Shared types and utilities
+
+Frontend (Next.js):
+- internal/app/*: React components, pages, state
+- TypeScript for type safety
+- Tailwind CSS for styling
+- Custom hooks for business logic
+
+Desktop Integration:
+- cmd/vectora-app: Wails wrapper for desktop app
+- cmd/vectora-installer: Windows wizard installer
+- IPC for daemon communication
+
+TECHNOLOGY STACK
+================
+
+Backend:
+  - Go 1.22+
+  - bbolt (embedded key-value store)
+  - chromem-go (vector database)
+  - Gemini & Qwen LLM APIs
+
+Frontend:
+  - Next.js 15+
+  - React 19+
+  - TypeScript
+  - Tailwind CSS
+
+Desktop:
+  - Wails (Go + Web Framework)
+  - Fyne (Installer GUI)
+
+Communication:
+  - JSON-ND over Unix sockets/Named pipes
+  - gRPC for services
+
+DEVELOPMENT WORKFLOW
+====================
+
+1. Backend Development:
+   - Implement features in internal/
+   - Update pkg/types for new types
+   - Write tests in tests/
+   - Build with: make build or build.ps1
+
+2. Frontend Development:
+   - Develop in internal/app/
+   - Use Next.js dev server: npm run dev
+   - TypeScript strict mode enabled
+
+3. Integration:
+   - IPC protocol in internal/ipc/
+   - Service definitions in pkg/types/
+
+4. Testing:
+   - Unit tests alongside code
+   - Integration tests in tests/integration/
+   - E2E tests in tests/e2e/
+
+5. Deployment:
+   - Windows installer via vectora-installer
+   - Cross-platform builds in build/
+   - Auto-update mechanism to be implemented

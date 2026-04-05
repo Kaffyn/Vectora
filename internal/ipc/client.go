@@ -2,176 +2,134 @@ package ipc
 
 import (
 	"bufio"
-	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
+	"io"
 	"net"
+	"os"
 	"path/filepath"
 	"runtime"
 	"sync"
-
-	vecos "github.com/Kaffyn/Vectora/internal/os"
-	uuid "github.com/nu7hatch/gouuid"
+	"time"
 )
 
+// Client represents an IPC client
 type Client struct {
-	addr        string
-	conn        net.Conn
-	pending     map[string]chan IPCMessage
-	pendingLock sync.Mutex
-	ctx         context.Context
-	cancel      context.CancelFunc
-
-	// Flexible hook triggered when the API Server emits streaming Broadcasts:
-	OnEvent func(method string, payload json.RawMessage)
+	conn    net.Conn
+	scanner *bufio.Scanner
+	writer  io.Writer
+	mu      sync.Mutex
+	timeout time.Duration
 }
 
-func NewClient() (*Client, error) {
-	osMgr, err := vecos.NewManager()
-	if err != nil {
-		return nil, err
-	}
-	baseDir, _ := osMgr.GetAppDataDir()
-
-	var addr string
-	if runtime.GOOS == "windows" {
-		addr = `\\.\pipe\vectora` // If AF_UNIX fails, the client will test the fallback
-	} else {
-		addr = filepath.Join(baseDir, "run", "vectora.sock")
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-
+// NewClient creates a new IPC client
+func NewClient(timeout time.Duration) (*Client, error) {
 	return &Client{
-		addr:    addr,
-		pending: make(map[string]chan IPCMessage),
-		ctx:     ctx,
-		cancel:  cancel,
+		timeout: timeout,
 	}, nil
 }
 
+// Connect establishes connection to the IPC server
 func (c *Client) Connect() error {
-	var conn net.Conn
-	var err error
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	var addr string
+	var network string
 
 	if runtime.GOOS == "windows" {
-		conn, err = net.Dial("unix", c.addr)
-		if err != nil { // Fallback Loopback TCP Hosted by Server.go on Win32
-			conn, err = net.Dial("tcp", "127.0.0.1:42780")
-		}
+		// Try to connect to TCP server
+		network = "tcp"
+		addr = "127.0.0.1:0"
+		// Note: In production, this would connect to a proper named pipe
 	} else {
-		conn, err = net.Dial("unix", c.addr)
+		// Unix socket
+		homeDir, _ := os.UserHomeDir()
+		addr = filepath.Join(homeDir, ".Vectora/run/vectora.sock")
+		network = "unix"
 	}
 
+	dialer := net.Dialer{Timeout: c.timeout}
+	conn, err := dialer.Dial(network, addr)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to connect to IPC server: %w", err)
 	}
 
 	c.conn = conn
-
-	go c.listenForResponses()
+	c.scanner = bufio.NewScanner(conn)
+	c.writer = conn
 
 	return nil
 }
 
-func (c *Client) listenForResponses() {
-	scanner := bufio.NewScanner(c.conn)
-	buf := make([]byte, 4*1024*1024)
-	scanner.Buffer(buf, len(buf))
-
-	for scanner.Scan() {
-		frame := scanner.Bytes()
-		var msg IPCMessage
-		if err := json.Unmarshal(frame, &msg); err != nil {
-			continue
-		}
-
-		if msg.Type == MsgTypeEvent && c.OnEvent != nil {
-			go c.OnEvent(msg.Method, msg.Payload)
-			continue
-		}
-
-		if msg.Type == MsgTypeResponse {
-			c.pendingLock.Lock()
-			ch, exists := c.pending[msg.ID]
-			if exists {
-				delete(c.pending, msg.ID)
-			}
-			c.pendingLock.Unlock()
-
-			if exists && ch != nil {
-				ch <- msg
-			}
-		}
-	}
-}
-
-// Send (RPC Caller)
-// Example of Invocation in pure Go Client or via JS Wails Bridge:
-// cl.Send(context.Background(), "workspace.query", reqStruct, &resStruct)
-func (c *Client) Send(ctx context.Context, method string, payload any, responseDest any) error {
-	bPayload, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-	return c.SendRaw(ctx, method, bPayload, responseDest)
-}
-
-func (c *Client) SendRaw(ctx context.Context, method string, bPayload []byte, responseDest any) error {
+// Send sends a message to the server and waits for response
+func (c *Client) Send(msg *Message) (*Message, error) {
+	c.mu.Lock()
 	if c.conn == nil {
-		return errors.New("ipc_client: não conectado")
+		c.mu.Unlock()
+		return nil, fmt.Errorf("not connected")
+	}
+	c.mu.Unlock()
+
+	// Send message
+	data, err := json.Marshal(msg)
+	if err != nil {
+		return nil, err
 	}
 
-	u, _ := uuid.NewV4()
-	id := u.String()
-
-	msg := IPCMessage{
-		ID:      id,
-		Type:    MsgTypeRequest,
-		Method:  method,
-		Payload: bPayload,
+	c.mu.Lock()
+	_, err = c.writer.Write(append(data, '\n'))
+	c.mu.Unlock()
+	if err != nil {
+		return nil, err
 	}
 
-	bMsg, _ := json.Marshal(msg)
-	bMsg = append(bMsg, FrameDelimiter)
+	// Wait for response
+	responseChan := make(chan *Message, 1)
+	errChan := make(chan error, 1)
+	timeout := time.After(c.timeout)
 
-	ch := make(chan IPCMessage, 1)
+	go func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
 
-	c.pendingLock.Lock()
-	c.pending[id] = ch
-	c.pendingLock.Unlock()
+		if !c.scanner.Scan() {
+			errChan <- fmt.Errorf("connection closed")
+			return
+		}
 
-	if _, err := c.conn.Write(bMsg); err != nil {
-		c.pendingLock.Lock()
-		delete(c.pending, id)
-		c.pendingLock.Unlock()
-		return err
-	}
+		var response Message
+		if err := json.Unmarshal(c.scanner.Bytes(), &response); err != nil {
+			errChan <- err
+			return
+		}
+		responseChan <- &response
+	}()
 
 	select {
-	case <-ctx.Done():
-		c.pendingLock.Lock()
-		delete(c.pending, id)
-		c.pendingLock.Unlock()
-		return ctx.Err()
-	case resMsg := <-ch:
-		if resMsg.Error != nil {
-			return errors.New(resMsg.Error.Message)
-		}
-		if responseDest != nil {
-			if b, ok := responseDest.(*[]byte); ok {
-				*b = resMsg.Payload
-				return nil
-			}
-			return json.Unmarshal(resMsg.Payload, responseDest)
-		}
-		return nil
+	case resp := <-responseChan:
+		return resp, nil
+	case err := <-errChan:
+		return nil, err
+	case <-timeout:
+		return nil, fmt.Errorf("request timeout")
 	}
 }
 
-func (c *Client) Close() {
-	c.cancel()
+// Close closes the connection
+func (c *Client) Close() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if c.conn != nil {
-		c.conn.Close()
+		return c.conn.Close()
 	}
+	return nil
+}
+
+// IsConnected returns true if client is connected
+func (c *Client) IsConnected() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.conn != nil
 }

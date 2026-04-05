@@ -1,55 +1,51 @@
 package main
 
 import (
+	"context"
 	"embed"
+	"log"
+	"net/http"
 
-	"fmt"
-	"os"
-	"os/exec"
-	"strings"
-	"syscall"
-
-	vecos "github.com/Kaffyn/Vectora/internal/os"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+
+	"github.com/Kaffyn/Vectora/internal/infra"
 )
 
 //go:embed all:internal/app/out
 var assets embed.FS
 
+type App struct {
+	ctx    context.Context
+	logger *infra.Logger
+}
+
+func NewApp() *App {
+	return &App{}
+}
+
+func (a *App) startup(ctx context.Context) {
+	a.ctx = ctx
+}
+
+func (a *App) CallIPC(method string, payload string) (string, error) {
+	// Bridge para IPC client
+	log.Printf("IPC Call: %s with payload: %s", method, payload)
+	return `{"success":true}`, nil
+}
+
 func main() {
-	systemManager, _ := vecos.NewManager()
-	if systemManager != nil && !systemManager.IsRunningAsAdmin() {
-		// Attempt to restart as admin
-		exe, _ := os.Executable()
-		cwd, _ := os.Getwd()
-		args := strings.Join(os.Args[1:], " ")
-
-		psCmd := fmt.Sprintf("Start-Process -FilePath '%s' -Verb runas -WorkingDirectory '%s'", exe, cwd)
-		if args != "" {
-			psCmd += fmt.Sprintf(" -ArgumentList '%s'", args)
-		}
-
-		cmd := exec.Command("powershell", psCmd)
-		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-		if err := cmd.Start(); err == nil {
-			os.Exit(0)
-		}
-	}
-
-	// Create an instance of the app structure
 	app := NewApp()
 
-	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "Vectora Desktop",
+		Title:  "Vectora",
 		Width:  1280,
 		Height: 800,
-		AssetServer: &assetserver.Options{
+		AssetServer: &assetserver.Handler{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 9, G: 9, B: 11, A: 1},
+		BackgroundColour: &options.RGBA{R: 27, G: 27, B: 27, A: 1},
 		OnStartup:        app.startup,
 		Bind: []interface{}{
 			app,
@@ -57,6 +53,6 @@ func main() {
 	})
 
 	if err != nil {
-		println("Error:", err.Error())
+		log.Fatal(err)
 	}
 }

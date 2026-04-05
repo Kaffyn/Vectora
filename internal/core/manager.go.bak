@@ -1,0 +1,59 @@
+package core
+
+import (
+	"context"
+	"encoding/json"
+	"log/slog"
+
+	"github.com/Kaffyn/Vectora/internal/acp"
+	"github.com/Kaffyn/Vectora/internal/llm"
+	"github.com/Kaffyn/Vectora/internal/tools"
+)
+
+type Manager struct {
+	workspaces *WorkspaceManager
+	rag        *RAGEngine
+	llm        llm.Provider
+	tools      *acp.Registry
+	logger     *slog.Logger
+}
+
+func NewManager(logger *slog.Logger) *Manager {
+	wsManager := NewWorkspaceManager()
+	ragEngine := NewRAGEngine(wsManager)
+	toolRegistry := acp.NewRegistry()
+
+	// Register tools
+	toolRegistry.Register(&tools.ReadFileTool{})
+
+	return &Manager{
+		workspaces: wsManager,
+		rag:        ragEngine,
+		llm:        llm.NewSimpleProvider("local"),
+		tools:      toolRegistry,
+		logger:     logger,
+	}
+}
+
+func (m *Manager) Query(ctx context.Context, wsID, query string) (*QueryResult, error) {
+	m.logger.Info("Processing query", "workspace", wsID, "query", query)
+	return m.rag.Query(ctx, wsID, query)
+}
+
+func (m *Manager) CreateWorkspace(ctx context.Context, name, description string) (*Workspace, error) {
+	m.logger.Info("Creating workspace", "name", name)
+	return m.workspaces.Create(ctx, name, description)
+}
+
+func (m *Manager) ListWorkspaces(ctx context.Context) ([]*Workspace, error) {
+	return m.workspaces.List(ctx)
+}
+
+func (m *Manager) ExecuteTool(ctx context.Context, toolName string, args json.RawMessage) (interface{}, error) {
+	m.logger.Info("Executing tool", "tool", toolName)
+	return m.tools.Execute(ctx, toolName, args)
+}
+
+func (m *Manager) IndexChunk(ctx context.Context, wsID string, chunk *Chunk) error {
+	return m.rag.IndexChunk(ctx, wsID, chunk)
+}
