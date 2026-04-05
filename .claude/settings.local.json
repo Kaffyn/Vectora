@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(find /c/Users/bruno/Desktop/Vectora -type f -path *models* -name *.go)",
+      "Bash(find /c/Users/bruno/Desktop/Vectora -path *models* -type f -name *.go)",
+      "Bash(go build:*)",
+      "Bash(/c/Users/bruno/Desktop/Vectora/internal/models/types.go:*)",
+      "Bash(/c/Users/bruno/Desktop/Vectora/internal/models/catalog.json:*)",
+      "Bash(/c/Users/bruno/Desktop/Vectora/internal/models/detector.go:*)",
+      "Bash(/c/Users/bruno/Desktop/Vectora/cmd/mpm/commands.go:*)",
+      "Bash(xargs grep:*)",
+      "Bash(/tmp/mpm.exe list:*)",
+      "Bash(/tmp/mpm.exe detect:*)",
+      "Bash(/tmp/mpm.exe recommend:*)",
+      "Bash(/tmp/mpm.exe search:*)",
+      "Bash(/tmp/mpm.exe install:*)",
+      "Bash(/tmp/mpm.exe active:*)",
+      "Bash(/tmp/mpm.exe set-active:*)",
+      "Bash(/tmp/mpm.exe help:*)",
+      "Bash(cp /tmp/mpm.exe /c/Users/bruno/Desktop/Vectora/cmd/mpm/mpm.exe)",
+      "Bash(/c/Users/bruno/Desktop/Vectora/cmd/mpm/mpm.exe version:*)",
+      "Bash(/tmp/test-mpm detect:*)"
+    ]
+  }
+}

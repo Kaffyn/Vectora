@@ -1,0 +1,88 @@
+{
+  "models": [
+    {
+      "id": "qwen3-0.6b",
+      "name": "Qwen 3 0.6B",
+      "description": "Modelo ultra-leve para execução em CPU puro. Perfeito para dispositivos com RAM limitada.",
+      "size_bytes": 419430400,
+      "required_ram_gb": 2.0,
+      "required_vram_gb": 1.0,
+      "capabilities": ["chat", "instruction-follow"],
+      "tags": ["qwen", "lightweight", "cpu-friendly"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-0.6B-GGUF"
+    },
+    {
+      "id": "qwen3-1.7b",
+      "name": "Qwen 3 1.7B",
+      "description": "Modelo compacto com qualidade decente. Roda confortavelmente em 4GB RAM.",
+      "size_bytes": 1124073472,
+      "required_ram_gb": 4.0,
+      "required_vram_gb": 2.0,
+      "capabilities": ["chat", "instruction-follow", "coding"],
+      "tags": ["qwen", "compact", "balanced"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-1.7B-GGUF"
+    },
+    {
+      "id": "qwen3-4b",
+      "name": "Qwen 3 4B",
+      "description": "Modelo mid-range com boa capacidade de raciocínio. Recomendado para maioria dos casos.",
+      "size_bytes": 2693406720,
+      "required_ram_gb": 8.0,
+      "required_vram_gb": 4.0,
+      "capabilities": ["chat", "instruction-follow", "coding", "reasoning"],
+      "tags": ["qwen", "general-purpose", "recommended"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-4B-GGUF"
+    },
+    {
+      "id": "qwen3-8b",
+      "name": "Qwen 3 8B",
+      "description": "Modelo grande com excelente qualidade. Requer GPU para desempenho ótimo.",
+      "size_bytes": 5368709120,
+      "required_ram_gb": 16.0,
+      "required_vram_gb": 8.0,
+      "capabilities": ["chat", "instruction-follow", "coding", "reasoning", "analysis"],
+      "tags": ["qwen", "powerful", "gpu-recommended"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-8B-GGUF"
+    },
+    {
+      "id": "qwen3-embed-small",
+      "name": "Qwen 3 Embedding Small",
+      "description": "Modelo de embedding pequeno para RAG e busca semântica. Rápido e eficiente.",
+      "size_bytes": 104857600,
+      "required_ram_gb": 2.0,
+      "required_vram_gb": 0.5,
+      "capabilities": ["embedding", "semantic-search"],
+      "tags": ["qwen", "embedding", "rag"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-Embed-Small-GGUF"
+    },
+    {
+      "id": "qwen3-embed-large",
+      "name": "Qwen 3 Embedding Large",
+      "description": "Modelo de embedding de alta qualidade para RAG avançado. Melhor precisão.",
+      "size_bytes": 524288000,
+      "required_ram_gb": 4.0,
+      "required_vram_gb": 2.0,
+      "capabilities": ["embedding", "semantic-search", "dense-retrieval"],
+      "tags": ["qwen", "embedding", "rag", "high-quality"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-Embed-Large-GGUF"
+    },
+    {
+      "id": "qwen3-vl-7b",
+      "name": "Qwen 3 VL 7B",
+      "description": "Modelo vision-language. Pode processar imagens e texto simultaneamente.",
+      "size_bytes": 4831838208,
+      "required_ram_gb": 12.0,
+      "required_vram_gb": 6.0,
+      "capabilities": ["chat", "vision", "image-analysis", "instruction-follow"],
+      "tags": ["qwen", "vision-language", "multimodal"],
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "huggingface_id": "Qwen/Qwen3-VL-7B-GGUF"
+    }
+  ]
+}
