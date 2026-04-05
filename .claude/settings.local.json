@@ -36,7 +36,15 @@
       "Bash(grep -n \"^func\" internal/os/*.go)",
       "Bash(grep -n \"vecos\\\\.Manager\" cmd/vectora-installer/*.go)",
       "Bash(bin/vectora-installer-test.exe --help)",
-      "Bash(bin/vectora-installer-test.exe install:*)"
+      "Bash(bin/vectora-installer-test.exe install:*)",
+      "Bash(bin/mpm-test.exe help:*)",
+      "Bash(bin/mpm-test.exe list:*)",
+      "Bash(bin/mpm-test.exe detect:*)",
+      "Bash(bin/mpm-test.exe recommend:*)",
+      "Bash(bin/mpm-test.exe install:*)",
+      "Bash(bin/mpm-test.exe search:*)",
+      "Bash(bin/mpm-test.exe active:*)",
+      "Bash(go test:*)"
     ]
   }
 }
