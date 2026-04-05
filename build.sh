@@ -32,10 +32,14 @@ for target in "${TARGETS[@]}"; do
     # Pure Go binaries (always compile)
     for binary in "${CLI_BINARIES[@]}"; do
         IFS=':' read -r bin_name bin_path <<< "$binary"
-        
+
         ext=""
-        [ "$target_os" == "windows" ] && ext=".exe"
-        
+        if [ "$target_os" == "windows" ]; then
+            ext=".exe"
+        else
+            ext=".app"
+        fi
+
         output="$BIN_DIR/${bin_name}-${target_name}${ext}"
         
         echo -n "  Building $bin_name... "
@@ -64,8 +68,12 @@ for target in "${TARGETS[@]}"; do
             ((FAILED++))
         else
             ext=""
-            [ "$target_os" == "windows" ] && ext=".exe"
-            
+            if [ "$target_os" == "windows" ]; then
+                ext=".exe"
+            else
+                ext=".app"
+            fi
+
             output="$BIN_DIR/${bin_name}-${target_name}${ext}"
             
             echo -n "  Building $bin_name... "
