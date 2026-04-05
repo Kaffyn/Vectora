@@ -152,7 +152,38 @@ func createLayout(titleText string, content fyne.CanvasObject, backFunc func(), 
 	)
 }
 
-func main() {
+// Wrapper para NewManager que reutiliza o padrão
+func newSystemManager() (vecos.OSManager, error) {
+	return vecos.NewManager()
+}
+
+// Detectar se está em modo CLI ou GUI
+func isCLIMode() bool {
+	// Se houver flags reconhecidas pelo Cobra, é modo CLI
+	cliFlags := map[string]bool{
+		"--help":     true,
+		"-h":         true,
+		"--version":  true,
+		"install":    true,
+		"--path":     true,
+		"--mode":     true,
+		"--model":    true,
+		"--api-key":  true,
+		"--silent":   true,
+		"--lang":     true,
+	}
+
+	if len(os.Args) > 1 {
+		for _, arg := range os.Args[1:] {
+			if cliFlags[arg] || strings.HasPrefix(arg, "--") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func runGUIMode() {
 	systemManager, _ := vecos.NewManager()
 	if systemManager != nil && !systemManager.IsRunningAsAdmin() {
 		// Attempt to restart as admin
@@ -191,6 +222,12 @@ func main() {
 		w.ShowAndRun()
 		return
 	}
+
+	// Função auxiliar para SystemManager global
+	newSysManager := func() (vecos.OSManager, error) {
+		return vecos.NewManager()
+	}
+	_ = newSysManager // Evitar unused warning
 
 	userLoc, err := locale.GetLanguage()
 	if err == nil {
@@ -593,6 +630,15 @@ func main() {
 	}
 
 	w.ShowAndRun()
+}
+
+// Função main simplificada que detecta o modo
+func main() {
+	if isCLIMode() {
+		runCLIMode()
+	} else {
+		runGUIMode()
+	}
 }
 
 func copySysFile(src, dst string) {

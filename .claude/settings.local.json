@@ -29,7 +29,14 @@
       "Bash(grep -r \"vectora-app\\\\|wails\\\\|internal/app\" /c/Users/bruno/Desktop/Vectora/ --include=*.go --include=*.mod)",
       "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1)",
       "Bash(bash build.sh)",
-      "Bash(export GOOS=linux GOARCH=amd64)"
+      "Bash(export GOOS=linux GOARCH=amd64)",
+      "Bash(./bin/vectora-cli-windows-amd64.exe --help)",
+      "Bash(go get:*)",
+      "Bash(grep -n 'type Manager' internal/os/*.go)",
+      "Bash(grep -n \"^func\" internal/os/*.go)",
+      "Bash(grep -n \"vecos\\\\.Manager\" cmd/vectora-installer/*.go)",
+      "Bash(bin/vectora-installer-test.exe --help)",
+      "Bash(bin/vectora-installer-test.exe install:*)"
     ]
   }
 }
