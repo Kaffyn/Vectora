@@ -68,7 +68,7 @@ func (s *ChromemStore) Query(ctx context.Context, collection string, queryVector
 	var results []ScoredChunk
 	for _, doc := range res {
 		results = append(results, ScoredChunk{
-			Chunk: &Chunk{
+			Chunk: Chunk{
 				ID:       doc.ID,
 				Content:  doc.Content,
 				Metadata: doc.Metadata,

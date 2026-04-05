@@ -2,127 +2,116 @@ package core
 
 import (
 	"context"
-	"fmt"
-	"strings"
-	"time"
+	"errors"
+
+	"github.com/Kaffyn/Vectora/internal/acp"
+	"github.com/Kaffyn/Vectora/internal/db"
+	"github.com/Kaffyn/Vectora/internal/llm"
 )
 
-type Chunk struct {
-	ID         string            `json:"id"`
-	Content    string            `json:"content"`
-	SourceFile string            `json:"source_file"`
-	ChunkIndex int               `json:"chunk_index"`
-	Metadata   map[string]string `json:"metadata"`
+// Pipeline orchestrates data between the LLM (Interface) and the VectorDB (Storage).
+// It is instantiated and held by the SystemTray Daemon.
+type Pipeline struct {
+	LLM      llm.Provider
+	VectorDB db.VectorStore
+	KVStore  db.KVStore
+	Agent    *acp.AgentContext
 }
 
-type QueryResult struct {
-	ID            string    `json:"id"`
-	Answer        string    `json:"answer"`
-	Sources       []*Chunk  `json:"sources"`
-	Thinking      string    `json:"thinking,omitempty"`
-	ExecutionTime int64     `json:"execution_time_ms"`
-	Model         string    `json:"model"`
-}
-
-type RAGEngine struct {
-	wsManager *WorkspaceManager
-	chunks    map[string][]*Chunk // wsID -> chunks
-}
-
-func NewRAGEngine(wsManager *WorkspaceManager) *RAGEngine {
-	return &RAGEngine{
-		wsManager: wsManager,
-		chunks:    make(map[string][]*Chunk),
+// Motherboard that couples all loose modules to inject queries.
+func NewPipeline(provider llm.Provider, vectorStore db.VectorStore, kvStore db.KVStore) *Pipeline {
+	return &Pipeline{
+		LLM:      provider,
+		VectorDB: vectorStore,
+		KVStore:  kvStore,
+		Agent:    acp.NewAgent(kvStore),
 	}
 }
 
-func (r *RAGEngine) IndexChunk(ctx context.Context, wsID string, chunk *Chunk) error {
-	if _, err := r.wsManager.Get(ctx, wsID); err != nil {
-		return err
-	}
-
-	if r.chunks[wsID] == nil {
-		r.chunks[wsID] = make([]*Chunk, 0)
-	}
-
-	r.chunks[wsID] = append(r.chunks[wsID], chunk)
-	return nil
+type QueryRequest struct {
+	WorkspaceID string
+	Query       string
 }
 
-func (r *RAGEngine) Query(ctx context.Context, wsID, query string) (*QueryResult, error) {
-	ws, err := r.wsManager.Get(ctx, wsID)
+type QueryResponse struct {
+	Answer  string
+	Sources []db.ScoredChunk
+}
+
+// Validates the canonical RAG (Retrieval-Augmented Generation) of Vectora.
+func (p *Pipeline) Query(ctx context.Context, req QueryRequest) (QueryResponse, error) {
+	if p.LLM == nil || !p.LLM.IsConfigured() {
+		return QueryResponse{}, errors.New("pipeline_err: LLM provider not injected or not configured in the SystemTray")
+	}
+
+	// 1. Native Embedding
+	vector, err := p.LLM.Embed(ctx, req.Query)
 	if err != nil {
-		return nil, err
+		return QueryResponse{}, err
 	}
 
-	// Get chunks for this workspace
-	chunks := r.chunks[wsID]
-	if len(chunks) == 0 {
-		return &QueryResult{
-			ID:     fmt.Sprintf("q_%d", time.Now().Unix()),
-			Answer: "Workspace não possui chunks indexados",
-			Model:  "local",
-		}, nil
+	// 2. Nearest Neighbors in Chromem KNN Database
+	// TOP K locked at 5 to avoid LLM context window bloating on low RAM environments.
+	resChunks, err := p.VectorDB.Query(ctx, "ws_"+req.WorkspaceID, vector, 5)
+	if err != nil {
+		// Zero-Shot Fallback. If the collection is empty, it just ignores.
+		resChunks = []db.ScoredChunk{}
 	}
 
-	// Simple relevance search (TOP-K = 5)
-	relevant := r.searchRelevant(query, chunks, 5)
+	// 3. Flatten the textual chunks
+	contextText := ""
+	for _, doc := range resChunks {
+		if filename, ok := doc.Metadata["filename"]; ok {
+			contextText += "File: " + filename + "\n"
+		}
+		contextText += doc.Content + "\n---\n"
+	}
 
-	// Build context
-	contextStr := r.buildContext(relevant)
+	// 4. Inject Local Universal User Memory (If preferences exist)
+	rawMem, _ := p.KVStore.Get(ctx, "memories", "user_preferences")
+	userPrefs := string(rawMem)
 
-	// Simula resposta LLM
-	answer := fmt.Sprintf("Baseado nos seus documentos:\n\n%s\n\nResposta gerada.", contextStr[:100])
+	// 5. Prepare Agentic Completeness
+	sysPrompt := "Você é o assistente IA Vectora. Auxilie na inferência e desenvolvimento local usando os Arquivos Abaixo:\n\n" + contextText + "\n[Preferências]\n" + userPrefs
 
-	return &QueryResult{
-		ID:            fmt.Sprintf("q_%d", time.Now().Unix()),
-		Answer:        answer,
-		Sources:       relevant,
-		ExecutionTime: 150,
-		Model:         ws.Name,
+	var toolkit []llm.ToolDefinition
+	for _, tMatch := range p.Agent.Registry.GetAll() {
+		toolkit = append(toolkit, llm.ToolDefinition{
+			Name:        tMatch.Name(),
+			Description: tMatch.Description(),
+			Schema:      tMatch.Schema(),
+		})
+	}
+
+	llmTreq := llm.CompletionRequest{
+		SystemPrompt: sysPrompt,
+		Messages: []llm.Message{
+			{Role: llm.RoleUser, Content: req.Query},
+		},
+		MaxTokens:   1500,
+		Temperature: 0.1,     // Extreme precision
+		Tools:       toolkit, // Tool Registry Inteiro Disposto no Pipeline Master
+	}
+
+	// Completa c/ Google ou Local Qwen GGUF
+	resp, err := p.LLM.Complete(ctx, llmTreq)
+	if err != nil {
+		return QueryResponse{}, err
+	}
+
+	// 6. Agentic Hook: If the LLM outputted Tools
+	if len(resp.ToolCalls) > 0 {
+		for _, tc := range resp.ToolCalls {
+			tr, trErr := p.Agent.Registry.ExecuteStringArgs(ctx, tc.Name, tc.Args)
+			_ = tr
+			_ = trErr
+			// Futuro: Recursividade ReAct. Retro-injetamos "tr" no LLM pra re-pensar.
+			// (Limit maximum Loop to protect local RAM)
+		}
+	}
+
+	return QueryResponse{
+		Answer:  resp.Content,
+		Sources: resChunks, // Envia metadados pro IPC Event Draw
 	}, nil
-}
-
-func (r *RAGEngine) searchRelevant(query string, chunks []*Chunk, topK int) []*Chunk {
-	// Simple text-based relevance (sem embedding por enquanto)
-	queryWords := strings.Fields(strings.ToLower(query))
-
-	scored := make([]struct {
-		chunk *Chunk
-		score int
-	}, 0)
-
-	for _, chunk := range chunks {
-		score := 0
-		contentLower := strings.ToLower(chunk.Content)
-		for _, word := range queryWords {
-			if strings.Contains(contentLower, word) {
-				score++
-			}
-		}
-		if score > 0 {
-			scored = append(scored, struct {
-				chunk *Chunk
-				score int
-			}{chunk, score})
-		}
-	}
-
-	// Sort by score (simples)
-	result := make([]*Chunk, 0, topK)
-	for _, s := range scored {
-		if len(result) < topK {
-			result = append(result, s.chunk)
-		}
-	}
-
-	return result
-}
-
-func (r *RAGEngine) buildContext(chunks []*Chunk) string {
-	var sb strings.Builder
-	for i, chunk := range chunks {
-		sb.WriteString(fmt.Sprintf("Documento %d:\n%s\n\n", i+1, chunk.Content))
-	}
-	return sb.String()
 }

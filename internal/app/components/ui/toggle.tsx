@@ -1,22 +1,23 @@
+"use client"
+
 import * as React from "react"
-import * as TogglePrimitive from "@radix-ui/react-toggle"
 import { cva, type VariantProps } from "class-variance-authority"
+import { Toggle as TogglePrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
 const toggleVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-zinc-950 transition-colors hover:bg-zinc-800 hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-300 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-zinc-800 data-[state=on]:text-zinc-300 data-[state=on]:shadow-md",
+  "group/toggle inline-flex items-center justify-center gap-1 rounded-lg text-sm font-medium whitespace-nowrap transition-all outline-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 aria-pressed:bg-muted data-[state=on]:bg-muted dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default: "bg-transparent",
-        outline:
-          "border border-zinc-700 bg-transparent hover:bg-zinc-900 hover:text-zinc-300",
+        outline: "border border-input bg-transparent hover:bg-muted",
       },
       size: {
-        default: "h-9 px-3",
-        sm: "h-8 px-2",
-        lg: "h-10 px-3",
+        default: "h-8 min-w-8 px-2",
+        sm: "h-7 min-w-7 rounded-[min(var(--radius-md),12px)] px-1.5 text-[0.8rem]",
+        lg: "h-9 min-w-9 px-2.5",
       },
     },
     defaultVariants: {
@@ -26,18 +27,20 @@ const toggleVariants = cva(
   }
 )
 
-const Toggle = React.forwardRef<
-  React.ElementRef<typeof TogglePrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof TogglePrimitive.Root> &
-    VariantProps<typeof toggleVariants>
->(({ className, variant, size, ...props }, ref) => (
-  <TogglePrimitive.Root
-    ref={ref}
-    className={cn(toggleVariants({ variant, size, className }))}
-    {...props}
-  />
-))
-
-Toggle.displayName = TogglePrimitive.Root.displayName
+function Toggle({
+  className,
+  variant = "default",
+  size = "default",
+  ...props
+}: React.ComponentProps<typeof TogglePrimitive.Root> &
+  VariantProps<typeof toggleVariants>) {
+  return (
+    <TogglePrimitive.Root
+      data-slot="toggle"
+      className={cn(toggleVariants({ variant, size, className }))}
+      {...props}
+    />
+  )
+}
 
 export { Toggle, toggleVariants }

@@ -27,7 +27,7 @@ export function LanguageSelector({ currentLocale, onLocaleChange, t }: LanguageS
     <div className="flex items-center gap-2">
       <Select 
         value={currentLocale} 
-        onValueChange={(val: string) => onLocaleChange(val as Locale)}
+        onValueChange={(val) => onLocaleChange(val as Locale)}
       >
         <SelectTrigger className="w-[174px] bg-white/[0.03] border-white/10 text-white/70 text-[10px] font-bold uppercase tracking-widest h-9 rounded-xl hover:bg-white/10 transition-all focus:ring-1 focus:ring-indigo-500/30 glass px-3.5 flex items-center justify-between group">
           <div className="flex items-center gap-2.5 leading-none pointer-events-none">
