@@ -29,6 +29,10 @@ func RegisterRoutes(
 	memService *db.MemoryService,
 	searchService *tools.SearchService,
 ) {
+	// [0] DEBUG TEST - ping route to verify RegisterRoutes is being called
+	server.Register("_test.ping", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+		return map[string]string{"pong": "ok"}, nil
+	})
 
 	// [1] Main RAG Query Route (Workspace)
 	server.Register("workspace.query", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
@@ -242,109 +246,116 @@ func RegisterRoutes(
 		return map[string]bool{"success": true}, nil
 	})
 
+	// Modelo handlers - comentados enquanto debug
+	/*
+	[13-18] Model Management Routes (Commented for debug)
+	*/
+
 	// [13] model.list - Lista modelos disponíveis
-	server.Register("model.list", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
-		mm, err := models.NewModelManager()
-		if err != nil {
-			return nil, &IPCError{Code: "model_error", Message: err.Error()}
-		}
-		catalog := mm.GetCatalog()
-		return catalog.Models, nil
-	})
+	if true { // Wrap for clarity
+		server.Register("model.list", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+			mm, err := models.NewModelManager()
+			if err != nil {
+				return nil, &IPCError{Code: "model_error", Message: err.Error()}
+			}
+			catalog := mm.GetCatalog()
+			return catalog.Models, nil
+		})
 
-	// [14] model.detect - Detecta hardware do sistema
-	server.Register("model.detect", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
-		hw, err := models.DetectHardware()
-		if err != nil {
-			return nil, &IPCError{Code: "hardware_detection_failed", Message: err.Error()}
-		}
-		return hw, nil
-	})
+		// [14] model.detect - Detecta hardware do sistema
+		server.Register("model.detect", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+			hw, err := models.DetectHardware()
+			if err != nil {
+				return nil, &IPCError{Code: "hardware_detection_failed", Message: err.Error()}
+			}
+			return hw, nil
+		})
 
-	// [15] model.recommend - Recomenda modelo baseado em hardware
-	server.Register("model.recommend", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
-		mm, err := models.NewModelManager()
-		if err != nil {
-			return nil, &IPCError{Code: "model_error", Message: err.Error()}
-		}
+		// [15] model.recommend - Recomenda modelo baseado em hardware
+		server.Register("model.recommend", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+			mm, err := models.NewModelManager()
+			if err != nil {
+				return nil, &IPCError{Code: "model_error", Message: err.Error()}
+			}
 
-		hw, err := models.DetectHardware()
-		if err != nil {
-			return nil, &IPCError{Code: "hardware_detection_failed", Message: err.Error()}
-		}
+			hw, err := models.DetectHardware()
+			if err != nil {
+				return nil, &IPCError{Code: "hardware_detection_failed", Message: err.Error()}
+			}
 
-		recommended, err := mm.RecommendModel(hw)
-		if err != nil {
-			return nil, &IPCError{Code: "recommendation_failed", Message: err.Error()}
-		}
+			recommended, err := mm.RecommendModel(hw)
+			if err != nil {
+				return nil, &IPCError{Code: "recommendation_failed", Message: err.Error()}
+			}
 
-		return recommended, nil
-	})
+			return recommended, nil
+		})
 
-	// [16] model.install - Instala um modelo
-	server.Register("model.install", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
-		var req struct {
-			ModelID string `json:"model_id"`
-		}
-		if err := json.Unmarshal(payload, &req); err != nil {
-			return nil, ErrIPCPayloadInvalid
-		}
+		// [16] model.install - Instala um modelo
+		server.Register("model.install", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+			var req struct {
+				ModelID string `json:"model_id"`
+			}
+			if err := json.Unmarshal(payload, &req); err != nil {
+				return nil, ErrIPCPayloadInvalid
+			}
 
-		mm, err := models.NewModelManager()
-		if err != nil {
-			return nil, &IPCError{Code: "model_error", Message: err.Error()}
-		}
+			mm, err := models.NewModelManager()
+			if err != nil {
+				return nil, &IPCError{Code: "model_error", Message: err.Error()}
+			}
 
-		err = mm.Install(ctx, req.ModelID, nil)
-		if err != nil {
-			return nil, &IPCError{Code: "install_failed", Message: err.Error()}
-		}
+			err = mm.Install(ctx, req.ModelID, nil)
+			if err != nil {
+				return nil, &IPCError{Code: "install_failed", Message: err.Error()}
+			}
 
-		return map[string]any{
-			"success": true,
-			"model":   req.ModelID,
-		}, nil
-	})
+			return map[string]any{
+				"success": true,
+				"model":   req.ModelID,
+			}, nil
+		})
 
-	// [17] model.active - Retorna modelo ativo
-	server.Register("model.active", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
-		mm, err := models.NewModelManager()
-		if err != nil {
-			return nil, &IPCError{Code: "model_error", Message: err.Error()}
-		}
+		// [17] model.active - Retorna modelo ativo
+		server.Register("model.active", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+			mm, err := models.NewModelManager()
+			if err != nil {
+				return nil, &IPCError{Code: "model_error", Message: err.Error()}
+			}
 
-		activeID := mm.GetActive()
-		if activeID == "" {
-			return map[string]string{"active": ""}, nil
-		}
+			activeID := mm.GetActive()
+			if activeID == "" {
+				return map[string]string{"active": ""}, nil
+			}
 
-		model, err := models.FindModel(mm.GetCatalog(), activeID)
-		if err != nil {
-			return map[string]string{"active": activeID}, nil
-		}
+			model, err := models.FindModel(mm.GetCatalog(), activeID)
+			if err != nil {
+				return map[string]string{"active": activeID}, nil
+			}
 
-		return model, nil
-	})
+			return model, nil
+		})
 
-	// [18] model.set-active - Define modelo ativo
-	server.Register("model.set-active", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
-		var req struct {
-			ModelID string `json:"model_id"`
-		}
-		if err := json.Unmarshal(payload, &req); err != nil {
-			return nil, ErrIPCPayloadInvalid
-		}
+		// [18] model.set-active - Define modelo ativo
+		server.Register("model.set-active", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+			var req struct {
+				ModelID string `json:"model_id"`
+			}
+			if err := json.Unmarshal(payload, &req); err != nil {
+				return nil, ErrIPCPayloadInvalid
+			}
 
-		mm, err := models.NewModelManager()
-		if err != nil {
-			return nil, &IPCError{Code: "model_error", Message: err.Error()}
-		}
+			mm, err := models.NewModelManager()
+			if err != nil {
+				return nil, &IPCError{Code: "model_error", Message: err.Error()}
+			}
 
-		err = mm.SetActive(req.ModelID)
-		if err != nil {
-			return nil, &IPCError{Code: "set_active_failed", Message: err.Error()}
-		}
+			err = mm.SetActive(req.ModelID)
+			if err != nil {
+				return nil, &IPCError{Code: "set_active_failed", Message: err.Error()}
+			}
 
-		return map[string]bool{"success": true}, nil
-	})
+			return map[string]bool{"success": true}, nil
+		})
+	}
 }

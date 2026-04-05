@@ -47,7 +47,11 @@
       "Bash(go test:*)",
       "Bash(grep -A 10 \"type DownloadProgress\" internal/engines/*.go)",
       "Bash(timeout 5 bin/vectora-daemon.exe)",
-      "Bash(grep -n \"func runDaemon\" cmd/vectora/*.go)"
+      "Bash(grep -n \"func runDaemon\" cmd/vectora/*.go)",
+      "Bash(timeout 3 bin/vectora-daemon.exe daemon)",
+      "Bash(bash build-all.sh)",
+      "Bash(bin/vectora-cli.exe --help)",
+      "Bash(bin/vectora.exe chat:*)"
     ]
   }
 }
