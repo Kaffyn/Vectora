@@ -7,9 +7,6 @@ import _ "embed"
 //go:embed vectora.exe
 var vectoraExe []byte
 
-//go:embed vectora-app.exe
-var vectoraAppExe []byte
-
 //go:embed vectora-cli.exe
 var vectoraCliExe []byte
 
@@ -21,10 +18,9 @@ var mpmExe []byte
 
 func getInstallerAssets() map[string][]byte {
 	return map[string][]byte{
-		"vectora.exe":     vectoraExe,
-		"vectora-app.exe": vectoraAppExe,
+		"vectora.exe":    vectoraExe,
 		"vectora-cli.exe": vectoraCliExe,
-		"lpm.exe":         lpmExe,
-		"mpm.exe":         mpmExe,
+		"lpm.exe":        lpmExe,
+		"mpm.exe":        mpmExe,
 	}
 }

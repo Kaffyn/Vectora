@@ -41,3 +41,4 @@ go.work.sum
 *.sha256
 *.d.ts
 /internal/app/lib
+/bin

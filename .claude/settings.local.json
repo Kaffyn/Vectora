@@ -24,7 +24,12 @@
       "Bash(grep -E \"\\\\.go$|^d\")",
       "Bash(ls -lh /c/Users/bruno/Desktop/Vectora/cmd/vectora-installer/*.exe)",
       "Bash(cp /tmp/vectora-installer.exe /c/Users/bruno/Desktop/Vectora/cmd/vectora-installer/vectora-installer.exe)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(go mod:*)",
+      "Bash(grep -r \"vectora-app\\\\|wails\\\\|internal/app\" /c/Users/bruno/Desktop/Vectora/ --include=*.go --include=*.mod)",
+      "Bash(powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1)",
+      "Bash(bash build.sh)",
+      "Bash(export GOOS=linux GOARCH=amd64)"
     ]
   }
 }

@@ -358,7 +358,6 @@ func main() {
 			// Extract all binaries
 			binariesToExtract := []string{
 				"vectora.exe",
-				"vectora-app.exe",
 				"vectora-cli.exe",
 				"lpm.exe",
 				"mpm.exe",
