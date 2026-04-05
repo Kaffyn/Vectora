@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"image/color"
 	"io"
@@ -27,6 +29,92 @@ import (
 
 var installPath string
 var w fyne.Window
+var selectedModel string
+var hardwareInfo map[string]interface{}
+var recommendedModel map[string]interface{}
+
+// Funções auxiliares para integração com MPM
+func getMPMPath(installDir string) string {
+	if filepath.VolumeName(installDir) != "" {
+		return filepath.Join(installDir, "mpm.exe")
+	}
+	return filepath.Join(installDir, "mpm")
+}
+
+func callMPM(args ...string) (string, error) {
+	var execPath string
+
+	// Tentar encontrar mpm.exe no path de instalação
+	if installPath != "" {
+		mpmPath := getMPMPath(installPath)
+		if _, err := os.Stat(mpmPath); err == nil {
+			execPath = mpmPath
+		}
+	}
+
+	// Fallback: procurar no PATH
+	if execPath == "" {
+		exe, _ := os.Executable()
+		execPath = getMPMPath(filepath.Dir(exe))
+	}
+
+	cmd := exec.Command(execPath, args...)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("failed to run mpm: %w", err)
+	}
+
+	return out.String(), nil
+}
+
+func detectHardware(installDir string) (map[string]interface{}, error) {
+	output, err := callMPM("detect", "--json")
+	if err != nil {
+		return nil, err
+	}
+
+	var hw map[string]interface{}
+	if err := json.Unmarshal([]byte(output), &hw); err != nil {
+		return nil, fmt.Errorf("failed to parse hardware info: %w", err)
+	}
+
+	return hw, nil
+}
+
+func recommendModel(installDir string) (map[string]interface{}, error) {
+	output, err := callMPM("recommend", "--json")
+	if err != nil {
+		return nil, err
+	}
+
+	var model map[string]interface{}
+	if err := json.Unmarshal([]byte(output), &model); err != nil {
+		return nil, fmt.Errorf("failed to parse model info: %w", err)
+	}
+
+	return model, nil
+}
+
+func listModels(installDir string) ([]map[string]interface{}, error) {
+	output, err := callMPM("list", "--json")
+	if err != nil {
+		return nil, err
+	}
+
+	var models []map[string]interface{}
+	if err := json.Unmarshal([]byte(output), &models); err != nil {
+		return nil, fmt.Errorf("failed to parse models list: %w", err)
+	}
+
+	return models, nil
+}
+
+func installModel(installDir string, modelID string) (string, error) {
+	return callMPM("install", "--model", modelID)
+}
 
 func createLayout(titleText string, content fyne.CanvasObject, backFunc func(), nextFunc func(), nextLabel string) *fyne.Container {
 	title := canvas.NewText(titleText, color.RGBA{R: 75, G: 58, B: 240, A: 255})
@@ -121,6 +209,7 @@ func main() {
 
 	var showStepWelcome, showStepLang, showStepPath, showStepInstall func()
 	var showStepConfigMode, showStepConfigGemini, showStepConfigQwen, showStepFinish func()
+	var showStepDetectHardware, showStepRecommendModel, showStepChooseModel, showStepInstallModel func()
 	var showUninstallProgress, showAlreadyInstalled func(string)
 
 	showUninstallProgress = func(existingPath string) {
@@ -329,15 +418,160 @@ func main() {
 		w.SetContent(createLayout("Validar Access Token", content, showStepConfigMode, nextCmd, "Avançar >"))
 	}
 
-	showStepConfigQwen = func() {
-		lbl := widget.NewLabel("O motor de IA Qwen3-0.6B será baixado em background pelo Daemon\nna Primeira Inicialização (Aprox 2GB exigidos em disco).")
+	// Detectar hardware e recomendarmodelo
+	showStepDetectHardware = func() {
+		progress := widget.NewProgressBar()
+		progress.SetValue(0.0)
 
-		content := container.NewVBox(lbl)
+		statusLbl := widget.NewLabel("Detectando especificações do sistema...")
+		content := container.NewVBox(statusLbl, progress)
+
+		wrapper := createLayout("Detectando Hardware", content, nil, nil, "Próximo")
+		w.SetContent(wrapper)
+
+		go func() {
+			// Simular progresso
+			for i := 0; i < 10; i++ {
+				time.Sleep(100 * time.Millisecond)
+				progress.SetValue(float64(i) / 10.0)
+			}
+
+			hw, err := detectHardware(installPath)
+			if err != nil {
+				statusLbl.SetText(fmt.Sprintf("Erro ao detectar hardware: %v", err))
+				return
+			}
+
+			hardwareInfo = hw
+			progress.SetValue(1.0)
+			time.Sleep(500 * time.Millisecond)
+
+			// Passar para próximo step automaticamente
+			showStepRecommendModel()
+		}()
+	}
+
+	// Recomendar modelo
+	showStepRecommendModel = func() {
+		progress := widget.NewProgressBar()
+		progress.SetValue(0.0)
+
+		statusLbl := widget.NewLabel("Recomendando modelo para seu hardware...")
+		content := container.NewVBox(statusLbl, progress)
+
+		wrapper := createLayout("Recomendação de Modelo", content, nil, nil, "Próximo")
+		w.SetContent(wrapper)
+
+		go func() {
+			// Simular progresso
+			for i := 0; i < 10; i++ {
+				time.Sleep(100 * time.Millisecond)
+				progress.SetValue(float64(i) / 10.0)
+			}
+
+			model, err := recommendModel(installPath)
+			if err != nil {
+				statusLbl.SetText(fmt.Sprintf("Erro ao recomendar modelo: %v", err))
+				return
+			}
+
+			recommendedModel = model
+			selectedModel = model["id"].(string)
+			progress.SetValue(1.0)
+			time.Sleep(500 * time.Millisecond)
+
+			// Passar para próximo step
+			showStepChooseModel()
+		}()
+	}
+
+	// Permitir escolher outro modelo
+	showStepChooseModel = func() {
+		var allModels []map[string]interface{}
+
+		models, err := listModels(installPath)
+		if err != nil {
+			lbl := widget.NewLabel(fmt.Sprintf("Erro ao listar modelos: %v", err))
+			w.SetContent(createLayout("Erro", lbl, showStepDetectHardware, nil, ""))
+			return
+		}
+
+		allModels = models
+
+		// Criar lista de opções
+		var modelOptions []string
+		for _, m := range allModels {
+			id := m["id"].(string)
+			name := m["name"].(string)
+			modelOptions = append(modelOptions, fmt.Sprintf("%s - %s", id, name))
+		}
+
+		modelSelector := widget.NewSelect(modelOptions, func(s string) {
+			// Extrair ID do modelo selecionado
+			parts := strings.Split(s, " - ")
+			if len(parts) > 0 {
+				selectedModel = parts[0]
+			}
+		})
+
+		// Pre-selecionar o recomendado
+		recID := recommendedModel["id"].(string)
+		recName := recommendedModel["name"].(string)
+		modelSelector.SetSelected(fmt.Sprintf("%s - %s", recID, recName))
+		selectedModel = recID
+
+		content := container.NewVBox(
+			widget.NewLabel("Modelo Recomendado (ou escolha outro):"),
+			modelSelector,
+			widget.NewLabel(""),
+			widget.NewLabel(fmt.Sprintf("RAM do Sistema: %.1f GB", hardwareInfo["RAM"])),
+		)
 
 		nextCmd := func() {
-			showStepFinish()
+			showStepInstallModel()
 		}
-		w.SetContent(createLayout("Download e Pesos (Weights)", content, showStepConfigMode, nextCmd, "Avançar >"))
+
+		w.SetContent(createLayout("Escolher Modelo", content, showStepDetectHardware, nextCmd, "Instalar >"))
+	}
+
+	// Instalar modelo
+	showStepInstallModel = func() {
+		progress := widget.NewProgressBar()
+		progress.SetValue(0.0)
+
+		statusLbl := widget.NewLabel(fmt.Sprintf("Preparando instalação de %s...", selectedModel))
+		content := container.NewVBox(statusLbl, progress)
+
+		wrapper := createLayout("Instalando Modelo", content, nil, nil, "Concluir")
+		w.SetContent(wrapper)
+
+		go func() {
+			// Simular progresso de preparação
+			for i := 0; i < 5; i++ {
+				time.Sleep(100 * time.Millisecond)
+				progress.SetValue(float64(i) / 10.0)
+			}
+
+			statusLbl.SetText(fmt.Sprintf("Instalando %s...", selectedModel))
+			_, err := installModel(installPath, selectedModel)
+
+			if err != nil {
+				statusLbl.SetText(fmt.Sprintf("Aviso: %v\nModelo será instalado na primeira inicialização", err))
+			} else {
+				statusLbl.SetText(fmt.Sprintf("✓ %s pronto!", selectedModel))
+			}
+
+			progress.SetValue(1.0)
+			time.Sleep(500 * time.Millisecond)
+
+			// Passar para finish
+			showStepFinish()
+		}()
+	}
+
+	showStepConfigQwen = func() {
+		// Iniciar fluxo de Qwen3
+		showStepDetectHardware()
 	}
 
 	showStepFinish = func() {
