@@ -3,7 +3,6 @@ package llm
 import (
 	"context"
 	"fmt"
-	"runtime"
 
 	"github.com/Kaffyn/Vectora/internal/engines"
 )
@@ -19,14 +18,14 @@ type QwenProvider struct {
 
 // NewQwenProvider initializes the engine via Zero-Port architecture.
 func NewQwenProvider(ctx context.Context, modelPath string) (*QwenProvider, error) {
-	mgr, err := engines.NewManager()
+	mgr, err := engines.NewEngineManager()
 	if err != nil {
 		return nil, err
 	}
 
-	binPath := mgr.GetBinaryPath("llama", "llama-cli")
-	if runtime.GOOS == "windows" {
-		binPath += ".exe"
+	binPath := mgr.GetBinaryPath()
+	if binPath == "" {
+		return nil, fmt.Errorf("llama_binary_not_found")
 	}
 
 	// Starts the interactive Llama process with flags for STDIO IPC

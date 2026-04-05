@@ -86,19 +86,6 @@ func (e *Extractor) extractFile(file *zip.File) error {
 
 	destPath := filepath.Join(e.targetDir, baseName)
 
-	// Criar arquivo de destino
-	outFile, err := os.Create(destPath)
-	if err != nil {
-		return fmt.Errorf("failed to create file %s: %w", destPath, err)
-	}
-	defer outFile.Close()
-
-	// Tornar executável se necessário
-	if isExecutable(file.Name) {
-		outFile.Close()
-		// Será feito após a extração
-	}
-
 	// Ler do ZIP
 	inFile, err := file.Open()
 	if err != nil {
@@ -106,10 +93,20 @@ func (e *Extractor) extractFile(file *zip.File) error {
 	}
 	defer inFile.Close()
 
-	// Copiar
+	// Criar arquivo de destino
+	outFile, err := os.Create(destPath)
+	if err != nil {
+		return fmt.Errorf("failed to create file %s: %w", destPath, err)
+	}
+	defer outFile.Close()
+
+	// Copiar conteúdo
 	if _, err := io.Copy(outFile, inFile); err != nil {
+		outFile.Close()
 		return fmt.Errorf("failed to write file %s: %w", destPath, err)
 	}
+
+	// Fechar antes de chmod
 	outFile.Close()
 
 	// Definir permissões executáveis se necessário
@@ -158,8 +155,8 @@ func isExecutable(filePath string) bool {
 	return false
 }
 
-// ListFilesInZIP lista os arquivos dentro de um ZIP (debug).
-func ListFilesInZIP(zipPath string) ([]string, error) {
+// ListFilesInZip lista os arquivos dentro de um ZIP (debug).
+func ListFilesInZip(zipPath string) ([]string, error) {
 	reader, err := zip.OpenReader(zipPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open zip: %w", err)
