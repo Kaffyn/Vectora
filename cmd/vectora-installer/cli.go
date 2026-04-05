@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"syscall"
 
 	"github.com/spf13/cobra"
 )
@@ -49,6 +51,29 @@ func init() {
 }
 
 func runCLIMode() {
+	// Check if running as admin - if not, silently restart with admin privileges
+	systemManager, _ := newSystemManager()
+	if systemManager != nil && !systemManager.IsRunningAsAdmin() {
+		// Silently restart as admin using PowerShell with hidden window
+		exe, _ := os.Executable()
+		args := os.Args[1:]
+
+		// Build PowerShell command to restart with admin privileges
+		argsStr := ""
+		for _, arg := range args {
+			argsStr += "'" + arg + "' "
+		}
+
+		psCmd := fmt.Sprintf(`Start-Process -FilePath '%s' -ArgumentList %s -Verb runas -WindowStyle Hidden`, exe, argsStr)
+
+		cmd := exec.Command("powershell", "-NoProfile", "-Command", psCmd)
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+
+		_ = cmd.Start()
+		os.Exit(0)
+	}
+
+	// Execute CLI commands via Cobra
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Erro: %v\n", err)
 		os.Exit(1)
