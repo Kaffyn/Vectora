@@ -1,10 +1,7 @@
 package cli
 
 import (
-	"fmt"
 	"strings"
-
-	"github.com/charmbracelet/lipgloss"
 )
 
 func (m Model) View() string {

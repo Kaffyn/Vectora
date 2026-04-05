@@ -21,11 +21,11 @@ var (
 	StyleTitle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(Blue).
-			FontSize(16)
+			Padding(1, 0)
 
 	StyleSubtitle = lipgloss.NewStyle().
 			Foreground(LightGray).
-			FontSize(12)
+			Padding(0, 0)
 
 	// Model/Status Badge
 	StyleModelBadge = lipgloss.NewStyle().
