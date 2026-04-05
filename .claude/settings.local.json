@@ -44,7 +44,8 @@
       "Bash(bin/mpm-test.exe install:*)",
       "Bash(bin/mpm-test.exe search:*)",
       "Bash(bin/mpm-test.exe active:*)",
-      "Bash(go test:*)"
+      "Bash(go test:*)",
+      "Bash(grep -A 10 \"type DownloadProgress\" internal/engines/*.go)"
     ]
   }
 }

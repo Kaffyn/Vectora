@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
+	"github.com/Kaffyn/Vectora/internal/engines"
 	vecos "github.com/Kaffyn/Vectora/internal/os"
 )
 
@@ -216,13 +216,17 @@ func (mm *ModelManager) loadMetadata() {
 }
 
 // Install orquestra o fluxo completo de instalação de um modelo
-// Esta é uma função stub - a implementação completa de download/verify
-// será adicionada quando integrada com o downloader
+// Faz download, verifica integridade, e salva metadados
 func (mm *ModelManager) Install(ctx context.Context, modelID string, onProgress func(*DownloadProgress)) error {
 	// Verificar se modelo existe no catálogo
 	foundModel, err := FindModel(mm.catalog, modelID)
 	if err != nil {
 		return fmt.Errorf("model not found: %w", err)
+	}
+
+	// Verificar se já está instalado
+	if mm.IsInstalled(modelID) {
+		return fmt.Errorf("model '%s' is already installed", modelID)
 	}
 
 	// Criar diretório para o modelo
@@ -231,10 +235,60 @@ func (mm *ModelManager) Install(ctx context.Context, modelID string, onProgress 
 		return fmt.Errorf("failed to create model directory: %w", err)
 	}
 
-	// Salvar metadados (implementação real incluiria download)
+	// Caminho final do arquivo
+	filePath := filepath.Join(modelDir, fmt.Sprintf("%s.gguf", modelID))
+
+	// Se não houver contexto, usar um vazio
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	// Criar downloader
+	downloader := engines.NewDownloader()
+
+	// Callback de progresso adaptado
+	var progressCallback func(*engines.DownloadProgress) error
+	if onProgress != nil {
+		progressCallback = func(ep *engines.DownloadProgress) error {
+			// Adaptar DownloadProgress de engines para models
+			percent := 0.0
+			if ep.Total > 0 {
+				percent = float64(ep.Current) / float64(ep.Total)
+			}
+			onProgress(&DownloadProgress{
+				Downloaded:      ep.Current,
+				Total:           ep.Total,
+				PercentComplete: percent,
+				Speed:           ep.Speed,
+			})
+			return nil
+		}
+	}
+
+	// Fazer download do modelo
+	// Nota: HuggingFaceID seria usado para construir a URL real
+	// Por enquanto, usamos um endpoint de teste
+	downloadURL := fmt.Sprintf("https://huggingface.co/%s/resolve/main/model.gguf", foundModel.HuggingFaceID)
+
+	if err := downloader.Download(ctx, downloadURL, filePath, progressCallback); err != nil {
+		// Limpar arquivo parcial em caso de erro
+		os.Remove(filePath + ".partial")
+		os.Remove(filePath)
+		return fmt.Errorf("download failed: %w", err)
+	}
+
+	// Verificar integridade SHA256
+	if foundModel.SHA256 != "" {
+		if err := engines.VerifyFile(filePath, foundModel.SHA256); err != nil {
+			os.Remove(filePath)
+			return fmt.Errorf("integrity check failed: %w", err)
+		}
+	}
+
+	// Salvar metadados
 	mm.metadata[modelID] = &InstalledModel{
 		ID:        modelID,
-		Path:      filepath.Join(modelDir, fmt.Sprintf("%s.gguf", modelID)),
+		Path:      filePath,
 		Installed: true,
 		SHA256:    foundModel.SHA256,
 		Size:      foundModel.SizeBytes,
@@ -244,6 +298,11 @@ func (mm *ModelManager) Install(ctx context.Context, modelID string, onProgress 
 	metaPath := filepath.Join(mm.modelsDir, "metadata.json")
 	data, _ := json.MarshalIndent(mm.metadata, "", "  ")
 	os.WriteFile(metaPath, data, 0644)
+
+	// Se for o primeiro modelo instalado, torná-lo ativo
+	if mm.GetActive() == "" {
+		mm.SetActive(modelID)
+	}
 
 	return nil
 }
