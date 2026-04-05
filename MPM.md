@@ -1,76 +1,77 @@
-# Model Package Manager (MPM) - Specification
+# Model Package Manager (MPM) - Especificação
 
-**Status:** Design Specification
-**Version:** 1.0
-**Date:** 2026-04-05
-**Component:** `cmd/mpm/` + `internal/models/`
-
----
-
-## Overview
-
-**MPM (Model Package Manager)** is a standalone CLI tool for downloading, managing, and switching between AI models compatible with Vectora. It handles GGUF format models from Hugging Face, with initial support for Qwen3 family models.
-
-Like **LPM** (Llama Package Manager), MPM is:
-- A **separate executable** (`mpm.exe`)
-- **Independent** - works standalone or called by setup/daemon
-- **Extensible** - future support for Llama, Mistral, etc.
-- **Scriptable** - outputs machine-readable JSON for automation
+**Status:** Especificação de Design
+**Versão:** 1.0
+**Data:** 05/04/2026
+**Componente:** `cmd/mpm/` + `internal/models/`
 
 ---
 
-## Architecture
+## Visão Geral
 
-### 1.1 Component Structure
+O **MPM (Model Package Manager)** é uma ferramenta CLI autônoma para baixar, gerenciar e alternar entre modelos de IA compatíveis com o Vectora. Ele lida com modelos no formato GGUF do Hugging Face, com suporte inicial para a família de modelos Qwen3.
+
+Assim como o **LPM** (Llama Package Manager), o MPM é:
+
+- Um **executável separado** (`mpm.exe`)
+- **Independente** - funciona de forma autônoma ou chamado pelo instalador/daemon
+- **Extensível** - suporte futuro para Llama, Mistral, etc.
+- **Scriptável** - gera saídas JSON legíveis por máquina para automação
+
+---
+
+## Arquitetura
+
+### 1.1 Estrutura de Componentes
 
 ```
 cmd/mpm/
-├── main.go              # CLI entry point, subcommands
+├── main.go              # Ponto de entrada CLI, subcomandos
 ├── commands.go          # list, install, active, search
-└── version.go           # version info
+└── version.go           # informações de versão
 
 internal/models/
-├── types.go             # Model, Catalog, Hardware definitions
-├── catalog.go           # Model catalog loading (embedded)
-├── detector.go          # Hardware specs + RAM detection
-├── downloader.go        # Hugging Face GGUF downloader
-├── integrity.go         # SHA256 verification
-├── manager.go           # EngineManager → ModelManager pattern
-├── search.go            # Semantic search in model catalog
-├── catalog.json         # Embedded model definitions (80+ models)
-├── manager_test.go      # Unit tests
-└── integration_test.go  # Full flow tests
+├── types.go             # Definições de Model, Catalog, Hardware
+├── catalog.go           # Carregamento do catálogo de modelos (embutido)
+├── detector.go          # Especificações de hardware + detecção de RAM
+├── downloader.go        # Downloader de GGUF do Hugging Face
+├── integrity.go         # Verificação SHA256
+├── manager.go           # Padrão EngineManager → ModelManager
+├── search.go            # Busca semântica no catálogo de modelos
+├── catalog.json         # Definições de modelos embutidas (80+ modelos)
+├── manager_test.go      # Testes unitários
+└── integration_test.go  # Testes de fluxo completo
 ```
 
-### 1.2 Data Layout
+### 1.2 Layout de Dados
 
 ```
 %USERPROFILE%/.Vectora/
 ├── models/
-│   ├── catalog.json              # Cached catalog metadata
-│   ├── metadata.json             # Active model info + versions
+│   ├── catalog.json              # Metadados do catálogo em cache
+│   ├── metadata.json             # Informações do modelo ativo + versões
 │   ├── qwen3-0.6b/
-│   │   ├── qwen3-0.6b.gguf       # Model weights (~0.6GB)
-│   │   ├── qwen3-0.6b.gguf.sha256 # Integrity check
-│   │   └── model.json            # Model metadata
+│   │   ├── qwen3-0.6b.gguf       # Pesos do modelo (~0.6GB)
+│   │   ├── qwen3-0.6b.gguf.sha256 # Verificação de integridade
+│   │   └── model.json            # Metadados do modelo
 │   ├── qwen3-4b/
-│   │   ├── qwen3-4b.gguf         # Model weights (~4GB)
-│   │   ├── qwen3-4b.gguf.sha256  # Integrity check
+│   │   ├── qwen3-4b.gguf         # Pesos do modelo (~4GB)
+│   │   ├── qwen3-4b.gguf.sha256  # Verificação de integridade
 │   │   └── model.json
-│   └── mistral-7b/               # Future
+│   └── mistral-7b/               # Futuro
 │       └── ...
-├── engines/                       # LPM manages these
+├── engines/                       # LPM gerencia estes
 │   └── llama-cpp-b3430/
 └── backups/
 ```
 
 ---
 
-## 2. Core Features
+## 2. Recursos Principais
 
-### 2.1 Model Catalog
+### 2.1 Catálogo de Modelos
 
-**Embedded at compile time** via `go:embed`, never requires network fetch:
+**Embutido em tempo de compilação** via `go:embed`, nunca requer busca na rede:
 
 ```json
 {
@@ -98,7 +99,7 @@ internal/models/
       "capabilities": ["chat", "instruct", "reasoning"],
       "tags": ["general-purpose", "qwen3-latest"],
       "release_date": "2025-04-01",
-      "description": "Qwen3 7B instruction-following model"
+      "description": "Modelo Qwen3 7B para seguimento de instruções"
     },
     {
       "id": "qwen3-1.7b",
@@ -123,26 +124,26 @@ internal/models/
       "capabilities": ["chat", "instruct"],
       "tags": ["general-purpose", "lightweight", "qwen3"],
       "release_date": "2025-04-01",
-      "description": "Qwen3 1.7B - lightweight instruction-following model"
+      "description": "Qwen3 1.7B - modelo leve para seguimento de instruções"
     }
   ]
 }
 ```
 
-**Initial Model Support (April 2026):**
+**Suporte Inicial de Modelos (Abril 2026):**
 
-| Model | Sizes | Quantizations | Status |
-|-------|-------|----------------|--------|
-| **Qwen3** | 0.6B, 1.7B, 4B, 8B | Q4_K_M, Q5_K_M, Q6_K | ✅ Supported |
-| **Qwen3-Embedding** | 0.6B, 4B | Q4_K_M, Q5_K_M, Q6_K | ✅ Supported |
-| Qwen3-Coder-Next | 32B, 80B | Q4_K_M, Q6_K | ✅ Roadmap Q2 |
-| Qwen3-VL | 2B, 8B | Q4_K_M, Q5_K_M | ✅ Roadmap Q3 |
-| Llama3.2 | 3B, 8B, 70B | Q4_K_M, Q6_K | 🔄 Future |
-| Mistral | 7B | Q4_K_M, Q6_K | 🔄 Future |
+| Modelo              | Tamanhos           | Quantizações         | Status        |
+| ------------------- | ------------------ | -------------------- | ------------- |
+| **Qwen3**           | 0.6B, 1.7B, 4B, 8B | Q4_K_M, Q5_K_M, Q6_K | ✅ Suportado  |
+| **Qwen3-Embedding** | 0.6B, 4B           | Q4_K_M, Q5_K_M, Q6_K | ✅ Suportado  |
+| Qwen3-Coder-Next    | 32B, 80B           | Q4_K_M, Q6_K         | ✅ Roadmap Q2 |
+| Qwen3-VL            | 2B, 8B             | Q4_K_M, Q5_K_M       | ✅ Roadmap Q3 |
+| Llama3.2            | 3B, 8B, 70B        | Q4_K_M, Q6_K         | 🔄 Futuro     |
+| Mistral             | 7B                 | Q4_K_M, Q6_K         | 🔄 Futuro     |
 
-### 2.2 Hardware Detection Integration
+### 2.2 Integração de Detecção de Hardware
 
-Leverages `internal/engines/detector.go` already built for LPM:
+Utiliza o `internal/engines/detector.go` já construído para o LPM:
 
 ```go
 func DetectHardware() (*Hardware, error) {
@@ -159,7 +160,8 @@ func DetectHardware() (*Hardware, error) {
 }
 ```
 
-**Returns:**
+**Retorno:**
+
 ```json
 {
   "os": "windows",
@@ -172,19 +174,19 @@ func DetectHardware() (*Hardware, error) {
 }
 ```
 
-### 2.3 Model Recommendation Algorithm
+### 2.3 Algoritmo de Recomendação de Modelos
 
 ```go
 func RecommendModel(hw *Hardware) (*Model, error) {
-    // 4-tier strategy:
-    // 1. Exact match (RAM fits, GPU compatible)
-    // 2. Best smaller model that fits RAM
-    // 3. Largest model that fits available RAM
-    // 4. Fallback to Qwen3-0.6B (always fits)
+    // Estratégia de 4 níveis:
+    // 1. Correspondência exata (RAM cabe, GPU compatível)
+    // 2. Melhor modelo menor que caiba na RAM
+    // 3. Maior modelo que caiba na RAM disponível
+    // 4. Fallback para o Qwen3-0.6B (sempre cabe)
 
-    availableRAM := hw.RAM - 2.0 // Reserve 2GB for system
+    availableRAM := hw.RAM - 2.0 // Reserva 2GB para o sistema
 
-    // Tier 1: Perfect fit
+    // Nível 1: Ajuste perfeito
     for _, m := range catalog.Models {
         if m.Requirements.RecommendedRAM <= availableRAM {
             if hardwareMatches(hw, m) {
@@ -193,25 +195,26 @@ func RecommendModel(hw *Hardware) (*Model, error) {
         }
     }
 
-    // Tier 2: Fallback progressively smaller
+    // Nível 2: Fallback progressivamente menor
     // ...
     return fallbackModel, nil
 }
 ```
 
-### 2.4 Download & Integrity
+### 2.4 Download e Integridade
 
-**Features:**
-- Resume support via `.partial` files
-- SHA256 verification before extraction
-- Progress callbacks
-- Exponential backoff (3 retries)
-- Bandwidth throttling (optional)
+**Recursos:**
+
+- Suporte a retomada via arquivos `.partial`
+- Verificação SHA256 antes da extração
+- Callbacks de progresso
+- Backoff exponencial (3 tentativas)
+- Limitação de largura de banda (opcional)
 
 ```go
 type DownloadProgress struct {
-    Current int64        // Bytes downloaded
-    Total   int64        // Total bytes
+    Current int64        // Bytes baixados
+    Total   int64        // Total de bytes
     Speed   float64      // MB/s
     ETA     time.Duration
 }
@@ -222,12 +225,13 @@ func (m *ModelManager) Download(ctx context.Context, modelID string,
 
 ---
 
-## 3. CLI Interface
+## 3. Interface CLI
 
-### 3.1 Subcommands
+### 3.1 Subcomandos
 
 #### `mpm list`
-List all available models with filtering.
+
+Lista todos os modelos disponíveis com filtragem.
 
 ```bash
 $ mpm list
@@ -236,23 +240,26 @@ $ mpm list --filter "7b|1.5b"
 $ mpm list --json
 ```
 
-Output:
+Saída:
+
 ```
 ID                    Family     Size  RAM    GPU    Status
-qwen3-8b              qwen3      8B    8GB    ✅     Available
-qwen3-4b              qwen3      4B    6GB    ✅     Available
-qwen3-1.7b            qwen3      1.7B  4GB    ✅     Available
-qwen3-0.6b            qwen3      0.6B  2GB    ✅     Available
+qwen3-8b              qwen3      8B    8GB    ✅     Disponível
+qwen3-4b              qwen3      4B    6GB    ✅     Disponível
+qwen3-1.7b            qwen3      1.7B  4GB    ✅     Disponível
+qwen3-0.6b            qwen3      0.6B  2GB    ✅     Disponível
 ```
 
 #### `mpm detect`
-Detect local hardware and capabilities.
+
+Detecta o hardware local e suas capacidades.
 
 ```bash
 $ mpm detect
 ```
 
-Output:
+Saída:
+
 ```
 System Hardware:
   OS:              windows
@@ -265,21 +272,24 @@ System Hardware:
 ```
 
 #### `mpm recommend`
-Recommend best model for detected hardware.
+
+Recomenda o melhor modelo para o hardware detectado.
 
 ```bash
 $ mpm recommend
 $ mpm recommend --json
-$ mpm recommend --size 7b  # Force specific size
+$ mpm recommend --size 7b  # Força um tamanho específico
 ```
 
-Output:
+Saída:
+
 ```
 Recommended Model: qwen3-7b
 Reason: Perfect fit for 16GB RAM + CUDA support
 ```
 
-Or JSON:
+Ou JSON:
+
 ```json
 {
   "model_id": "qwen3-7b",
@@ -290,7 +300,8 @@ Or JSON:
 ```
 
 #### `mpm install`
-Download and install a model.
+
+Baixa e instala um modelo.
 
 ```bash
 $ mpm install --model qwen3-8b
@@ -298,25 +309,28 @@ $ mpm install --model qwen3-4b --silent
 $ mpm install --model $(mpm recommend)
 ```
 
-Output:
+Saída:
+
 ```
 Installing: qwen3-7b
 Downloading: ████████████░░░░░░ 65% (4.5GB / 7GB) @ 25.3 MB/s
 ETA: 2m 15s
-✓ Download complete
-✓ SHA256 verified
-✓ Model installed at ~/.Vectora/models/qwen3-7b/
+✓ Download completo
+✓ SHA256 verificado
+✓ Modelo instalado em ~/.Vectora/models/qwen3-7b/
 ```
 
 #### `mpm active`
-Show currently active model.
+
+Mostra o modelo atualmente ativo.
 
 ```bash
 $ mpm active
 $ mpm active --json
 ```
 
-Output:
+Saída:
+
 ```
 Active Model: qwen3-7b
 Path:         ~/.Vectora/models/qwen3-7b/qwen3-7b-q6_k.gguf
@@ -326,14 +340,16 @@ Installed:    2026-04-05 14:30:45
 ```
 
 #### `mpm set-active`
-Switch to a different installed model.
+
+Alterna para um modelo instalado diferente.
 
 ```bash
 $ mpm set-active --model qwen3-4b
 ```
 
 #### `mpm search`
-Search models by name, capability, or tag.
+
+Busca modelos por nome, capacidade ou tag.
 
 ```bash
 $ mpm search "coding"
@@ -341,7 +357,8 @@ $ mpm search --tag "lightweight"
 $ mpm search --capability "instruct"
 ```
 
-Output:
+Saída:
+
 ```
 Found 4 models:
 1. qwen3-8b (8B) - General purpose model
@@ -351,7 +368,8 @@ Found 4 models:
 ```
 
 #### `mpm update-catalog`
-Refresh the embedded catalog (checks Hugging Face).
+
+Atualiza o catálogo embutido (verifica no Hugging Face).
 
 ```bash
 $ mpm update-catalog
@@ -359,13 +377,15 @@ $ mpm update-catalog
 ```
 
 #### `mpm versions`
-List available quantizations for a model.
+
+Lista as quantizações disponíveis para um modelo.
 
 ```bash
 $ mpm versions qwen3-7b
 ```
 
-Output:
+Saída:
+
 ```
 Quantizations for qwen3-7b:
 - Q4_K_M  3.8 GB
@@ -374,112 +394,115 @@ Quantizations for qwen3-7b:
 - Q8_0    6.8 GB
 ```
 
-### 3.2 Global Flags
+### 3.2 Flags Globais
 
 ```
---json              Output machine-readable JSON
---silent            Suppress progress output (for automation)
---log-level DEBUG   Set logging level
---timeout 3600      Timeout in seconds for downloads
---threads 4         Parallel download threads
+--json              Saída em JSON legível por máquina
+--silent            Suprime a saída de progresso (para automação)
+--log-level DEBUG   Define o nível de log
+--timeout 3600      Tempo limite em segundos para downloads
+--threads 4         Threads de download paralelas
 ```
 
 ---
 
-## 4. Integration with Vectora Ecosystem
+## 4. Integração com o Ecossistema Vectora
 
-### 4.1 Setup Installer Integration
+### 4.1 Integração com o Instalador
 
-During `vectora-setup.exe`:
+Durante o `vectora-setup.exe`:
 
 ```
-1. Detect hardware (shared with LPM)
-   └─ Call: internal/engines.DetectHardware()
+1. Detecta o hardware (compartilhado com o LPM)
+   └─ Chamada: internal/engines.DetectHardware()
 
-2. Recommend llama.cpp build
-   └─ Call: lpm.recommend()
+2. Recomenda a build do llama.cpp
+   └─ Chamada: lpm.recommend()
 
-3. Recommend model
-   └─ Call: mpm.recommend()
+3. Recomenda o modelo
+   └─ Chamada: mpm.recommend()
 
-4. User selects provider
-   ├─ Gemini → Skip model install
+4. Usuário seleciona o provedor
+   ├─ Gemini → Pular instalação do modelo
    └─ Qwen Local
-       ├─ Download llama.cpp build via LPM
-       └─ Download model via MPM
+       ├─ Baixa a build do llama.cpp via LPM
+       └─ Baixa o modelo via MPM
 
-5. Store active model in ~/.Vectora/models/metadata.json
+5. Armazena o modelo ativo em ~/.Vectora/models/metadata.json
 ```
 
-### 4.2 Daemon Integration
+### 4.2 Integração com o Daemon
 
-The daemon (`vectora.exe`) calls MPM programmatically:
+O daemon (`vectora.exe`) chama o MPM programaticamente:
 
 ```go
 import "github.com/Kaffyn/Vectora/internal/models"
 
-// In llm/qwen.go or similar
+// Em llm/qwen.go ou similar
 manager, err := models.NewModelManager()
 if err != nil {
     return err
 }
 
-// Check if model is installed
+// Verifica se o modelo está instalado
 info, err := manager.GetActive()
 if err != nil {
-    // Auto-download recommended model
+    // Auto-download do modelo recomendado
     hw, _ := detectHardware()
     model, _ := manager.RecommendModel(hw)
     manager.Install(ctx, model.ID)
 }
 
-// Use model path for llama-cli
+// Usa o caminho do modelo para o llama-cli
 modelPath := manager.GetModelPath(modelID)
 // → /Users/bruno/.Vectora/models/qwen3-7b/qwen3-7b-q6_k.gguf
 ```
 
-### 4.3 CLI Integration
+### 4.3 Integração CLI
 
-When user types `mpm` command:
+Quando o usuário digita o comando `mpm`:
 
 ```bash
 vectora chat --model qwen3-8b
-# Or
+# Ou
 vectora chat --model-list
-# Or
-vectora chat --detect  # Auto-detect and recommend
+# Ou
+vectora chat --detect  # Auto-detecta e recomenda
 ```
 
 ---
 
-## 5. Implementation Phases
+## 5. Fases de Implementação
 
-### Phase 1: MVP (Week 1-2)
-- ✅ Core CLI structure (`cmd/mpm/main.go`)
-- ✅ Model catalog with Qwen3/Qwen3.5 (20+ models)
-- ✅ Hardware detection (reuse from LPM)
-- ✅ Download + SHA256 verification
-- ✅ `list`, `detect`, `recommend`, `install`, `active` subcommands
-- ✅ Basic tests
+### Fase 1: MVP (Semana 1-2)
 
-### Phase 2: Polish (Week 2-3)
-- JSON output for all commands
-- Search and filter functionality
-- Better progress feedback
-- Bandwidth throttling
-- Integration tests with daemon
-- Documentation
+- ✅ Estrutura central da CLI (`cmd/mpm/main.go`)
+- ✅ Catálogo de modelos com Qwen3/Qwen3.5 (20+ modelos)
+- ✅ Detecção de hardware (reutilizada do LPM)
+- ✅ Download + verificação SHA256
+- ✅ Subcomandos `list`, `detect`, `recommend`, `install`, `active`
+- ✅ Testes básicos
 
-### Phase 3: Expansion (Week 4+)
-- Llama3.2 support
-- Mistral support
-- Custom catalog sources (self-hosted)
-- Model quantization conversion (GGML → GGUF)
-- Caching of model metadata
+### Fase 2: Polimento (Semana 2-3)
+
+- Saída JSON para todos os comandos
+- Funcionalidade de busca e filtragem
+- Melhor feedback de progresso
+- Limitação de largura de banda
+- Testes de integração com o daemon
+- Documentação
+
+### Fase 3: Expansão (Semana 4+)
+
+- Suporte ao Llama3.2
+- Suporte ao Mistral
+- Fontes de catálogo personalizadas (auto-hospedadas)
+- Conversão de quantização de modelos (GGML → GGUF)
+- Cache de metadados de modelos
 
 ---
 
-## 6. File Structure
+## 6. Estrutura de Arquivos
 
 ```
 cmd/mpm/
@@ -549,32 +572,32 @@ internal/models/
 
 ---
 
-## 7. Build Integration
+## 7. Integração de Build
 
-### 7.1 build.ps1 Changes
+### 7.1 Alterações no build.ps1
 
 ```powershell
-# Step 6: Build MPM
+# Passo 6: Build MPM
 Write-Host "[6/11] Compilando MPM - Model Package Manager (cmd/mpm)..."
 go build -ldflags="-s -w" -o mpm.exe ./cmd/mpm
 if (-not (Test-Path "mpm.exe")) { throw "FALHA: mpm.exe não foi gerado." }
 
-# Step 7: LPM (unchanged)
+# Passo 7: LPM (inalterado)
 
-# Step 8: Sync to installer
+# Passo 8: Sincronizar com o instalador
 Copy-Item "mpm.exe" "cmd/vectora-installer/mpm.exe" -Force
 
-# Step 9: Build installer with mpm.exe embedded
+# Passo 9: Build do instalador com mpm.exe embutido
 ```
 
-### 7.2 Installer Embedding
+### 7.2 Embutimento no Instalador
 
 ```go
 // cmd/vectora-installer/embed_windows.go
 //go:embed mpm.exe
 var mpmExe []byte
 
-// Extract during setup
+// Extrair durante o setup
 for _, binName := range []string{"vectora.exe", "mpm.exe", "lpm.exe"} {
     if binData, ok := assets[binName]; ok {
         os.WriteFile(filepath.Join(installPath, binName), binData, 0755)
@@ -584,118 +607,128 @@ for _, binName := range []string{"vectora.exe", "mpm.exe", "lpm.exe"} {
 
 ---
 
-## 8. Dependencies
+## 8. Dependências
 
-**New Go imports:**
+**Novas importações Go:**
+
 ```go
 import (
-    "net/http"              // HTTP downloads
-    "io"                    // I/O operations
-    "crypto/sha256"         // Hash verification
-    "os"                    // File operations
-    "path/filepath"         // Path utilities
+    "net/http"              // Downloads HTTP
+    "io"                    // Operações de I/O
+    "crypto/sha256"         // Verificação de hash
+    "os"                    // Operações de arquivo
+    "path/filepath"         // Utilitários de caminho
 )
 ```
 
-**Reused from `internal/engines`:**
+**Reutilizado de `internal/engines`:**
+
 ```go
 import (
     "github.com/Kaffyn/Vectora/internal/engines"
-    // Reuse: DetectHardware, DownloadProgress pattern, SHA256 utils
+    // Reúso: DetectHardware, padrão DownloadProgress, utilitários SHA256
 )
 ```
 
 ---
 
-## 9. Testing Strategy
+## 9. Estratégia de Testes
 
-### Unit Tests (`manager_test.go`)
-- `TestLoadCatalog` - Verify catalog loading
-- `TestDetectHardware` - Verify hardware detection
-- `TestRecommendModel` - 4+ test cases for recommendation logic
-- `TestVerifyFile` - SHA256 validation
-- `TestPaths` - Directory resolution
+### Testes Unitários (`manager_test.go`)
 
-### Integration Tests (`integration_test.go`)
-- `TestFullInstallationFlow` - Download + verify + extract
-- `TestModelSwitching` - Install multiple, switch between
-- `TestDownloadResume` - Resume interrupted download
-- `TestSearchFiltering` - Search and filter models
+- `TestLoadCatalog` - Verifica o carregamento do catálogo
+- `TestDetectHardware` - Verifica a detecção de hardware
+- `TestRecommendModel` - 4+ casos de teste para a lógica de recomendação
+- `TestVerifyFile` - Validação SHA256
+- `TestPaths` - Resolução de diretórios
+
+### Testes de Integração (`integration_test.go`)
+
+- `TestFullInstallationFlow` - Download + verificação + extração
+- `TestModelSwitching` - Instalar múltiplos, alternar entre eles
+- `TestDownloadResume` - Retomar download interrompido
+- `TestSearchFiltering` - Busca e filtragem de modelos
 
 ---
 
-## 10. Future Roadmap
+## 10. Roadmap Futuro
 
 **Q2 2026:**
-- Qwen3-Coder support
-- Batch install multiple models
-- Model auto-update checks
+
+- Suporte ao Qwen3-Coder
+- Instalação em lote de múltiplos modelos
+- Verificações de atualização automática de modelos
 
 **Q3 2026:**
-- Qwen3-VL (Vision) support
-- Llama3.2 models
-- Mistral models
+
+- Suporte ao Qwen3-VL (Visão)
+- Modelos Llama3.2
+- Modelos Mistral
 
 **Q4 2026:**
-- Self-hosted catalog sources
-- Model quantization tools
-- Community model registry
+
+- Fontes de catálogo auto-hospedadas
+- Ferramentas de quantização de modelos
+- Registro de modelos da comunidade
 
 ---
 
-## 11. Error Handling
+## 11. Tratamento de Erros
 
-**Download Errors:**
-```
-✗ Download failed: Connection timeout
-  Retrying in 5 seconds... (Attempt 2/3)
+**Erros de Download:**
 
-✗ SHA256 mismatch
-  Expected: abc123...
-  Got:      def456...
-  File corrupted or incomplete. Deleting...
 ```
+✗ Download falhou: Tempo limite de conexão
+  Tentando novamente em 5 segundos... (Tentativa 2/3)
 
-**Disk Space:**
-```
-✗ Insufficient disk space
-  Required: 7.0 GB
-  Available: 2.3 GB
-  Please free up ~5 GB and try again
+✗ Incompatibilidade SHA256
+  Esperado: abc123...
+  Obtido:   def456...
+  Arquivo corrompido ou incompleto. Excluindo...
 ```
 
-**Network:**
+**Espaço em Disco:**
+
 ```
-✗ Hugging Face unreachable
-  Using cached catalog from: 2026-04-04
-  Run 'mpm update-catalog' to refresh when online
+✗ Espaço em disco insuficiente
+  Necessário: 7.0 GB
+  Disponível: 2.3 GB
+  Por favor, libere ~5 GB e tente novamente
+```
+
+**Rede:**
+
+```
+✗ Hugging Face inacessível
+  Usando catálogo em cache de: 04/04/2026
+  Execute 'mpm update-catalog' para atualizar quando estiver online
 ```
 
 ---
 
-## 12. Example Usage Flow
+## 12. Fluxo de Exemplo de Uso
 
 ```bash
-# First time user
+# Usuário de primeira viagem
 $ mpm detect
 $ mpm recommend
-  → Recommends: qwen3-4b
+  → Recomenda: qwen3-4b
 
 $ mpm install --model qwen3-4b
-  → Downloads 4 GB
-  → Verifies SHA256
-  → Extracts to ~/.Vectora/models/
+  → Baixa 4 GB
+  → Verifica SHA256
+  → Extrai para ~/.Vectora/models/
 
-# Switch models
+# Alternar modelos
 $ mpm list
 $ mpm set-active --model qwen3-7b
 
-# Use with Vectora
-$ vectora          # Daemon starts, uses active model
-$ vectora-app      # Web UI
-$ vectora-cli      # Terminal interface
+# Usar com Vectora
+$ vectora          # Daemon inicia, usa o modelo ativo
+$ vectora-app      # Interface Web
+$ vectora-cli      # Interface de Terminal
 
-# Automation
+# Automação
 $ mpm list --json | jq '.models[] | select(.family=="qwen3")'
 $ mpm recommend --json | jq '.model_id'
 $ mpm install --model $(mpm recommend) --silent
@@ -703,340 +736,364 @@ $ mpm install --model $(mpm recommend) --silent
 
 ---
 
-## 13. Business Case & Motivation
+## 13. Caso de Negócio e Motivação
 
-### Why MPM?
+### Por que o MPM?
 
-Currently, Vectora users have two challenges:
+Atualmente, os usuários do Vectora têm dois desafios:
 
-1. **Manual Model Management**: Without MPM, users must:
-   - Manually visit Hugging Face and find GGUF models
-   - Download large files (~1-8GB) manually
-   - Verify SHA256 hashes by hand
-   - Extract files to correct directories
-   - Manually update configuration
-   - Manually restart Vectora daemon
+1. **Gerenciamento Manual de Modelos**: Sem o MPM, os usuários devem:
+   - Visitar manualment o Hugging Face e encontrar modelos GGUF
+   - Baixar arquivos grandes (~1-8GB) manualmente
+   - Verificar hashes SHA256 à mão
+   - Extrair arquivos para os diretórios corretos
+   - Atualizar manualmente a configuração
+   - Reiniciar manualmente o daemon do Vectora
 
-2. **No Hardware Awareness**: Users don't know which model fits their hardware:
-   - 16GB RAM + CUDA → Should use Qwen3-8B
-   - 8GB RAM + CPU only → Should use Qwen3-4B
-   - 4GB RAM → Should use Qwen3-1.7B
+2. **Sem Conhecimento de Hardware**: Os usuários não sabem qual modelo se ajusta ao seu hardware:
+   - 16GB RAM + CUDA → Deve usar Qwen3-8B
+   - 8GB RAM + apenas CPU → Deve usar Qwen3-4B
+   - 4GB RAM → Deve usar Qwen3-1.7B
 
-### With MPM (Future)
+### Com o MPM (Futuro)
 
-Users simply run:
+Os usuários simplesmente executam:
+
 ```bash
-mpm recommend              # Get recommendation based on hardware
-mpm install --model qwen3-8b   # Download, verify, extract
+mpm recommend              # Obtém recomendação baseada no hardware
+mpm install --model qwen3-8b   # Baixa, verifica, extrai
 ```
 
-**Impact:**
-- ⏱️ Time: 30 minutes (manual) → 2 minutes (MPM)
-- ✅ Automation: Repeatable, scriptable, reliable
-- 🔒 Safety: Automatic SHA256 verification
-- 🎯 Intelligence: Hardware-aware recommendations
+**Impacto:**
 
-### Comparison
+- ⏱️ Tempo: 30 minutos (manual) → 2 minutos (MPM)
+- ✅ Automação: Repetível, scriptável, confiável
+- 🔒 Segurança: Verificação automática de SHA256
+- 🎯 Inteligência: Recomendações conscientes do hardware
 
-| Aspect | Without MPM | With MPM |
-|--------|------------|----------|
-| **Time** | 30 min + downloads | 2 min + downloads |
-| **Verification** | Manual or skipped | Automatic |
-| **Recommendations** | User guesses | Hardware-aware |
-| **Model Switching** | Manual config edit | `mpm set-active` |
-| **Repeatability** | Error-prone | Automated |
+### Comparação
+
+| Aspecto             | Sem MPM                 | Com MPM                |
+| ------------------- | ----------------------- | ---------------------- |
+| **Tempo**           | 30 min + downloads      | 2 min + downloads      |
+| **Verificação**     | Manual ou ignorada      | Automática             |
+| **Recomendações**   | Usuário adivinha        | Consciente do hardware |
+| **Troca de Modelo** | Edição manual de config | `mpm set-active`       |
+| **Repetibilidade**  | Propenso a erros        | Automatizado           |
 
 ---
 
-## 14. Model Support Details
+## 14. Detalhes de Suporte de Modelos
 
-### Qwen3 Family (Phase 1 - MVP)
+### Família Qwen3 (Fase 1 - MVP)
 
-**Qwen3 Chat Models**
-| Model | Size | RAM | GPU | Use Case |
-|-------|------|-----|-----|----------|
-| Qwen3-0.6B | 600MB | 2GB | Optional | Ultra-lightweight, IoT, embedded |
-| Qwen3-1.7B | 1.7GB | 4GB | Optional | Mobile, resource-constrained |
-| **Qwen3-4B** | **4GB** | **8GB** | **Recommended** | **General purpose, balanced** |
-| Qwen3-8B | 8GB | 16GB | Recommended | High-performance, reasoning |
+**Modelos de Chat Qwen3**
+| Modelo | Tamanho | RAM | GPU | Caso de Uso |
+|--------|---------|-----|-----|-------------|
+| Qwen3-0.6B | 600MB | 2GB | Opcional | Ultra-leve, IoT, embutidos |
+| Qwen3-1.7B | 1.7GB | 4GB | Opcional | Mobile, recursos limitados |
+| **Qwen3-4B** | **4GB** | **8GB** | **Recomendado** | **Propósito geral, equilibrado** |
+| Qwen3-8B | 8GB | 16GB | Recomendado | Alta performance, raciocínio |
 
-**Qwen3 Embedding Models**
-| Model | Size | Use Case |
-|-------|------|----------|
-| Qwen3-Embedding-0.6B | 600MB | Lightweight embeddings |
-| Qwen3-Embedding-4B | 4GB | High-quality embeddings |
+**Modelos de Embedding Qwen3**
+| Modelo | Tamanho | Caso de Uso |
+|--------|---------|-------------|
+| Qwen3-Embedding-0.6B | 600MB | Embeddings leves |
+| Qwen3-Embedding-4B | 4GB | Embeddings de alta qualidade |
 
-**Qwen3-Coder-Next (Phase 2 - Q2 2026)**
-| Model | Size | Use Case |
-|-------|------|----------|
-| Qwen3-Coder-Next | 32B-80B | Code generation & reasoning |
+**Qwen3-Coder-Next (Fase 2 - Q2 2026)**
+| Modelo | Tamanho | Caso de Uso |
+|--------|---------|-------------|
+| Qwen3-Coder-Next | 32B-80B | Geração de código e raciocínio |
 
-### Hardware Detection & Recommendation
+### Detecção e Recomendação de Hardware
 
-MPM automatically detects:
-- CPU cores and features (AVX, AVX2, NEON, etc.)
-- Total RAM available
-- GPU type and VRAM (CUDA, Metal, Vulkan)
-- Free disk space
+O MPM detecta automaticamente:
 
-**4-Tier Recommendation Algorithm:**
-1. **Perfect fit**: Model with recommended RAM <= available RAM
-2. **Best smaller**: Largest model that still fits
-3. **Largest possible**: Maximum model that doesn't crash system
-4. **Fallback**: Always recommend Qwen3-0.6B (2GB footprint)
+- Núcleos de CPU e recursos (AVX, AVX2, NEON, etc.)
+- Total de RAM disponível
+- Tipo de GPU e VRAM (CUDA, Metal, Vulkan)
+- Espaço livre em disco
 
-**Examples:**
-- 32GB RAM + CUDA 12.0 → Qwen3-8B (recommended)
-- 16GB RAM + CPU only → Qwen3-4B
+**Algoritmo de Recomendação de 4 Níveis:**
+
+1. **Ajuste perfeito**: Modelo com RAM recomendada <= RAM disponível
+2. **Melhor menor**: Maior modelo que ainda se ajusta
+3. **Maior possível**: Modelo máximo que não trava o sistema
+4. **Fallback**: Sempre recomenda Qwen3-0.6B (pegada de 2GB)
+
+**Exemplos:**
+
+- 32GB RAM + CUDA 12.0 → Qwen3-8B (recomendado)
+- 16GB RAM + apenas CPU → Qwen3-4B
 - 8GB RAM → Qwen3-1.7B
 - 4GB RAM → Qwen3-0.6B
 
 ---
 
-## 15. Implementation Checklist
+## 15. Lista de Verificação de Implementação
 
-### Phase 1: Package Structure Setup
-- [ ] Create `cmd/mpm/` directory
-- [ ] Create `internal/models/` directory
-- [ ] Create empty stub files for all modules
-- [ ] Set up Go module imports
-- [ ] Create Makefile targets
+### Fase 1: Configuração da Estrutura de Pacotes
 
-**Estimated time:** 1 hour
+- [ ] Criar diretório `cmd/mpm/`
+- [ ] Criar diretório `internal/models/`
+- [ ] Criar arquivos stub vazios para todos os módulos
+- [ ] Configurar importações de módulos Go
+- [ ] Criar alvos no Makefile
 
-### Phase 2: Core Types & Data Structures
-- [ ] `types.go` (60 lines)
-  - `Model` struct with all metadata
-  - `Catalog` struct for model list
-  - `Hardware` struct for system info
-  - `ModelManager` interface
-  - Error codes enum
+**Tempo estimado:** 1 hora
 
-- [ ] `catalog.go` (100 lines)
-  - `LoadCatalog()` from embedded JSON
-  - `GetCatalog()` singleton
-  - `FindModel(id)` lookup
-  - `SearchModels(query)` search
-  - `go:embed` directive
+### Fase 2: Tipos Principais e Estruturas de Dados
 
-**Estimated time:** 2 hours
+- [ ] `types.go` (60 linhas)
+  - Struct `Model` com todos os metadados
+  - Struct `Catalog` para lista de modelos
+  - Struct `Hardware` para informações do sistema
+  - Interface `ModelManager`
+  - Enum de códigos de erro
 
-### Phase 3: Hardware Detection
-- [ ] `detector.go` (50 lines)
-  - Import `internal/engines.DetectHardware()`
-  - Wrapper for model detection
-  - Test with different hardware profiles
+- [ ] `catalog.go` (100 linhas)
+  - `LoadCatalog()` de JSON embutido
+  - Singleton `GetCatalog()`
+  - Busca `FindModel(id)`
+  - Busca `SearchModels(query)`
+  - Diretiva `go:embed`
 
-**Estimated time:** 1 hour
+**Tempo estimado:** 2 horas
 
-### Phase 4: Download & Integrity
-- [ ] `downloader.go` (160 lines)
-  - `NewDownloader()` with timeout
-  - `Download()` with resume support
-  - `.partial` file handling
-  - Exponential backoff retry (3x)
-  - Progress callbacks
-  - Bandwidth throttling (optional)
+### Fase 3: Detecção de Hardware
 
-- [ ] `integrity.go` (60 lines)
-  - `VerifyFile()` SHA256 check
-  - `ComputeFileSHA256()` hash computation
-  - Reuse existing crypto code
+- [ ] `detector.go` (50 linhas)
+  - Importar `internal/engines.DetectHardware()`
+  - Wrapper para detecção de modelos
+  - Testar com diferentes perfis de hardware
 
-**Estimated time:** 3 hours
+**Tempo estimado:** 1 hora
 
-### Phase 5: Manager & Orchestration
-- [ ] `manager.go` (180 lines) - **Most critical**
-  - `NewModelManager()` singleton
-  - `Install(ctx, modelID, onProgress)` orchestrator
-  - `GetActive()` read metadata.json
-  - `SetActive(modelID)` update metadata
-  - `GetModelPath(modelID)` resolve full path
-  - `RecommendModel(hw)` 4-tier algorithm
-  - `ListInstalled()` scan directory
+### Fase 4: Download e Integridade
 
-**Estimated time:** 4 hours
+- [ ] `downloader.go` (160 linhas)
+  - `NewDownloader()` com timeout
+  - `Download()` com suporte a retomada
+  - Tratamento de arquivo `.partial`
+  - Retry de backoff exponencial (3x)
+  - Callbacks de progresso
+  - Limitação de largura de banda (opcional)
 
-### Phase 6: Search & Filtering
-- [ ] `search.go` (80 lines)
-  - `SearchByTag(tag)` filter by tag
-  - `SearchByCapability(cap)` capability match
-  - `SearchByName(query)` substring match
-  - Combine filters with AND/OR logic
+- [ ] `integrity.go` (60 linhas)
+  - Verificação SHA256 `VerifyFile()`
+  - Computação de hash `ComputeFileSHA256()`
+  - Reutilizar código criptográfico existente
 
-**Estimated time:** 1.5 hours
+**Tempo estimado:** 3 horas
 
-### Phase 7: CLI Implementation
-- [ ] `main.go` (100 lines)
-  - Parse subcommands
-  - Global flags (--json, --silent, --log-level)
-  - Route to command handlers
-  - Version info
-  - Error handling
+### Fase 5: Gerenciador e Orquestração
 
-- [ ] `commands.go` (200 lines)
-  - `cmdList()` - list with filters
-  - `cmdDetect()` - show hardware
-  - `cmdRecommend()` - recommend model
-  - `cmdInstall()` - download & install
-  - `cmdActive()` - show active
-  - `cmdSetActive()` - switch models
-  - `cmdSearch()` - search catalog
-  - `cmdVersions()` - quantization list
-  - Pretty-print + JSON output
+- [ ] `manager.go` (180 linhas) - **Mais crítico**
+  - Singleton `NewModelManager()`
+  - Orquestrador `Install(ctx, modelID, onProgress)`
+  - `GetActive()` ler metadata.json
+  - `SetActive(modelID)` atualizar metadados
+  - `GetModelPath(modelID)` resolver caminho completo
+  - Algoritmo de 4 níveis `RecommendModel(hw)`
+  - Escanear diretório `ListInstalled()`
 
-**Estimated time:** 3 hours
+**Tempo estimado:** 4 horas
 
-### Phase 8: Testing
-- [ ] `manager_test.go` (150 lines)
-  - `TestLoadCatalog` - embedding verification
-  - `TestDetectHardware` - hardware detection
-  - `TestRecommendModel` - 4 scenarios
-  - `TestVerifyFile` - SHA256 validation
-  - `TestSearchModels` - search functionality
+### Fase 6: Busca e Filtragem
 
-- [ ] `integration_test.go` (100 lines)
-  - `TestFullInstallationFlow` - end-to-end
-  - `TestModelSwitching` - set-active flow
-  - `TestDownloadResume` - retry logic
-  - Table-driven tests
+- [ ] `search.go` (80 linhas)
+  - Filtrar por tag `SearchByTag(tag)`
+  - Correspondência de capacidade `SearchByCapability(cap)`
+  - Correspondência de substring `SearchByName(query)`
+  - Combinar filtros com lógica AND/OR
 
-**Estimated time:** 2.5 hours
+**Tempo estimado:** 1,5 horas
 
-### Phase 9: Build & Integration
-- [ ] Update `build.ps1`
-  - Add step [7/11]: `go build -o mpm.exe ./cmd/mpm`
-  - Copy `mpm.exe` to installer directory before embedding
-  - Generate SHA256 for mpm.exe
-  - Update progress output
+### Fase 7: Implementação da CLI
 
-- [ ] Update `embed_windows.go`
-  - Add `//go:embed mpm.exe`
-  - Add to embedding loop
-  - Test extraction during setup
+- [ ] `main.go` (100 linhas)
+  - Analisar subcomandos
+  - Flags globais (--json, --silent, --log-level)
+  - Roteamento para manipuladores de comando
+  - Informações de versão
+  - Tratamento de erros
 
-- [ ] Verify full build pipeline
-  - All 11 steps complete
-  - All binaries present
-  - SHA256 manifest includes mpm
+- [ ] `commands.go` (200 linhas)
+  - `cmdList()` - lista com filtros
+  - `cmdDetect()` - mostrar hardware
+  - `cmdRecommend()` - recomendar modelo
+  - `cmdInstall()` - baixar e instalar
+  - `cmdActive()` - mostrar ativo
+  - `cmdSetActive()` - alternar modelos
+  - `cmdSearch()` - buscar catálogo
+  - `cmdVersions()` - lista de quantização
+  - Pretty-print + saída JSON
 
-**Estimated time:** 2 hours
+**Tempo estimado:** 3 horas
 
-### Total Implementation Time
+### Fase 8: Testes
 
-| Scenario | Time | Team |
-|----------|------|------|
-| Solo developer | 14-15 days | 1 person |
-| With pair programming | 7-8 days | 2 people |
-| Full team | 5-6 days | 3-4 people |
+- [ ] `manager_test.go` (150 linhas)
+  - `TestLoadCatalog` - verificação de embutimento
+  - `TestDetectHardware` - detecção de hardware
+  - `TestRecommendModel` - 4 cenários
+  - `TestVerifyFile` - validação SHA256
+  - `TestSearchModels` - funcionalidade de busca
 
----
+- [ ] `integration_test.go` (100 linhas)
+  - `TestFullInstallationFlow` - ponta a ponta
+  - `TestModelSwitching` - fluxo set-active
+  - `TestDownloadResume` - lógica de retry
+  - Testes baseados em tabela
 
-## 16. Success Criteria
+**Tempo estimado:** 2,5 horas
 
-### Code Quality (Mandatory)
-- [ ] All tests passing (13+ tests)
-- [ ] Race detector clean: `go test -race ./...`
-- [ ] No unused imports or variables
-- [ ] 90%+ code coverage on `internal/models`
-- [ ] All exported functions have doc comments
-- [ ] No linting errors: `golangci-lint run ./...`
+### Fase 9: Build e Integração
 
-### Functionality (Mandatory)
-- [ ] `mpm list` displays 7 models correctly
-- [ ] `mpm detect` shows hardware specs (cores, RAM, GPU)
-- [ ] `mpm recommend` makes sensible recommendations
-- [ ] `mpm install qwen3-4b` completes successfully
-- [ ] SHA256 verified after download
-- [ ] `mpm set-active` switches models
-- [ ] Model metadata persisted in `metadata.json`
-- [ ] `mpm search` finds models by tag
-- [ ] JSON output valid with `--json` flag
+- [ ] Atualizar `build.ps1`
+  - Adicionar passo [7/11]: `go build -o mpm.exe ./cmd/mpm`
+  - Copiar `mpm.exe` para o diretório do instalador antes do embutimento
+  - Gerar SHA256 para mpm.exe
+  - Atualizar saída de progresso
 
-### Integration (Mandatory)
-- [ ] `mpm.exe` is 6MB or smaller
-- [ ] `build.ps1` completes in <5 minutes
-- [ ] `vectora-setup.exe` contains mpm.exe
-- [ ] Installer extracts mpm correctly
-- [ ] SHA256 manifest includes mpm entry
-- [ ] No breaking changes to LPM or daemon
+- [ ] Atualizar `embed_windows.go`
+  - Adicionar `//go:embed mpm.exe`
+  - Adicionar ao loop de embutimento
+  - Testar extração durante o setup
 
-### Performance (Recommended)
-- [ ] Hardware detection < 1 second
-- [ ] Model recommendations < 100ms
-- [ ] Catalog search < 500ms
-- [ ] Download progress updates every 1 second
-- [ ] No memory leaks in long operations
+- [ ] Verificar pipeline de build completo
+  - Todos os 11 passos concluídos
+  - Todos os binários presentes
+  - Manifesto SHA256 inclui o mpm
 
-### Documentation (Mandatory)
-- [ ] 800+ lines technical specification
-- [ ] CLI examples for all 8 commands
-- [ ] Catalog format documented
-- [ ] Integration points with daemon/installer
-- [ ] README mentions MPM in model section
+**Tempo estimado:** 2 horas
+
+### Tempo Total de Implementação
+
+| Cenário                | Tempo      | Equipe      |
+| ---------------------- | ---------- | ----------- |
+| Desenvolvedor solo     | 14-15 dias | 1 pessoa    |
+| Com programação em par | 7-8 dias   | 2 pessoas   |
+| Equipe completa        | 5-6 dias   | 3-4 pessoas |
 
 ---
 
-## 17. Development Timeline & Phases
+## 16. Critérios de Sucesso
 
-### Phase 2 Schedule (Q2 2026, Week 1-2)
+### Qualidade de Código (Obrigatório)
 
-**Week 1: Core Implementation**
-- Monday-Tuesday: Types + Catalog (Phases 1-2)
-- Wednesday: Hardware detection (Phase 3)
-- Thursday-Friday: Download + Manager (Phases 4-5)
+- [ ] Todos os testes passando (13+ testes)
+- [ ] Detector de race limpo: `go test -race ./...`
+- [ ] Sem importações ou variáveis não utilizadas
+- [ ] 90%+ de cobertura de código em `internal/models`
+- [ ] Todas as funções exportadas possuem comentários de documentação
+- [ ] Sem erros de linting: `golangci-lint run ./...`
 
-**Week 2: Completion**
-- Monday: Search + CLI (Phases 6-7)
-- Tuesday-Wednesday: Testing (Phase 8)
-- Thursday-Friday: Build integration (Phase 9)
+### Funcionalidade (Obrigatório)
 
-**Week 3: Polish & Integration**
-- Bug fixes from testing
-- Performance optimization
-- Documentation finalization
-- Full system integration testing
+- [ ] `mpm list` exibe 7 modelos corretamente
+- [ ] `mpm detect` mostra especificações de hardware (núcleos, RAM, GPU)
+- [ ] `mpm recommend` faz recomendações sensatas
+- [ ] `mpm install qwen3-4b` concluído com sucesso
+- [ ] SHA256 verificado após o download
+- [ ] `mpm set-active` alterna modelos
+- [ ] Metadados do modelo persistidos em `metadata.json`
+- [ ] `mpm search` encontra modelos por tag
+- [ ] Saída JSON válida com a flag `--json`
 
-### Deliverables by EOW April 11
+### Integração (Obrigatório)
 
-1. ✅ `mpm.exe` binary (6MB)
-2. ✅ Catalog with 7 Qwen3 models
-3. ✅ Full test suite (13+ tests)
-4. ✅ Updated `build.ps1` (11 steps)
-5. ✅ Installer embedding configured
-6. ✅ SHA256 manifest updated
-7. ✅ Complete documentation
+- [ ] `mpm.exe` tem 6MB ou menos
+- [ ] `build.ps1` concluído em < 5 minutos
+- [ ] `vectora-setup.exe` contém o mpm.exe
+- [ ] Instalador extrai o mpm corretamente
+- [ ] Manifesto SHA256 inclui entrada do mpm
+- [ ] Sem alterações disruptivas no LPM ou daemon
 
-### Future Phases
+### Performance (Recomendado)
 
-**Phase 3 (Q2 2026, Week 3-4)**: Qwen3-Coder-Next, batch operations
-**Phase 4 (Q3 2026)**: Qwen3-VL (vision models)
-**Phase 5 (Q4 2026)**: Llama3.2, Mistral, custom catalogs
+- [ ] Detecção de hardware < 1 segundo
+- [ ] Recomendações de modelo < 100ms
+- [ ] Busca no catálogo < 500ms
+- [ ] Atualizações de progresso de download a cada 1 segundo
+- [ ] Sem vazamentos de memória em operações longas
+
+### Documentação (Obrigatório)
+
+- [ ] 800+ linhas de especificação técnica
+- [ ] Exemplos de CLI para todos os 8 comandos
+- [ ] Formato do catálogo documentado
+- [ ] Pontos de integração com o daemon/instalador
+- [ ] README menciona o MPM na seção de modelos
 
 ---
 
-## 18. Integration Points
+## 17. Cronograma de Desenvolvimento e Fases
 
-### Setup Installer Integration
+### Cronograma da Fase 2 (Q2 2026, Semana 1-2)
+
+**Semana 1: Implementação Principal**
+
+- Segunda-Terça: Tipos + Catálogo (Fases 1-2)
+- Quarta: Detecção de hardware (Fase 3)
+- Quinta-Sexta: Download + Gerenciador (Fases 4-5)
+
+**Semana 2: Conclusão**
+
+- Segunda: Busca + CLI (Fases 6-7)
+- Terça-Quarta: Testes (Fase 8)
+- Quinta-Sexta: Integração de build (Passo 9)
+
+**Semana 3: Polimento e Integração**
+
+- Correções de bugs dos testes
+- Otimização de performance
+- Finalização da documentação
+- Testes de integração de sistema completo
+
+### Entregáveis até o Final da Semana de 11 de Abril
+
+1. ✅ Binário `mpm.exe` (6MB)
+2. ✅ Catálogo com 7 modelos Qwen3
+3. ✅ Suíte de testes completa (13+ testes)
+4. ✅ `build.ps1` atualizado (11 passos)
+5. ✅ Embutimento no instalador configurado
+6. ✅ Manifesto SHA256 atualizado
+7. ✅ Documentação completa
+
+### Fases Futuras
+
+**Fase 3 (Q2 2026, Semana 3-4)**: Qwen3-Coder-Next, operações em lote
+**Fase 4 (Q3 2026)**: Qwen3-VL (modelos de visão)
+**Fase 5 (Q4 2026)**: Llama3.2, Mistral, catálogos personalizados
+
+---
+
+## 18. Pontos de Integração
+
+### Integração com o Instalador de Setup
+
 ```
 vectora-setup.exe
     ↓
-[1] Detect hardware (shared with LPM)
+[1] Detecta o hardware (compartilhado com o LPM)
     ↓
-[2] Recommend llama.cpp build (LPM)
+[2] Recomenda build do llama.cpp (LPM)
     ↓
-[3] Recommend AI model (MPM) ← NEW
+[3] Recomenda modelo de IA (MPM) ← NOVO
     ↓
-[4] User confirms
+[4] Usuário confirma
     ↓
-[5] Download both via LPM + MPM
+[5] Baixa ambos via LPM + MPM
     ↓
-[6] Save active model to metadata.json
+[6] Salva modelo ativo no metadata.json
     ↓
-[7] Setup complete
+[7] Setup concluído
 ```
 
-### Daemon Integration
+### Integração com o Daemon
+
 ```go
 manager, _ := models.NewModelManager()
 active, _ := manager.GetActive()
@@ -1052,44 +1109,47 @@ modelPath := manager.GetModelPath(active.ModelID)
 // → ~/.Vectora/models/qwen3-4b/qwen3-4b.gguf
 ```
 
-### CLI Integration
+### Integração CLI
+
 ```bash
-vectora chat --model qwen3-8b              # Use specific model
-vectora chat --detect                      # Auto-recommend
-mpm list                                   # List all models
-mpm recommend                              # Get recommendation
-mpm install --model $(mpm recommend)       # One-command install
+vectora chat --model qwen3-8b              # Usar modelo específico
+vectora chat --detect                      # Recomendação automática
+mpm list                                   # Listar todos os modelos
+mpm recommend                              # Obter recomendação
+mpm install --model $(mpm recommend)       # Instalação com um comando
 ```
 
 ---
 
-## 19. Maintenance & Updates
+## 19. Manutenção e Atualizações
 
-### When to Update Catalog
+### Quando Atualizar o Catálogo
 
-1. **New Qwen models released**: Add to `catalog.json`, rebuild
-2. **New GGUF quantizations available**: Update model entries
-3. **Hugging Face URLs change**: Edit `catalog.json` entries
-4. **Removal of deprecated models**: Remove from catalog
+1. **Novos modelos Qwen lançados**: Adicionar ao `catalog.json`, reconstruir
+2. **Novas quantizações GGUF disponíveis**: Atualizar entradas de modelos
+3. **URLs do Hugging Face alteradas**: Editar entradas do `catalog.json`
+4. **Remoção de modelos obsoletos**: Remover do catálogo
 
-### Version Management
+### Gerenciamento de Versão
 
-MPM uses `Version` field in each model entry for tracking:
-- When downloaded and verified
-- Which quantization was installed
-- Compatibility notes with llama.cpp versions
+O MPM usa o campo `Version` em cada entrada de modelo para rastreamento:
 
-### Future: Auto-Update
+- Quando baixado e verificado
+- Qual quantização foi instalada
+- Notas de compatibilidade com versões do llama.cpp
 
-Planned for Phase 3:
-- `mpm update-catalog` command
-- Fetch latest catalog from Hugging Face
-- Notify user of new model versions
-- One-click upgrades with automatic migration
+### Futuro: Atualização Automática
+
+Planejado para a Fase 3:
+
+- Comando `mpm update-catalog`
+- Buscar catálogo mais recente do Hugging Face
+- Notificar o usuário sobre novas versões de modelos
+- Upgrades com um clique com migração automática
 
 ---
 
-**Specification Version:** 1.0
-**Last Updated:** 2026-04-05
-**Status:** Ready for Implementation
-**Consolidated From:** MPM_SPECIFICATION.md + MPM_EXECUTIVE_SUMMARY.md + MPM_IMPLEMENTATION_CHECKLIST.md + MPM_PLANNING_COMPLETE.md
+**Versão da Especificação:** 1.0
+**Última Atualização:** 05/04/2026
+**Status:** Pronto para Implementação
+**Consolidado de:** MPM_SPECIFICATION.md + MPM_EXECUTIVE_SUMMARY.md + MPM_IMPLEMENTATION_CHECKLIST.md + MPM_PLANNING_COMPLETE.md
