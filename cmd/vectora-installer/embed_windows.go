@@ -16,11 +16,15 @@ var vectoraCliExe []byte
 //go:embed lpm.exe
 var lpmExe []byte
 
+//go:embed mpm.exe
+var mpmExe []byte
+
 func getInstallerAssets() map[string][]byte {
 	return map[string][]byte{
 		"vectora.exe":     vectoraExe,
 		"vectora-app.exe": vectoraAppExe,
 		"vectora-cli.exe": vectoraCliExe,
 		"lpm.exe":         lpmExe,
+		"mpm.exe":         mpmExe,
 	}
 }

@@ -272,6 +272,7 @@ func main() {
 				"vectora-app.exe",
 				"vectora-cli.exe",
 				"lpm.exe",
+				"mpm.exe",
 			}
 
 			for _, binName := range binariesToExtract {
