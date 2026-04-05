@@ -78,11 +78,13 @@ graph TD
 
 | Binário             | Localização                 | Rol                                                     | Tamanho | RAM                   |
 | ------------------- | --------------------------- | ------------------------------------------------------- | ------- | --------------------- |
-| `vectora`           | `cmd/vectora/`              | Daemon central, orquestrador IPC, sistema de bandeja    | ~5MB    | ~100MB                |
-| `vectora-app`       | `cmd/vectora-app/`          | Web UI embarcado (Wails + Next.js SSG)                  | ~40MB   | ~150MB (com renderer) |
-| `vectora-cli`       | `cmd/vectora/` (subcomando) | Interface Terminal baseada em Bubbletea                 | ~8MB    | <10MB                 |
-| `vectora-installer` | `cmd/vectora-installer/`    | Setup wizard (Fyne GUI) com downloader de llama.cpp     | ~15MB   | ~50MB                 |
-| `llama-sidecar`     | `cmd/llama/`                | Processo filho gerenciado, wrapper STDIO para llama.cpp | ~2MB    | Dinâmico              |
+| `vectora`           | `cmd/vectora/`              | Daemon central, orquestrador IPC, sistema de bandeja    | ~25MB   | ~100MB                |
+| `vectora-app`       | `cmd/vectora-app/`          | Web UI embarcado (Wails + Next.js SSG)                  | ~23MB   | ~150MB (com renderer) |
+| `vectora-cli`       | `cmd/vectora-cli/`          | Wrapper CLI para interface Terminal (Bubbletea)         | ~2.6MB  | <10MB                 |
+| `lpm` (LPM)         | `cmd/lpm/`                  | **Llama Package Manager** - Gerencia builds llama.cpp   | ~6.4MB  | <5MB                  |
+| `mpm` (MPM)         | `cmd/mpm/`                  | **Model Package Manager** - Gerencia modelos GGUF       | ~6MB    | <5MB                  |
+| `vectora-setup`     | `cmd/vectora-installer/`    | Setup wizard (Fyne GUI) - embarca todos os binários     | ~81MB   | ~50MB                 |
+| `vectora-tests`     | `cmd/tests/`                | Suite de testes automatizados                           | ~34MB   | Dinâmico              |
 
 ### 1.3 Padrão de Armazenamento e Diretórios
 
@@ -93,9 +95,19 @@ graph TD
 │   ├── vectora.db                 # bbolt (workspaces, sessions, settings)
 │   └── chroma_ws_{id}/            # Chromem-Go vector store por workspace
 ├── engines/
-│   ├── catalog.json               # Embarcado, lista de llama.cpp builds
-│   ├── llama-cpp-{version}/       # Binários do llama.cpp instalados
-│   └── qwen-{model}.gguf          # Modelos GGUF cachados
+│   ├── catalog.json               # Embarcado, lista de llama.cpp builds (LPM)
+│   ├── metadata.json              # Active build info
+│   └── llama-cpp-{version}/       # Binários do llama.cpp instalados
+├── models/                        # MPM - Model Package Manager
+│   ├── catalog.json               # Embarcado, lista de modelos GGUF
+│   ├── metadata.json              # Active model info
+│   ├── qwen3-7b/
+│   │   ├── qwen3-7b-q6_k.gguf     # Model weights (~7GB)
+│   │   ├── model.json             # Metadata
+│   │   └── qwen3-7b-q6_k.gguf.sha256
+│   └── qwen3.5-base-1.5b/
+│       ├── qwen3.5-base-1.5b.gguf
+│       └── model.json
 ├── backups/
 │   └── {uuid}-{filename}.bak      # GitBridge snapshots de alterações
 ├── logs/
@@ -971,6 +983,170 @@ type EngineManager interface {
     ListInstalled(ctx context.Context) ([]*EngineInfo, error)
     Uninstall(ctx context.Context, buildID string) error
 }
+```
+
+---
+
+## 8.5 MODELS: GERENCIADOR DE MODELOS (MPM) - `cmd/mpm` e `internal/models`
+
+### Overview
+
+**MPM (Model Package Manager)** é um gerenciador independente de modelos GGUF, similar ao LPM mas focado em modelos de IA (Qwen3, Qwen3.5, futuramente Llama, Mistral). Funciona como binário autônomo (`mpm.exe`) e pode ser chamado pelo daemon ou pelo instalador.
+
+**Diferença LPM vs MPM:**
+- **LPM:** Gerencia **compilações** de llama.cpp (o executor)
+- **MPM:** Gerencia **modelos** de IA (os pesos)
+
+Ambos são complementares e operam no mesmo diretório `~/.Vectora/`.
+
+### 8.5.1 Arquitetura
+
+```
+cmd/mpm/
+├── main.go              # CLI entry, subcommands (list, install, active, etc)
+└── commands.go          # Implementação de cada subcomando
+
+internal/models/
+├── types.go             # Model, Catalog, Hardware definitions
+├── catalog.go           # Catalog loading (embedded)
+├── detector.go          # Reusa DetectHardware() do internal/engines
+├── downloader.go        # HTTP download com resume via .partial
+├── integrity.go         # SHA256 verification
+├── manager.go           # ModelManager (orchestration)
+├── search.go            # Busca semântica em catalog
+├── catalog.json         # 80+ modelos embarcados
+├── manager_test.go      # Unit tests
+└── integration_test.go  # Integration tests
+```
+
+### 8.5.2 Modelos Suportados (Inicial)
+
+**Qwen3** (0.5B, 1.5B, 7B, 32B)
+- Q4_K_M, Q5_K_M, Q6_K, Q8_0 quantizations
+- Propósito geral, instruction-following
+- ~500MB a 32GB dependendo da variante
+
+**Qwen3.5-Base** (0.5B, 1.5B, 7B)
+- Lançado oficialmente Abril 2025
+- Melhor instruction-following que Qwen3
+- Tamanho reduzido (0.5GB a 7GB)
+
+**Futuros (Roadmap):**
+- Qwen3-Coder (Q2 2026)
+- Llama3.2 (Q3 2026)
+- Mistral (Q3 2026)
+
+### 8.5.3 Algoritmo de Recomendação
+
+```go
+func RecommendModel(hw *Hardware) (*Model, error) {
+    availableRAM := hw.RAM - 2.0  // Reserve 2GB for OS
+
+    // Tier 1: Perfect match (recommended RAM <= available)
+    // Tier 2: Largest model that fits
+    // Tier 3: Fallback to Qwen3.5-Base-0.5B (sempre cabe)
+}
+```
+
+**Exemplo:**
+- 16GB RAM → Recomenda Qwen3-7B
+- 6GB RAM → Recomenda Qwen3.5-Base-1.5B
+- 3GB RAM → Recomenda Qwen3.5-Base-0.5B
+
+### 8.5.4 CLI Subcommands
+
+```bash
+# List available models
+mpm list
+mpm list --family qwen3
+mpm list --json
+
+# Detect hardware and recommend
+mpm detect
+mpm recommend
+
+# Install a model
+mpm install --model qwen3-7b
+mpm install --model $(mpm recommend)
+
+# Manage installed models
+mpm active
+mpm set-active --model qwen3.5-base-1.5b
+
+# Search and filter
+mpm search "coding"
+mpm versions qwen3-7b
+```
+
+### 8.5.5 Download & Integrity
+
+- **Source:** Hugging Face GGUF files
+- **Resume:** Via `.partial` files (pode pausar/retomar)
+- **Verification:** SHA256 antes de usar
+- **Retry:** Exponential backoff (3 tentativas)
+- **Throttling:** Opcional bandwidth limiting
+
+### 8.5.6 Integration com Daemon
+
+```go
+// Em internal/llm/qwen.go
+import "github.com/Kaffyn/Vectora/internal/models"
+
+manager, err := models.NewModelManager()
+active, err := manager.GetActive()  // ~/.Vectora/models/metadata.json
+
+if active == nil {
+    // Auto-recommend and install
+    hw, _ := DetectHardware()
+    model, _ := manager.RecommendModel(hw)
+    manager.Install(ctx, model.ID)
+}
+
+modelPath := manager.GetModelPath(modelID)
+// → ~/.Vectora/models/qwen3-7b/qwen3-7b-q6_k.gguf
+```
+
+### 8.5.7 Build Integration
+
+Na `build.ps1`:
+
+```powershell
+# [6/11] Compile MPM
+go build -ldflags="-s -w" -o mpm.exe ./cmd/mpm
+
+# [8/11] Sync + Compile Installer
+Copy-Item "mpm.exe" "cmd/vectora-installer/" -Force
+go build -o vectora-setup.exe ./cmd/vectora-installer  # Embeds mpm.exe
+```
+
+No `cmd/vectora-installer/embed_windows.go`:
+
+```go
+//go:embed mpm.exe
+var mpmExe []byte
+
+func getInstallerAssets() map[string][]byte {
+    return map[string][]byte{
+        "vectora.exe": vectoraExe,
+        "mpm.exe":     mpmExe,      // NEW
+        "lpm.exe":     lpmExe,
+    }
+}
+```
+
+### 8.5.8 File Locations
+
+```
+~/.Vectora/models/
+├── catalog.json                  # Embedded list
+├── metadata.json                 # {"active": "qwen3-7b", ...}
+├── qwen3-7b/
+│   ├── qwen3-7b-q6_k.gguf        # ~7GB
+│   ├── qwen3-7b-q6_k.gguf.sha256 # Verification
+│   └── model.json                # Metadata
+└── qwen3.5-base-1.5b/
+    ├── qwen3.5-base-1.5b.gguf    # ~1.5GB
+    └── model.json
 ```
 
 ---
