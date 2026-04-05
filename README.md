@@ -95,7 +95,7 @@ Expose any workspace as an MCP server, feeding precise context directly into too
 
 3. **First Run:**
    - Vectora will appear in your system tray
-   - Click to open the Web UI in your default browser
+   - Click to open Vectora Desktop Application
    - Or open from Start Menu → Vectora
 
 ### Configuration
@@ -215,7 +215,7 @@ Vectora is not a single app — it is an ecosystem of interfaces sharing a commo
 | Interface           | Description                                                                                               |
 | ------------------- | --------------------------------------------------------------------------------------------------------- |
 | **Systray**         | The core daemon. Lives near your clock, orchestrates everything, ~100MB RAM.                              |
-| **Web UI (Wails)**  | Local desktop app powered by Next.js. Chat interface, workspace management, settings, and Index browsing. |
+| **Desktop App (Fyne)** | Native cross-platform desktop application. Chat interface, workspace management, settings, and Index browsing. |
 | **CLI (Bubbletea)** | Terminal interface. Minimal footprint, instant response.                                                  |
 | **MCP Server**      | Exposes Vectora's knowledge to external AI tools and IDEs.                                                |
 | **ACP Agent**       | Autonomous agent mode with filesystem and terminal access.                                                |
@@ -248,11 +248,11 @@ Vectora is written entirely in Go. The core runs as a lightweight systray daemon
 | Local Inference | llama-cli (pipes)        | Offline model execution (Qwen3)                             |
 | Installer       | Fyne                     | Cross-platform setup wizard                                 |
 | Tray            | systray                  | Core daemon and orchestrator                                |
-| Web UI          | Wails + Next.js (static) | Local desktop chat interface (located in `internal/app`)    |
+| Desktop App     | Fyne                     | Native cross-platform chat interface (TUI will follow)      |
 | CLI             | Bubbletea                | Terminal interface                                          |
 | Index Server    | Go (net/http)            | Vector dataset catalog and distribution                     |
 
-The Web UI is built with Next.js in static export mode from `internal/app`, embedded into the Wails binary via `go:embed`. The frontend communicates with the Go backend through Wails bindings — no HTTP server, no Node.js runtime, direct JS→Go function calls.
+Vectora Desktop is built with Fyne, a native cross-platform GUI framework. The application communicates with the Go backend through IPC (Unix pipes on Linux/macOS, Named Pipes on Windows) — no HTTP overhead, direct binary protocol communication, optimized for local AI operations.
 
 Designed to operate under **4GB of RAM** on modest hardware.
 

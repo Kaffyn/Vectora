@@ -56,7 +56,9 @@
       "Read(//c/Users/bruno/Desktop/Vectora __NEW_LINE_b21df6c7abd85238__ echo === VECTORA INSTALLER TEST \\(End-to-End\\) === echo echo Test 1: Installation with Qwen 0.6B model bin/vectora-installer.exe install --path /tmp/**)",
       "Bash(1 __NEW_LINE_b21df6c7abd85238__ echo echo '=== Installation Result ===' ls -lh /tmp/vectora-install-test/)",
       "Bash(grep -n \"func runCLIMode\" cmd/vectora-installer/*.go)",
-      "Bash(bin/vectora-installer.exe install:*)"
+      "Bash(bin/vectora-installer.exe install:*)",
+      "Bash(grep -rn \"Wails\\\\|Next\\\\.js\\\\|frontend\\\\|Web UI\" cmd/ internal/ --include=*.go)",
+      "Bash(grep -rn \"Wails\\\\|Next\\\\.js\\\\|Web UI\\\\|web app\\\\|web UI\\\\|web frontend\" cmd/ internal/ README* --include=\"*.go\" --include=\"*.md\")"
     ]
   }
 }

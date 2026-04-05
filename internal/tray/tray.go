@@ -16,7 +16,7 @@ import (
 
 var (
 	mStatus *systray.MenuItem
-	mWeb    *systray.MenuItem
+	mApp    *systray.MenuItem // Vectora Desktop Application
 	mCli    *systray.MenuItem
 	mProv   *systray.MenuItem
 	mGemini *systray.MenuItem
@@ -47,7 +47,7 @@ func onReady() {
 	mStatus.Disable()
 	systray.AddSeparator()
 
-	mWeb = systray.AddMenuItem("", "")
+	mApp = systray.AddMenuItem("", "")
 	mCli = systray.AddMenuItem("", "")
 	systray.AddSeparator()
 
@@ -93,9 +93,9 @@ func onReady() {
 	go func() {
 		for {
 			select {
-			case <-mWeb.ClickedCh:
+			case <-mApp.ClickedCh:
 				if infra.Logger != nil {
-					infra.Logger.Info("Open Web UI")
+					infra.Logger.Info("Open Vectora Desktop Application")
 				}
 			case <-mCli.ClickedCh:
 				if infra.Logger != nil {
@@ -140,7 +140,7 @@ func onReady() {
 				updateLabels()
 			case <-mSet.ClickedCh:
 				if infra.Logger != nil {
-					infra.Logger.Info("Open Settings (Opens Wails app in Settings view)")
+					infra.Logger.Info("Open Settings (Vectora Desktop)")
 				}
 			case <-mQuit.ClickedCh:
 				systray.Quit()
@@ -194,7 +194,7 @@ func switchProvider(id, secret string) {
 
 func updateLabels() {
 	mStatus.SetTitle(i18n.T("tray_status"))
-	mWeb.SetTitle(i18n.T("tray_open_web"))
+	mApp.SetTitle(i18n.T("tray_open_app"))
 	mCli.SetTitle(i18n.T("tray_open_cli"))
 
 	mProv.SetTitle(i18n.T("tray_provider"))

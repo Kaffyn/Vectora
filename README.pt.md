@@ -215,7 +215,7 @@ O Vectora não é um único app — é um ecossistema de interfaces compartilhan
 | Interface           | Descrição                                                                                                   |
 | ------------------- | ----------------------------------------------------------------------------------------------------------- |
 | **Systray**         | O daemon central. Vive perto do relógio, orquestra tudo, consome ~100MB de RAM.                             |
-| **Web UI (Wails)**  | App desktop local powered by Next.js. Interface de chat, gestão de workspaces, config e navegação no Index. |
+| **App Desktop (Fyne)** | Aplicação desktop nativa multiplataforma. Interface de chat, gestão de workspaces, config e navegação no Index. |
 | **CLI (Bubbletea)** | Interface de terminal. Footprint mínimo, resposta instantânea.                                              |
 | **Servidor MCP**    | Expõe o conhecimento do Vectora para ferramentas de IA externas e IDEs.                                     |
 | **Agente ACP**      | Modo agente autônomo com acesso ao sistema de arquivos e terminal.                                          |
@@ -248,11 +248,11 @@ O Vectora é escrito inteiramente em Go. O core roda como um daemon leve no syst
 | Inferência Local | llama-cli (pipes)          | Execução de modelos offline (Qwen3)                           |
 | Instalador       | Fyne                       | Assistente de configuração multiplataforma                    |
 | Tray             | systray                    | Daemon central e orquestrador                                 |
-| Web UI           | Wails + Next.js (estático) | Interface de chat desktop local (em `internal/app`)           |
+| App Desktop      | Fyne                       | Interface de chat desktop nativa (TUI em breve)              |
 | CLI              | Bubbletea                  | Interface de terminal                                         |
 | Index Server     | Go (net/http)              | Catálogo e distribuição de datasets vetoriais                 |
 
-O Web UI é construído com Next.js em modo de exportação estática a partir de `internal/app`, embarcado no binário Wails via `go:embed`. O frontend se comunica com o backend em Go através de bindings do Wails — sem servidor HTTP, sem runtime Node.js, chamadas diretas de funções JS→Go.
+Vectora Desktop é construído com Fyne, um framework GUI nativo multiplataforma. A aplicação se comunica com o backend em Go através de IPC (pipes Unix no Linux/macOS, Named Pipes no Windows) — sem overhead HTTP, protocolo binário direto otimizado para operações de IA local.
 
 Projetado para operar com **menos de 4GB de RAM** em hardware modesto.
 

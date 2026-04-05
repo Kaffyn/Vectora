@@ -1,6 +1,6 @@
 key,en,pt,es,fr
 tray_status,Status: Running,Status: Rodando,Estado: En ejecución,Statut : En cours
-tray_open_web,Open Web UI,Abrir Interface Web,Abrir Interfaz Web,Ouvrir l'Interface Web
+tray_open_app,Open Vectora Desktop,Abrir Vectora Desktop,Abrir Vectora Desktop,Ouvrir Vectora Desktop
 tray_open_cli,Open CLI Server,Abrir Terminal CLI,Abrir Terminal CLI,Ouvrir le Terminal CLI
 tray_provider,AI Provider,Provedor de IA base,Proveedor de IA,Fournisseur d'IA
 tray_prov_gemini,Gemini (Cloud),Gemini (Nuvem rápida),Gemini (Nube),Gemini (Cloud)

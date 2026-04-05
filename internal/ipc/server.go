@@ -113,14 +113,14 @@ func (s *Server) Start() error {
 	return nil
 }
 
-// StartDevHTTP starts a transient HTTP bridge for Next.js 'bun dev' mode.
-// This is NOT compiled in production Wails builds in a real scenario,
-// but here we keep it for local iteration flexibility.
+// StartDevHTTP starts a transient HTTP bridge for debugging IPC protocol.
+// This is used for testing and development purposes only.
+// Production Vectora Desktop uses native IPC connections via pipes/sockets.
 func (s *Server) StartDevHTTP(port int) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api/v1/", func(w http.ResponseWriter, r *http.Request) {
-		// Enable CORS for local Next.js dev server
+		// Enable CORS for debugging and testing
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PATCH")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")

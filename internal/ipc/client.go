@@ -107,7 +107,7 @@ func (c *Client) listenForResponses() {
 }
 
 // Send (RPC Caller)
-// Example of Invocation in pure Go Client or via JS Wails Bridge:
+// Example of Invocation in pure Go Client (Vectora Desktop via Fyne):
 // cl.Send(context.Background(), "workspace.query", reqStruct, &resStruct)
 func (c *Client) Send(ctx context.Context, method string, payload any, responseDest any) error {
 	bPayload, err := json.Marshal(payload)
