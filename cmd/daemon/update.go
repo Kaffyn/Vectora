@@ -25,9 +25,9 @@ type BinaryInfo struct {
 // Update all components or specified ones
 func runUpdate(components []string, checkOnly bool) error {
 	if checkOnly {
-		fmt.Println("🔍 Checking for available updates...\n")
+		fmt.Println("🔍 Checking for available updates...")
 	} else {
-		fmt.Println("🔍 Checking for updates and installing...\n")
+		fmt.Println("🔍 Checking for updates and installing...")
 	}
 
 	// If no components specified, update all

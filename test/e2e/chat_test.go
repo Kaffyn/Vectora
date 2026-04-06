@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/Kaffyn/Vectora/test"
-	"github.com/Kaffyn/Vectora/test/mocks"
 )
 
 // TestChatBasic tests basic chat functionality
