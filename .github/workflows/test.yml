@@ -1,6 +1,22 @@
 name: Tests
 
 on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/test.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
   workflow_dispatch:
 
 jobs:
