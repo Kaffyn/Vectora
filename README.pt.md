@@ -119,65 +119,6 @@ Exponha qualquer workspace como um servidor MCP, fornecendo contexto preciso dir
 - Cole sua chave da API Gemini
 - A chave é criptografada e armazenada apenas na sua máquina
 
-### Compilando do Código-Fonte
-
-Se você quer compilar o Vectora você mesmo:
-
-1. **Clone o repositório:**
-
-   ```bash
-   git clone https://github.com/Kaffyn/Vectora.git
-   cd Vectora
-   ```
-
-2. **Instale as dependências:**
-   - Veja [CONTRIBUTING.pt.md](CONTRIBUTING.pt.md) para instruções de configuração detalhadas
-   - Requer Go 1.22+, Node.js 20+, e Bun
-
-3. **Compile todos os componentes:**
-
-   ```bash
-   # Windows (PowerShell)
-   .\build.ps1
-
-   # macOS/Linux (Make)
-   make build-all
-   ```
-
-4. **Execute a aplicação:**
-   ```bash
-   ./build/vectora
-   ```
-
-### Resolução de Problemas de Instalação
-
-**"Windows protegeu seu PC"** ao executar o instalador
-
-- Clique em "Mais informações" → "Executar mesmo assim"
-- Isso é normal para instaladores não assinados; seus arquivos são seguros
-
-**O instalador fecha imediatamente**
-
-- Tente executar como Administrador: Clique direito → "Executar como administrador"
-- Verifique se seu antivírus não está bloqueando o instalador
-
-**Não consegue encontrar Vectora após a instalação**
-
-- Verifique sua bandeja do sistema (canto inferior direito no Windows, canto superior direito no macOS)
-- Ou procure por "Vectora" no Menu Iniciar
-
-**Modelos não baixam ou chat não funciona**
-
-- Certifique-se de ter conexão com internet (necessária para configuração inicial)
-- Verifique Configurações → Avançado para logs
-- Veja [CONTRIBUTING.pt.md](CONTRIBUTING.pt.md) para resolução de problemas detalhada
-
-### Obtendo Ajuda
-
-- **Documentação:** Veja [CONTRIBUTING.pt.md](CONTRIBUTING.pt.md) para guias de desenvolvedores
-- **Problemas:** [Reporte bugs no GitHub](https://github.com/Kaffyn/Vectora/issues)
-- **Dúvidas:** Inicie uma [Discussão](https://github.com/Kaffyn/Vectora/discussions)
-
 ---
 
 ## Provedores de IA
@@ -253,17 +194,17 @@ Ao operar em modo MCP ou ACP, o Vectora expõe um conjunto compartilhado de ferr
 
 O Vectora é escrito inteiramente em Go. O core roda como um daemon leve no systray orquestrado por **Cobra**, o framework CLI padrão da indústria para Go.
 
-| Componente       | Tecnologia          | Papel                                                           |
-| ---------------- | ------------------- | --------------------------------------------------------------- |
-| Vector DB        | chromem-go          | Busca semântica e embeddings                                    |
-| Key-Value DB     | bbolt               | Histórico de chat, logs, configuração                           |
-| Motor de IA      | langchaingo         | Abstração de LLM e provedor de embedding (Gemini, extensível)   |
-| Inferência Local | llama-cli (pipes)   | Execução de modelos offline (Qwen3)                             |
+| Componente       | Tecnologia          | Papel                                                                 |
+| ---------------- | ------------------- | --------------------------------------------------------------------- |
+| Vector DB        | chromem-go          | Busca semântica e embeddings                                          |
+| Key-Value DB     | bbolt               | Histórico de chat, logs, configuração                                 |
+| Motor de IA      | langchaingo         | Abstração de LLM e provedor de embedding (Gemini, extensível)         |
+| Inferência Local | llama-cli (pipes)   | Execução de modelos offline (Qwen3)                                   |
 | **Daemon Core**  | **Cobra + Systray** | **Daemon master: expõe CLI, Systray, IPC (local), API HTTP (remoto)** |
-| Instalador       | **Cobra + Fyne**    | **Modo dual: instalação CLI headless ou assistente gráfico**    |
-| App Desktop      | **Fyne**            | **Aplicação GUI nativa (subprocesso spawned, via IPC)**         |
-| Interface TUI    | **Bubbletea**       | **Interface de Terminal do Usuário (subprocesso spawned, via IPC)** |
-| Servidor Index   | Go (net/http)       | Catálogo e distribuição de datasets vetoriais                   |
+| Instalador       | **Cobra + Fyne**    | **Modo dual: instalação CLI headless ou assistente gráfico**          |
+| App Desktop      | **Fyne**            | **Aplicação GUI nativa (subprocesso spawned, via IPC)**               |
+| Interface TUI    | **Bubbletea**       | **Interface de Terminal do Usuário (subprocesso spawned, via IPC)**   |
+| Servidor Index   | Go (net/http)       | Catálogo e distribuição de datasets vetoriais                         |
 
 ### Por Que Cobra?
 
