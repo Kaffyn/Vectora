@@ -248,24 +248,9 @@ func isCLIMode() bool {
 }
 
 func runGUIMode() {
-	systemManager, _ := vecos.NewManager()
-	if systemManager != nil && !systemManager.IsRunningAsAdmin() {
-		// Attempt to restart as admin
-		exe, _ := os.Executable()
-		cwd, _ := os.Getwd()
-		args := strings.Join(os.Args[1:], " ")
-
-		psCmd := fmt.Sprintf("Start-Process -FilePath '%s' -Verb runas -WorkingDirectory '%s'", exe, cwd)
-		if args != "" {
-			psCmd += fmt.Sprintf(" -ArgumentList '%s'", args)
-		}
-
-		cmd := exec.Command("powershell", psCmd)
-		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-		if err := cmd.Start(); err == nil {
-			os.Exit(0)
-		}
-	}
+	// GUI mode uses AppData for installation, so no admin escalation needed
+	// Vectora now installs to AppData (C:\Users\{username}\AppData\Local\Vectora)
+	// which is user-writable and doesn't require admin privileges
 
 	isUninstallMode := false
 	if len(os.Args) >= 2 && os.Args[1] == "--uninstall" {
@@ -346,12 +331,40 @@ func runGUIMode() {
 	}
 
 	showAlreadyInstalled = func(existingPath string) {
-		lbl := widget.NewLabel("O motor já detectou instâncias do Vectora residentes no seu ambiente.")
-		btnUninstall := widget.NewButton("Desfazer Instalação Atual do Vectora (Wipe)", func() {
+		lbl := widget.NewLabel("O Vectora já está instalado no seu sistema. O que deseja fazer?")
+
+		// Botão para Reinstalar
+		btnReinstall := widget.NewButton("↻ Reinstalar Vectora", func() {
+			installPath = existingPath
+			showStepInstall()
+		})
+		btnReinstall.Importance = widget.HighImportance
+
+		// Botão para Gerenciar Modelos
+		btnManage := widget.NewButton("⚙️ Gerenciar Modelos e LlamaCpp", func() {
+			installPath = existingPath
+			showStepChooseModel()
+		})
+
+		// Botão para Desinstalar
+		btnUninstall := widget.NewButton("🗑️ Desfazer Instalação (Wipe)", func() {
 			showUninstallProgress(existingPath)
 		})
-		content := container.NewVBox(lbl, widget.NewLabel(""), container.NewHBox(btnUninstall))
-		w.SetContent(createLayout("App Detectado", content, nil, func() { w.Close() }, "Sair"))
+		btnUninstall.Importance = widget.LowImportance
+
+		// Grid com as opções
+		optionsGrid := container.NewGridWithColumns(1)
+		optionsGrid.Add(btnReinstall)
+		optionsGrid.Add(btnManage)
+		optionsGrid.Add(btnUninstall)
+
+		content := container.NewVBox(
+			lbl,
+			widget.NewLabel(""),
+			optionsGrid,
+		)
+
+		w.SetContent(createLayout("Vectora Detectado", content, nil, func() { w.Close() }, "Fechar"))
 	}
 
 	showStepLang = func() {
@@ -692,7 +705,7 @@ func runGUIMode() {
 		// Mapas para rastrear seleções
 		selectedModels := make(map[string]bool)
 
-		// Usar modelos recomendados apenas se detecção de hardware foi bem-sucedida
+		// Usar modelos recomendados se detecção de hardware foi bem-sucedida
 		if hardwareInfo != nil {
 			// Por padrão: usar modelo recomendado para o hardware + embedding compatível
 			if recommendedModel != nil && recommendedModel["id"] != nil {
@@ -718,6 +731,12 @@ func runGUIMode() {
 			} else {
 				selectedModels["qwen3-embedding-0.6b"] = true
 			}
+		} else {
+			// Se detecção de hardware falhou, selecionar modelos padrão sensatos
+			// Qwen 3 4B é um bom middle ground para maioria dos sistemas
+			selectedModels["qwen3-4b"] = true
+			// Embedding 0.6B é mais leve e funciona bem
+			selectedModels["qwen3-embedding-0.6b"] = true
 		}
 
 		// Helper para criar checkbox
@@ -895,20 +914,20 @@ func runGUIMode() {
 
 // Main function - delegates to CLI or GUI mode
 func main() {
-	// Hide console window on Windows
-	if runtime.GOOS == "windows" {
-		getConsoleWindow := syscall.NewLazyDLL("kernel32.dll").NewProc("GetConsoleWindow")
-		showWindow := syscall.NewLazyDLL("user32.dll").NewProc("ShowWindow")
-
-		hwnd, _, _ := getConsoleWindow.Call()
-		if hwnd != 0 {
-			showWindow.Call(hwnd, 0) // SW_HIDE = 0
-		}
-	}
-
+	// Check CLI mode BEFORE hiding console
 	if isCLIMode() {
 		runCLIMode()
 	} else {
+		// Hide console window on Windows ONLY for GUI mode
+		if runtime.GOOS == "windows" {
+			getConsoleWindow := syscall.NewLazyDLL("kernel32.dll").NewProc("GetConsoleWindow")
+			showWindow := syscall.NewLazyDLL("user32.dll").NewProc("ShowWindow")
+
+			hwnd, _, _ := getConsoleWindow.Call()
+			if hwnd != 0 {
+				showWindow.Call(hwnd, 0) // SW_HIDE = 0
+			}
+		}
 		runGUIMode()
 	}
 }
