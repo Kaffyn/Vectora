@@ -24,17 +24,22 @@ That happens because the AI has no access to _your_ context. Vectora fixes that.
 
 Vectora embeds your files and downloaded knowledge bases into isolated local vector databases. When you ask a question, it retrieves the most semantically relevant context from whichever workspaces you have active and sends everything — along with your question — to the language model.
 
-```markdown
-AI Base Model (Qwen / Gemini)     ← always present, fully general
-    + Workspace: Godot 4.2        ← downloaded from Vectora Index
-    + Workspace: Physics Papers   ← downloaded from Vectora Index
-    + Workspace: Your Files       ← added by you, private
-              ↓
-         Your Question
-              ↓
-         Retrieval across active workspaces
-              ↓
-           Answer
+```mermaid
+graph TD
+    A["🤖 AI Base Model<br/>(Qwen / Gemini)<br/>always present, fully general"]
+    B["📚 Workspace: Godot 4.2<br/>downloaded from Vectora Index"]
+    C["📊 Workspace: Physics Papers<br/>downloaded from Vectora Index"]
+    D["📁 Workspace: Your Files<br/>added by you, private"]
+    E["❓ Your Question"]
+    F["🔍 Retrieval across<br/>active workspaces"]
+    G["✨ Answer"]
+
+    A --> F
+    B --> F
+    C --> F
+    D --> F
+    E --> F
+    F --> G
 ```
 
 Each workspace is a completely isolated namespace. Contexts never bleed into each other. You control which workspaces are active per session.
@@ -101,12 +106,14 @@ Expose any workspace as an MCP server, feeding precise context directly into too
 ### Configuration
 
 **Option 1: Qwen (Local / Offline)** — Recommended for privacy
+
 - No setup required for basic functionality
 - Vectora automatically downloads Qwen3-7B on first run
 - Choose a different model from settings if desired
 - Models are stored locally in `%USERPROFILE%\.Vectora\models\`
 
 **Option 2: Gemini (Cloud / Multimodal)**
+
 - Go to Settings → LLM Providers
 - Click "Configure Gemini"
 - Paste your Gemini API key
@@ -117,6 +124,7 @@ Expose any workspace as an MCP server, feeding precise context directly into too
 If you want to build Vectora yourself:
 
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/Kaffyn/Vectora.git
    cd Vectora
@@ -127,6 +135,7 @@ If you want to build Vectora yourself:
    - Requires Go 1.22+, Node.js 20+, and Bun
 
 3. **Build all components:**
+
    ```bash
    # Windows (PowerShell)
    .\build.ps1
@@ -143,18 +152,22 @@ If you want to build Vectora yourself:
 ### Troubleshooting Installation
 
 **"Windows protected your PC"** when running installer
+
 - Click "More info" → "Run anyway"
 - This is normal for unsigned installers; your files are safe
 
 **Installer closes immediately**
+
 - Try running as Administrator: Right-click → "Run as administrator"
 - Check your antivirus isn't blocking the installer
 
 **Can't find Vectora after installation**
+
 - Check your system tray (bottom-right corner on Windows, top-right on macOS)
 - Or search for "Vectora" in Start Menu
 
 **Models won't download or chat doesn't work**
+
 - Ensure you have internet connection (required for initial setup)
 - Check Settings → Advanced for logs
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed troubleshooting
@@ -212,13 +225,13 @@ Vectora supports the new **Qwen3** and **Qwen3.5** lineage, optimized for differ
 
 Vectora is not a single app — it is an ecosystem of interfaces sharing a common core via IPC, all orchestrated by a lightweight systray daemon:
 
-| Interface           | Description                                                                                               |
-| ------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Systray**         | The core daemon. Lives near your clock, orchestrates everything, ~100MB RAM.                              |
+| Interface              | Description                                                                                                    |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Systray**            | The core daemon. Lives near your clock, orchestrates everything, ~100MB RAM.                                   |
 | **Desktop App (Fyne)** | Native cross-platform desktop application. Chat interface, workspace management, settings, and Index browsing. |
-| **CLI (Bubbletea)** | Terminal interface. Minimal footprint, instant response.                                                  |
-| **MCP Server**      | Exposes Vectora's knowledge to external AI tools and IDEs.                                                |
-| **ACP Agent**       | Autonomous agent mode with filesystem and terminal access.                                                |
+| **CLI (Bubbletea)**    | Terminal interface. Minimal footprint, instant response.                                                       |
+| **MCP Server**         | Exposes Vectora's knowledge to external AI tools and IDEs.                                                     |
+| **ACP Agent**          | Autonomous agent mode with filesystem and terminal access.                                                     |
 
 ---
 
@@ -238,21 +251,41 @@ When operating in MCP or ACP mode, Vectora exposes a shared set of tools built f
 
 ## Architecture
 
-Vectora is written entirely in Go. The core runs as a lightweight systray daemon and spawns other interfaces on demand via IPC.
+Vectora is written entirely in Go. The core runs as a lightweight systray daemon orchestrated by **Cobra**, the industry-standard CLI framework for Go.
 
-| Component       | Technology               | Role                                                        |
-| --------------- | ------------------------ | ----------------------------------------------------------- |
-| Vector DB       | chromem-go               | Semantic search and embeddings                              |
-| Key-Value DB    | bbolt                    | Chat history, logs, config                                  |
-| AI Engine       | langchaingo              | LLM and embedding provider abstraction (Gemini, extensible) |
-| Local Inference | llama-cli (pipes)        | Offline model execution (Qwen3)                             |
-| Installer       | Fyne                     | Cross-platform setup wizard                                 |
-| Tray            | systray                  | Core daemon and orchestrator                                |
-| Desktop App     | Fyne                     | Native cross-platform chat interface (TUI will follow)      |
-| CLI             | Bubbletea                | Terminal interface                                          |
-| Index Server    | Go (net/http)            | Vector dataset catalog and distribution                     |
+| Component       | Technology          | Role                                                                    |
+| --------------- | ------------------- | ----------------------------------------------------------------------- |
+| Vector DB       | chromem-go          | Semantic search and embeddings                                          |
+| Key-Value DB    | bbolt               | Chat history, logs, config                                              |
+| AI Engine       | langchaingo         | LLM and embedding provider abstraction (Gemini, extensible)             |
+| Local Inference | llama-cli (pipes)   | Offline model execution (Qwen3)                                         |
+| **Daemon Core** | **Cobra + Systray** | **Master daemon: exposes CLI, Systray, IPC (local), HTTP API (remote)** |
+| Installer       | **Cobra + Fyne**    | **Dual-mode: headless CLI install or graphical setup wizard**           |
+| Desktop App     | **Fyne**            | **Native GUI application (spawned subprocess, via IPC)**                |
+| Terminal UI     | **Bubbletea**       | **Terminal User Interface (spawned subprocess, via IPC)**               |
+| Index Server    | Go (net/http)       | Vector dataset catalog and distribution                                 |
 
-Vectora Desktop is built with Fyne, a native cross-platform GUI framework. The application communicates with the Go backend through IPC (Unix pipes on Linux/macOS, Named Pipes on Windows) — no HTTP overhead, direct binary protocol communication, optimized for local AI operations.
+### Why Cobra?
+
+**Cobra** serves as the unified CLI foundation for both the Installer and Daemon:
+
+- **Single Source of Truth**: The same business logic that runs `vectora install --headless` via terminal also powers the graphical installer. No divergence between CLI and GUI modes.
+- **No Sidecars**: The Daemon itself _is_ the CLI. Commands like `vectora status`, `vectora update`, `vectora logs` run directly without external scripts or wrappers.
+- **Automatic UX**: When you run `vectora` without flags, Cobra detects the environment and silently spawns the Fyne UI. In headless environments, it operates pure CLI.
+- **Headless First**: Essential for CI/CD, SSH deployments, and automation. A single binary works in interactive desktops, headless servers, and automation pipelines.
+
+### Interface Architecture
+
+```
+vectora [Cobra CLI] ← Single daemon binary
+├─ --headless → Pure CLI mode (no UI)
+├─ default → Systray + Fyne UI (auto-detect)
+├─ tui → Spawn Bubbletea TUI (subprocess)
+└─ http :8080 → HTTP API for MCP/ACP (always available)
+```
+
+**IPC** (pipes/named pipes) handles **local inter-process communication** between daemon and UI subprocesses.
+**HTTP** (required for MCP/ACP) handles **remote integrations** with external tools and IDEs — we're flexible here, not strict about IPC-only.
 
 Designed to operate under **4GB of RAM** on modest hardware.
 
