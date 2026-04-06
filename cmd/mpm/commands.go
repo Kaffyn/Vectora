@@ -7,7 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Kaffyn/Vectora/internal/models"
+	"github.com/Kaffyn/Vectora/models"
+	// models package provides model catalog, detection, and management
 )
 
 // handleList lista todos os modelos disponíveis

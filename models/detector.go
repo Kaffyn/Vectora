@@ -3,12 +3,12 @@ package models
 import (
 	"fmt"
 
-	engines "github.com/Kaffyn/Vectora/internal/engines"
+	engines "github.com/Kaffyn/Vectora/engines"
 )
 
 // DetectHardware detecta e retorna as capacidades de hardware do sistema
 func DetectHardware() (*Hardware, error) {
-	// Chamar a detecção existente de internal/engines
+	// Chamar a detecção existente de engines
 	engineHW, err := engines.DetectHardware()
 	if err != nil {
 		return nil, fmt.Errorf("hardware detection failed: %w", err)

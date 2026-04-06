@@ -20,7 +20,32 @@ Isso acontece porque a IA não tem acesso ao _seu_ contexto. O Vectora resolve i
 
 ---
 
-## Como Funciona
+## 🛡️ Segurança e Privacidade por Design
+
+### Hard-Coded Guardian (Sempre Ativo - Determinístico)
+
+- **Filtro de Sistema:** Independentemente do modo escolhido (Local ou Cloud), o Vectora possui uma camada de proteção interna imutável. As ferramentas de indexação e leitura **ignoram automaticamente** arquivos sensíveis como `.env`, `.key`, `.pem`, bancos de dados (`.db`, `.sqlite`) e binários executáveis (`.exe`, `.dll`, `.so`).
+- **Bloqueio na Fonte:** Esses arquivos nunca são lidos, nunca são embutidos no banco vetorial e nunca chegam ao motor de inferência (seja local ou via API).
+- **Garantia:** A segurança não depende da inteligência do modelo, mas de regras de sistema operacionais. Seus segredos estão protegidos mesmo se você estiver usando a nuvem.
+
+### Modo Local (Privacidade Total)
+
+- **Modelo Guardião:** O `Qwen3-Embedding` (0.6B) atua como o único processo autorizado para modificar o banco vetorial local e filtrar o conteúdo.
+- **Filtragem de Dados (DLP):** Antes de enviar qualquer prompt para a nuvem, o Vectora analisa o contexto recuperado. Se detectar padrões de segredos críticos (chaves, senhas) que passaram pelas camadas anteriores, ele alerta o usuário e bloqueia o envio.
+
+### Modo Cloud-Only (Aviso de Responsabilidade)
+
+- **Contexto Seguro:** Mesmo neste modo, o **Hard-Coded Guardian** impede a indexação de arquivos sensíveis. Apenas documentos legítimos (código-fonte, docs, scripts) são enviados para a API.
+- **Transferência de Dados:** Para utilizar as capacidades avançadas da nuvem (Gemini, Claude, etc.), o Vectora envia o contexto recuperado diretamente para o provedor de API.
+- **Isenção de Responsabilidade:** Ao ativar o Modo Cloud-Only, o usuário reconhece que está entregando o contexto recuperado para processamento em servidores de terceiros. A Kaffyn **não se responsabiliza** por eventuais vazamentos, uso indevido ou treinamento dos dados pelos provedores de IA externos. Recomendamos fortemente evitar o envio de informações sensíveis, chaves de produção ou código proprietário crítico neste modo.
+
+---
+
+## 📚 Vectora Index: O Coração do Conhecimento
+
+O **Vectora Index** é o ativo estratégico que separa o Vectora de outras IAs genéricas. É um marketplace curado de bases de conhecimento (datasets vetoriais).
+
+### Como Funciona
 
 O Vectora faz o embedding de seus arquivos e bases de conhecimento baixadas em bancos de dados vetoriais locais isolados. Quando você faz uma pergunta, ele recupera o contexto semanticamente mais relevante de quaisquer workspaces ativos e envia tudo — junto com sua pergunta — para o modelo de linguagem.
 
@@ -44,13 +69,15 @@ graph TD
 
 Cada workspace é um namespace completamente isolado. Contextos nunca vazam de um para outro. Você controla quais workspaces estão ativos por sessão.
 
----
+### Funcionalidades Principais
 
-## Vectora Index
-
-O Index é um marketplace curado de bases de conhecimento — datasets vetoriais pré-construídos publicados pela comunidade e revisados pela Kaffyn antes de estarem disponíveis para download.
-
-De dentro do app Vectora, você pode navegar pelo catálogo completo com busca e filtros, ler um README resumido para cada dataset descrevendo seu conteúdo, baixar qualquer dataset diretamente para seu Vectora local como um novo workspace e publicar suas próprias bases de conhecimento para outros usarem.
+- **Datasets Curados:** Documentação oficial (Godot 4.x, Python, Rust), artigos técnicos, especificações de engines e códigos-fonte de referência.
+- **Download Seguro:** Datasets baixados são indexados localmente. Após o download, nenhuma requisição de rede é feita na consulta.
+- **Re-Embedding Seguro:** Ao publicar um projeto no Index, o conteúdo é processado pelos servidores dedicados da Kaffyn usando `Qwen3-Embedding` antes de ser indexado. Isso garante qualidade máxima sem expor dados brutos a modelos públicos durante o processo.
+- **Compartilhamento Restritivo (RBAC):**
+  - **Privado:** Apenas você.
+  - **Equipe:** Compartilhe com membros específicos via Kaffyn Account. Defina permissões de leitura/escrita.
+  - **Público:** Disponível para todos no catálogo. Ao publicar publicamente, você aceita que outros façam RAG sobre esse dataset, mas o processo de indexação foi feito de forma segura.
 
 **Exemplos do que você encontrará no Index:**
 
@@ -83,16 +110,16 @@ Exponha qualquer workspace como um servidor MCP, fornecendo contexto preciso dir
 
 ### Requisitos de Sistema
 
-- **Windows 10+**, **macOS 11+**, ou **Linux** (Ubuntu/Debian)
-- **4GB RAM mínimo** (8GB recomendado)
-- **500MB espaço em disco** mínimo (mais para modelos maiores)
+- **OS:** Windows 10+, macOS 11+, Linux (Ubuntu/Debian).
+- **RAM:** **8GB Mínimo** (Total do Sistema). **16GB Recomendado**.
+- **Internet:** Necessária para configuração inicial e uso de modelos cloud.
 
 ### Download e Instalação
 
 1. **Baixe o instalador** de [última release](https://github.com/Kaffyn/Vectora/releases)
    - Windows: `vectora-setup.exe`
-   - macOS: `vectora-setup.dmg` (em breve)
-   - Linux: Instruções de instalação (em breve)
+   - macOS: `vectora-setup.dmg`
+   - Linux: `vectora-setup.deb`
 
 2. **Execute o instalador:**
    - Windows: Clique duplo em `vectora-setup.exe` e siga o assistente
@@ -166,13 +193,12 @@ O Vectora suporta as novas linhagens **Qwen3** e **Qwen3.5**, otimizadas para di
 
 O Vectora não é um único app — é um ecossistema de interfaces compartilhando um core comum via IPC, tudo orquestrado por um daemon leve no systray:
 
-| Interface              | Descrição                                                                                                       |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Systray**            | O daemon central. Vive perto do relógio, orquestra tudo, consome ~100MB de RAM.                                 |
-| **App Desktop (Fyne)** | Aplicação desktop nativa multiplataforma. Interface de chat, gestão de workspaces, config e navegação no Index. |
-| **CLI (Bubbletea)**    | Interface de terminal. Footprint mínimo, resposta instantânea.                                                  |
-| **Servidor MCP**       | Expõe o conhecimento do Vectora para ferramentas de IA externas e IDEs.                                         |
-| **Agente ACP**         | Modo agente autônomo com acesso ao sistema de arquivos e terminal.                                              |
+| Interface               | Descrição                                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Daemon Core (Cobra)** | O cérebro central. Gerencia ciclo de vida, instalação, atualizações e conexões.                                 |
+| **App Desktop (Fyne)**  | Aplicação desktop nativa multiplataforma. Interface de chat, gestão de workspaces, config e navegação no Index. |
+| **Vectora TUI**         | Interface de terminal interativa (antigo CLI). Footprint mínimo, resposta instantânea.                          |
+| **Servidor MCP/ACP**    | Expõe o conhecimento do Vectora para ferramentas de IA externas e IDEs via HTTP.                                |
 
 ---
 
@@ -194,17 +220,18 @@ Ao operar em modo MCP ou ACP, o Vectora expõe um conjunto compartilhado de ferr
 
 O Vectora é escrito inteiramente em Go. O core roda como um daemon leve no systray orquestrado por **Cobra**, o framework CLI padrão da indústria para Go.
 
-| Componente       | Tecnologia          | Papel                                                                 |
-| ---------------- | ------------------- | --------------------------------------------------------------------- |
-| Vector DB        | chromem-go          | Busca semântica e embeddings                                          |
-| Key-Value DB     | bbolt               | Histórico de chat, logs, configuração                                 |
-| Motor de IA      | langchaingo         | Abstração de LLM e provedor de embedding (Gemini, extensível)         |
-| Inferência Local | llama-cli (pipes)   | Execução de modelos offline (Qwen3)                                   |
-| **Daemon Core**  | **Cobra + Systray** | **Daemon master: expõe CLI, Systray, IPC (local), API HTTP (remoto)** |
-| Instalador       | **Cobra + Fyne**    | **Modo dual: instalação CLI headless ou assistente gráfico**          |
-| App Desktop      | **Fyne**            | **Aplicação GUI nativa (subprocesso spawned, via IPC)**               |
-| Interface TUI    | **Bubbletea**       | **Interface de Terminal do Usuário (subprocesso spawned, via IPC)**   |
-| Servidor Index   | Go (net/http)       | Catálogo e distribuição de datasets vetoriais                         |
+| Componente       | Tecnologia          | Papel                                                                                          |
+| ---------------- | ------------------- | ---------------------------------------------------------------------------------------------- |
+| Vector DB        | chromem-go          | Busca semântica e embeddings                                                                   |
+| Key-Value DB     | bbolt               | Histórico de chat, logs, configuração                                                          |
+| Motor de IA      | langchaingo         | Abstração de LLM e provedor de embedding (Gemini, extensível)                                  |
+| Inferência Local | llama-cli (pipes)   | Execução de modelos offline (Qwen3)                                                            |
+| **Daemon Core**  | **Cobra + Systray** | **Daemon master: expõe CLI, Systray, IPC (local), API HTTP (remoto)**                          |
+| Instalador       | **Cobra + Fyne**    | **Modo dual: instalação CLI headless ou assistente gráfico**                                   |
+| App Desktop      | **Fyne**            | **Aplicação GUI nativa (subprocesso spawned, via IPC)**                                        |
+| Interface TUI    | **Bubbletea**       | **Interface de Terminal do Usuário (subprocesso spawned, via IPC)**                            |
+| Servidor Index   | Go (net/http)       | Catálogo e distribuição de datasets vetoriais                                                  |
+| LPM/MPM          | **Cobra CLI**       | Ferramentas de linha de comando puras para gerenciamento de binários Llama.cpp e Modelos GGUF. |
 
 ### Por Que Cobra?
 
@@ -229,17 +256,6 @@ vectora [Cobra CLI] ← Binário daemon único
 **HTTP** (necessário para MCP/ACP) gerencia **integrações remotas** com ferramentas externas e IDEs — somos flexíveis aqui, não rigorosos apenas com IPC.
 
 Projetado para operar com **menos de 4GB de RAM** em hardware modesto.
-
----
-
-## Roadmap
-
-- [ ] Integração completa end-to-end (em progresso)
-- [ ] Primeiro release público
-- [ ] Lançamento público do Vectora Index
-- [ ] Indexação multimodal (imagens, PDFs) via Gemini
-- [ ] Transcrição e indexação de áudio
-- [ ] Site e documentação do Vectora
 
 ---
 

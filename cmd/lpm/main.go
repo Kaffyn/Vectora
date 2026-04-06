@@ -8,7 +8,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/Kaffyn/Vectora/internal/engines"
+	"github.com/Kaffyn/Vectora/engines"
 )
 
 func main() {

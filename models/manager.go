@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"github.com/Kaffyn/Vectora/internal/engines"
+	"github.com/Kaffyn/Vectora/engines"
 	vecos "github.com/Kaffyn/Vectora/internal/os"
 )
 
