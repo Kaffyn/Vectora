@@ -533,36 +533,45 @@ func runGUIMode() {
 		}
 
 		// Opções baseadas no GPU detectado
-		backendOptions := []string{"cpu - CPU (Compatível com todos, mais lento)"}
-		defaultBackend := "cpu"
+		type BackendOption struct {
+			id    string
+			label string
+		}
+		var backendOptions []BackendOption
+
+		backendOptions = append(backendOptions, BackendOption{"cpu", "💻 CPU"})
 
 		if gpuType == "cuda" {
-			backendOptions = append(backendOptions, "cuda - NVIDIA CUDA (Rápido em GPUs NVIDIA)")
-			backendOptions = append(backendOptions, "vulkan - Vulkan (Compatível com múltiplas GPUs)")
+			backendOptions = append(backendOptions, BackendOption{"cuda", "🎮 NVIDIA CUDA"})
+			backendOptions = append(backendOptions, BackendOption{"vulkan", "🌐 Vulkan"})
 		} else if gpuType == "metal" {
-			backendOptions = append(backendOptions, "metal - Metal (Otimizado para macOS)")
-			backendOptions = append(backendOptions, "vulkan - Vulkan (Compatível alternativo)")
+			backendOptions = append(backendOptions, BackendOption{"metal", "🍎 Metal"})
+			backendOptions = append(backendOptions, BackendOption{"vulkan", "🌐 Vulkan"})
 		} else if gpuType == "vulkan" || (gpuType != "none" && gpuType != "") {
-			backendOptions = append(backendOptions, "vulkan - Vulkan (Para sua placa de vídeo)")
+			backendOptions = append(backendOptions, BackendOption{"vulkan", "🌐 Vulkan"})
 		}
 
-		selectedBackend = defaultBackend
+		selectedBackend = "cpu"
 
-		backendSelect := widget.NewSelect(backendOptions, func(s string) {
-			parts := strings.Split(s, " - ")
-			if len(parts) > 0 {
-				selectedBackend = parts[0]
+		// Grid de botões para backends
+		backendGrid := container.NewGridWithColumns(2)
+		for _, opt := range backendOptions {
+			backend := opt.id
+			btn := widget.NewButton(opt.label, func() {
+				selectedBackend = backend
+			})
+			if backend == selectedBackend {
+				btn.Importance = widget.HighImportance
 			}
-		})
-		backendSelect.SetSelected(backendOptions[0])
-		backendSelect.PlaceHolder = "Selecione um backend..."
+			backendGrid.Add(btn)
+		}
 
 		content := container.NewVBox(
-			widget.NewLabel("Selecione o backend de processamento para llama.cpp:"),
+			widget.NewLabel("Selecione o backend para llama.cpp:"),
 			widget.NewLabel(""),
-			container.NewPadded(backendSelect),
+			backendGrid,
 			widget.NewLabel(""),
-			widget.NewLabel(fmt.Sprintf("🎮 GPU Detectado: %s", gpuType)),
+			widget.NewLabel(fmt.Sprintf("🎮 GPU: %s", gpuType)),
 		)
 
 		nextCmd := func() {
@@ -657,12 +666,21 @@ func runGUIMode() {
 
 		if len(embeddingModels) > 0 {
 			modelsContent.Add(widget.NewLabel(""))
-			modelsContent.Add(widget.NewLabel("📚 Modelos Embedding (Necessários para busca):"))
+			modelsContent.Add(widget.NewLabel("📚 Modelos Embedding (para busca semântica):"))
 			embGrid := container.NewGridWithColumns(3)
 			for _, m := range embeddingModels {
 				id := m["id"].(string)
 				name := m["name"].(string)
-				embGrid.Add(createCheckbox(id, name, selectedModels))
+				// Extrair tamanho do nome (ex: "qwen3-embed-small" -> "Small")
+				var displayName string
+				if strings.Contains(id, "small") {
+					displayName = fmt.Sprintf("%s\n(80M params)", name)
+				} else if strings.Contains(id, "large") {
+					displayName = fmt.Sprintf("%s\n(2B params)", name)
+				} else {
+					displayName = name
+				}
+				embGrid.Add(createCheckbox(id, displayName, selectedModels))
 			}
 			modelsContent.Add(embGrid)
 		}
@@ -680,13 +698,12 @@ func runGUIMode() {
 		}
 
 		modelsScroll := container.NewScroll(modelsContent)
-		modelsScroll.SetMinSize(fyne.NewSize(650, 300))
+		modelsScroll.SetMinSize(fyne.NewSize(600, 200))
 
 		content := container.NewVBox(
 			widget.NewLabel(fmt.Sprintf("🔍 Recomendado: %s", recommendedModel["name"])),
-			widget.NewLabel(""),
 			hardwareInfo,
-			widget.NewLabel("Selecione modelos para instalar (com Shift/Ctrl+clique para múltipla):"),
+			widget.NewLabel("Selecione modelos para instalar:"),
 			modelsScroll,
 		)
 
