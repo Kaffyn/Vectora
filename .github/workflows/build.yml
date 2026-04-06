@@ -80,9 +80,9 @@ jobs:
           GOARCH: ${{ matrix.arch }}
           CGO_ENABLED: 0
 
-      - name: Build vectora-installer
+      - name: Build vectora-setup
         run: |
-          go build -v -o bin/vectora-installer${{ matrix.artifact_suffix }} ./cmd/vectora-installer
+          go build -v -o bin/vectora-setup${{ matrix.artifact_suffix }} ./cmd/setup
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}

@@ -143,7 +143,7 @@ jobs:
         run: |
           go build -v -ldflags="-s -w" -o bin/vectora${{ matrix.artifact_suffix }} ./cmd/vectora
           go build -v -ldflags="-s -w" -o bin/vectora-cli${{ matrix.artifact_suffix }} ./cmd/vectora-cli
-          go build -v -ldflags="-s -w" -o bin/vectora-installer${{ matrix.artifact_suffix }} ./cmd/vectora-installer
+          go build -v -ldflags="-s -w" -o bin/vectora-setup${{ matrix.artifact_suffix }} ./cmd/setup
           go build -v -ldflags="-s -w" -o bin/mpm${{ matrix.artifact_suffix }} ./cmd/mpm
           go build -v -ldflags="-s -w" -o bin/lpm${{ matrix.artifact_suffix }} ./cmd/lpm
         env:
@@ -175,7 +175,7 @@ jobs:
           files: |
             bin/vectora${{ matrix.artifact_suffix }}
             bin/vectora-cli${{ matrix.artifact_suffix }}
-            bin/vectora-installer${{ matrix.artifact_suffix }}
+            bin/vectora-setup${{ matrix.artifact_suffix }}
             bin/mpm${{ matrix.artifact_suffix }}
             bin/lpm${{ matrix.artifact_suffix }}
             checksums-${{ matrix.os }}-${{ matrix.arch }}.txt

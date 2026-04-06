@@ -74,7 +74,7 @@ jobs:
           mkdir -p bin
           go build -o bin/vectora ./cmd/vectora
           go build -o bin/vectora-cli ./cmd/vectora-cli
-          go build -o bin/vectora-installer ./cmd/vectora-installer
+          go build -o bin/vectora-setup ./cmd/setup
           go build -o bin/mpm ./cmd/mpm
           go build -o bin/lpm ./cmd/lpm
 
