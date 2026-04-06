@@ -3,30 +3,30 @@ package assets
 import _ "embed"
 
 // Core application icons
-//go:embed logo.ico
+//go:embed vectora.ico
 var VectoraIconData []byte
 
-//go:embed cli_icon.ico
+//go:embed tui.ico
 var VectoraTUIIconData []byte
 
-//go:embed app_icon.ico
+//go:embed desktop.ico
 var VectoraDesktopIconData []byte
 
-//go:embed installer_icon.ico
+//go:embed setup.ico
 var VectoraSetupIconData []byte
 
-//go:embed llama_logo.ico
+//go:embed lpm.ico
 var LPMIconData []byte
 
-//go:embed app_icon.ico
+//go:embed vectora.ico
 var MPMIconData []byte
 
 // Legacy aliases for compatibility
-//go:embed logo.ico
+//go:embed vectora.ico
 var IconData []byte
 
-//go:embed test_icon.ico
+//go:embed test.ico
 var TestIconData []byte
 
-//go:embed installer_icon.ico
+//go:embed setup.ico
 var InstallerIconData []byte
