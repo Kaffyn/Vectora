@@ -108,13 +108,13 @@ Exponha qualquer workspace como um servidor MCP, fornecendo contexto preciso dir
 
 ## Instalação
 
-### Requisitos de Sistema
+**Requisitos de Sistema:**
 
 - **OS:** Windows 10+, macOS 11+, Linux (Ubuntu/Debian).
 - **RAM:** **8GB Mínimo** (Total do Sistema). **16GB Recomendado**.
 - **Internet:** Necessária para configuração inicial e uso de modelos cloud.
 
-### Download e Instalação
+**Download e Instalação:**
 
 1. **Baixe o instalador** de [última release](https://github.com/Kaffyn/Vectora/releases)
    - Windows: `vectora-setup.exe`
@@ -130,7 +130,7 @@ Exponha qualquer workspace como um servidor MCP, fornecendo contexto preciso dir
    - Clique para abrir a interface web no seu navegador padrão
    - Ou abra pelo Menu Iniciar → Vectora
 
-### Configuração
+**Configuração:**
 
 **Opção 1: Qwen (Local / Offline)** — Recomendado para privacidade
 
@@ -139,7 +139,7 @@ Exponha qualquer workspace como um servidor MCP, fornecendo contexto preciso dir
 - Escolha um modelo diferente nas configurações se desejar
 - Modelos são armazenados localmente em `%USERPROFILE%\.Vectora\models\`
 
-**Opção 2: Gemini (Nuvem / Multimodal)**
+**Opção 2: Gemini (Nuvem / Multimodal):**
 
 - Vá para Configurações → Provedores de LLM
 - Clique em "Configurar Gemini"
@@ -164,26 +164,7 @@ Ambos os provedores incluem modelos de embedding dedicados. O Vectora não depen
 
 O Vectora suporta as novas linhagens **Qwen3** e **Qwen3.5**, otimizadas para diferentes frentes de desenvolvimento:
 
-**Propósito Geral & Instruct**
-
-- **Qwen3 (0.6B/1.7B/4B/8B):** Modelos leves de seguimento de instruções para tarefas gerais, resumização e geração de conteúdo. Footprint pequeno, ideal para ambientes com recursos limitados.
-
-**Código & Raciocínio**
-
-- **Qwen3-Coder-Next (80B):** O estado da arte para refatoração massiva e arquitetura de sistemas.
-- **Qwen3-4B-Thinking (2507):** Modelo de raciocínio lógico (Chain-of-Thought) para resolução de bugs complexos.
-
-**Visão & Multimodal (Thinking VL)**
-
-- **Qwen3-VL-Thinking (2B/8B):** Modelos de visão que "pensam" sobre a imagem, ideais para analisar screenshots de bugs de interface ou diagramas de arquitetura.
-- **Qwen3-VL-Embedding (2B):** Vetorização de ativos visuais e diagramas para busca semântica em GDDs.
-
-**Áudio & Voz (ASR/TTS)**
-
-- **Qwen3-ASR (0.6B):** Transcrição ultrarrápida de reuniões de sprint e áudios de feedback.
-- **Qwen3-TTS-VoiceDesign (1.7B):** Síntese de voz de alta fidelidade (12Hz) para prototipagem de diálogos em tempo real.
-
-**RAG & Embeddings**
+- **Qwen3 (1.7B/4B/8B):** Modelos leves de seguimento de instruções para tarefas gerais, resumização e geração de conteúdo. Footprint pequeno, ideal para ambientes com recursos limitados.
 
 - **Qwen3-Embedding (0.6B/4B/8B):** Os motores de busca vetorial que alimentam o chromem-go. **Recomendamos a versão 0.6B** para o limite rigoroso de 4GB de RAM, garantindo que o contexto do seu código seja recuperado com precisão sem comprometer a performance do sistema.
 
