@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -329,7 +330,8 @@ func runGUIMode() {
 			langGrid.Add(btn)
 		}
 
-		content.Add(langGrid)
+		content.Add(widget.NewLabel(""))
+		content.Add(container.NewPadded(langGrid))
 		w.SetContent(createLayout("Linguagem Padrão", content, showStepWelcome, showStepPath, "Avançar >"))
 	}
 
@@ -552,11 +554,12 @@ func runGUIMode() {
 			}
 		})
 		backendSelect.SetSelected(backendOptions[0])
+		backendSelect.PlaceHolder = "Selecione um backend..."
 
 		content := container.NewVBox(
 			widget.NewLabel("Selecione o backend de processamento para llama.cpp:"),
 			widget.NewLabel(""),
-			backendSelect,
+			container.NewPadded(backendSelect),
 			widget.NewLabel(""),
 			widget.NewLabel(fmt.Sprintf("🎮 GPU Detectado: %s", gpuType)),
 		)
@@ -642,7 +645,7 @@ func runGUIMode() {
 
 		if len(normalModels) > 0 {
 			modelsContent.Add(widget.NewLabel("📦 Modelos Padrão:"))
-			normalGrid := container.NewGridWithColumns(1)
+			normalGrid := container.NewGridWithColumns(3)
 			for _, m := range normalModels {
 				id := m["id"].(string)
 				name := m["name"].(string)
@@ -654,7 +657,7 @@ func runGUIMode() {
 		if len(embeddingModels) > 0 {
 			modelsContent.Add(widget.NewLabel(""))
 			modelsContent.Add(widget.NewLabel("📚 Modelos Embedding (Necessários para busca):"))
-			embGrid := container.NewGridWithColumns(1)
+			embGrid := container.NewGridWithColumns(3)
 			for _, m := range embeddingModels {
 				id := m["id"].(string)
 				name := m["name"].(string)
@@ -666,7 +669,7 @@ func runGUIMode() {
 		if len(vlModels) > 0 {
 			modelsContent.Add(widget.NewLabel(""))
 			modelsContent.Add(widget.NewLabel("👁️ Modelos Vision:"))
-			vlGrid := container.NewGridWithColumns(1)
+			vlGrid := container.NewGridWithColumns(3)
 			for _, m := range vlModels {
 				id := m["id"].(string)
 				name := m["name"].(string)
@@ -808,6 +811,17 @@ func runGUIMode() {
 
 // Main function - delegates to CLI or GUI mode
 func main() {
+	// Hide console window on Windows
+	if runtime.GOOS == "windows" {
+		getConsoleWindow := syscall.NewLazyDLL("kernel32.dll").NewProc("GetConsoleWindow")
+		showWindow := syscall.NewLazyDLL("user32.dll").NewProc("ShowWindow")
+
+		hwnd, _, _ := getConsoleWindow.Call()
+		if hwnd != 0 {
+			showWindow.Call(hwnd, 0) // SW_HIDE = 0
+		}
+	}
+
 	if isCLIMode() {
 		runCLIMode()
 	} else {
