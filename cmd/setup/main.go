@@ -28,6 +28,22 @@ import (
 	"github.com/jeandeaual/go-locale"
 )
 
+// Constantes de versionamento - atualizadas durante build
+const (
+	VERSION = "1.0.0"
+)
+
+var (
+	// VersionHash é injetado durante build via ldflags
+	VersionHash = "development"
+)
+
+// VersionInfo representa a versão instalada
+type VersionInfo struct {
+	Version string
+	Hash    string
+}
+
 var installPath string
 var w fyne.Window
 var selectedModel string
@@ -186,6 +202,91 @@ func installModel(installDir string, modelID string) (string, error) {
 	return callMPM("install", "--model", modelID)
 }
 
+// ======== Funções de Versionamento ========
+
+// ReadInstalledVersion lê version.txt da instalação existente
+func ReadInstalledVersion(installDir string) (*VersionInfo, error) {
+	versionFile := filepath.Join(installDir, "version.txt")
+
+	data, err := os.ReadFile(versionFile)
+	if err != nil {
+		return nil, fmt.Errorf("arquivo de versão não encontrado: %w", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) < 2 {
+		return nil, fmt.Errorf("formato de arquivo de versão inválido")
+	}
+
+	info := &VersionInfo{}
+
+	// Parse VERSION= e HASH=
+	for _, line := range lines {
+		if strings.HasPrefix(line, "VERSION=") {
+			info.Version = strings.TrimPrefix(line, "VERSION=")
+		} else if strings.HasPrefix(line, "HASH=") {
+			info.Hash = strings.TrimPrefix(line, "HASH=")
+		}
+	}
+
+	return info, nil
+}
+
+// WriteVersionFile cria/atualiza version.txt na instalação
+func WriteVersionFile(installDir string) error {
+	versionFile := filepath.Join(installDir, "version.txt")
+
+	content := fmt.Sprintf("VERSION=%s\nHASH=%s\n", VERSION, VersionHash)
+	return os.WriteFile(versionFile, []byte(content), 0644)
+}
+
+// CompareVersions detecta se atualização é necessária
+// Retorna: (needsUpdate bool, reason string)
+func CompareVersions(installed, current *VersionInfo) (bool, string) {
+	// Versão mais nova sempre requer update
+	if installed.Version != current.Version {
+		return true, fmt.Sprintf("Nova versão disponível: %s → %s", installed.Version, current.Version)
+	}
+
+	// Mesma versão mas hash diferente = binários mudaram
+	if installed.Hash != current.Hash {
+		return true, fmt.Sprintf("Atualização de segurança/correção disponível (hash diferente)")
+	}
+
+	return false, ""
+}
+
+// UpdateInstallation atualiza apenas os executáveis, preservando dados
+func UpdateInstallation(installDir string) error {
+	// Extrair novos binários sobre os existentes
+	assets := getInstallerAssets()
+	binariesToUpdate := []string{
+		"vectora.exe",
+		"vectora-cli.exe",
+		"lpm.exe",
+		"mpm.exe",
+	}
+
+	for _, binName := range binariesToUpdate {
+		if binData, exists := assets[binName]; exists && len(binData) > 0 {
+			target := filepath.Join(installDir, binName)
+			// Substituir arquivo mantendo permissões
+			if err := os.WriteFile(target, binData, 0755); err != nil {
+				return fmt.Errorf("falha ao atualizar %s: %w", binName, err)
+			}
+		}
+	}
+
+	// Atualizar version.txt
+	if err := WriteVersionFile(installDir); err != nil {
+		return fmt.Errorf("falha ao atualizar version.txt: %w", err)
+	}
+
+	return nil
+}
+
+// ======== Fim de Funções de Versionamento ========
+
 func createLayout(titleText string, content fyne.CanvasObject, backFunc func(), nextFunc func(), nextLabel string) *fyne.Container {
 	title := canvas.NewText(titleText, color.RGBA{R: 75, G: 58, B: 240, A: 255})
 	title.TextSize = 28
@@ -298,7 +399,7 @@ func runGUIMode() {
 	var showStepLang, showStepPath, showStepInstall func()
 	var showStepConfigMode, showStepConfigGemini, showStepConfigQwen, showStepFinish func()
 	var showStepDetectHardware, showStepRecommendModel, showStepSelectBackend, showStepChooseModel, showStepInstallModel func()
-	var showUninstallProgress, showAlreadyInstalled func(string)
+	var showUninstallProgress, showUpdateProgress, showAlreadyInstalled func(string)
 
 	showUninstallProgress = func(existingPath string) {
 		progress := widget.NewProgressBar()
@@ -330,13 +431,89 @@ func runGUIMode() {
 		}()
 	}
 
-	showAlreadyInstalled = func(existingPath string) {
-		lbl := widget.NewLabel("O Vectora já está instalado no seu sistema. O que deseja fazer?")
+	showUpdateProgress = func(updatePath string) {
+		progress := widget.NewProgressBar()
+		progress.SetValue(0.0)
 
-		// Botão para Reinstalar
+		statusLbl := widget.NewLabel("Atualizando executáveis do Vectora...")
+		content := container.NewVBox(statusLbl, progress)
+		wrapper := createLayout("Atualizando Vectora", content, nil, nil, "Finalizar")
+		w.SetContent(wrapper)
+
+		go func() {
+			for i := 0; i <= 20; i++ {
+				time.Sleep(time.Millisecond * 30)
+				progress.SetValue(float64(i) / 20.0)
+			}
+
+			// Executar apenas atualização (preserva dados)
+			if err := UpdateInstallation(updatePath); err != nil {
+				dialog.ShowError(err, w)
+				return
+			}
+
+			progress.SetValue(1.0)
+			statusLbl.SetText("Atualização Concluída com Sucesso! ✓")
+			time.Sleep(1000 * time.Millisecond)
+
+			doneContent := container.NewVBox(
+				widget.NewLabel("Vectora foi atualizado com sucesso."),
+				widget.NewLabel(""),
+				widget.NewLabel("Todos os seus dados foram preservados:"),
+				widget.NewLabel("• Configurações"),
+				widget.NewLabel("• Banco de dados"),
+				widget.NewLabel("• Índices Chroma"),
+			)
+			w.SetContent(createLayout("Atualização Concluída", doneContent, nil, func() { w.Close() }, "Fechar"))
+		}()
+	}
+
+	showAlreadyInstalled = func(existingPath string) {
+		// Ler versão instalada
+		installedVersion, err := ReadInstalledVersion(existingPath)
+		if err != nil {
+			installedVersion = nil // Versão antiga, sem version.txt
+		}
+
+		// Criar VersionInfo da versão atual (setup em execução)
+		currentVersion := &VersionInfo{
+			Version: VERSION,
+			Hash:    VersionHash,
+		}
+
+		// Verificar se atualização é necessária
+		needsUpdate := false
+		updateReason := ""
+		if installedVersion != nil {
+			needsUpdate, updateReason = CompareVersions(installedVersion, currentVersion)
+		} else {
+			// Arquivo version.txt não existe (instalação muito antiga)
+			needsUpdate = true
+			updateReason = "Instalação detectada, versão desconhecida"
+		}
+
+		// Preparar mensagem
+		var mainLabel string
+		if needsUpdate {
+			mainLabel = fmt.Sprintf("O Vectora já está instalado.\n\n⚠️ %s", updateReason)
+		} else {
+			mainLabel = "O Vectora já está instalado no seu sistema. O que deseja fazer?"
+		}
+
+		lbl := widget.NewLabel(mainLabel)
+
+		// NOVO: Botão de Atualizar (aparece apenas se necessário)
+		// Atualizar = apenas novos executáveis, dados preservados
+		btnUpdate := widget.NewButton("⬆️ Atualizar Vectora", func() {
+			installPath = existingPath
+			showUpdateProgress(existingPath)
+		})
+		btnUpdate.Importance = widget.HighImportance
+
+		// Botão para Reinstalar (desinstalação completa + instalação limpa)
 		btnReinstall := widget.NewButton("↻ Reinstalar Vectora", func() {
 			installPath = existingPath
-			showStepInstall()
+			showUninstallProgress(existingPath)
 		})
 		btnReinstall.Importance = widget.HighImportance
 
@@ -354,6 +531,12 @@ func runGUIMode() {
 
 		// Grid com as opções
 		optionsGrid := container.NewGridWithColumns(1)
+
+		// Adicionar botão de update primeiro se necessário
+		if needsUpdate {
+			optionsGrid.Add(btnUpdate)
+		}
+
 		optionsGrid.Add(btnReinstall)
 		optionsGrid.Add(btnManage)
 		optionsGrid.Add(btnUninstall)
@@ -502,6 +685,13 @@ func runGUIMode() {
 			copySysFile(srcSelf, uninstallerPath)
 
 			systemManager.RegisterApp(installPath)
+
+			// Escrever version.txt (APENAS em instalações novas)
+			if err := WriteVersionFile(installPath); err != nil {
+				fmt.Printf("[WARNING] Falha ao escrever version.txt: %v\n", err)
+				// Não interromper instalação se falhar
+			}
+
 			progress.SetValue(1.0)
 
 			doneContent := container.NewVBox(widget.NewLabel(i18n.T("inst_install_done")), widget.NewLabel(""), widget.NewLabel(i18n.T("inst_configure_engine")))

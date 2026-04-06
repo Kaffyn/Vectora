@@ -240,7 +240,17 @@ func RegisterRoutes(
 		return map[string]bool{"success": true}, nil
 	})
 
+	// [13] app.update.check - Verificar atualizações disponíveis
+	server.Register("app.update.check", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+		return HandleUpdateCheck(ctx, payload)
+	})
+
+	// [14] app.update.execute - Executar atualizações (streaming via broadcast)
+	server.Register("app.update.execute", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+		return HandleUpdateExecute(ctx, payload, server)
+	})
+
 	// TODO: Model management handlers to be implemented
-	// [13-18] model.list, model.detect, model.recommend, model.install, model.active, model.set-active
+	// [15-20] model.list, model.detect, model.recommend, model.install, model.active, model.set-active
 	// These will be added in Phase 3 after core IPC stabilization
 }

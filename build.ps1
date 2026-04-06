@@ -41,6 +41,39 @@ Write-Host ""
 Write-Host "System: Windows ($ARCH -> $GOARCH_HOST)"
 Write-Host ""
 
+# Function to generate deterministic build hash based on binary files
+function Generate-BuildHash {
+    param([string]$BinDir)
+
+    # Files that compose the hash
+    $hashFiles = @(
+        "$BinDir/vectora-windows-amd64.exe",
+        "$BinDir/mpm-windows-amd64.exe",
+        "$BinDir/lpm-windows-amd64.exe"
+    )
+
+    # Concatenate SHA256 of all files
+    $combinedHash = ""
+    foreach ($file in $hashFiles) {
+        if (Test-Path $file) {
+            $fileHash = (Get-FileHash $file -Algorithm SHA256).Hash
+            $combinedHash += $fileHash
+        }
+    }
+
+    # Return first 16 characters of SHA256 of combined hash
+    if ($combinedHash -ne "") {
+        $utf8 = [System.Text.Encoding]::UTF8
+        $hashBytes = $utf8.GetBytes($combinedHash)
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        $hashResult = $sha256.ComputeHash($hashBytes)
+        $finalHash = -join ($hashResult | ForEach-Object { "{0:x2}" -f $_ })
+        return $finalHash.Substring(0, [Math]::Min(16, $finalHash.Length))
+    }
+
+    return "development"
+}
+
 # Function to build a single binary
 function Build-Binary {
     param (
@@ -48,7 +81,8 @@ function Build-Binary {
         [string]$path,         # cmd/daemon, cmd/lpm, etc
         [string]$target_os,    # windows, linux, darwin
         [string]$target_arch,  # amd64, arm64, etc
-        [string]$suffix        # .exe for Windows, "" for Unix
+        [string]$suffix,       # .exe for Windows, "" for Unix
+        [string]$ldflags       # Additional ldflags for this binary
     )
 
     $env:GOOS = $target_os
@@ -66,8 +100,14 @@ function Build-Binary {
 
     Write-Host ("  {0,-40}" -f "Building ${cmdName}-${target_os}-${target_arch}...") -NoNewline
 
+    # Build ldflags: always -s -w, plus any additional flags
+    $finalFlags = "-s -w"
+    if ($ldflags -ne "") {
+        $finalFlags += " $ldflags"
+    }
+
     # Invoke 'go build'
-    & go build -ldflags="-s -w" -o "$output" "./$path" 2>$null
+    & go build -ldflags="$finalFlags" -o "$output" "./$path" 2>$null
 
     if ($LASTEXITCODE -eq 0 -and (Test-Path "$output")) {
         $file = Get-Item "$output"
@@ -85,12 +125,18 @@ Write-Host ""
 
 # PHASE 1: Compile dependencies (mpm, lpm, vectora daemon - required by setup for embedding)
 Write-Host "${YELLOW}[PHASE 1] Compiling dependencies (vectora, mpm, lpm)...${NC}"
-Build-Binary "vectora" "cmd/daemon" "windows" "amd64" ".exe"
-Build-Binary "mpm" "cmd/mpm" "windows" "amd64" ".exe"
-Build-Binary "lpm" "cmd/lpm" "windows" "amd64" ".exe"
-Build-Binary "mpm" "cmd/mpm" "windows" "arm64" ".exe"
-Build-Binary "lpm" "cmd/lpm" "windows" "arm64" ".exe"
-Build-Binary "vectora" "cmd/daemon" "windows" "arm64" ".exe"
+Build-Binary "vectora" "cmd/daemon" "windows" "amd64" ".exe" ""
+Build-Binary "mpm" "cmd/mpm" "windows" "amd64" ".exe" ""
+Build-Binary "lpm" "cmd/lpm" "windows" "amd64" ".exe" ""
+Build-Binary "mpm" "cmd/mpm" "windows" "arm64" ".exe" ""
+Build-Binary "lpm" "cmd/lpm" "windows" "arm64" ".exe" ""
+Build-Binary "vectora" "cmd/daemon" "windows" "arm64" ".exe" ""
+
+# Generate build hash based on compiled binaries
+Write-Host ""
+Write-Host "${YELLOW}[HASH] Generating build hash from dependencies...${NC}"
+$buildHash = Generate-BuildHash $BIN_DIR
+Write-Host "  Build Hash: ${GREEN}$buildHash${NC}"
 
 # PHASE 2: Copy compiled binaries to cmd/setup/ for embedding
 Write-Host ""
@@ -103,14 +149,15 @@ Write-Host "  ${GREEN}OK${NC} Binaries copied"
 # PHASE 3: Compile setup and desktop (now have updated embedded binaries)
 Write-Host ""
 Write-Host "${YELLOW}[PHASE 3] Compiling setup and desktop...${NC}"
-Build-Binary "vectora-setup" "cmd/setup" "windows" "amd64" ".exe"
-Build-Binary "vectora-desktop" "cmd/desktop" "windows" "amd64" ".exe"
+$setupLdFlags = "-X main.VersionHash=$buildHash"
+Build-Binary "vectora-setup" "cmd/setup" "windows" "amd64" ".exe" "$setupLdFlags"
+Build-Binary "vectora-desktop" "cmd/desktop" "windows" "amd64" ".exe" ""
 
 # PHASE 4: Compile TUI for all targets
 Write-Host ""
 Write-Host "${YELLOW}[PHASE 4] Compiling TUI...${NC}"
-Build-Binary "vectora-tui" "cmd/tui" "windows" "amd64" ".exe"
-Build-Binary "vectora-tui" "cmd/tui" "windows" "arm64" ".exe"
+Build-Binary "vectora-tui" "cmd/tui" "windows" "amd64" ".exe" ""
+Build-Binary "vectora-tui" "cmd/tui" "windows" "arm64" ".exe" ""
 
 # Cleanup env variables
 $env:GOOS = ""
