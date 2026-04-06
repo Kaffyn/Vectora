@@ -18,12 +18,68 @@ import (
 	"github.com/Kaffyn/Vectora/internal/tools"
 	"github.com/Kaffyn/Vectora/internal/tray"
 	"github.com/joho/godotenv"
+	"github.com/spf13/cobra"
 )
 
-func main() {
+const version = "0.1.0"
+
+var (
+	daemonPort int
+	testMode   bool
+)
+
+var rootCmd = &cobra.Command{
+	Use:     "vectora",
+	Short:   "Vectora AI - Local Engineering Assistant",
+	Long:    "Vectora is an offline-first local AI assistant with knowledge base management.",
+	Version: version,
+	Run: func(cmd *cobra.Command, args []string) {
+		// Default to daemon mode if no arguments
+		runDaemon()
+	},
+}
+
+var daemonCmd = &cobra.Command{
+	Use:     "daemon",
+	Aliases: []string{"start"},
+	Short:   "Start background service (Tray)",
+	Long:    "Start the Vectora daemon as a background service in the system tray.",
+	Run: func(cmd *cobra.Command, args []string) {
+		runDaemon()
+	},
+}
+
+var statusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Verify health of micro-services",
+	Long:  "Check if the Vectora daemon is running and responsive.",
+	Run: func(cmd *cobra.Command, args []string) {
+		runStatus()
+	},
+}
+
+var stopCmd = &cobra.Command{
+	Use:   "stop",
+	Short: "Shutdown background service",
+	Long:  "Stop the running Vectora daemon.",
+	Run: func(cmd *cobra.Command, args []string) {
+		runStop()
+	},
+}
+
+var testCmd = &cobra.Command{
+	Use:   "test",
+	Short: "Run integrity suite",
+	Long:  "Run system integrity tests and diagnostics.",
+	Run: func(cmd *cobra.Command, args []string) {
+		runSystemIntegrityTests()
+	},
+}
+
+func init() {
+	// Admin elevation for Windows
 	systemManager, _ := vecos.NewManager()
 	if systemManager != nil && !systemManager.IsRunningAsAdmin() {
-		// Attempt to restart as admin
 		exe, _ := os.Executable()
 		cwd, _ := os.Getwd()
 		args := strings.Join(os.Args[1:], " ")
@@ -38,38 +94,22 @@ func main() {
 		}
 	}
 
-	if len(os.Args) < 2 {
-		// Default to daemon mode if double-clicked or run without args
-		runDaemon()
-		return
-	}
+	// Add subcommands
+	rootCmd.AddCommand(daemonCmd)
+	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(stopCmd)
+	rootCmd.AddCommand(testCmd)
 
-	cmd := os.Args[1]
-
-	switch cmd {
-	case "daemon", "start":
-		runDaemon()
-	case "status":
-		runStatus()
-	case "stop":
-		runStop()
-	case "--tests":
-		runSystemIntegrityTests()
-	default:
-		printHelp()
-	}
+	// Add flags
+	daemonCmd.Flags().IntVar(&daemonPort, "port", 42780, "Custom daemon port")
+	rootCmd.CompletionOptions.DisableDefaultCmd = true
 }
 
-func printHelp() {
-	fmt.Println("Vectora AI - Local Engineering Assistant")
-	fmt.Println("\nUsage:")
-	fmt.Println("  vectora <command> [options]")
-	fmt.Println("\nCommands:")
-	fmt.Println("  daemon       Start background service (Tray)")
-	fmt.Println("  start        Start background service (Tray)")
-	fmt.Println("  stop         Shutdown background service")
-	fmt.Println("  status       Verify health of micro-services")
-	fmt.Println("  --tests      Run integrity suite")
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func runDaemon() {
@@ -107,7 +147,7 @@ func runDaemon() {
 
 	// Start the Dev HTTP Bridge in background for debugging IPC protocol.
 	// Used for testing and development purposes - Vectora Desktop (Fyne) uses IPC directly.
-	go ipcServer.StartDevHTTP(42700)
+	go ipcServer.StartDevHTTP(daemonPort)
 
 	infra.NotifyOS("Vectora", "Operational Assistant.")
 	tray.Setup()
