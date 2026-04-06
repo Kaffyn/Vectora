@@ -51,7 +51,6 @@ func NewEditorPanel(ipcClient interface{}) *EditorPanel {
 
 	// Create editor content
 	ep.editorContent = widget.NewEntry()
-	ep.editorContent.Wrapping = false
 	ep.editorContent.MultiLine = true
 
 	// Create buttons

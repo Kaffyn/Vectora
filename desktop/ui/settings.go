@@ -122,15 +122,9 @@ func NewSettingsPanel(ipcClient interface{}) *SettingsPanel {
 
 	// Create tabs for different settings sections
 	tabs := container.NewAppTabs()
-	tabs.Append(container.NewTabItem().
-		Text("Models").
-		Content(modelSection))
-	tabs.Append(container.NewTabItem().
-		Text("Appearance").
-		Content(uixSection))
-	tabs.Append(container.NewTabItem().
-		Text("System").
-		Content(systemSection))
+	tabs.Append(container.NewTabItem("Models", modelSection))
+	tabs.Append(container.NewTabItem("Appearance", uixSection))
+	tabs.Append(container.NewTabItem("System", systemSection))
 
 	// Build main layout
 	sp.container = container.NewBorder(

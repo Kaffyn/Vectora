@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	fyneApp := app.NewApp()
+	fyneApp := app.New()
 	fyneApp.SetIcon(nil)
 
 	// Initialize desktop application
@@ -18,9 +18,8 @@ func main() {
 		log.Fatalf("Failed to initialize desktop app: %v", err)
 	}
 
-	// Create and show main window
-	w := fyneApp.NewWindow()
-	w.SetTitle("Vectora Desktop")
+	// Create and show main window with title
+	w := fyneApp.NewWindow("Vectora Desktop")
 	w.SetContent(desktopApp.BuildUI())
 
 	// Set window size to reasonable default

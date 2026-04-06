@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 	"github.com/Kaffyn/Vectora/desktop/ui"
@@ -71,10 +70,10 @@ func (a *App) BuildUI() fyne.CanvasObject {
 	// Create tabs for different sections
 	tabs := container.NewAppTabs()
 
-	tabs.Append(container.NewTabItem().Text("Chat").Content(a.chatPanel.GetContainer()))
-	tabs.Append(container.NewTabItem().Text("Code Editor").Content(a.editorPanel.GetContainer()))
-	tabs.Append(container.NewTabItem().Text("Index Manager").Content(a.indexPanel.GetContainer()))
-	tabs.Append(container.NewTabItem().Text("Settings").Content(a.settingsPanel.GetContainer()))
+	tabs.Append(container.NewTabItem("Chat", a.chatPanel.GetContainer()))
+	tabs.Append(container.NewTabItem("Code Editor", a.editorPanel.GetContainer()))
+	tabs.Append(container.NewTabItem("Index Manager", a.indexPanel.GetContainer()))
+	tabs.Append(container.NewTabItem("Settings", a.settingsPanel.GetContainer()))
 
 	// Create main layout: tabs + status bar
 	mainContent := container.NewBorder(
@@ -90,16 +89,12 @@ func (a *App) BuildUI() fyne.CanvasObject {
 
 // buildStatusBar creates the status bar
 func (a *App) buildStatusBar() fyne.CanvasObject {
-	status := widget.NewLabel("Status: Initializing...")
+	statusLabel := widget.NewLabel("Status: Initializing...")
+	modelLabel := widget.NewLabel("Model: " + a.activeModel)
 
 	return container.NewHBox(
-		status,
-		widget.NewLabelWithData(
-			container.NewHBox(
-				widget.NewLabel("Model: "),
-				widget.NewLabel(a.activeModel),
-			),
-		),
+		statusLabel,
+		modelLabel,
 	)
 }
 

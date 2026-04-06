@@ -12,8 +12,6 @@ import (
 	"runtime"
 	"sync"
 	"time"
-
-	"github.com/Kaffyn/Vectora/internal/ipc"
 )
 
 const (
