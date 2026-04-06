@@ -104,6 +104,14 @@ jobs:
           GOARCH: ${{ matrix.arch }}
           CGO_ENABLED: 0
 
+      - name: Build vectora-desktop (Fyne GUI)
+        run: |
+          go build -v -o bin/vectora-desktop${{ matrix.artifact_suffix }} ./cmd/desktop
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 1
+
       - name: Display build artifacts
         run: ls -lh bin/ || dir bin/
         shell: bash

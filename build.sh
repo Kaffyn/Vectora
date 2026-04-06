@@ -33,8 +33,8 @@ build_binary() {
 	export GOOS=$goos
 	export GOARCH=$goarch
 
-	# setup (Fyne GUI) needs CGO enabled on Windows, others can use pure Go
-	if [ "$name" = "vectora-setup" ] && [ "$goos" = "windows" ]; then
+	# setup (Fyne GUI) and vectora-desktop (Fyne GUI) need CGO enabled
+	if [ "$name" = "vectora-setup" ] || [ "$name" = "vectora-desktop" ]; then
 		export CGO_ENABLED=1
 	else
 		export CGO_ENABLED=0
@@ -70,6 +70,8 @@ case "$OS" in
 		build_binary "vectora-tui" "cmd/tui" "darwin" "arm64" "-arm64"
 		build_binary "vectora-setup" "cmd/setup" "darwin" "amd64" ""
 		build_binary "vectora-setup" "cmd/setup" "darwin" "arm64" "-arm64"
+		build_binary "vectora-desktop" "cmd/desktop" "darwin" "amd64" ""
+		build_binary "vectora-desktop" "cmd/desktop" "darwin" "arm64" "-arm64"
 		build_binary "mpm" "cmd/mpm" "darwin" "amd64" ""
 		build_binary "mpm" "cmd/mpm" "darwin" "arm64" "-arm64"
 		build_binary "lpm" "cmd/lpm" "darwin" "amd64" ""
@@ -84,6 +86,8 @@ case "$OS" in
 		build_binary "vectora-tui" "cmd/tui" "linux" "arm64" "-arm64"
 		build_binary "vectora-setup" "cmd/setup" "linux" "amd64" ""
 		build_binary "vectora-setup" "cmd/setup" "linux" "arm64" "-arm64"
+		build_binary "vectora-desktop" "cmd/desktop" "linux" "amd64" ""
+		build_binary "vectora-desktop" "cmd/desktop" "linux" "arm64" "-arm64"
 		build_binary "mpm" "cmd/mpm" "linux" "amd64" ""
 		build_binary "mpm" "cmd/mpm" "linux" "arm64" "-arm64"
 		build_binary "lpm" "cmd/lpm" "linux" "amd64" ""
@@ -96,6 +100,7 @@ case "$OS" in
 		build_binary "vectora" "cmd/daemon" "windows" "amd64" ".exe"
 		build_binary "vectora-tui" "cmd/tui" "windows" "amd64" ".exe"
 		build_binary "vectora-setup" "cmd/setup" "windows" "amd64" ".exe"
+		build_binary "vectora-desktop" "cmd/desktop" "windows" "amd64" ".exe"
 		build_binary "mpm" "cmd/mpm" "windows" "amd64" ".exe"
 		build_binary "lpm" "cmd/lpm" "windows" "amd64" ".exe"
 		;;

@@ -140,17 +140,32 @@ jobs:
       - name: Create build output directory
         run: mkdir -p bin
 
-      - name: Build all binaries
+      - name: Build all binaries (non-Fyne)
         run: |
           go build -v -ldflags="-s -w" -o bin/vectora${{ matrix.artifact_suffix }} ./cmd/daemon
           go build -v -ldflags="-s -w" -o bin/vectora-tui${{ matrix.artifact_suffix }} ./cmd/tui
-          go build -v -ldflags="-s -w" -o bin/vectora-setup${{ matrix.artifact_suffix }} ./cmd/setup
           go build -v -ldflags="-s -w" -o bin/mpm${{ matrix.artifact_suffix }} ./cmd/mpm
           go build -v -ldflags="-s -w" -o bin/lpm${{ matrix.artifact_suffix }} ./cmd/lpm
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
           CGO_ENABLED: 0
+
+      - name: Build vectora-setup (Fyne GUI)
+        run: |
+          go build -v -ldflags="-s -w" -o bin/vectora-setup${{ matrix.artifact_suffix }} ./cmd/setup
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 1
+
+      - name: Build vectora-desktop (Fyne GUI)
+        run: |
+          go build -v -ldflags="-s -w" -o bin/vectora-desktop${{ matrix.artifact_suffix }} ./cmd/desktop
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 1
 
       - name: Create checksums (Linux/macOS)
         if: runner.os != 'Windows'
@@ -177,6 +192,7 @@ jobs:
             bin/vectora${{ matrix.artifact_suffix }}
             bin/vectora-tui${{ matrix.artifact_suffix }}
             bin/vectora-setup${{ matrix.artifact_suffix }}
+            bin/vectora-desktop${{ matrix.artifact_suffix }}
             bin/mpm${{ matrix.artifact_suffix }}
             bin/lpm${{ matrix.artifact_suffix }}
             checksums-${{ matrix.os }}-${{ matrix.arch }}.txt

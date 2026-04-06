@@ -79,6 +79,9 @@ Cada workspace é um namespace completamente isolado. Contextos nunca vazam de u
   - **Equipe:** Compartilhe com membros específicos via Kaffyn Account. Defina permissões de leitura/escrita.
   - **Público:** Disponível para todos no catálogo. Ao publicar publicamente, você aceita que outros façam RAG sobre esse dataset, mas o processo de indexação foi feito de forma segura.
 
+> [!IMPORTANT]
+> **Política de Privacidade do Index:** A Kaffyn realiza curadoria e processamento **apenas em datasets marcados como Públicos**. Workspaces **Privados** e de **Equipe** permanecem exclusivamente no seu dispositivo ou na sua nuvem privada criptografada. **Nem a Kaffyn, nem nossos servidores, têm acesso aos dados contidos em workspaces privados ou de equipe.** Eles são seguros, isolados e inacessíveis para nós.
+
 **Exemplos do que você encontrará no Index:**
 
 - Documentação do Godot 4.x (por versão)
@@ -123,21 +126,20 @@ Exponha qualquer workspace como um servidor MCP, fornecendo contexto preciso dir
 
 2. **Execute e Configure os Pacotes**
    - Ao iniciar o setup, ele integrará as ferramentas LPM e MPM para configurar seu ambiente:
-   - LPM (Llama Package Manager): Responsável por baixar e configurar o motor de inferência (llama.cpp) otimizado para o seu hardware.
-   - MPM (Model Package Manager): Responsável pelo catálogo e download dos modelos de IA.
-   - Durante a instalação, utilize a interface para selecionar e baixar o modelo desejado através do MPM (ex: Qwen3-7B para performance equilibrada ou Qwen3-0.6B para hardware modesto).
+   - **LPM (Llama Package Manager):** Responsável por baixar e configurar o motor de inferência (`llama.cpp`) otimizado para o seu hardware.
+   - **MPM (Model Package Manager):** Responsável pelo catálogo e download dos modelos de IA.
+   - Durante a instalação, utilize a interface para selecionar e baixar o modelo desejado através do **MPM** (ex: **Qwen3-7B** para performance equilibrada ou **Qwen3-0.6B** para hardware modesto).
 
 3. **Primeira Execução**
-   - Após a instalação, o Vectora Daemon iniciará automaticamente na bandeja do sistema.
-   - Clique no ícone para abrir a interface Desktop (Fyne) ou digite vectora tui no terminal para usar a interface de texto.
+   - Após a instalação, o **Vectora Daemon** iniciará automaticamente na bandeja do sistema.
+   - Clique no ícone para abrir a interface **Desktop (Fyne)** ou digite `vectora tui` no terminal para usar a interface de texto.
 
 **Configuração:**
 
 **Opção 1: Qwen (Local / Offline)** — Recomendado para privacidade
 
 - Nenhuma configuração necessária para funcionalidade básica
-- Vectora baixa automaticamente Qwen3-7B na primeira execução
-- Escolha um modelo diferente nas configurações se desejar
+- Gerencie seus modelos via **MPM**
 - Modelos são armazenados localmente em `%USERPROFILE%\.Vectora\models\`
 
 **Opção 2: Gemini (Nuvem / Multimodal):**
@@ -206,7 +208,7 @@ O Vectora é escrito inteiramente em Go. O core roda como um daemon leve no syst
 | ---------------- | ------------------- | ---------------------------------------------------------------------------------------------- |
 | Vector DB        | chromem-go          | Busca semântica e embeddings                                                                   |
 | Key-Value DB     | bbolt               | Histórico de chat, logs, configuração                                                          |
-| Motor de IA      | langchaingo         | Abstração de LLM e provedor de embedding (Gemini, extensível)                                  |
+| Motor de IA      | **Direct Calls**    | Chamadas HTTP/STDIO otimizadas para APIs e `llama.cpp`. Sem overhead de frameworks.            |
 | Inferência Local | llama-cli (pipes)   | Execução de modelos offline (Qwen3)                                                            |
 | **Daemon Core**  | **Cobra + Systray** | **Daemon master: expõe CLI, Systray, IPC (local), API HTTP (remoto)**                          |
 | Instalador       | **Cobra + Fyne**    | **Modo dual: instalação CLI headless ou assistente gráfico**                                   |
