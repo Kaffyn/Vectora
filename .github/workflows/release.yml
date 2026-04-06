@@ -4,9 +4,7 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - main
-      - master
+  workflow_dispatch:
 
 jobs:
   create-release:
@@ -141,8 +139,8 @@ jobs:
 
       - name: Build all binaries
         run: |
-          go build -v -ldflags="-s -w" -o bin/vectora${{ matrix.artifact_suffix }} ./cmd/vectora
-          go build -v -ldflags="-s -w" -o bin/vectora-cli${{ matrix.artifact_suffix }} ./cmd/vectora-cli
+          go build -v -ldflags="-s -w" -o bin/vectora${{ matrix.artifact_suffix }} ./cmd/daemon
+          go build -v -ldflags="-s -w" -o bin/vectora-tui${{ matrix.artifact_suffix }} ./cmd/tui
           go build -v -ldflags="-s -w" -o bin/vectora-setup${{ matrix.artifact_suffix }} ./cmd/setup
           go build -v -ldflags="-s -w" -o bin/mpm${{ matrix.artifact_suffix }} ./cmd/mpm
           go build -v -ldflags="-s -w" -o bin/lpm${{ matrix.artifact_suffix }} ./cmd/lpm
@@ -174,7 +172,7 @@ jobs:
           tag_name: ${{ steps.version.outputs.version }}
           files: |
             bin/vectora${{ matrix.artifact_suffix }}
-            bin/vectora-cli${{ matrix.artifact_suffix }}
+            bin/vectora-tui${{ matrix.artifact_suffix }}
             bin/vectora-setup${{ matrix.artifact_suffix }}
             bin/mpm${{ matrix.artifact_suffix }}
             bin/lpm${{ matrix.artifact_suffix }}

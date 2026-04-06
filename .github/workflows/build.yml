@@ -1,20 +1,6 @@
 name: Cross-Platform Build
 
 on:
-  push:
-    branches:
-      - master
-      - develop
-    paths:
-      - 'cmd/**'
-      - 'internal/**'
-      - 'go.mod'
-      - 'go.sum'
-      - '.github/workflows/build.yml'
-  pull_request:
-    branches:
-      - master
-      - develop
   workflow_dispatch:
 
 jobs:
@@ -66,15 +52,15 @@ jobs:
 
       - name: Build vectora daemon
         run: |
-          go build -v -o bin/vectora${{ matrix.artifact_suffix }} ./cmd/vectora
+          go build -v -o bin/vectora${{ matrix.artifact_suffix }} ./cmd/daemon
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
           CGO_ENABLED: 0
 
-      - name: Build vectora-cli (TUI)
+      - name: Build vectora-tui (Terminal UI)
         run: |
-          go build -v -o bin/vectora-cli${{ matrix.artifact_suffix }} ./cmd/vectora-cli
+          go build -v -o bin/vectora-tui${{ matrix.artifact_suffix }} ./cmd/tui
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}

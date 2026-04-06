@@ -1,22 +1,6 @@
 name: Tests
 
 on:
-  push:
-    branches:
-      - main
-      - master
-      - develop
-    paths:
-      - 'cmd/**'
-      - 'internal/**'
-      - 'go.mod'
-      - 'go.sum'
-      - '.github/workflows/test.yml'
-  pull_request:
-    branches:
-      - main
-      - master
-      - develop
   workflow_dispatch:
 
 jobs:
@@ -72,8 +56,8 @@ jobs:
       - name: Build binaries for testing
         run: |
           mkdir -p bin
-          go build -o bin/vectora ./cmd/vectora
-          go build -o bin/vectora-cli ./cmd/vectora-cli
+          go build -o bin/vectora ./cmd/daemon
+          go build -o bin/vectora-tui ./cmd/tui
           go build -o bin/vectora-setup ./cmd/setup
           go build -o bin/mpm ./cmd/mpm
           go build -o bin/lpm ./cmd/lpm
@@ -82,7 +66,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           bin/vectora --version || true
-          bin/vectora-cli --version || true
+          bin/vectora-tui --version || true
           bin/mpm list
           bin/lpm list
 
@@ -90,7 +74,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           .\bin\vectora.exe --version 2>$null || echo "Note: daemon may require systray context"
-          .\bin\vectora-cli.exe --version 2>$null || echo "Note: CLI may require terminal"
+          .\bin\vectora-tui.exe --version 2>$null || echo "Note: TUI may require terminal"
           .\bin\mpm.exe list
           .\bin\lpm.exe list
 
@@ -98,7 +82,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           bin/vectora --version || true
-          bin/vectora-cli --version || true
+          bin/vectora-tui --version || true
           bin/mpm list
           bin/lpm list
 
