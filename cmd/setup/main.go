@@ -157,30 +157,24 @@ func newSystemManager() (vecos.OSManager, error) {
 	return vecos.NewManager()
 }
 
-// Detectar se está em modo CLI ou GUI
+// Detect if running in CLI mode (with Cobra subcommands/flags)
 func isCLIMode() bool {
-	// Se houver flags reconhecidas pelo Cobra, é modo CLI
-	cliFlags := map[string]bool{
-		"--help":     true,
-		"-h":         true,
-		"--version":  true,
-		"install":    true,
-		"--path":     true,
-		"--mode":     true,
-		"--model":    true,
-		"--api-key":  true,
-		"--silent":   true,
-		"--lang":     true,
+	if len(os.Args) < 2 {
+		return false
 	}
 
-	if len(os.Args) > 1 {
-		for _, arg := range os.Args[1:] {
-			if cliFlags[arg] || strings.HasPrefix(arg, "--") {
-				return true
-			}
-		}
+	// Check if first arg is a known Cobra subcommand
+	subcommands := map[string]bool{
+		"install":    true,
+		"uninstall":  true,
+		"help":       true,
+		"-h":         true,
+		"--help":     true,
+		"--version":  true,
+		"-v":         true,
 	}
-	return false
+
+	return subcommands[os.Args[1]]
 }
 
 func runGUIMode() {
@@ -632,7 +626,7 @@ func runGUIMode() {
 	w.ShowAndRun()
 }
 
-// Função main simplificada que detecta o modo
+// Main function - delegates to CLI or GUI mode
 func main() {
 	if isCLIMode() {
 		runCLIMode()

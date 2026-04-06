@@ -32,7 +32,13 @@ build_binary() {
 
 	export GOOS=$goos
 	export GOARCH=$goarch
-	export CGO_ENABLED=0
+
+	# setup (Fyne GUI) needs CGO enabled on Windows, others can use pure Go
+	if [ "$name" = "vectora-setup" ] && [ "$goos" = "windows" ]; then
+		export CGO_ENABLED=1
+	else
+		export CGO_ENABLED=0
+	fi
 
 	local output="$BIN_DIR/${name}${suffix}"
 

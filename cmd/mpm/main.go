@@ -3,79 +3,125 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 const version = "0.1.0"
 
-func main() {
-	if len(os.Args) < 2 {
-		printUsage()
-		os.Exit(1)
-	}
-
-	cmd := os.Args[1]
-
-	switch cmd {
-	case "version":
-		fmt.Printf("MPM (Model Package Manager) v%s\n", version)
-
-	case "list":
-		handleList(os.Args[2:])
-
-	case "detect":
-		handleDetect(os.Args[2:])
-
-	case "recommend":
-		handleRecommend(os.Args[2:])
-
-	case "search":
-		if len(os.Args) < 3 {
-			fmt.Println("Usage: mpm search <query>")
-			os.Exit(1)
-		}
-		handleSearch(os.Args[2:])
-
-	case "install":
-		handleInstall(os.Args[2:])
-
-	case "active":
-		handleActive(os.Args[2:])
-
-	case "set-active":
-		handleSetActive(os.Args[2:])
-
-	case "help", "-h", "--help":
-		printUsage()
-
-	default:
-		fmt.Printf("Unknown command: %s\n", cmd)
-		printUsage()
-		os.Exit(1)
-	}
+var rootCmd = &cobra.Command{
+	Use:     "mpm",
+	Short:   "Model Package Manager",
+	Long:    "MPM (Model Package Manager) - Manage AI models for Vectora",
+	Version: version,
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
 }
 
-func printUsage() {
-	fmt.Println(`MPM - Model Package Manager
+var listCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all available models",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		handleList(args)
+		return nil
+	},
+}
 
-Usage: mpm <command> [options]
+var detectCmd = &cobra.Command{
+	Use:   "detect",
+	Short: "Detect system hardware",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		handleDetect(args)
+		return nil
+	},
+}
 
-Commands:
-  list                List all available models
-  detect              Detect system hardware
-  recommend           Recommend a model based on hardware
-  search <query>      Search models by name/capability
-  install <model>     Install a model
-  active              Show currently active model
-  set-active <model>  Set the active model
-  version             Show version
-  help                Show this help
+var recommendCmd = &cobra.Command{
+	Use:   "recommend",
+	Short: "Recommend a model based on hardware",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		handleRecommend(args)
+		return nil
+	},
+}
 
-Options:
-  --json              Output as JSON
-  --silent            Suppress output
-  --family <name>     Filter by model family
-  --tag <tag>         Filter by tag
-  --capability <cap>  Filter by capability
-  --size <size>       Filter by size (0.6b, 1.7b, 4b, 8b)
-`)
+var searchCmd = &cobra.Command{
+	Use:   "search <query>",
+	Short: "Search models by name/capability",
+	Args:  cobra.MinimumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		handleSearch(args)
+		return nil
+	},
+}
+
+var installCmd = &cobra.Command{
+	Use:   "install",
+	Short: "Install a model",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		handleInstall(args)
+		return nil
+	},
+}
+
+var activeCmd = &cobra.Command{
+	Use:   "active",
+	Short: "Show currently active model",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		handleActive(args)
+		return nil
+	},
+}
+
+var setActiveCmd = &cobra.Command{
+	Use:   "set-active",
+	Short: "Set the active model",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		handleSetActive(args)
+		return nil
+	},
+}
+
+func init() {
+	// Add subcommands
+	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(detectCmd)
+	rootCmd.AddCommand(recommendCmd)
+	rootCmd.AddCommand(searchCmd)
+	rootCmd.AddCommand(installCmd)
+	rootCmd.AddCommand(activeCmd)
+	rootCmd.AddCommand(setActiveCmd)
+
+	// Flags for list command
+	listCmd.Flags().BoolP("json", "j", false, "Output as JSON")
+	listCmd.Flags().StringP("family", "f", "", "Filter by model family")
+
+	// Flags for detect command
+	detectCmd.Flags().BoolP("json", "j", false, "Output as JSON")
+
+	// Flags for recommend command
+	recommendCmd.Flags().BoolP("json", "j", false, "Output as JSON")
+	recommendCmd.Flags().StringP("size", "s", "", "Filter by size (0.6b, 1.7b, 4b, 8b)")
+
+	// Flags for search command
+	searchCmd.Flags().BoolP("json", "j", false, "Output as JSON")
+	searchCmd.Flags().StringP("tag", "t", "", "Filter by tag")
+	searchCmd.Flags().StringP("capability", "c", "", "Filter by capability")
+
+	// Flags for install command
+	installCmd.Flags().StringP("model", "m", "", "Model ID to install")
+
+	// Flags for active command
+	activeCmd.Flags().BoolP("json", "j", false, "Output as JSON")
+
+	// Flags for set-active command
+	setActiveCmd.Flags().StringP("model", "m", "", "Model ID to set as active")
+}
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 }

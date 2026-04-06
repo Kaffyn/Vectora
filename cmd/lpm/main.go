@@ -2,121 +2,116 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"log"
 	"os"
 	"text/tabwriter"
 
 	"github.com/Kaffyn/Vectora/engines"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	// Subcommands
-	listCmd := flag.NewFlagSet("list", flag.ExitOnError)
-	installCmd := flag.NewFlagSet("install", flag.ExitOnError)
-	activeCmd := flag.NewFlagSet("active", flag.ExitOnError)
-	detectCmd := flag.NewFlagSet("detect", flag.ExitOnError)
-	setActiveCmd := flag.NewFlagSet("set-active", flag.ExitOnError)
+const version = "0.1.0"
 
-	// Install subcommand flags
-	installBuildID := installCmd.String("build", "", "Build ID to install")
-	installSilent := installCmd.Bool("silent", false, "Silent mode (no output)")
+var (
+	ctx = context.Background()
+)
 
-	// Set-active subcommand flags
-	setActiveBuildID := setActiveCmd.String("build", "", "Build ID to set as active")
-
-	if len(os.Args) < 2 {
-		printUsage()
-		os.Exit(1)
-	}
-
-	ctx := context.Background()
-
-	switch os.Args[1] {
-	case "list":
-		listCmd.Parse(os.Args[2:])
-		if err := handleList(ctx); err != nil {
-			log.Fatalf("Error listing builds: %v", err)
-		}
-
-	case "install":
-		installCmd.Parse(os.Args[2:])
-		if *installBuildID == "" {
-			fmt.Println("Error: --build flag is required")
-			installCmd.Usage()
-			os.Exit(1)
-		}
-		if err := handleInstall(ctx, *installBuildID, !*installSilent); err != nil {
-			log.Fatalf("Installation failed: %v", err)
-		}
-
-	case "active":
-		activeCmd.Parse(os.Args[2:])
-		if err := handleGetActive(ctx); err != nil {
-			log.Fatalf("Error getting active build: %v", err)
-		}
-
-	case "set-active":
-		setActiveCmd.Parse(os.Args[2:])
-		if *setActiveBuildID == "" {
-			fmt.Println("Error: --build flag is required")
-			setActiveCmd.Usage()
-			os.Exit(1)
-		}
-		if err := handleSetActive(ctx, *setActiveBuildID); err != nil {
-			log.Fatalf("Error setting active build: %v", err)
-		}
-
-	case "detect":
-		detectCmd.Parse(os.Args[2:])
-		if err := handleDetect(ctx); err != nil {
-			log.Fatalf("Error detecting hardware: %v", err)
-		}
-
-	case "recommend":
-		if err := handleRecommend(ctx); err != nil {
-			log.Fatalf("Error recommending build: %v", err)
-		}
-
-	case "help", "-h", "--help":
-		printUsage()
-		os.Exit(0)
-
-	default:
-		fmt.Printf("Unknown command: %s\n", os.Args[1])
-		printUsage()
-		os.Exit(1)
-	}
+var rootCmd = &cobra.Command{
+	Use:     "lpm",
+	Short:   "Llama.cpp Package Manager",
+	Long:    "LPM (Llama Package Manager) - Manage llama.cpp builds for your system",
+	Version: version,
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
 }
 
-func printUsage() {
-	usage := `Vectora Llama.cpp Package Manager (LPM)
+var listCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all available builds",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return handleList(ctx)
+	},
+}
 
-Usage:
-  lpm <command> [options]
+var detectCmd = &cobra.Command{
+	Use:   "detect",
+	Short: "Detect system hardware capabilities",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return handleDetect(ctx)
+	},
+}
 
-Commands:
-  list              List all available builds
-  detect            Detect system hardware capabilities
-  recommend         Recommend best build for this system
-  install           Install a specific build
-  active            Show currently active build
-  set-active        Set a build as active
-  help              Show this help message
+var recommendCmd = &cobra.Command{
+	Use:   "recommend",
+	Short: "Recommend best build for this system",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return handleRecommend(ctx)
+	},
+}
 
-Examples:
-  lpm list
-  lpm detect
-  lpm recommend
-  lpm install --build llama-windows-x86-cuda-12-q6
-  lpm active
-  lpm set-active --build llama-windows-x86-cuda-12-q6
+var installCmd = &cobra.Command{
+	Use:   "install",
+	Short: "Install a specific build",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		buildID, _ := cmd.Flags().GetString("build")
+		if buildID == "" {
+			return fmt.Errorf("--build flag is required")
+		}
+		return nil
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		buildID, _ := cmd.Flags().GetString("build")
+		silent, _ := cmd.Flags().GetBool("silent")
+		return handleInstall(ctx, buildID, !silent)
+	},
+}
 
-Install a recommended build:
-  lpm install --build $(lpm recommend)
-`
-	fmt.Print(usage)
+var activeCmd = &cobra.Command{
+	Use:   "active",
+	Short: "Show currently active build",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return handleGetActive(ctx)
+	},
+}
+
+var setActiveCmd = &cobra.Command{
+	Use:   "set-active",
+	Short: "Set a build as active",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		buildID, _ := cmd.Flags().GetString("build")
+		if buildID == "" {
+			return fmt.Errorf("--build flag is required")
+		}
+		return nil
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		buildID, _ := cmd.Flags().GetString("build")
+		return handleSetActive(ctx, buildID)
+	},
+}
+
+func init() {
+	// Add subcommands to root
+	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(detectCmd)
+	rootCmd.AddCommand(recommendCmd)
+	rootCmd.AddCommand(installCmd)
+	rootCmd.AddCommand(activeCmd)
+	rootCmd.AddCommand(setActiveCmd)
+
+	// Add flags to subcommands
+	installCmd.Flags().StringP("build", "b", "", "Build ID to install")
+	installCmd.Flags().BoolP("silent", "s", false, "Silent mode (no output)")
+
+	setActiveCmd.Flags().StringP("build", "b", "", "Build ID to set as active")
+}
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func handleList(ctx context.Context) error {
