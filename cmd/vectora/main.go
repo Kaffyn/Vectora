@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/Kaffyn/Vectora/internal/cli"
+	"github.com/Kaffyn/Vectora/internal/tui"
 	"github.com/Kaffyn/Vectora/internal/db"
 	"github.com/Kaffyn/Vectora/internal/infra"
 	"github.com/Kaffyn/Vectora/internal/ipc"
@@ -109,7 +109,7 @@ func runTUI() {
 	}
 
 connected:
-	p := tea.NewProgram(cli.NewModel(client), tea.WithAltScreen())
+	p := tea.NewProgram(tui.NewModel(client), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("UI Error: %v\n", err)
 	}
