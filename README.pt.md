@@ -116,19 +116,20 @@ Exponha qualquer workspace como um servidor MCP, fornecendo contexto preciso dir
 
 **Download e Instalação:**
 
-1. **Baixe o instalador** de [última release](https://github.com/Kaffyn/Vectora/releases)
+1. **Baixe o Setup** de [última release](https://github.com/Kaffyn/Vectora/releases)
    - Windows: `vectora-setup.exe`
    - macOS: `vectora-setup.dmg`
    - Linux: `vectora-setup.deb`
 
-2. **Execute o instalador:**
-   - Windows: Clique duplo em `vectora-setup.exe` e siga o assistente
-   - O instalador detectará automaticamente seu hardware e recomendará um modelo de IA ideal
+2. **Execute e Configure os Pacotes**
+   - Ao iniciar o setup, ele integrará as ferramentas LPM e MPM para configurar seu ambiente:
+   - LPM (Llama Package Manager): Responsável por baixar e configurar o motor de inferência (llama.cpp) otimizado para o seu hardware.
+   - MPM (Model Package Manager): Responsável pelo catálogo e download dos modelos de IA.
+   - Durante a instalação, utilize a interface para selecionar e baixar o modelo desejado através do MPM (ex: Qwen3-7B para performance equilibrada ou Qwen3-0.6B para hardware modesto).
 
-3. **Primeira Execução:**
-   - Vectora aparecerá na bandeja do sistema
-   - Clique para abrir a interface web no seu navegador padrão
-   - Ou abra pelo Menu Iniciar → Vectora
+3. **Primeira Execução**
+   - Após a instalação, o Vectora Daemon iniciará automaticamente na bandeja do sistema.
+   - Clique no ícone para abrir a interface Desktop (Fyne) ou digite vectora tui no terminal para usar a interface de texto.
 
 **Configuração:**
 
