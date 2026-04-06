@@ -76,21 +76,49 @@ var testCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	// Admin elevation for Windows
-	systemManager, _ := vecos.NewManager()
-	if systemManager != nil && !systemManager.IsRunningAsAdmin() {
-		exe, _ := os.Executable()
-		cwd, _ := os.Getwd()
-		args := strings.Join(os.Args[1:], " ")
+var (
+	checkOnly bool
+)
 
-		cmd := exec.Command("powershell", fmt.Sprintf("Start-Process -FilePath '%s' -Verb runas -WorkingDirectory '%s'", exe, cwd))
-		if args != "" {
-			cmd = exec.Command("powershell", fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList '%s' -Verb runas -WorkingDirectory '%s'", exe, args, cwd))
+var updateCmd = &cobra.Command{
+	Use:   "update [component]",
+	Short: "Update Vectora components",
+	Long:  "Update Vectora daemon and all components (tui, lpm, mpm, setup). Specify components or update all.",
+	Example: `  vectora update              # Update all components
+  vectora update daemon      # Update daemon only
+  vectora update tui lpm     # Update tui and lpm
+  vectora update --check     # Check for updates without installing`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runUpdate(args, checkOnly)
+	},
+}
+
+func init() {
+	// Admin elevation for Windows - only for daemon, status, stop commands
+	// Skip elevation for update, test, and help commands
+	skipElevation := false
+	if len(os.Args) > 1 {
+		cmd := os.Args[1]
+		if cmd == "update" || cmd == "test" || cmd == "help" || cmd == "-h" || cmd == "--help" || cmd == "--version" || cmd == "-v" {
+			skipElevation = true
 		}
-		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-		if err := cmd.Start(); err == nil {
-			os.Exit(0)
+	}
+
+	if !skipElevation {
+		systemManager, _ := vecos.NewManager()
+		if systemManager != nil && !systemManager.IsRunningAsAdmin() {
+			exe, _ := os.Executable()
+			cwd, _ := os.Getwd()
+			args := strings.Join(os.Args[1:], " ")
+
+			cmd := exec.Command("powershell", fmt.Sprintf("Start-Process -FilePath '%s' -Verb runas -WorkingDirectory '%s'", exe, cwd))
+			if args != "" {
+				cmd = exec.Command("powershell", fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList '%s' -Verb runas -WorkingDirectory '%s'", exe, args, cwd))
+			}
+			cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+			if err := cmd.Start(); err == nil {
+				os.Exit(0)
+			}
 		}
 	}
 
@@ -99,9 +127,11 @@ func init() {
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(stopCmd)
 	rootCmd.AddCommand(testCmd)
+	rootCmd.AddCommand(updateCmd)
 
 	// Add flags
 	daemonCmd.Flags().IntVar(&daemonPort, "port", 42780, "Custom daemon port")
+	updateCmd.Flags().BoolVar(&checkOnly, "check", false, "Check for updates without installing")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 }
 
