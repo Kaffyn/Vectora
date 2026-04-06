@@ -30,6 +30,7 @@ import (
 var installPath string
 var w fyne.Window
 var selectedModel string
+var selectedBackend string
 var hardwareInfo map[string]interface{}
 var recommendedModel map[string]interface{}
 
@@ -206,7 +207,8 @@ func runGUIMode() {
 	a.Settings().SetTheme(&zyrisTheme{})
 
 	w = a.NewWindow("Setup Vectora")
-	w.Resize(fyne.NewSize(620, 480))
+	w.Resize(fyne.NewSize(700, 600))
+	w.SetOnClosed(func() { os.Exit(0) })
 	w.SetIcon(fyne.NewStaticResource("vectora-setup", assets.VectoraSetupIconData))
 
 	// Re-get manager for logic
@@ -240,7 +242,7 @@ func runGUIMode() {
 
 	var showStepWelcome, showStepLang, showStepPath, showStepInstall func()
 	var showStepConfigMode, showStepConfigGemini, showStepConfigQwen, showStepFinish func()
-	var showStepDetectHardware, showStepRecommendModel, showStepChooseModel, showStepInstallModel func()
+	var showStepDetectHardware, showStepRecommendModel, showStepSelectBackend, showStepChooseModel, showStepInstallModel func()
 	var showUninstallProgress, showAlreadyInstalled func(string)
 
 	showUninstallProgress = func(existingPath string) {
@@ -296,33 +298,38 @@ func runGUIMode() {
 	}
 
 	showStepLang = func() {
-		langSelect := widget.NewSelect([]string{"English", "Português", "Español", "Français"}, nil)
-		switch i18n.GetCurrentLang() {
-		case "en":
-			langSelect.SetSelected("English")
-		case "pt":
-			langSelect.SetSelected("Português")
-		case "es":
-			langSelect.SetSelected("Español")
-		case "fr":
-			langSelect.SetSelected("Français")
+		languages := []struct {
+			name  string
+			code  string
+			emoji string
+		}{
+			{"English", "en", "🇬🇧"},
+			{"Português", "pt", "🇧🇷"},
+			{"Español", "es", "🇪🇸"},
+			{"Français", "fr", "🇫🇷"},
 		}
 
-		langSelect.OnChanged = func(s string) {
-			switch s {
-			case "English":
-				i18n.SetLanguage("en")
-			case "Português":
-				i18n.SetLanguage("pt")
-			case "Español":
-				i18n.SetLanguage("es")
-			case "Français":
-				i18n.SetLanguage("fr")
+		currentLang := i18n.GetCurrentLang()
+		content := container.NewVBox(
+			widget.NewLabel(i18n.T("inst_select_lang")),
+			widget.NewLabel(""),
+		)
+
+		// Criar grid de botões de idioma
+		langGrid := container.NewGridWithColumns(2)
+		for _, lang := range languages {
+			langCode := lang.code
+			btn := widget.NewButton(fmt.Sprintf("%s %s", lang.emoji, lang.name), func() {
+				i18n.SetLanguage(langCode)
+				showStepLang()
+			})
+			if langCode == currentLang {
+				btn.Importance = widget.HighImportance
 			}
-			showStepLang()
+			langGrid.Add(btn)
 		}
 
-		content := container.NewVBox(widget.NewLabel(i18n.T("inst_select_lang")), langSelect)
+		content.Add(langGrid)
 		w.SetContent(createLayout("Linguagem Padrão", content, showStepWelcome, showStepPath, "Avançar >"))
 	}
 
@@ -511,68 +518,222 @@ func runGUIMode() {
 			time.Sleep(500 * time.Millisecond)
 
 			// Passar para próximo step
-			showStepChooseModel()
+			showStepSelectBackend()
 		}()
 	}
 
-	// Permitir escolher outro modelo
+	// Selecionar backend de GPU/CPU para llamacpp
+	showStepSelectBackend = func() {
+		gpuType := ""
+		if gpu, ok := hardwareInfo["GPUType"].(string); ok {
+			gpuType = gpu
+		}
+
+		// Opções baseadas no GPU detectado
+		backendOptions := []string{"cpu - CPU (Compatível com todos, mais lento)"}
+		defaultBackend := "cpu"
+
+		if gpuType == "cuda" {
+			backendOptions = append(backendOptions, "cuda - NVIDIA CUDA (Rápido em GPUs NVIDIA)")
+			backendOptions = append(backendOptions, "vulkan - Vulkan (Compatível com múltiplas GPUs)")
+		} else if gpuType == "metal" {
+			backendOptions = append(backendOptions, "metal - Metal (Otimizado para macOS)")
+			backendOptions = append(backendOptions, "vulkan - Vulkan (Compatível alternativo)")
+		} else if gpuType == "vulkan" || (gpuType != "none" && gpuType != "") {
+			backendOptions = append(backendOptions, "vulkan - Vulkan (Para sua placa de vídeo)")
+		}
+
+		selectedBackend = defaultBackend
+
+		backendSelect := widget.NewSelect(backendOptions, func(s string) {
+			parts := strings.Split(s, " - ")
+			if len(parts) > 0 {
+				selectedBackend = parts[0]
+			}
+		})
+		backendSelect.SetSelected(backendOptions[0])
+
+		content := container.NewVBox(
+			widget.NewLabel("Selecione o backend de processamento para llama.cpp:"),
+			widget.NewLabel(""),
+			backendSelect,
+			widget.NewLabel(""),
+			widget.NewLabel(fmt.Sprintf("🎮 GPU Detectado: %s", gpuType)),
+		)
+
+		nextCmd := func() {
+			showStepChooseModel()
+		}
+
+		w.SetContent(createLayout("Backend de Processamento", content, showStepRecommendModel, nextCmd, "Próximo"))
+	}
+
+	// Permitir escolher modelos com multi-seleção
 	showStepChooseModel = func() {
 		var allModels []map[string]interface{}
-
 		models, err := listModels(installPath)
 		if err != nil {
 			lbl := widget.NewLabel(fmt.Sprintf("Erro ao listar modelos: %v", err))
 			w.SetContent(createLayout("Erro", lbl, showStepDetectHardware, nil, ""))
 			return
 		}
-
 		allModels = models
 
-		// Criar lista de opções
-		var modelOptions []string
-		for _, m := range allModels {
-			id := m["id"].(string)
-			name := m["name"].(string)
-			modelOptions = append(modelOptions, fmt.Sprintf("%s - %s", id, name))
+		// Converter RAM de bytes para GB
+		var ramGB float64
+		switch v := hardwareInfo["RAM"].(type) {
+		case float64:
+			ramGB = v / (1024 * 1024 * 1024)
+		case int64:
+			ramGB = float64(v) / (1024 * 1024 * 1024)
+		case int:
+			ramGB = float64(v) / (1024 * 1024 * 1024)
+		default:
+			ramGB = 0
+		}
+		gpuType := "Nenhuma"
+		if gpu, ok := hardwareInfo["GPUType"].(string); ok && gpu != "none" && gpu != "" {
+			gpuType = gpu
+			if gpuVersion, ok := hardwareInfo["GPUVersion"].(string); ok && gpuVersion != "" {
+				gpuType += " (" + gpuVersion + ")"
+			}
 		}
 
-		modelSelector := widget.NewSelect(modelOptions, func(s string) {
-			// Extrair ID do modelo selecionado
-			parts := strings.Split(s, " - ")
-			if len(parts) > 0 {
-				selectedModel = parts[0]
+		// Separar modelos por tipo
+		var normalModels, embeddingModels, vlModels []map[string]interface{}
+		for _, m := range allModels {
+			id := m["id"].(string)
+			if strings.Contains(id, "-embed") {
+				embeddingModels = append(embeddingModels, m)
+			} else if strings.Contains(id, "-vl") {
+				vlModels = append(vlModels, m)
+			} else {
+				normalModels = append(normalModels, m)
 			}
-		})
+		}
 
-		// Pre-selecionar o recomendado
-		recID := recommendedModel["id"].(string)
-		recName := recommendedModel["name"].(string)
-		modelSelector.SetSelected(fmt.Sprintf("%s - %s", recID, recName))
-		selectedModel = recID
+		// Mapas para rastrear seleções
+		selectedModels := make(map[string]bool)
+		selectedModels[recommendedModel["id"].(string)] = true
+		selectedModel = recommendedModel["id"].(string)
+
+		hardwareInfo := container.NewVBox(
+			widget.NewLabel(fmt.Sprintf("💾 RAM: %.1f GB", ramGB)),
+			widget.NewLabel(fmt.Sprintf("🎮 GPU: %s", gpuType)),
+			widget.NewLabel(""),
+		)
+
+		// Helper para criar checkbox
+		createCheckbox := func(modelID, modelName string, models map[string]bool) *widget.Check {
+			id := modelID // Capture in closure
+			check := widget.NewCheck(fmt.Sprintf("%s - %s", modelID, modelName), func(checked bool) {
+				if checked {
+					models[id] = true
+				} else {
+					delete(models, id)
+				}
+			})
+			check.Checked = models[modelID]
+			return check
+		}
+
+		// Grid de modelos
+		modelsContent := container.NewVBox()
+
+		if len(normalModels) > 0 {
+			modelsContent.Add(widget.NewLabel("📦 Modelos Padrão:"))
+			normalGrid := container.NewGridWithColumns(1)
+			for _, m := range normalModels {
+				id := m["id"].(string)
+				name := m["name"].(string)
+				normalGrid.Add(createCheckbox(id, name, selectedModels))
+			}
+			modelsContent.Add(normalGrid)
+		}
+
+		if len(embeddingModels) > 0 {
+			modelsContent.Add(widget.NewLabel(""))
+			modelsContent.Add(widget.NewLabel("📚 Modelos Embedding (Necessários para busca):"))
+			embGrid := container.NewGridWithColumns(1)
+			for _, m := range embeddingModels {
+				id := m["id"].(string)
+				name := m["name"].(string)
+				embGrid.Add(createCheckbox(id, name, selectedModels))
+			}
+			modelsContent.Add(embGrid)
+		}
+
+		if len(vlModels) > 0 {
+			modelsContent.Add(widget.NewLabel(""))
+			modelsContent.Add(widget.NewLabel("👁️ Modelos Vision:"))
+			vlGrid := container.NewGridWithColumns(1)
+			for _, m := range vlModels {
+				id := m["id"].(string)
+				name := m["name"].(string)
+				vlGrid.Add(createCheckbox(id, name, selectedModels))
+			}
+			modelsContent.Add(vlGrid)
+		}
+
+		modelsScroll := container.NewScroll(modelsContent)
+		modelsScroll.SetMinSize(fyne.NewSize(650, 300))
 
 		content := container.NewVBox(
-			widget.NewLabel("Modelo Recomendado (ou escolha outro):"),
-			modelSelector,
+			widget.NewLabel(fmt.Sprintf("🔍 Recomendado: %s", recommendedModel["name"])),
 			widget.NewLabel(""),
-			widget.NewLabel(fmt.Sprintf("RAM do Sistema: %.1f GB", hardwareInfo["RAM"])),
+			hardwareInfo,
+			widget.NewLabel("Selecione modelos para instalar (com Shift/Ctrl+clique para múltipla):"),
+			modelsScroll,
 		)
 
 		nextCmd := func() {
+			// Converter mapa de seleção para lista
+			var selected []string
+			for id := range selectedModels {
+				if id != "" {
+					selected = append(selected, id)
+				}
+			}
+
+			if len(selected) == 0 {
+				dialog.ShowError(fmt.Errorf("selecione pelo menos um modelo"), w)
+				return
+			}
+
+			// Validar que há um modelo base se há embedding
+			hasBase := false
+			hasEmbedding := false
+			for _, id := range selected {
+				if strings.Contains(id, "-embed") {
+					hasEmbedding = true
+				} else if !strings.Contains(id, "-vl") {
+					hasBase = true
+				}
+			}
+
+			if hasEmbedding && !hasBase {
+				dialog.ShowError(fmt.Errorf("ao usar modelos Embedding, você deve selecionar também um modelo base (padrão)"), w)
+				return
+			}
+
+			// Guardar seleção e instalar
+			selectedModel = strings.Join(selected, ",")
 			showStepInstallModel()
 		}
 
-		w.SetContent(createLayout("Escolher Modelo", content, showStepDetectHardware, nextCmd, "Instalar >"))
+		w.SetContent(createLayout("Escolher Modelos", content, showStepSelectBackend, nextCmd, "Instalar >"))
 	}
 
-	// Instalar modelo
+	// Instalar modelos
 	showStepInstallModel = func() {
 		progress := widget.NewProgressBar()
 		progress.SetValue(0.0)
 
-		statusLbl := widget.NewLabel(fmt.Sprintf("Preparando instalação de %s...", selectedModel))
+		models := strings.Split(selectedModel, ",")
+		statusLbl := widget.NewLabel(fmt.Sprintf("Preparando instalação de %d modelo(s)...", len(models)))
 		content := container.NewVBox(statusLbl, progress)
 
-		wrapper := createLayout("Instalando Modelo", content, nil, nil, "Concluir")
+		wrapper := createLayout("Instalando Modelos", content, nil, nil, "Concluir")
 		w.SetContent(wrapper)
 
 		go func() {
@@ -582,13 +743,32 @@ func runGUIMode() {
 				progress.SetValue(float64(i) / 10.0)
 			}
 
-			statusLbl.SetText(fmt.Sprintf("Instalando %s...", selectedModel))
-			_, err := installModel(installPath, selectedModel)
+			successCount := 0
+			failureCount := 0
+			progressStep := 0.6 / float64(len(models))
 
-			if err != nil {
-				statusLbl.SetText(fmt.Sprintf("Aviso: %v\nModelo será instalado na primeira inicialização", err))
+			for idx, modelID := range models {
+				modelID = strings.TrimSpace(modelID)
+				statusLbl.SetText(fmt.Sprintf("Instalando modelo %d/%d: %s...", idx+1, len(models), modelID))
+				_, err := installModel(installPath, modelID)
+
+				if err != nil {
+					failureCount++
+					statusLbl.SetText(fmt.Sprintf("⚠️  Erro em %s: %v\n(será instalado na primeira inicialização)", modelID, err))
+				} else {
+					successCount++
+					statusLbl.SetText(fmt.Sprintf("✓ %s instalado com sucesso!", modelID))
+				}
+
+				progress.SetValue(0.1 + float64(idx+1)*progressStep)
+				time.Sleep(300 * time.Millisecond)
+			}
+
+			// Resumo final
+			if failureCount == 0 {
+				statusLbl.SetText(fmt.Sprintf("✓ Todos os %d modelo(s) foram instalados com sucesso!", successCount))
 			} else {
-				statusLbl.SetText(fmt.Sprintf("✓ %s pronto!", selectedModel))
+				statusLbl.SetText(fmt.Sprintf("✓ %d modelo(s) instalado(s), %d com aviso (serão instalados na primeira execução)", successCount, failureCount))
 			}
 
 			progress.SetValue(1.0)
