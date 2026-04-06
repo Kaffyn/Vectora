@@ -1,15 +1,14 @@
 {
   "RT_GROUP_ICON": {
     "APPICON": {
-      "0": "../../../assets/test.ico"
+      "0": "../../../assets/lpm.ico"
     }
   },
   "RT_MANIFEST": {
     "APP": {
       "0": {
         "executionLevel": "asInvoker",
-        "dpiAwareness": "PerMonitorV2",
-        "theme": true
+        "dpiAwareness": "PerMonitorV2"
       }
     }
   }

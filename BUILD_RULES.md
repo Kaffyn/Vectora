@@ -2,10 +2,10 @@
 
 ## ⚡ Regras Rígidas e Obrigatórias
 
-### 1. **EXECUTÁVEIS APENAS VIA `build.sh`**
-```bash
+### 1. **EXECUTÁVEIS APENAS VIA `build.ps1`**
+```powershell
 # ✅ CORRETO:
-bash build.sh
+.\build.ps1
 
 # ❌ ERRADO:
 go build -o bin/vectora ./cmd/daemon
@@ -86,9 +86,9 @@ Vectora/
 
 ### 5. **Compilação Nativa**
 
-O `build.sh` compila **APENAS para o sistema detectado** (nativo).
+O `build.ps1` compila **APENAS para o sistema detectado** (nativo).
 
-```bash
+```powershell
 # No macOS compila: macos-amd64 + macos-arm64
 # No Linux compila: linux-amd64 + linux-arm64
 # No Windows compila: windows-amd64 + windows-arm64 (CLI apenas)
@@ -100,26 +100,26 @@ O `build.sh` compila **APENAS para o sistema detectado** (nativo).
 
 Antes de commitar mudanças no código:
 
-- [ ] **Código compila** sem erros: `bash build.sh`
+- [ ] **Código compila** sem erros: `.\build.ps1`
 - [ ] **Todos os binários** estão em `bin/` com nomes corretos
 - [ ] **Nenhum binário em outras pastas** (root, src/, cmd/, etc)
 - [ ] **E2E tests passam**: `go test ./test/e2e/...`
 - [ ] **Commit message** segue o padrão (feat:, fix:, refactor:, etc)
-- [ ] **build.sh não foi modificado** sem necessidade
+- [ ] **build.ps1 não foi modificado** sem necessidade
 
 ---
 
 ## 🚀 Comandos Rápidos
 
-```bash
+```powershell
 # Build completo (nativo)
-bash build.sh
+.\build.ps1
 
 # Verificar binários gerados
-ls -lah bin/
+ls bin/
 
 # Limpar e recompilar
-rm -rf bin/ && bash build.sh
+rm -r bin/; .\build.ps1
 
 # Rodar testes
 go test ./...
@@ -165,15 +165,15 @@ CGO_ENABLED=1 go build -o bin/lpm ./cmd/lpm  # ERRADO
 
 ```
 Modify Code
-    ↓
-Run: bash build.sh
-    ↓
-Verify: ls -lah bin/
-    ↓
+    |
+Run: .\build.ps1
+    |
+Verify: ls bin/
+    |
 Check names: {app}-{os}-{arch}{suffix}
-    ↓
+    |
 Run tests: go test ./...
-    ↓
+    |
 Commit + Push
 ```
 
