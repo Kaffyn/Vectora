@@ -431,7 +431,7 @@ func runGUIMode() {
 			"Usar Gemini API (Apenas Chave / Leve RAM)",
 			"Usar Qwen3 (100% Privado / Download Pesado)",
 		}, func(s string) {})
-		radio.SetSelected("Usar Gemini API (Apenas Chave / Leve RAM)")
+		radio.SetSelected("Usar Qwen3 (100% Privado / Download Pesado)")
 
 		content := container.NewVBox(widget.NewLabel("Defina qual Core fará o processamento local LLM:"), radio)
 
@@ -590,9 +590,37 @@ func runGUIMode() {
 			w.SetContent(createLayout("Erro", lbl, showStepDetectHardware, nil, ""))
 			return
 		}
-		allModels = models
 
-		// Converter RAM de bytes para GB
+		// Filtrar apenas modelos Qwen3 e Qwen2.5-Coder (remover Vision e outros)
+		for _, m := range models {
+			id := m["id"].(string)
+			if strings.Contains(id, "qwen3") || strings.Contains(id, "qwen2.5-coder") {
+				allModels = append(allModels, m)
+			}
+		}
+
+		// Separar modelos por tipo (Text/Coder juntos, Embedding separado)
+		var normalModels, embeddingModels []map[string]interface{}
+		for _, m := range allModels {
+			id := m["id"].(string)
+			if strings.Contains(id, "-embed") {
+				embeddingModels = append(embeddingModels, m)
+			} else {
+				// Inclui tanto Qwen3 quanto Qwen2.5-Coder na mesma lista
+				normalModels = append(normalModels, m)
+			}
+		}
+
+		// Mapas para rastrear seleções
+		selectedModels := make(map[string]bool)
+
+		// Por padrão: usar modelo recomendado para o hardware + embedding compatível
+		recommendedID := recommendedModel["id"].(string)
+		selectedModels[recommendedID] = true
+
+		// Selecionar embedding compatível com o hardware
+		// Se RAM >= 12GB: usar embedding-4b (melhor qualidade)
+		// Caso contrário: usar embedding-0.6b (mais leve)
 		var ramGB float64
 		switch v := hardwareInfo["RAM"].(type) {
 		case float64:
@@ -601,40 +629,13 @@ func runGUIMode() {
 			ramGB = float64(v) / (1024 * 1024 * 1024)
 		case int:
 			ramGB = float64(v) / (1024 * 1024 * 1024)
-		default:
-			ramGB = 0
-		}
-		gpuType := "Nenhuma"
-		if gpu, ok := hardwareInfo["GPUType"].(string); ok && gpu != "none" && gpu != "" {
-			gpuType = gpu
-			if gpuVersion, ok := hardwareInfo["GPUVersion"].(string); ok && gpuVersion != "" {
-				gpuType += " (" + gpuVersion + ")"
-			}
 		}
 
-		// Separar modelos por tipo
-		var normalModels, embeddingModels, vlModels []map[string]interface{}
-		for _, m := range allModels {
-			id := m["id"].(string)
-			if strings.Contains(id, "-embed") {
-				embeddingModels = append(embeddingModels, m)
-			} else if strings.Contains(id, "-vl") {
-				vlModels = append(vlModels, m)
-			} else {
-				normalModels = append(normalModels, m)
-			}
+		if ramGB >= 12 {
+			selectedModels["qwen3-embedding-4b"] = true
+		} else {
+			selectedModels["qwen3-embedding-0.6b"] = true
 		}
-
-		// Mapas para rastrear seleções
-		selectedModels := make(map[string]bool)
-		selectedModels[recommendedModel["id"].(string)] = true
-		selectedModel = recommendedModel["id"].(string)
-
-		hardwareInfo := container.NewVBox(
-			widget.NewLabel(fmt.Sprintf("💾 RAM: %.1f GB", ramGB)),
-			widget.NewLabel(fmt.Sprintf("🎮 GPU: %s", gpuType)),
-			widget.NewLabel(""),
-		)
 
 		// Helper para criar checkbox
 		createCheckbox := func(modelID, modelName string, models map[string]bool) *widget.Check {
@@ -670,35 +671,13 @@ func runGUIMode() {
 			for _, m := range embeddingModels {
 				id := m["id"].(string)
 				name := m["name"].(string)
-				// Extrair tamanho do nome
-				var displayName string
-				if strings.Contains(id, "small") {
-					displayName = fmt.Sprintf("%s (80M)", name)
-				} else if strings.Contains(id, "large") {
-					displayName = fmt.Sprintf("%s (2B)", name)
-				} else {
-					displayName = name
-				}
-				embGrid.Add(createCheckbox(id, displayName, selectedModels))
+				embGrid.Add(createCheckbox(id, name, selectedModels))
 			}
 			modelsContent.Add(embGrid)
 		}
 
-		if len(vlModels) > 0 {
-			modelsContent.Add(widget.NewLabel("👁️ Modelos Vision:"))
-			vlGrid := container.NewGridWithColumns(2)
-			for _, m := range vlModels {
-				id := m["id"].(string)
-				name := m["name"].(string)
-				vlGrid.Add(createCheckbox(id, name, selectedModels))
-			}
-			modelsContent.Add(vlGrid)
-		}
-
 		content := container.NewVBox(
-			widget.NewLabel(fmt.Sprintf("🔍 Recomendado: %s", recommendedModel["name"])),
-			hardwareInfo,
-			widget.NewLabel("Selecione os modelos:"),
+			widget.NewLabel("Selecione os modelos de IA que deseja instalar:"),
 			modelsContent,
 		)
 
@@ -722,7 +701,7 @@ func runGUIMode() {
 			for _, id := range selected {
 				if strings.Contains(id, "-embed") {
 					hasEmbedding = true
-				} else if !strings.Contains(id, "-vl") {
+				} else {
 					hasBase = true
 				}
 			}
