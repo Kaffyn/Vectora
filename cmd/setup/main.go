@@ -209,6 +209,7 @@ func runGUIMode() {
 
 	w = a.NewWindow("Setup Vectora")
 	w.Resize(fyne.NewSize(650, 550))
+	w.CenterOnScreen()
 	w.SetOnClosed(func() { os.Exit(0) })
 	w.SetIcon(fyne.NewStaticResource("vectora-setup", assets.VectoraSetupIconData))
 
