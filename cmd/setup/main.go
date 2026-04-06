@@ -207,7 +207,7 @@ func runGUIMode() {
 
 	w = a.NewWindow("Setup Vectora")
 	w.Resize(fyne.NewSize(620, 480))
-	w.SetIcon(fyne.NewStaticResource("installer_icon", assets.InstallerIconData))
+	w.SetIcon(fyne.NewStaticResource("vectora-setup", assets.VectoraSetupIconData))
 
 	// Re-get manager for logic
 	systemManager, err := vecos.NewManager()

@@ -5,12 +5,13 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"github.com/Kaffyn/Vectora/assets"
 	"github.com/Kaffyn/Vectora/desktop"
 )
 
 func main() {
 	fyneApp := app.New()
-	fyneApp.SetIcon(nil)
+	fyneApp.SetIcon(fyne.NewStaticResource("vectora-desktop", assets.VectoraDesktopIconData))
 
 	// Initialize desktop application
 	desktopApp, err := desktop.NewApp(fyneApp)
