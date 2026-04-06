@@ -75,7 +75,7 @@ function Build-Binary {
         Write-Host "${GREEN}OK${NC} ($size)"
         return $true
     }
-    
+
     Write-Host "${RED}FAIL${NC}"
     return $false
 }
@@ -83,19 +83,34 @@ function Build-Binary {
 Write-Host "Compiling for Windows (Native Targets)..."
 Write-Host ""
 
-# host (x86_64) - all binaries
+# PHASE 1: Compile dependencies (mpm, lpm, vectora daemon - required by setup for embedding)
+Write-Host "${YELLOW}[PHASE 1] Compiling dependencies (vectora, mpm, lpm)...${NC}"
 Build-Binary "vectora" "cmd/daemon" "windows" "amd64" ".exe"
-Build-Binary "vectora-tui" "cmd/tui" "windows" "amd64" ".exe"
-Build-Binary "vectora-setup" "cmd/setup" "windows" "amd64" ".exe"
-Build-Binary "vectora-desktop" "cmd/desktop" "windows" "amd64" ".exe"
 Build-Binary "mpm" "cmd/mpm" "windows" "amd64" ".exe"
 Build-Binary "lpm" "cmd/lpm" "windows" "amd64" ".exe"
-
-# arm64 (target) - only CLI tools
-Build-Binary "vectora" "cmd/daemon" "windows" "arm64" ".exe"
-Build-Binary "vectora-tui" "cmd/tui" "windows" "arm64" ".exe"
 Build-Binary "mpm" "cmd/mpm" "windows" "arm64" ".exe"
 Build-Binary "lpm" "cmd/lpm" "windows" "arm64" ".exe"
+Build-Binary "vectora" "cmd/daemon" "windows" "arm64" ".exe"
+
+# PHASE 2: Copy compiled binaries to cmd/setup/ for embedding
+Write-Host ""
+Write-Host "${YELLOW}[PHASE 2] Copying binaries to cmd/setup/ for embedding...${NC}"
+Copy-Item -Path "$BIN_DIR/vectora-windows-amd64.exe" -Destination "cmd/setup/vectora.exe" -Force
+Copy-Item -Path "$BIN_DIR/mpm-windows-amd64.exe" -Destination "cmd/setup/mpm.exe" -Force
+Copy-Item -Path "$BIN_DIR/lpm-windows-amd64.exe" -Destination "cmd/setup/lpm.exe" -Force
+Write-Host "  ${GREEN}OK${NC} Binaries copied"
+
+# PHASE 3: Compile setup and desktop (now have updated embedded binaries)
+Write-Host ""
+Write-Host "${YELLOW}[PHASE 3] Compiling setup and desktop...${NC}"
+Build-Binary "vectora-setup" "cmd/setup" "windows" "amd64" ".exe"
+Build-Binary "vectora-desktop" "cmd/desktop" "windows" "amd64" ".exe"
+
+# PHASE 4: Compile TUI for all targets
+Write-Host ""
+Write-Host "${YELLOW}[PHASE 4] Compiling TUI...${NC}"
+Build-Binary "vectora-tui" "cmd/tui" "windows" "amd64" ".exe"
+Build-Binary "vectora-tui" "cmd/tui" "windows" "arm64" ".exe"
 
 # Cleanup env variables
 $env:GOOS = ""
@@ -109,20 +124,13 @@ Write-Host "================================================================"
 Write-Host ""
 
 # Summary
-if (Test-Path "$BIN_DIR") {
-    $files = Get-ChildItem "$BIN_DIR" -File
-    $count = $files.Count
-    $totalSize = ($files | Measure-Object -Property Length -Sum).Sum
-    $totalSizeStr = if ($totalSize -gt 1MB) { "$("{0:N2}" -f ($totalSize / 1MB)) MB" } else { "$("{0:N2}" -f ($totalSize / 1KB)) KB" }
-    
-    Write-Host "Summary:"
-    Write-Host "  * Compiled binaries: $count"
-    Write-Host "  * Total size: $totalSizeStr"
-    Write-Host "  * Location: ./$BIN_DIR/"
-    Write-Host ""
-    Write-Host "Generated binaries:"
-    foreach ($f in $files) {
-        Write-Host "  - $($f.Name)"
-    }
-    Write-Host ""
-}
+$files = @(Get-ChildItem "$BIN_DIR" -File)
+$count = $files.Count
+$totalSize = ($files | Measure-Object -Property Length -Sum).Sum
+$sizeInMB = [math]::Round($totalSize / 1MB, 2)
+
+Write-Host "Summary:"
+Write-Host "  * Compiled binaries: $count"
+Write-Host "  * Total size: $sizeInMB MB"
+Write-Host "  * Location: ./$BIN_DIR/"
+Write-Host ""

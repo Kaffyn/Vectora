@@ -78,8 +78,15 @@ func detectHardware(installDir string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	// Trim whitespace and handle empty output
+	output = strings.TrimSpace(output)
+	if output == "" {
+		return nil, fmt.Errorf("no output from hardware detection")
+	}
+
 	var hw map[string]interface{}
 	if err := json.Unmarshal([]byte(output), &hw); err != nil {
+		// Return nil with error instead of failing
 		return nil, fmt.Errorf("failed to parse hardware info: %w", err)
 	}
 
@@ -92,6 +99,12 @@ func recommendModel(installDir string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
+	// Trim whitespace and handle empty output
+	output = strings.TrimSpace(output)
+	if output == "" {
+		return nil, fmt.Errorf("no output from model recommendation")
+	}
+
 	var model map[string]interface{}
 	if err := json.Unmarshal([]byte(output), &model); err != nil {
 		return nil, fmt.Errorf("failed to parse model info: %w", err)
@@ -101,9 +114,64 @@ func recommendModel(installDir string) (map[string]interface{}, error) {
 }
 
 func listModels(installDir string) ([]map[string]interface{}, error) {
+	// Tenta ler do catalog.json em vários caminhos possíveis
+	var catalogPaths []string
+
+	// 1. Relativo ao executável (../models/catalog.json)
+	exePath, err := os.Executable()
+	if err == nil {
+		exeDir := filepath.Dir(exePath)
+		catalogPaths = append(catalogPaths, filepath.Join(exeDir, "..", "models", "catalog.json"))
+		catalogPaths = append(catalogPaths, filepath.Join(exeDir, "models", "catalog.json"))
+	}
+
+	// 2. No diretório de instalação
+	if installDir != "" {
+		catalogPaths = append(catalogPaths, filepath.Join(installDir, "models", "catalog.json"))
+	}
+
+	// 3. No diretório atual
+	catalogPaths = append(catalogPaths, "./models/catalog.json")
+	catalogPaths = append(catalogPaths, "models/catalog.json")
+
+	// Tenta cada caminho
+	var data []byte
+	for _, catalogPath := range catalogPaths {
+		d, err := os.ReadFile(catalogPath)
+		if err == nil {
+			data = d
+			break
+		}
+	}
+
+	// Se não conseguiu ler de nenhum caminho, fallback para mpm list
+	if data == nil {
+		return listModelsFromMPM()
+	}
+
+	type CatalogFormat struct {
+		Models []map[string]interface{} `json:"models"`
+	}
+
+	var catalog CatalogFormat
+	if err := json.Unmarshal(data, &catalog); err != nil {
+		// Se falhar a parsing, fallback para mpm list
+		return listModelsFromMPM()
+	}
+
+	return catalog.Models, nil
+}
+
+func listModelsFromMPM() ([]map[string]interface{}, error) {
 	output, err := callMPM("list", "--json")
 	if err != nil {
 		return nil, err
+	}
+
+	// Trim whitespace and handle empty output
+	output = strings.TrimSpace(output)
+	if output == "" {
+		return nil, fmt.Errorf("no output from models list")
 	}
 
 	var models []map[string]interface{}
@@ -242,7 +310,7 @@ func runGUIMode() {
 		i18n.SetLanguage("en")
 	}
 
-	var showStepWelcome, showStepLang, showStepPath, showStepInstall func()
+	var showStepLang, showStepPath, showStepInstall func()
 	var showStepConfigMode, showStepConfigGemini, showStepConfigQwen, showStepFinish func()
 	var showStepDetectHardware, showStepRecommendModel, showStepSelectBackend, showStepChooseModel, showStepInstallModel func()
 	var showUninstallProgress, showAlreadyInstalled func(string)
@@ -286,19 +354,6 @@ func runGUIMode() {
 		w.SetContent(createLayout("App Detectado", content, nil, func() { w.Close() }, "Sair"))
 	}
 
-	showStepWelcome = func() {
-		text1 := widget.NewLabel(i18n.T("inst_welcome"))
-		text2 := widget.NewLabel("Este assistente ajudará você a configurar o ambiente de IA\nno seu sistema local.")
-		text3 := widget.NewLabel("Clique em " + i18n.T("inst_btn_next") + " para continuar.")
-
-		content := container.NewVBox(
-			text1, widget.NewLabel(""),
-			text2, widget.NewLabel(""), widget.NewLabel(""),
-			text3,
-		)
-		w.SetContent(createLayout("Vectora Setup", content, nil, showStepLang, i18n.T("inst_btn_next")+" >"))
-	}
-
 	showStepLang = func() {
 		languages := []struct {
 			name  string
@@ -312,10 +367,26 @@ func runGUIMode() {
 		}
 
 		currentLang := i18n.GetCurrentLang()
+
+		// Criar spacers pequenos (mínimo espaçamento)
+		minSpacer := canvas.NewRectangle(color.Transparent)
+		minSpacer.SetMinSize(fyne.NewSize(0, 4))
+
 		content := container.NewVBox(
-			widget.NewLabel(i18n.T("inst_select_lang")),
-			widget.NewLabel(""),
+			widget.NewLabel(i18n.T("inst_welcome")),
 		)
+
+		spacer1 := canvas.NewRectangle(color.Transparent)
+		spacer1.SetMinSize(fyne.NewSize(0, 4))
+		content.Add(spacer1)
+
+		content.Add(widget.NewLabel("Este assistente ajudará você a configurar o ambiente de IA\nno seu sistema local."))
+
+		spacer2 := canvas.NewRectangle(color.Transparent)
+		spacer2.SetMinSize(fyne.NewSize(0, 8))
+		content.Add(spacer2)
+
+		content.Add(widget.NewLabel(i18n.T("inst_select_lang")))
 
 		// Criar grid de botões de idioma
 		langGrid := container.NewGridWithColumns(2)
@@ -331,9 +402,8 @@ func runGUIMode() {
 			langGrid.Add(btn)
 		}
 
-		content.Add(widget.NewLabel(""))
-		content.Add(container.NewPadded(langGrid))
-		w.SetContent(createLayout("Linguagem Padrão", content, showStepWelcome, showStepPath, "Avançar >"))
+		content.Add(langGrid)
+		w.SetContent(createLayout("Vectora Setup", content, nil, showStepPath, i18n.T("inst_btn_next")+" >"))
 	}
 
 	showStepPath = func() {
@@ -421,7 +491,7 @@ func runGUIMode() {
 			systemManager.RegisterApp(installPath)
 			progress.SetValue(1.0)
 
-			doneContent := container.NewVBox(widget.NewLabel("Files extracted and O.S links successfully registered.\n\nNow let's configure the Assistant Engine."))
+			doneContent := container.NewVBox(widget.NewLabel(i18n.T("inst_install_done")), widget.NewLabel(""), widget.NewLabel(i18n.T("inst_configure_engine")))
 			w.SetContent(createLayout("Instalação Concluída", doneContent, nil, showStepConfigMode, "Configurar IA >"))
 		}()
 	}
@@ -433,7 +503,7 @@ func runGUIMode() {
 		}, func(s string) {})
 		radio.SetSelected("Usar Qwen3 (100% Privado / Download Pesado)")
 
-		content := container.NewVBox(widget.NewLabel("Defina qual Core fará o processamento local LLM:"), radio)
+		content := container.NewVBox(widget.NewLabel(i18n.T("inst_select_backend")), radio)
 
 		nextCmd := func() {
 			if radio.Selected == "Usar Gemini API (Apenas Chave / Leve RAM)" {
@@ -478,7 +548,13 @@ func runGUIMode() {
 
 			hw, err := detectHardware(installPath)
 			if err != nil {
-				statusLbl.SetText(fmt.Sprintf("Erro ao detectar hardware: %v", err))
+				// Detecção falhou, prosseguir sem hardware info
+				statusLbl.SetText("Não foi possível detectar o hardware. Continuando com detecção manual...")
+				hardwareInfo = nil // Deixar nulo para indicar que falhou
+				progress.SetValue(1.0)
+				time.Sleep(1500 * time.Millisecond)
+				// Pular recomendação e ir direto para seleção
+				showStepChooseModel()
 				return
 			}
 
@@ -528,8 +604,10 @@ func runGUIMode() {
 	// Selecionar backend de GPU/CPU para llamacpp
 	showStepSelectBackend = func() {
 		gpuType := ""
-		if gpu, ok := hardwareInfo["GPUType"].(string); ok {
-			gpuType = gpu
+		if hardwareInfo != nil {
+			if gpu, ok := hardwareInfo["GPUType"].(string); ok {
+				gpuType = gpu
+			}
 		}
 
 		// Opções baseadas no GPU detectado
@@ -614,33 +692,38 @@ func runGUIMode() {
 		// Mapas para rastrear seleções
 		selectedModels := make(map[string]bool)
 
-		// Por padrão: usar modelo recomendado para o hardware + embedding compatível
-		recommendedID := recommendedModel["id"].(string)
-		selectedModels[recommendedID] = true
+		// Usar modelos recomendados apenas se detecção de hardware foi bem-sucedida
+		if hardwareInfo != nil {
+			// Por padrão: usar modelo recomendado para o hardware + embedding compatível
+			if recommendedModel != nil && recommendedModel["id"] != nil {
+				recommendedID := recommendedModel["id"].(string)
+				selectedModels[recommendedID] = true
+			}
 
-		// Selecionar embedding compatível com o hardware
-		// Se RAM >= 12GB: usar embedding-4b (melhor qualidade)
-		// Caso contrário: usar embedding-0.6b (mais leve)
-		var ramGB float64
-		switch v := hardwareInfo["RAM"].(type) {
-		case float64:
-			ramGB = v / (1024 * 1024 * 1024)
-		case int64:
-			ramGB = float64(v) / (1024 * 1024 * 1024)
-		case int:
-			ramGB = float64(v) / (1024 * 1024 * 1024)
-		}
+			// Selecionar embedding compatível com o hardware
+			// Se RAM >= 12GB: usar embedding-4b (melhor qualidade)
+			// Caso contrário: usar embedding-0.6b (mais leve)
+			var ramGB float64
+			switch v := hardwareInfo["RAM"].(type) {
+			case float64:
+				ramGB = v / (1024 * 1024 * 1024)
+			case int64:
+				ramGB = float64(v) / (1024 * 1024 * 1024)
+			case int:
+				ramGB = float64(v) / (1024 * 1024 * 1024)
+			}
 
-		if ramGB >= 12 {
-			selectedModels["qwen3-embedding-4b"] = true
-		} else {
-			selectedModels["qwen3-embedding-0.6b"] = true
+			if ramGB >= 12 {
+				selectedModels["qwen3-embedding-4b"] = true
+			} else {
+				selectedModels["qwen3-embedding-0.6b"] = true
+			}
 		}
 
 		// Helper para criar checkbox
 		createCheckbox := func(modelID, modelName string, models map[string]bool) *widget.Check {
 			id := modelID // Capture in closure
-			check := widget.NewCheck(fmt.Sprintf("%s - %s", modelID, modelName), func(checked bool) {
+			check := widget.NewCheck(modelName, func(checked bool) {
 				if checked {
 					models[id] = true
 				} else {
@@ -677,7 +760,7 @@ func runGUIMode() {
 		}
 
 		content := container.NewVBox(
-			widget.NewLabel("Selecione os modelos de IA que deseja instalar:"),
+			widget.NewLabel(i18n.T("inst_select_models")),
 			modelsContent,
 		)
 
@@ -716,7 +799,16 @@ func runGUIMode() {
 			showStepInstallModel()
 		}
 
-		w.SetContent(createLayout("Escolher Modelos", content, showStepSelectBackend, nextCmd, "Instalar >"))
+		// Se hardware detection falhou, voltar ao config mode (seleção de AI engine)
+		// Se hardware detection funcionou, voltar ao backend selection
+		var backCmd func()
+		if hardwareInfo == nil {
+			backCmd = showStepConfigMode
+		} else {
+			backCmd = showStepSelectBackend
+		}
+
+		w.SetContent(createLayout("Escolher Modelos", content, backCmd, nextCmd, "Instalar >"))
 	}
 
 	// Instalar modelos
@@ -795,7 +887,7 @@ func runGUIMode() {
 	} else if existingPath := systemManager.IsInstalled(); existingPath != "" {
 		showAlreadyInstalled(existingPath)
 	} else {
-		showStepWelcome()
+		showStepLang()
 	}
 
 	w.ShowAndRun()

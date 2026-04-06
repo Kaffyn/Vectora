@@ -20,4 +20,8 @@ inst_step_download,Setting up workspace...,Estruturando os buckets de workspace.
 inst_done,Installation Complete!,Instalação Concluída com Sucesso!,¡Instalación Completada!,Installation Terminée !
 inst_btn_finish,Finish,Concluir Instalação,Finalizar,Terminer
 inst_already,Vectora is already installed on this system.,O Vectora já se encontra instalado no sistema!,¡Vectora ya está instalado en este sistema!,Vectora est déjà installé sur ce système.
+inst_install_done,Files extracted and O.S links successfully registered.,Arquivos extraídos e links do S.O registrados com sucesso.,Archivos extraídos y enlaces del S.O registrados correctamente.,Fichiers extraits et liens du S.O enregistrés avec succès.
+inst_configure_engine,Now let's configure the Assistant Engine.,Agora vamos configurar o Motor da IA.,Ahora configuremos el Motor de IA.,Configurons maintenant le moteur d'IA.
+inst_select_backend,Select which Core will process the local LLM:,Defina qual Core fará o processamento local LLM:,Selecciona qué Core procesará el LLM local:,Sélectionnez quel Core traitera le LLM local :
+inst_select_models,Select the AI models you want to install:,Selecione os modelos de IA que deseja instalar:,Selecciona los modelos de IA que deseas instalar:,Sélectionnez les modèles d'IA à installer :
 inst_btn_uninstall,Uninstall Vectora,Executar Desinstalação,Desinstalar Vectora,Désinstaller Vectora
