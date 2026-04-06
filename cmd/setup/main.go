@@ -147,10 +147,10 @@ func createLayout(titleText string, content fyne.CanvasObject, backFunc func(), 
 	)
 
 	return container.NewBorder(
-		container.NewPadded(container.NewVBox(title, widget.NewLabel(""))),
+		title,
 		container.NewStack(footerBg, container.NewPadded(footerContent)),
 		nil, nil,
-		container.NewPadded(content),
+		content,
 	)
 }
 
@@ -650,12 +650,12 @@ func runGUIMode() {
 			return check
 		}
 
-		// Grid de modelos
+		// Grid de modelos (sem scroll, direto na tela)
 		modelsContent := container.NewVBox()
 
 		if len(normalModels) > 0 {
 			modelsContent.Add(widget.NewLabel("📦 Modelos Padrão:"))
-			normalGrid := container.NewGridWithColumns(3)
+			normalGrid := container.NewGridWithColumns(2)
 			for _, m := range normalModels {
 				id := m["id"].(string)
 				name := m["name"].(string)
@@ -665,18 +665,17 @@ func runGUIMode() {
 		}
 
 		if len(embeddingModels) > 0 {
-			modelsContent.Add(widget.NewLabel(""))
-			modelsContent.Add(widget.NewLabel("📚 Modelos Embedding (para busca semântica):"))
-			embGrid := container.NewGridWithColumns(3)
+			modelsContent.Add(widget.NewLabel("📚 Modelos Embedding:"))
+			embGrid := container.NewGridWithColumns(2)
 			for _, m := range embeddingModels {
 				id := m["id"].(string)
 				name := m["name"].(string)
-				// Extrair tamanho do nome (ex: "qwen3-embed-small" -> "Small")
+				// Extrair tamanho do nome
 				var displayName string
 				if strings.Contains(id, "small") {
-					displayName = fmt.Sprintf("%s\n(80M params)", name)
+					displayName = fmt.Sprintf("%s (80M)", name)
 				} else if strings.Contains(id, "large") {
-					displayName = fmt.Sprintf("%s\n(2B params)", name)
+					displayName = fmt.Sprintf("%s (2B)", name)
 				} else {
 					displayName = name
 				}
@@ -686,9 +685,8 @@ func runGUIMode() {
 		}
 
 		if len(vlModels) > 0 {
-			modelsContent.Add(widget.NewLabel(""))
 			modelsContent.Add(widget.NewLabel("👁️ Modelos Vision:"))
-			vlGrid := container.NewGridWithColumns(3)
+			vlGrid := container.NewGridWithColumns(2)
 			for _, m := range vlModels {
 				id := m["id"].(string)
 				name := m["name"].(string)
@@ -697,14 +695,11 @@ func runGUIMode() {
 			modelsContent.Add(vlGrid)
 		}
 
-		modelsScroll := container.NewScroll(modelsContent)
-		modelsScroll.SetMinSize(fyne.NewSize(600, 200))
-
 		content := container.NewVBox(
 			widget.NewLabel(fmt.Sprintf("🔍 Recomendado: %s", recommendedModel["name"])),
 			hardwareInfo,
-			widget.NewLabel("Selecione modelos para instalar:"),
-			modelsScroll,
+			widget.NewLabel("Selecione os modelos:"),
+			modelsContent,
 		)
 
 		nextCmd := func() {
