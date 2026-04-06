@@ -2,32 +2,11 @@
 
 package main
 
-import "embed"
-
-//go:embed all:assets
-var llamaAssets embed.FS
+// Note: llama binaries are not embedded in the binary on Windows.
+// They are downloaded and managed by the engines package.
+// This file is kept for future binary embedding if needed.
 
 func getLlamaAssets() map[string][]byte {
-	assets := make(map[string][]byte)
-	
-	// List of vital files for the engine to function on Windows
-	files := []string{
-		"llama-cli.exe",
-		"llama-server.exe",
-		"rpc-server.exe",
-		"ggml-vulkan.dll",
-		"llama.dll",
-		"ggml.dll",
-		"ggml-base.dll",
-		"ggml-rpc.dll",
-	}
-
-	for _, name := range files {
-		data, err := llamaAssets.ReadFile("assets/" + name)
-		if err == nil {
-			assets[name] = data
-		}
-	}
-
-	return assets
+	// Return empty map - binaries are managed externally
+	return make(map[string][]byte)
 }
