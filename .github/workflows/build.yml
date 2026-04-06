@@ -1,0 +1,130 @@
+name: Cross-Platform Build
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+    paths:
+      - 'cmd/**'
+      - 'internal/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/build.yml'
+  pull_request:
+    branches:
+      - master
+      - develop
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} - ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows builds
+          - os: windows
+            arch: amd64
+            runner: windows-latest
+            artifact_suffix: .exe
+
+          # Linux builds
+          - os: linux
+            arch: amd64
+            runner: ubuntu-latest
+            artifact_suffix: ''
+          - os: linux
+            arch: arm64
+            runner: ubuntu-latest
+            artifact_suffix: ''
+
+          # macOS builds
+          - os: darwin
+            arch: amd64
+            runner: macos-latest
+            artifact_suffix: ''
+          - os: darwin
+            arch: arm64
+            runner: macos-latest
+            artifact_suffix: ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Create build output directory
+        run: mkdir -p bin
+
+      - name: Build vectora daemon
+        run: |
+          go build -v -o bin/vectora${{ matrix.artifact_suffix }} ./cmd/vectora
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 0
+
+      - name: Build vectora-cli (TUI)
+        run: |
+          go build -v -o bin/vectora-cli${{ matrix.artifact_suffix }} ./cmd/vectora-cli
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 0
+
+      - name: Build vectora-installer
+        run: |
+          go build -v -o bin/vectora-installer${{ matrix.artifact_suffix }} ./cmd/vectora-installer
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 0
+
+      - name: Build mpm (Model Package Manager)
+        run: |
+          go build -v -o bin/mpm${{ matrix.artifact_suffix }} ./cmd/mpm
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 0
+
+      - name: Build lpm (Llama Package Manager)
+        run: |
+          go build -v -o bin/lpm${{ matrix.artifact_suffix }} ./cmd/lpm
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 0
+
+      - name: Display build artifacts
+        run: ls -lh bin/ || dir bin/
+        shell: bash
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vectora-${{ matrix.os }}-${{ matrix.arch }}
+          path: bin/
+          retention-days: 7
+
+  build-summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: build
+    if: always()
+    steps:
+      - name: Check build status
+        run: |
+          if [ "${{ needs.build.result }}" == "failure" ]; then
+            echo "❌ Build failed on one or more platforms"
+            exit 1
+          fi
+          echo "✅ All builds completed successfully"
