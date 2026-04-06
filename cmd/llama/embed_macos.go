@@ -2,17 +2,11 @@
 
 package main
 
-import _ "embed"
-
-//go:embed ../../internal/os/macos/llama-b8583/llama-server
-var llamaServerBin []byte
-
-//go:embed ../../internal/os/macos/llama-b8583/llama-cli
-var llamaCliBin []byte
+// Note: llama binaries are not embedded in the binary on macOS.
+// They are downloaded and managed by the engines package.
+// This file is kept for future binary embedding if needed.
 
 func getLlamaAssets() map[string][]byte {
-	return map[string][]byte{
-		"llama-server": llamaServerBin,
-		"llama-cli":    llamaCliBin,
-	}
+	// Return empty map - binaries are managed externally
+	return make(map[string][]byte)
 }
