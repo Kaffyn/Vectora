@@ -1,134 +1,120 @@
 #!/bin/bash
 
-# Cross-compilation script for Vectora
-# Note: Some targets may require specific toolchains (gcc for Linux/macOS)
+# Vectora Build Script - Unified cross-platform compilation
+# Automatically detects OS and compiles for native target
+# Replaces: build-all.sh, build.ps1, and previous build.sh
+# Works on Windows (Git Bash, MSYS2, WSL), Linux, and macOS
+
+set -e
 
 BIN_DIR="bin"
 mkdir -p "$BIN_DIR"
 
+# Detect OS
+OS=$(uname -s 2>/dev/null || echo "Windows")
+ARCH=$(uname -m 2>/dev/null || echo "x86_64")
+
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
-echo "║       Vectora Cross-Compilation (Go Native)               ║"
+echo "║         Vectora Build (Unified Universal Script)          ║"
 echo "╚════════════════════════════════════════════════════════════╝"
 echo ""
-
-# Binaries that work everywhere (pure Go, no cgo)
-declare -a CLI_BINARIES=("vectora-cli:cmd/vectora-cli" "mpm:cmd/mpm")
-
-# Binaries with cgo (need specific toolchains for cross-compilation)
-declare -a CGO_BINARIES=("vectora:cmd/vectora" "lpm:cmd/lpm")
-
-# Targets
-declare -a TARGETS=("windows-amd64:windows:amd64" "windows-arm:windows:arm" "linux-amd64:linux:amd64" "linux-arm:linux:arm" "macos-arm64:darwin:arm64")
-
-COUNT=0
-FAILED=0
-
-for target in "${TARGETS[@]}"; do
-    IFS=':' read -r target_name target_os target_arch <<< "$target"
-    
-    echo "📦 Target: $target_name"
-    
-    # Pure Go binaries (always compile)
-    for binary in "${CLI_BINARIES[@]}"; do
-        IFS=':' read -r bin_name bin_path <<< "$binary"
-
-        ext=""
-        if [ "$target_os" == "windows" ]; then
-            ext=".exe"
-        else
-            ext=".app"
-        fi
-
-        output="$BIN_DIR/${bin_name}-${target_name}${ext}"
-        
-        echo -n "  Building $bin_name... "
-        
-        export GOOS="$target_os"
-        export GOARCH="$target_arch"
-        export CGO_ENABLED=0
-        
-        if go build -ldflags "-w -s" -o "$output" "./$bin_path" 2>/dev/null; then
-            size=$(du -h "$output" | cut -f1)
-            echo "✓ ($size)"
-            ((COUNT++))
-        else
-            echo "✗"
-            ((FAILED++))
-        fi
-    done
-    
-    # CGO binaries (only on native platform or with toolchains)
-    for binary in "${CGO_BINARIES[@]}"; do
-        IFS=':' read -r bin_name bin_path <<< "$binary"
-        
-        # Skip CGO binaries on non-windows unless CGO_ENABLED is explicitly set
-        if [ "$target_os" != "windows" ] && [ -z "$FORCE_CGO" ]; then
-            echo "  Building $bin_name... ⊘ (requires toolchain)"
-            ((FAILED++))
-        else
-            ext=""
-            if [ "$target_os" == "windows" ]; then
-                ext=".exe"
-            else
-                ext=".app"
-            fi
-
-            output="$BIN_DIR/${bin_name}-${target_name}${ext}"
-            
-            echo -n "  Building $bin_name... "
-            
-            export GOOS="$target_os"
-            export GOARCH="$target_arch"
-            
-            if go build -ldflags "-w -s" -o "$output" "./$bin_path" 2>/dev/null; then
-                size=$(du -h "$output" | cut -f1)
-                echo "✓ ($size)"
-                ((COUNT++))
-            else
-                echo "✗"
-                ((FAILED++))
-            fi
-        fi
-    done
-done
-
-# Build installer (Windows amd64 only)
+echo "🖥️  Detected: $OS ($ARCH)"
 echo ""
-echo "📦 Target: windows-installer"
-echo -n "  Building vectora-installer... "
 
-export GOOS="windows"
-export GOARCH="amd64"
-export CGO_ENABLED=1
+# Function to build a binary
+build_binary() {
+	local name=$1
+	local path=$2
+	local goos=$3
+	local goarch=$4
+	local suffix=$5
 
-if go build -o "$BIN_DIR/vectora-installer-windows-amd64.exe" "./cmd/vectora-installer" 2>/dev/null; then
-    size=$(du -h "$BIN_DIR/vectora-installer-windows-amd64.exe" | cut -f1)
-    echo "✓ ($size)"
-    ((COUNT++))
-else
-    echo "✗"
-    ((FAILED++))
-fi
+	export GOOS=$goos
+	export GOARCH=$goarch
+	export CGO_ENABLED=0
 
-# Clear env
-unset GOOS GOARCH CGO_ENABLED
+	local output="$BIN_DIR/${name}${suffix}"
+
+	printf "  %-30s" "Building $name..."
+
+	if go build -v -ldflags="-s -w" -o "$output" "./$path" 2>/dev/null; then
+		if [ -f "$output" ]; then
+			local size
+			if command -v du &>/dev/null; then
+				size=$(du -h "$output" 2>/dev/null | cut -f1)
+			else
+				size=$(ls -lh "$output" 2>/dev/null | awk '{print $5}')
+			fi
+			printf "✓ ($size)\n"
+			return 0
+		fi
+	fi
+	printf "✗\n"
+	return 1
+}
+
+# Determine build targets based on detected OS
+case "$OS" in
+	Darwin) # macOS
+		echo "📦 Building for macOS (native)..."
+		build_binary "vectora" "cmd/vectora" "darwin" "amd64" ""
+		build_binary "vectora" "cmd/vectora" "darwin" "arm64" "-arm64"
+		build_binary "vectora-cli" "cmd/vectora-cli" "darwin" "amd64" ""
+		build_binary "vectora-cli" "cmd/vectora-cli" "darwin" "arm64" "-arm64"
+		build_binary "vectora-installer" "cmd/vectora-installer" "darwin" "amd64" ""
+		build_binary "vectora-installer" "cmd/vectora-installer" "darwin" "arm64" "-arm64"
+		build_binary "mpm" "cmd/mpm" "darwin" "amd64" ""
+		build_binary "mpm" "cmd/mpm" "darwin" "arm64" "-arm64"
+		build_binary "lpm" "cmd/lpm" "darwin" "amd64" ""
+		build_binary "lpm" "cmd/lpm" "darwin" "arm64" "-arm64"
+		;;
+
+	Linux)
+		echo "📦 Building for Linux (native)..."
+		build_binary "vectora" "cmd/vectora" "linux" "amd64" ""
+		build_binary "vectora" "cmd/vectora" "linux" "arm64" "-arm64"
+		build_binary "vectora-cli" "cmd/vectora-cli" "linux" "amd64" ""
+		build_binary "vectora-cli" "cmd/vectora-cli" "linux" "arm64" "-arm64"
+		build_binary "vectora-installer" "cmd/vectora-installer" "linux" "amd64" ""
+		build_binary "vectora-installer" "cmd/vectora-installer" "linux" "arm64" "-arm64"
+		build_binary "mpm" "cmd/mpm" "linux" "amd64" ""
+		build_binary "mpm" "cmd/mpm" "linux" "arm64" "-arm64"
+		build_binary "lpm" "cmd/lpm" "linux" "amd64" ""
+		build_binary "lpm" "cmd/lpm" "linux" "arm64" "-arm64"
+		;;
+
+	MINGW* | MSYS* | CYGWIN* | Windows_NT | *)
+		# Windows
+		echo "📦 Building for Windows (native)..."
+		build_binary "vectora" "cmd/vectora" "windows" "amd64" ".exe"
+		build_binary "vectora-cli" "cmd/vectora-cli" "windows" "amd64" ".exe"
+		build_binary "vectora-installer" "cmd/vectora-installer" "windows" "amd64" ".exe"
+		build_binary "mpm" "cmd/mpm" "windows" "amd64" ".exe"
+		build_binary "lpm" "cmd/lpm" "windows" "amd64" ".exe"
+		;;
+esac
+
+# Unset Go environment variables
+unset GOOS
+unset GOARCH
+unset CGO_ENABLED
+
+echo ""
+echo "╔════════════════════════════════════════════════════════════╗"
+echo "║              ✅ Build Successful!                         ║"
+echo "╚════════════════════════════════════════════════════════════╝"
+echo ""
 
 # Summary
-echo ""
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║              Build Resultado                              ║"
-echo "╚════════════════════════════════════════════════════════════╝"
-echo ""
-
-FILE_COUNT=$(ls -1 "$BIN_DIR" 2>/dev/null | wc -l)
-TOTAL_SIZE=$(du -sh "$BIN_DIR" 2>/dev/null | cut -f1)
-
-echo "✅ Binarios compilados: $COUNT"
-echo "⊘  Skipped/Failed: $FAILED"
-echo "📊 Tamanho total: $TOTAL_SIZE"
-echo "📁 Localizacao: ./$BIN_DIR/ ($FILE_COUNT arquivos)"
-echo ""
-echo "💡 Dica: Para compilar para Linux/macOS, use uma máquina Linux ou macOS"
-echo "         ou instale as toolchains de cross-compilation (gcc, etc)"
-echo ""
+if [ -d "$BIN_DIR" ]; then
+	count=$(find "$BIN_DIR" -type f 2>/dev/null | wc -l)
+	total=$(du -sh "$BIN_DIR" 2>/dev/null | cut -f1)
+	echo "📊 Summary:"
+	echo "  ✓ Binaries compiled: $count"
+	echo "  ✓ Total size: $total"
+	echo "  ✓ Location: ./$BIN_DIR/"
+	echo ""
+else
+	echo "⚠️  No binaries found in $BIN_DIR"
+fi
