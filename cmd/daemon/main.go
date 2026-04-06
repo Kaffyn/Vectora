@@ -7,12 +7,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
-
 	"strings"
 	"syscall"
 
-	"github.com/Kaffyn/Vectora/internal/tui"
 	"github.com/Kaffyn/Vectora/internal/db"
 	"github.com/Kaffyn/Vectora/internal/infra"
 	"github.com/Kaffyn/Vectora/internal/ipc"
@@ -20,7 +17,6 @@ import (
 	vecos "github.com/Kaffyn/Vectora/internal/os"
 	"github.com/Kaffyn/Vectora/internal/tools"
 	"github.com/Kaffyn/Vectora/internal/tray"
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/joho/godotenv"
 )
 
@@ -51,8 +47,6 @@ func main() {
 	cmd := os.Args[1]
 
 	switch cmd {
-	case "chat", "cli":
-		runTUI()
 	case "daemon", "start":
 		runDaemon()
 	case "status":
@@ -71,48 +65,11 @@ func printHelp() {
 	fmt.Println("\nUsage:")
 	fmt.Println("  vectora <command> [options]")
 	fmt.Println("\nCommands:")
-	fmt.Println("  chat, cli    Open interactive terminal (TUI)")
 	fmt.Println("  daemon       Start background service (Tray)")
 	fmt.Println("  start        Start background service (Tray)")
 	fmt.Println("  stop         Shutdown background service")
 	fmt.Println("  status       Verify health of micro-services")
 	fmt.Println("  --tests      Run integrity suite")
-}
-
-func runTUI() {
-	client, err := ipc.NewClient()
-	if err != nil {
-		fmt.Printf("Error starting client: %v\n", err)
-		return
-	}
-
-	// Attempt to connect. If fails, start the daemon silently.
-	if err := client.Connect(); err != nil {
-		fmt.Println(">> Backend offline. Starting Daemon in background...")
-		self, _ := os.Executable()
-		cmd := exec.Command(self, "daemon")
-		if err := cmd.Start(); err != nil {
-			fmt.Printf("Failed to start daemon: %v\n", err)
-			return
-		}
-
-		// Wait for the socket to be ready
-		maxRetries := 10
-		for i := 0; i < maxRetries; i++ {
-			time.Sleep(500 * time.Millisecond)
-			if err := client.Connect(); err == nil {
-				goto connected
-			}
-		}
-		fmt.Println("❌ Failed to connect to Backend after boot.")
-		return
-	}
-
-connected:
-	p := tea.NewProgram(tui.NewModel(client), tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("UI Error: %v\n", err)
-	}
 }
 
 func runDaemon() {

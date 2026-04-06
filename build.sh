@@ -58,12 +58,12 @@ build_binary() {
 case "$OS" in
 	Darwin) # macOS
 		echo "📦 Building for macOS (native)..."
-		build_binary "vectora" "cmd/vectora" "darwin" "amd64" ""
-		build_binary "vectora" "cmd/vectora" "darwin" "arm64" "-arm64"
-		build_binary "vectora-cli" "cmd/vectora-cli" "darwin" "amd64" ""
-		build_binary "vectora-cli" "cmd/vectora-cli" "darwin" "arm64" "-arm64"
-		build_binary "vectora-installer" "cmd/vectora-installer" "darwin" "amd64" ""
-		build_binary "vectora-installer" "cmd/vectora-installer" "darwin" "arm64" "-arm64"
+		build_binary "vectora" "cmd/daemon" "darwin" "amd64" ""
+		build_binary "vectora" "cmd/daemon" "darwin" "arm64" "-arm64"
+		build_binary "vectora-tui" "cmd/tui" "darwin" "amd64" ""
+		build_binary "vectora-tui" "cmd/tui" "darwin" "arm64" "-arm64"
+		build_binary "vectora-installer" "cmd/daemon-installer" "darwin" "amd64" ""
+		build_binary "vectora-installer" "cmd/daemon-installer" "darwin" "arm64" "-arm64"
 		build_binary "mpm" "cmd/mpm" "darwin" "amd64" ""
 		build_binary "mpm" "cmd/mpm" "darwin" "arm64" "-arm64"
 		build_binary "lpm" "cmd/lpm" "darwin" "amd64" ""
@@ -72,12 +72,12 @@ case "$OS" in
 
 	Linux)
 		echo "📦 Building for Linux (native)..."
-		build_binary "vectora" "cmd/vectora" "linux" "amd64" ""
-		build_binary "vectora" "cmd/vectora" "linux" "arm64" "-arm64"
-		build_binary "vectora-cli" "cmd/vectora-cli" "linux" "amd64" ""
-		build_binary "vectora-cli" "cmd/vectora-cli" "linux" "arm64" "-arm64"
-		build_binary "vectora-installer" "cmd/vectora-installer" "linux" "amd64" ""
-		build_binary "vectora-installer" "cmd/vectora-installer" "linux" "arm64" "-arm64"
+		build_binary "vectora" "cmd/daemon" "linux" "amd64" ""
+		build_binary "vectora" "cmd/daemon" "linux" "arm64" "-arm64"
+		build_binary "vectora-tui" "cmd/tui" "linux" "amd64" ""
+		build_binary "vectora-tui" "cmd/tui" "linux" "arm64" "-arm64"
+		build_binary "vectora-installer" "cmd/daemon-installer" "linux" "amd64" ""
+		build_binary "vectora-installer" "cmd/daemon-installer" "linux" "arm64" "-arm64"
 		build_binary "mpm" "cmd/mpm" "linux" "amd64" ""
 		build_binary "mpm" "cmd/mpm" "linux" "arm64" "-arm64"
 		build_binary "lpm" "cmd/lpm" "linux" "amd64" ""
@@ -87,9 +87,9 @@ case "$OS" in
 	MINGW* | MSYS* | CYGWIN* | Windows_NT | *)
 		# Windows
 		echo "📦 Building for Windows (native)..."
-		build_binary "vectora" "cmd/vectora" "windows" "amd64" ".exe"
-		build_binary "vectora-cli" "cmd/vectora-cli" "windows" "amd64" ".exe"
-		build_binary "vectora-installer" "cmd/vectora-installer" "windows" "amd64" ".exe"
+		build_binary "vectora" "cmd/daemon" "windows" "amd64" ".exe"
+		build_binary "vectora-tui" "cmd/tui" "windows" "amd64" ".exe"
+		build_binary "vectora-installer" "cmd/daemon-installer" "windows" "amd64" ".exe"
 		build_binary "mpm" "cmd/mpm" "windows" "amd64" ".exe"
 		build_binary "lpm" "cmd/lpm" "windows" "amd64" ".exe"
 		;;
