@@ -35,12 +35,18 @@ func (m *WindowsManager) GetAppDataDir() (string, error) {
 }
 
 func (m *WindowsManager) GetInstallDir() (string, error) {
-	// For executables, the default is Program Files on Windows.
-	progFiles := os.Getenv("ProgramFiles")
-	if progFiles == "" {
-		progFiles = `C:\Program Files`
+	// For executables, default to AppData to avoid requiring admin privileges
+	// This allows users to install without elevation
+	home, err := os.UserHomeDir()
+	if err != nil {
+		// Fallback to Program Files if home dir not available
+		progFiles := os.Getenv("ProgramFiles")
+		if progFiles == "" {
+			progFiles = `C:\Program Files`
+		}
+		return filepath.Join(progFiles, "Vectora"), nil
 	}
-	return filepath.Join(progFiles, "Vectora"), nil
+	return filepath.Join(home, "AppData", "Local", "Vectora"), nil
 }
 
 func (m *WindowsManager) StartLlamaEngine(modelPath string, port int) error {
