@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "env": {
+    "SUPABASE_URL": "@supabase_url",
+    "SUPABASE_ANON_KEY": "@supabase_anon_key",
+    "SUPABASE_SERVICE_KEY": "@supabase_service_key",
+    "SUPABASE_DB_USER": "@supabase_db_user",
+    "SUPABASE_DB_PASSWORD": "@supabase_db_password",
+    "SUPABASE_DB_HOST": "@supabase_db_host",
+    "SUPABASE_DB_PORT": "@supabase_db_port",
+    "SUPABASE_DB_NAME": "@supabase_db_name",
+    "GEMINI_API_KEY": "@gemini_api_key",
+    "OPENAI_API_KEY": "@openai_api_key",
+    "GRPC_PORT": "3000",
+    "GRPC_HOST": "0.0.0.0",
+    "GRPC_TLS_ENABLED": "false"
+  },
+  "functions": {
+    "api/**": {
+      "runtime": "go1.26.x",
+      "maxDuration": 300
+    }
+  },
+  "buildCommand": "go build -o api ./cmd/server",
+  "outputDirectory": "./api",
+  "deploymentType": "lambda",
+  "regions": ["sfo1", "iad1", "cdg1"]
+}

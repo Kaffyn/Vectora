@@ -61,7 +61,9 @@
       "Bash(grep -rn \"Wails\\\\|Next\\\\.js\\\\|Web UI\\\\|web app\\\\|web UI\\\\|web frontend\" cmd/ internal/ README* --include=\"*.go\" --include=\"*.md\")",
       "Bash(grep -r \"Wails\\\\|Next\\\\.js\" cmd/ internal/ --include=*.go)",
       "Bash(xargs echo:*)",
-      "Bash(./vectora-setup-windows-amd64.exe --help)"
+      "Bash(./vectora-setup-windows-amd64.exe --help)",
+      "Bash(go install:*)",
+      "Bash(ls -la desktop/ui/*.go)"
     ]
   }
 }

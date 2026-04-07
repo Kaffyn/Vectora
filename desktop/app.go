@@ -2,146 +2,196 @@ package desktop
 
 import (
 	"context"
+	"log"
 	"sync"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"github.com/Kaffyn/Vectora/desktop/ui"
 )
 
-// App represents the main desktop application
+// App gerencia a aplicação desktop
 type App struct {
-	fyneApp fyne.App
-	ipc     *IPCClient
-	ctx     context.Context
-	cancel  context.CancelFunc
-	mu      sync.RWMutex
+	fyneApp        fyne.App
+	preferences    *Preferences
+	ipcClient      *IPCClient
+	indexClient    *IndexClient
+	downloadMgr    *DownloadManager
+	ctx            context.Context
+	cancel         context.CancelFunc
+	mu             sync.RWMutex
 
 	// UI Components
-	chatPanel     *ui.ChatPanel
-	editorPanel   *ui.EditorPanel
-	indexPanel    *ui.IndexPanel
-	settingsPanel *ui.SettingsPanel
-	statusBar     fyne.CanvasObject
+	daemonStatusLabel string
+	indexStatusLabel  string
 
 	// State
-	connected    bool
-	activeModel  string
-	activeIndices []string
+	daemonConnected bool
+	indexConnected  bool
 }
 
-// NewApp creates and initializes a new desktop application
-func NewApp(fyneApp fyne.App) (*App, error) {
+// NewApp cria uma nova instância da aplicação desktop
+func NewApp(fyneApp fyne.App, prefs *Preferences) (*App, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	a := &App{
-		fyneApp:       fyneApp,
-		ctx:           ctx,
-		cancel:        cancel,
-		connected:     false,
-		activeModel:   "",
-		activeIndices: []string{},
+	app := &App{
+		fyneApp:             fyneApp,
+		preferences:         prefs,
+		ctx:                 ctx,
+		cancel:              cancel,
+		daemonConnected:     false,
+		indexConnected:      false,
+		daemonStatusLabel:   "○ Daemon",
+		indexStatusLabel:    "○ Index Service",
 	}
 
-	// Initialize IPC client
-	ipcClient, err := NewIPCClient()
-	if err != nil {
-		cancel()
-		return nil, err
+	// Inicializar IPC client (daemon local)
+	ipcClient, ipcErr := NewIPCClient()
+	if ipcErr != nil {
+		log.Printf("[WARN] Não foi possível conectar ao daemon: %v\n", ipcErr)
+	} else {
+		app.ipcClient = ipcClient
+		app.daemonConnected = true
+		app.daemonStatusLabel = "● Daemon"
 	}
-	a.ipc = ipcClient
 
-	// Initialize UI components
-	a.chatPanel = ui.NewChatPanel(a.ipc)
-	a.editorPanel = ui.NewEditorPanel(a.ipc)
-	a.indexPanel = ui.NewIndexPanel(a.ipc)
-	a.settingsPanel = ui.NewSettingsPanel(a.ipc)
-	a.statusBar = a.buildStatusBar()
+	// Inicializar gRPC client (Index Service remoto)
+	indexAddr := prefs.IndexServiceAddr
+	if indexAddr == "" {
+		indexAddr = "localhost:3000"
+	}
+	indexClient, grpcErr := NewIndexClient(indexAddr)
+	if grpcErr != nil {
+		log.Printf("[WARN] Não foi possível conectar ao Index Service: %v\n", grpcErr)
+	} else {
+		app.indexClient = indexClient
+		app.indexConnected = true
+		app.indexStatusLabel = "● Index Service"
+	}
 
-	// Start connection manager
-	go a.manageConnection()
+	// Inicializar Download Manager
+	if app.indexClient != nil {
+		app.downloadMgr = NewDownloadManager(app.indexClient, prefs)
+	}
 
-	return a, nil
+	// Iniciar monitor de conexão
+	go app.monitorConnections()
+
+	return app, nil
 }
 
-// BuildUI constructs the main UI layout
+// BuildUI constrói a interface principal
 func (a *App) BuildUI() fyne.CanvasObject {
-	// Create tabs for different sections
-	tabs := container.NewAppTabs()
+	// Criar tabs principais com painéis da UI
+	chatPanel := ui.NewChatPanel(a.ipcClient)
+	editorPanel := ui.NewEditorPanel(a.ipcClient)
+	indexPanel := ui.NewIndexPanel(a.ipcClient)
+	settingsPanel := ui.NewSettingsPanel(a.ipcClient)
 
-	tabs.Append(container.NewTabItem("Chat", a.chatPanel.GetContainer()))
-	tabs.Append(container.NewTabItem("Code Editor", a.editorPanel.GetContainer()))
-	tabs.Append(container.NewTabItem("Index Manager", a.indexPanel.GetContainer()))
-	tabs.Append(container.NewTabItem("Settings", a.settingsPanel.GetContainer()))
-
-	// Create main layout: tabs + status bar
-	mainContent := container.NewBorder(
-		nil,                // top
-		a.statusBar,        // bottom
-		nil,                // left
-		nil,                // right
-		tabs,               // center
+	tabs := container.NewAppTabs(
+		container.NewTabItem("💬 Chat", chatPanel.GetContainer()),
+		container.NewTabItem("💻 Code", editorPanel.GetContainer()),
+		container.NewTabItem("📚 Index", indexPanel.GetContainer()),
+		container.NewTabItem("⚙️ Settings", settingsPanel.GetContainer()),
 	)
 
-	return mainContent
-}
-
-// buildStatusBar creates the status bar
-func (a *App) buildStatusBar() fyne.CanvasObject {
-	statusLabel := widget.NewLabel("Status: Initializing...")
-	modelLabel := widget.NewLabel("Model: " + a.activeModel)
-
-	return container.NewHBox(
-		statusLabel,
-		modelLabel,
+	// Status bar
+	statusContainer := container.New(
+		layout.NewHBoxLayout(),
+		widget.NewLabel("Status: "),
+		widget.NewLabel(a.daemonStatusLabel),
+		widget.NewLabel(" | "),
+		widget.NewLabel(a.indexStatusLabel),
+		layout.NewSpacer(),
+		widget.NewLabel("v1.0.0"),
 	)
+
+	// Container principal
+	mainContainer := container.New(
+		layout.NewBorderLayout(nil, statusContainer, nil, nil),
+		tabs,
+		statusContainer,
+	)
+
+	return mainContainer
 }
 
-// manageConnection manages the IPC connection lifecycle
-func (a *App) manageConnection() {
+// monitorConnections monitora a conexão com daemon e index service
+func (a *App) monitorConnections() {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
 		case <-a.ctx.Done():
 			return
-		default:
-			// Check connection status
-			err := a.ipc.EnsureConnected()
-			if err != nil {
-				a.setConnected(false)
-				// Retry connection after a delay
-				select {
-				case <-a.ctx.Done():
-					return
-				default:
-					// Retry will happen on next iteration
-				}
-			} else {
-				a.setConnected(true)
+		case <-ticker.C:
+			// Verificar daemon
+			daemonOK := false
+			if a.ipcClient != nil {
+				err := a.ipcClient.EnsureConnected()
+				daemonOK = (err == nil)
 			}
+
+			// Verificar Index Service
+			indexOK := false
+			if a.indexClient != nil {
+				indexOK = a.indexClient.IsConnected()
+			}
+
+			a.setConnectionStatus(daemonOK, indexOK)
 		}
 	}
 }
 
-// setConnected updates the connection status
-func (a *App) setConnected(connected bool) {
+// setConnectionStatus atualiza o status de conexão
+func (a *App) setConnectionStatus(daemon, index bool) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.connected = connected
+
+	changed := (a.daemonConnected != daemon) || (a.indexConnected != index)
+	a.daemonConnected = daemon
+	a.indexConnected = index
+
+	if changed {
+		if daemon {
+			a.daemonStatusLabel = "● Daemon"
+		} else {
+			a.daemonStatusLabel = "○ Daemon"
+		}
+		if index {
+			a.indexStatusLabel = "● Index Service"
+		} else {
+			a.indexStatusLabel = "○ Index Service"
+		}
+	}
 }
 
-// IsConnected returns the current connection status
+// IsConnected retorna se está conectado a ambos os serviços
 func (a *App) IsConnected() bool {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	return a.connected
+	return a.daemonConnected && a.indexConnected
 }
 
-// Close cleans up resources
+// Close fecha recursos da aplicação
 func (a *App) Close() error {
 	a.cancel()
-	if a.ipc != nil {
-		return a.ipc.Close()
+
+	if a.ipcClient != nil {
+		a.ipcClient.Close()
 	}
+
+	if a.indexClient != nil {
+		a.indexClient.Close()
+	}
+
+	if a.downloadMgr != nil {
+		a.downloadMgr.Close()
+	}
+
 	return nil
 }
