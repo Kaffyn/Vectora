@@ -14,9 +14,9 @@ import (
 
 // UpdateCheckResult representa o resultado da verificação de atualizações
 type UpdateCheckResult struct {
-	Available   bool                 `json:"available"`
+	Available   bool                  `json:"available"`
 	Components  []ComponentUpdateInfo `json:"components"`
-	LastChecked string               `json:"last_checked"`
+	LastChecked string                `json:"last_checked"`
 }
 
 // ComponentUpdateInfo contém informações sobre atualização de um componente
@@ -30,7 +30,7 @@ type ComponentUpdateInfo struct {
 
 // UpdateProgress é enviado durante o processo de atualização
 type UpdateProgress struct {
-	Status    string `json:"status"`    // "in_progress", "completed", "error"
+	Status    string `json:"status"` // "in_progress", "completed", "error"
 	Component string `json:"component"`
 	Progress  int    `json:"progress"` // 0-100
 	Message   string `json:"message"`
@@ -101,8 +101,7 @@ func HandleUpdateExecute(ctx context.Context, payload json.RawMessage, server *S
 
 		for _, component := range req.Components {
 			// Broadcast: iniciando atualização
-			server.Broadcast(map[string]interface{}{
-				"type":      "update_progress",
+			server.Broadcast("update_progress", map[string]interface{}{
 				"status":    "in_progress",
 				"component": component,
 				"progress":  0,
@@ -132,8 +131,7 @@ func HandleUpdateExecute(ctx context.Context, payload json.RawMessage, server *S
 			}
 
 			// Broadcast: baixando
-			server.Broadcast(map[string]interface{}{
-				"type":      "update_progress",
+			server.Broadcast("update_progress", map[string]interface{}{
 				"status":    "in_progress",
 				"component": component,
 				"progress":  25,
@@ -153,8 +151,7 @@ func HandleUpdateExecute(ctx context.Context, payload json.RawMessage, server *S
 			}
 
 			// Broadcast: concluído
-			server.Broadcast(map[string]interface{}{
-				"type":      "update_progress",
+			server.Broadcast("update_progress", map[string]interface{}{
 				"status":    "in_progress",
 				"component": component,
 				"progress":  100,
@@ -172,8 +169,7 @@ func HandleUpdateExecute(ctx context.Context, payload json.RawMessage, server *S
 		}
 
 		// Broadcast final: conclusão
-		server.Broadcast(map[string]interface{}{
-			"type":    "update_completed",
+		server.Broadcast("update_completed", map[string]interface{}{
 			"status":  "completed",
 			"results": results,
 		})

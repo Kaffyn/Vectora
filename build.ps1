@@ -49,7 +49,9 @@ function Generate-BuildHash {
     $hashFiles = @(
         "$BinDir/vectora-windows-amd64.exe",
         "$BinDir/mpm-windows-amd64.exe",
-        "$BinDir/lpm-windows-amd64.exe"
+        "$BinDir/lpm-windows-amd64.exe",
+        "$BinDir/vectora-linux-amd64.bin",
+        "$BinDir/vectora-darwin-amd64.macos"
     )
 
     # Concatenate SHA256 of all files
@@ -128,9 +130,12 @@ Write-Host "${YELLOW}[PHASE 1] Compiling dependencies (vectora, mpm, lpm)...${NC
 Build-Binary "vectora" "cmd/daemon" "windows" "amd64" ".exe" ""
 Build-Binary "mpm" "cmd/mpm" "windows" "amd64" ".exe" ""
 Build-Binary "lpm" "cmd/lpm" "windows" "amd64" ".exe" ""
-Build-Binary "mpm" "cmd/mpm" "windows" "arm64" ".exe" ""
-Build-Binary "lpm" "cmd/lpm" "windows" "arm64" ".exe" ""
-Build-Binary "vectora" "cmd/daemon" "windows" "arm64" ".exe" ""
+Build-Binary "vectora" "cmd/daemon" "linux" "amd64" ".bin" ""
+Build-Binary "mpm" "cmd/mpm" "linux" "amd64" ".bin" ""
+Build-Binary "lpm" "cmd/lpm" "linux" "amd64" ".bin" ""
+Build-Binary "vectora" "cmd/daemon" "darwin" "amd64" ".macos" ""
+Build-Binary "mpm" "cmd/mpm" "darwin" "amd64" ".macos" ""
+Build-Binary "lpm" "cmd/lpm" "darwin" "amd64" ".macos" ""
 
 # Generate build hash based on compiled binaries
 Write-Host ""
@@ -157,7 +162,8 @@ Build-Binary "vectora-desktop" "cmd/desktop" "windows" "amd64" ".exe" ""
 Write-Host ""
 Write-Host "${YELLOW}[PHASE 4] Compiling TUI...${NC}"
 Build-Binary "vectora-tui" "cmd/tui" "windows" "amd64" ".exe" ""
-Build-Binary "vectora-tui" "cmd/tui" "windows" "arm64" ".exe" ""
+Build-Binary "vectora-tui" "cmd/tui" "linux" "amd64" ".bin" ""
+Build-Binary "vectora-tui" "cmd/tui" "darwin" "amd64" ".macos" ""
 
 # Cleanup env variables
 $env:GOOS = ""

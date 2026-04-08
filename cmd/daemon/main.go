@@ -7,8 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
-	"syscall"
 
 	"github.com/Kaffyn/Vectora/internal/db"
 	"github.com/Kaffyn/Vectora/internal/infra"
@@ -94,8 +92,7 @@ var updateCmd = &cobra.Command{
 }
 
 func init() {
-	// Admin elevation for Windows - only for daemon, status, stop commands
-	// Skip elevation for update, test, and help commands
+	// Admin elevation is handled per-platform in elevate_windows.go / elevate_unix.go
 	skipElevation := false
 	if len(os.Args) > 1 {
 		cmd := os.Args[1]
@@ -107,16 +104,7 @@ func init() {
 	if !skipElevation {
 		systemManager, _ := vecos.NewManager()
 		if systemManager != nil && !systemManager.IsRunningAsAdmin() {
-			exe, _ := os.Executable()
-			cwd, _ := os.Getwd()
-			args := strings.Join(os.Args[1:], " ")
-
-			cmd := exec.Command("powershell", fmt.Sprintf("Start-Process -FilePath '%s' -Verb runas -WorkingDirectory '%s'", exe, cwd))
-			if args != "" {
-				cmd = exec.Command("powershell", fmt.Sprintf("Start-Process -FilePath '%s' -ArgumentList '%s' -Verb runas -WorkingDirectory '%s'", exe, args, cwd))
-			}
-			cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-			if err := cmd.Start(); err == nil {
+			if err := elevateAdmin(); err == nil {
 				os.Exit(0)
 			}
 		}

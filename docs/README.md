@@ -1,0 +1,283 @@
+# Vectora
+
+> [!TIP]
+> Read this file in another language | Leia esse arquivo em outro idioma.
+> [English](README.md) | [Português](README.pt.md)
+
+> [!NOTE]
+>
+> **Hybrid RAG for real-world codebases.**
+> Understand your code as a system — not as text.
+
+---
+
+**Traditional RAG operates on isolated chunks.
+Vectora operates on real system relationships.**
+
+- semantic search (embeddings)
+- code structure (files, functions, dependencies)
+- codebase graph
+- multi-hop reasoning
+
+Result: answers based on how the system actually works — not just on isolated snippets.
+
+---
+
+- **Hybrid RAG (Core):** Semantic + structural + relational retrieval
+- **Codebase-Aware:** Understands real relationships between modules and files
+- **Real Multi-hop:** Navigates multiple points in the system to answer complex questions
+- **Agentic Execution:** Acts on code with context and safety
+- **Total Privacy:** Data and embeddings stay local
+
+---
+
+## Why Vectora?
+
+Most solutions require combining multiple tools:
+
+- vector database
+- RAG framework
+- embeddings
+- orchestration
+
+Vectora integrates all of this into a single local core, ready for use.
+
+---
+
+## Agentic Operation: Specialized Sub-Agent for your IDE
+
+Vectora acts as a **Sub-Agent (Tier 2)** coupled to your IDE, designed to execute complex tasks based on a real understanding of the codebase.
+
+While the main agent (Tier 1) orchestrates user interaction, Vectora takes on tasks that require **deep retrieval, structural analysis, and controlled execution**.
+
+- **High-Level Delegation:**
+  The IDE can delegate operations such as multi-file refactorings, impact analysis, and dependency navigation. Vectora executes based on the actual state of the code.
+
+- **Context-Aware Execution:**
+  All actions are guided by contextual retrieval (RAG), ensuring that reads, writes, and commands are based on the actual structure and relationships of the project.
+
+- **Scope-Restricted Execution:**
+  Tools operate exclusively within the Trust Folder, ensuring predictability and isolation.
+
+- **Transactional Security (Git Snapshots):**
+  Code modifications are preceded by automatic snapshots, allowing for immediate reversion.
+
+---
+
+## Retrieval Engine: Systemic Understanding of the Codebase
+
+Traditional RAG operates on isolated chunks.
+Vectora retrieves **connected context**.
+
+- **Retrieval Layers:**
+  Combines semantic search (embeddings) with structural code analysis (files, functions, modules, and dependencies).
+
+- **Codebase Graph:**
+  The project is modeled as a graph of relationships between entities, allowing for navigation beyond file boundaries.
+
+- **Multi-hop Reasoning:**
+  Queries traverse multiple points in the system, connecting dependencies and execution flows to answer questions that require global context.
+
+---
+
+## Installation and Integration
+
+Vectora is designed to adapt to your workflow:
+
+**1. Portable Binary (Manual & MCP Server):**
+
+Ideal for full control or usage outside of IDEs.
+
+- **Download:** Download `vectora.exe` from the [Releases](https://github.com/Kaffyn/Vectora/releases) page.
+- **CLI Mode:** Interactive interface for indexing and quick semantic searches via terminal.
+- **MCP Server Mode:** Configure the binary path as an MCP server for tools like **Claude Desktop**, **Claude Code (CLI)**, and **Gemini CLI**. The core communicates via **stdio**, exposing its agentic arsenal to any compatible client.
+
+**2. IDE Extensions (ACP Mode):**
+
+For a complete agentic experience.
+
+- **Bundled:** The extension already includes Vectora Core; you don't need to download the binary separately.
+- **Integration:** The core is started as an invisible process by the IDE, allowing agents like **Antigravity**, **Cursor**, **Zed**, and **JetBrains** to access your code natively and securely.
+
+---
+
+## Protocols: MCP vs ACP
+
+Vectora integrates into the modern agent and IDE ecosystem through standard protocols:
+
+- **MCP (Model Context Protocol):** Exposing tools and local context.
+- **ACP (Agent Client Protocol):** Direct communication between editor and agent.
+
+You write the knowledge once — and it becomes accessible in any compatible client.
+
+---
+
+## Quick Start (CLI Cobra)
+
+```bash
+# 1. Start the core in the project folder
+vectora start
+
+# 2. Configure your key (Ex: Gemini)
+vectora config --gemini YOUR_KEY
+
+# 3. Generate embeddings
+vectora embed
+
+# 4. Ask about the code
+vectora ask "How does authentication work?"
+```
+
+---
+
+## Use Cases
+
+- **Legacy Codebase Mastery:**
+  Understand unknown systems quickly with real context.
+
+- **Niche Documentation:**
+  Answers based on specific versions of technical documentation.
+
+- **Requirement Correlation:**
+  Compare specifications with actual implementation.
+
+- **Accelerated Onboarding:**
+  Learn patterns and architectural decisions directly from the codebase.
+
+---
+
+## Tech Stack
+
+- **Language:** Go 1.23+
+- **CLI/Daemon:** Cobra CLI + Systray
+- **Vector DB:** chromem-go (lightweight, local-first)
+- **Metadata DB:** bbolt (ACID)
+- **IA Engine:** Direct calls (HTTP/STDIO) — no framework overhead
+- **Local Inference:** llama.cpp (Qwen3)
+- **Protocol:** ACP (JSON-RPC 2.0)
+- **Transport:** Named Pipes (Windows)
+
+---
+
+## Privacy and Control (Trust Folder)
+
+- **Master Directory (Config):** Your global settings, logs, and API keys stay isolated in %USERPROFILE%/.vectora.
+- **Trust Folder (Scope):** By default, the location where you run **Vectora Core** is your "Trust Folder". The core will only have permission to read or modify files within this scope.
+- **Repositioning:** If you want to grant access to another location on the system, use the --path flag via CLI (e.g., vectora start --path D:\MyProject) to reposition the trust folder.
+- **Hard-Coded Guardian:** Even within the Trust Folder, Vectora automatically ignores sensitive files like .env, .key, and .pem.
+
+---
+
+## Agentic Toolkit (Industrial Grade)
+
+Exposed via MCP/ACP and built from scratch in Go, the Agentic Toolkit is the arsenal of tools that transforms Vectora from a simple chatbot into an operational agent capable of directly interacting with your system — always within the Trust Folder and with transactional security.
+
+### File and System Tools
+
+- **`read_file`:** Precise reading of individual files with line pagination support for large files.
+- **`write_file`:** Complete writing of new files or controlled overwrite (with automatic Git snapshot).
+- **`read_folder`:** Recursive directory listing with structure metadata (size, modification, permissions).
+- **`edit`:** Intelligent patching — refined editing of specific snippets without rewriting the entire file. Locates the exact context via semantic search-and-replace and applies surgical changes.
+
+### Search and Retrieval Tools
+
+- **`find_files`:** Fast search using glob patterns (e.g., `**/*.ts`, `src/**/*.tsx`) with name and extension filtering.
+- **`grep_search`:** Powerful ripgrep-based search with full regex support, file type filtering, and result limiting.
+- **`google_search`:** Web search integration to bring in up-to-date external context — ideal for recent documentation, changelogs, and troubleshooting.
+- **`web_fetch`:** Direct URL fetching, converting HTML to markdown and extracting the relevant content for the conversation context.
+
+### System and Terminal Tools
+
+- **`run_shell_command`:** Shell command execution in a controlled environment with real-time stdout/stderr capture. Supports background execution for long-running processes and configurable timeout.
+
+### Memory and Planning Tools
+
+- **`save_memory`:** Persistence of important facts and user preferences in long-term memory (global or per-project), enabling continuous personalization across sessions.
+- **`enter_plan_mode`:** Activation of structured planning mode — before executing complex tasks, the agent elaborates a step-by-step plan, validates it with the user, and only then begins implementation.
+
+### Security and Isolation
+
+All tools operate exclusively within the user-defined **Trust Folder**. The **Hard-Coded Guardian** automatically blocks reading/writing of sensitive files (`.env`, `.key`, `.pem`, databases, binaries), regardless of the model's intelligence or prompt instructions.
+
+---
+
+## Key Features
+
+**Hybrid Brain (Cloud Intelligence + Local Data):**
+
+Vectora uses the power of Gemini 3 Flash for logical reasoning and Gemini Embedding 2 to create high-precision vectors. While intelligence resides in the cloud, knowledge data and vector storage remain local, ensuring fast on-demand retrieval.
+
+**Agentic Arsenal (Industrial Grade):**
+
+Unlike purely chat models, Vectora has real tools to interact with your system (within the Trust Folder):
+
+- **Files:** Read, write, list, and edit (read, write, ls, edit).
+- **IDE Git Support:** Vectora operates in harmony with the user's Git environment, allowing the IDE's integrated version control to manage history and snapshots.
+- **Terminal:** Shell command execution with real-time output capture.
+- **Knowledge Search:** Deep semantic search in your local workspaces using chromem-go.
+
+## Core Architecture
+
+| Component           | Technology             | Role                                                                       |
+| ------------------- | ---------------------- | -------------------------------------------------------------------------- |
+| **Vector DB**       | **chromem-go**         | Semantic search and embeddings                                             |
+| **Key-Value DB**    | **bbolt**              | Chat history, logs, configuration                                          |
+| **IA Motor**        | **Direct Calls**       | Optimized HTTP/STDIO calls to APIs and `llama.cpp`. No framework overhead. |
+| **Local Inference** | **llama.cpp (native)** | Offline model execution (Qwen3) via native system integration              |
+| **Vectora Core**    | **Cobra + Systray**    | CLI, Systray, IPC (local), HTTP API (remote)                               |
+
+---
+
+## How to Use
+
+1. Run `vectora.exe`
+2. The core starts in the current directory
+3. Configure your API key
+4. Connect your IDE or agent
+
+---
+
+## Future Plans
+
+Vectora Core is the foundation of a larger ecosystem focused on hybrid RAG and AI-assisted development.
+
+**100% Local Mode:**
+
+- Native integration with **llama.cpp**
+- Complete offline execution (including embeddings)
+- Support for **Qwen3** and **Qwen3.5** models
+
+---
+
+**Recovery Engine Evolution:**
+
+- Codebase graph enhancement (richer relationships)
+- More efficient multi-hop with lower latency
+- Hybrid ranking (semantic + structural + relational)
+
+---
+
+**Vectora Assets:**
+
+- Vector knowledge base marketplace
+- Official documentations, tech specs, and curated datasets
+- Instant download and indexing
+
+---
+
+**Advanced Interfaces:**
+
+- **Vectora Desktop (Fyne):** Native UI for workspace management and graph navigation
+- **Vectora TUI (Bubbletea):** Optimized terminal interface for productivity
+
+---
+
+**Cloud Services:**
+
+- **Vectora Web:** remote access to your workspace
+- **Vectora Auth:** authentication and access control (RBAC)
+- **Collaboration:** secure knowledge sharing between teams
+
+---
+
+_Part of the Kaffyn open source organization._
