@@ -79,8 +79,7 @@ Cada workspace é um namespace completamente isolado. Contextos nunca vazam de u
   - **Equipe:** Compartilhe com membros específicos via Kaffyn Account. Defina permissões de leitura/escrita.
   - **Público:** Disponível para todos no catálogo. Ao publicar publicamente, você aceita que outros façam RAG sobre esse dataset, mas o processo de indexação foi feito de forma segura.
 
-> [!IMPORTANT]
-> **Política de Privacidade do Index:** A Kaffyn realiza curadoria e processamento **apenas em datasets marcados como Públicos**. Workspaces **Privados** e de **Equipe** permanecem exclusivamente no seu dispositivo ou na sua nuvem privada criptografada. **Nem a Kaffyn, nem nossos servidores, têm acesso aos dados contidos em workspaces privados ou de equipe.** Eles são seguros, isolados e inacessíveis para nós.
+> [!IMPORTANT] > **Política de Privacidade do Index:** A Kaffyn realiza curadoria e processamento **apenas em datasets marcados como Públicos**. Workspaces **Privados** e de **Equipe** permanecem exclusivamente no seu dispositivo ou na sua nuvem privada criptografada. **Nem a Kaffyn, nem nossos servidores, têm acesso aos dados contidos em workspaces privados ou de equipe.** Eles são seguros, isolados e inacessíveis para nós.
 
 **Exemplos do que você encontrará no Index:**
 
@@ -120,11 +119,13 @@ Exponha qualquer workspace como um servidor MCP, fornecendo contexto preciso dir
 **Download e Instalação:**
 
 1. **Baixe o Setup** de [última release](https://github.com/Kaffyn/Vectora/releases)
+
    - Windows: `vectora-setup.exe`
    - macOS: `vectora-setup.dmg`
    - Linux: `vectora-setup.deb`
 
 2. **Execute e Configure os Pacotes**
+
    - Ao iniciar o setup, ele integrará as ferramentas LPM e MPM para configurar seu ambiente:
    - **LPM (Llama Package Manager):** Responsável por baixar e configurar o motor de inferência (`llama.cpp`) otimizado para o seu hardware.
    - **MPM (Model Package Manager):** Responsável pelo catálogo e download dos modelos de IA.

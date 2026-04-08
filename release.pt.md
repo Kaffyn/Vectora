@@ -31,6 +31,7 @@ Obrigado a todos os contribuidores que tornaram este lançamento possível!
 Baixe o binário apropriado para sua plataforma:
 
 ### Windows
+
 - `vectora-setup.exe` - Instalador completo com configuração automática
 - `vectora.exe` - Daemon independente
 - `vectora-cli.exe` - Interface de linha de comando (TUI)
@@ -38,15 +39,19 @@ Baixe o binário apropriado para sua plataforma:
 - `lpm.exe` - Gerenciador de Pacotes Llama
 
 ### macOS
+
 - `vectora-setup.dmg` - Instalador completo (em breve)
 
 ### Linux
+
 - `vectora-linux-amd64` - Intel/AMD 64-bit
 - `vectora-linux-arm64` - ARM 64-bit (Raspberry Pi, Apple Silicon via Rosetta)
 - Instruções de instalação disponíveis em [CONTRIBUTING.pt.md](CONTRIBUTING.pt.md)
 
 ### Todas as Plataformas
+
 Todos os binários incluem:
+
 - ✅ Compatibilidade cross-platform
 - ✅ Processamento de IA local offline
 - ✅ Suporte completo a MCP/ACP

@@ -352,6 +352,7 @@ Graydon Hoare trabalha no Rust como projeto pessoal. A linguagem tinha conceitos
 Mozilla patrocina oficialmente o projeto. O time Servo começa desenvolvimento simultâneo — cada nova feature do Rust era validada pelo que o Servo precisava. Isso moldou profundamente a linguagem: concorrência, performance e segurança de memória se tornaram os pilares porque o Servo precisava deles.
 
 **Rust 0.1 (janeiro 2012)**: Primeiro release público. A linguagem tinha:
+
 - Garbage collector como opção (ao lado do borrow checker)
 - Segmented stacks (não contiguous)
 - Múltiplos tipos de ponteiros: `@T` (GC pointer), `~T` (owned pointer), `&T` (borrowed)
@@ -380,6 +381,7 @@ Este período foi marcado por **remoções radicais** da linguagem. O time Rust 
 **`crates.io` (dezembro 2014)**: Registry público de packages. Previamente lançado em beta.
 
 **Estado do ecossistema 2014:**
+
 - `serde` 0.x — serialização/deserialização. Uma das libs mais importantes que existiriam no ecossistema.
 - Primeiros experimentos de web frameworks.
 - `cargo` muda como código Rust é distribuído para sempre.
@@ -391,6 +393,7 @@ Este período foi marcado por **remoções radicais** da linguagem. O time Rust 
 **15 de maio de 2015.** Primeiro release estável. Rust estabelece sua versão de compatibilidade: código que compila em Rust 1.x compilará em Rust 1.y para qualquer y > x (com exceção de soundness fixes).
 
 **O que chegou ao 1.0:**
+
 - Ownership + borrow checker completo e estável
 - Lifetimes com anotação explícita quando necessário
 - Traits e generics com monomorphization
@@ -405,6 +408,7 @@ Este período foi marcado por **remoções radicais** da linguagem. O time Rust 
 - Sem `async/await` — concorrência era puramente baseada em threads
 
 **O que NÃO estava no 1.0:**
+
 - Sem `async/await` (viria em 1.39)
 - Sem generics em const positions (viria em 1.51+)
 - Sem `impl Trait` (viria em 1.26)
@@ -413,6 +417,7 @@ Este período foi marcado por **remoções radicais** da linguagem. O time Rust 
 - Sem `?` operator (viria em 1.13)
 
 **Ecossistema em 1.0:**
+
 - `serde` 0.x — serialização em nightly (stable derive viriam depois)
 - `hyper` 0.x — HTTP client/server (em desenvolvimento)
 - `iron` — framework web (popular mas baseado em API que mudaria)
@@ -465,6 +470,7 @@ fn read_file(path: &str) -> Result<String, io::Error> {
 **Rust 1.14 (dezembro 2016)**: **Rustup 1.0** — toolchain manager oficial. Gerencia versões de Rust (stable/beta/nightly), targets para cross-compilation, e componentes (rustfmt, clippy, rust-analyzer). Resolvia o problema de instalar e gerenciar múltiplas versões de Rust.
 
 **Ecossistema 2015–2016:**
+
 - **`serde` 1.0 em preparação** — framework de serialização mais importante do ecossistema
 - **`tokio` 0.1 (2016)** — runtime assíncrono baseado em `mio`. Primeira versão. API bastante diferente da atual.
 - **`hyper` 0.9** — HTTP baseado em futures
@@ -498,6 +504,7 @@ struct Config {
 **Rust 1.21 (outubro 2017)**: `eprint!` e `eprintln!` para stderr. Melhorias de performance do compilador (~20% mais rápido).
 
 **Ecossistema 2017:**
+
 - **`serde` 1.0 estável (maio 2017)** — milestone fundamental. Serialize/Deserialize para qualquer formato (JSON, TOML, YAML, MessagePack, Bincode...) com derive macros. Sem serde, o ecossistema Rust seria radicalmente diferente.
 - **`tokio` 0.1 estável** — async I/O via futures 0.1
 - **`rayon` 1.0 (2018)** — data parallelism trivial com `par_iter()`
@@ -519,6 +526,7 @@ struct Config {
 - **`extern crate` removido** para a maioria dos usos (edition 2018)
 
 **Ecossistema 1.31:**
+
 - `async-std` em desenvolvimento (alternativa ao Tokio)
 - `warp` 0.1 — framework web funcional/composable
 - `rocket` 0.3 — framework web ergonômico (ainda em nightly)
@@ -566,6 +574,7 @@ async fn main() {
 O `async/await` do Rust é fundamentalmente diferente do de outras linguagens. Não existe runtime embutido na linguagem — você escolhe o executor (`tokio`, `async-std`, `smol`). Isso mantém o runtime de IA/cloud fora do binário padrão e permite escolher o executor mais adequado (incluindo executores customizados para embedded).
 
 **Ecossistema 1.39:**
+
 - **`tokio` 0.2 (novembro 2019)** — reescrito para async/await. API completamente diferente de 0.1.
 - **`async-std` 1.0 (setembro 2019)** — alternativa ao Tokio com API espelhando a stdlib mas async
 - **`reqwest` 0.10 (dezembro 2019)** — HTTP client async/await
@@ -592,6 +601,7 @@ O `async/await` do Rust é fundamentalmente diferente do de outras linguagens. N
 **Rust 1.49 (dezembro 2020)**: **Tier 1 para aarch64** (ARM64 Linux). Apple Silicon support começando. ARM64 Linux se torna plataforma de primeira classe.
 
 **Ecossistema 2020:**
+
 - **`tokio` 0.3 (outubro 2020)** — iteração de API
 - **`axum` em desenvolvimento** (seria lançado em 2021)
 - **`tauri` 0.x (2020)** — desktop app com WebView
@@ -627,6 +637,7 @@ let b: [i32; 10] = [0; 10];
 **Fevereiro 2021**: **Rust Foundation criada.** Mozilla transfere a governança do Rust para uma fundação independente com membros fundadores: AWS, Huawei, Google, Microsoft, Mozilla. O Rust deixa de ser "a linguagem do Mozilla" e se torna uma fundação neutra.
 
 **Ecossistema 2021:**
+
 - **`tokio` 1.0 (dezembro 2020/início 2021)** — API estável. Marco histórico.
 - **`axum` 0.1 (julho 2021)** — framework web do time Tokio. `tower::Service` como base.
 - **`tauri` 1.0 RC** — apps desktop com WebView nativo
@@ -681,6 +692,7 @@ let Some(value) = some_option else { return };
 ```
 
 **Ecossistema 2022:**
+
 - **`tauri` 1.0 estável (junho 2022)** — marco histórico para desktop Rust
 - **`axum` 0.5** com extractor API refinada
 - **`pyo3` 0.16+** — bindings Rust para Python. Rust como extensão Python
@@ -705,6 +717,7 @@ let Some(value) = some_option else { return };
 **Rust 1.74 (novembro 2023)**: **`lint` configuration via Cargo.toml** — `[lints]` section permite configurar lints por workspace. `Cargo.toml` workspace lints propagam para todos os membros.
 
 **Ecossistema 2023:**
+
 - **`axum` 0.7 (novembro 2023)** — usa `hyper` 1.0, breaking changes importantes
 - **`tokio` 1.35** — stable e amplamente adotado
 - **`dioxus` 0.4** — framework UI React-like para desktop/web
@@ -744,6 +757,7 @@ trait Fetcher {
 **Rust 1.82 (outubro 2024)**: **`&raw const` e `&raw mut`** — ponteiros raw sem criar referência intermediária. Essencial para código FFI seguro com campos unaligned. `impl Trait` em mais posições.
 
 **Ecossistema 2024:**
+
 - **`tauri` 2.0 estável** — iOS e Android suportados
 - **`axum` 0.8 (janeiro 2026)** — API estabilizando
 - **`rustls` 0.23** — TLS puro Rust amplamente adotado em substituição ao OpenSSL
@@ -791,12 +805,14 @@ O executor (Tokio, async-std, smol) roda as state machines — ele chama `Future
 O runtime assíncrono mais usado em Rust. Criado por Carl Lerche inicialmente como `mio` (metal I/O — wrapper thin sobre epoll/kqueue/IOCP), depois evoluiu para Tokio com futures e depois async/await.
 
 **Versões importantes:**
+
 - 0.1 (2016) — baseado em futures 0.1, API old-style
 - 0.2 (novembro 2019) — reescrito para async/await. API completamente diferente
 - 0.3 (outubro 2020) — iteração de estabilização
 - **1.0 (dezembro 2020) — API estável**. Marco histórico.
 
 **Componentes do ecossistema Tokio:**
+
 - `tokio` — runtime, scheduler, timers, tasks
 - `tokio::net` — TCP, UDP, Unix sockets async
 - `tokio::fs` — filesystem async
@@ -943,7 +959,7 @@ async fn main() {
         .route("/users/:id", get(get_user))
         .with_state(state)
         .layer(TraceLayer::new_for_http()); // tower middleware
-    
+
     axum::serve(
         tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap(),
         app
@@ -1030,7 +1046,7 @@ use ratatui::{widgets::{Block, Borders, Paragraph}, layout::{Layout, Constraint}
 fn render(frame: &mut Frame) {
     let layout = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]);
     let [header, body] = layout.areas(frame.area());
-    
+
     frame.render_widget(
         Paragraph::new("Vectora v1.0").block(Block::bordered().title("Status")),
         header,
@@ -1121,7 +1137,7 @@ impl Counter {
             Message::Decrement => self.value -= 1,
         }
     }
-    
+
     fn view(&self) -> Element<Message> {
         column![
             button("Increment").on_press(Message::Increment),
@@ -1156,12 +1172,15 @@ fn main() {
 
 ```typescript
 // Frontend TypeScript — Tauri IPC
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from "@tauri-apps/api/core";
 
-const results = await invoke<Document[]>('search_documents', { query: 'godot signals' })
+const results = await invoke<Document[]>("search_documents", {
+  query: "godot signals",
+});
 ```
 
 **Versões importantes:**
+
 - 1.0 (junho 2022) — estável para desktop
 - 2.0 (outubro 2024) — mobile (iOS, Android), nova IPC API, plugins
 
@@ -1177,7 +1196,7 @@ export component MainWindow inherits Window {
     title: "Vectora";
     in-out property <string> query;
     callback search(string);
-    
+
     VerticalBox {
         LineEdit { text <=> query; }
         Button { text: "Search"; clicked => { search(query); } }
@@ -1367,7 +1386,7 @@ fn main() -> ! {
     let peripherals = hal::pac::Peripherals::take().unwrap();
     let gpioa = peripherals.GPIOA.split();
     let mut led = gpioa.pa5.into_push_pull_output();
-    
+
     loop {
         led.toggle();
         cortex_m::asm::delay(8_000_000); // delay ~1s em 8MHz

@@ -16,7 +16,7 @@ No cloud dependency. No recurring cost. No data leaves your machine.
 
 You know when you ask an AI about something very specific — a particular version of a framework, an internal document, a niche technical article — and it makes something up or gives a generic answer that completely misses the point?
 
-This happens because the AI doesn't have access to *your* context. Vectora solves this. Provide your files, point to a knowledge base, and it will answer exactly based on that — nothing more, nothing less.
+This happens because the AI doesn't have access to _your_ context. Vectora solves this. Provide your files, point to a knowledge base, and it will answer exactly based on that — nothing more, nothing less.
 
 ---
 
@@ -79,8 +79,7 @@ Each workspace is a completely isolated namespace. Contexts never leak between w
   - **Team:** Share with specific members via Kaffyn Account. Set read/write permissions.
   - **Public:** Available to everyone in the catalog. When publishing publicly, you acknowledge that others may perform RAG on this dataset, but the indexing process was done securely.
 
-> [!IMPORTANT]
-> **Index Privacy Policy:** Kaffyn performs curation and processing **only on datasets marked as Public**. **Private** and **Team** workspaces remain exclusively on your device or your private encrypted cloud. **Neither Kaffyn nor our servers have access to data contained in private or team workspaces.** They are secure, isolated, and inaccessible to us.
+> [!IMPORTANT] > **Index Privacy Policy:** Kaffyn performs curation and processing **only on datasets marked as Public**. **Private** and **Team** workspaces remain exclusively on your device or your private encrypted cloud. **Neither Kaffyn nor our servers have access to data contained in private or team workspaces.** They are secure, isolated, and inaccessible to us.
 
 **Examples of what you'll find in the Index:**
 
@@ -120,11 +119,13 @@ Expose any workspace as an MCP server, providing precise context directly to too
 **Download and Install:**
 
 1. **Download Setup** from [latest release](https://github.com/Kaffyn/Vectora/releases)
+
    - Windows: `vectora-setup.exe`
    - macOS: `vectora-setup.dmg`
    - Linux: `vectora-setup.deb`
 
 2. **Run and Configure Packages**
+
    - On first launch, the setup will integrate LPM and MPM tools to configure your environment:
    - **LPM (Llama Package Manager):** Downloads and configures the inference engine (`llama.cpp`) optimized for your hardware.
    - **MPM (Model Package Manager):** Manages the catalog and downloads AI models.
