@@ -15,7 +15,7 @@ $NC = "`e[0m" # No Color
 
 $BIN_DIR = "bin"
 $APP_NAME = "vectora"
-$CMD_PATH = "./cmd/vectora"
+$CMD_PATH = "./cmd/daemon"
 $VERSION = "0.1.0"
 
 # Cleanup bin/

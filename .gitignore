@@ -42,3 +42,4 @@ go.work.sum
 *.d.ts
 /internal/app/lib
 /bin
+daemon

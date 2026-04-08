@@ -1,9 +1,9 @@
-//go:build windows
+//go:build linux
 
 package os
 
 import (
-	win "github.com/Kaffyn/Vectora/core/os/windows"
+	lin "github.com/Kaffyn/Vectora/core/os/linux"
 )
 
 type EngineState string
@@ -29,5 +29,5 @@ type OSManager interface {
 }
 
 func NewManager() (OSManager, error) {
-	return win.NewManager(), nil
+	return lin.NewManager(), nil
 }

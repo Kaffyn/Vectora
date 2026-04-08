@@ -1,9 +1,9 @@
-//go:build windows
+//go:build darwin
 
 package os
 
 import (
-	win "github.com/Kaffyn/Vectora/core/os/windows"
+	mac "github.com/Kaffyn/Vectora/core/os/macos"
 )
 
 type EngineState string
@@ -29,5 +29,5 @@ type OSManager interface {
 }
 
 func NewManager() (OSManager, error) {
-	return win.NewManager(), nil
+	return mac.NewManager(), nil
 }
