@@ -2,9 +2,10 @@
 
 package tray
 
-import "vectora/core/llm"
+import "github.com/Kaffyn/Vectora/core/llm"
 
-// Setup é no-op em Linux/macOS.
-func Setup(router *llm.Router) {
-	// Tray só disponível no Windows
+var ActiveProvider llm.Provider
+
+func Setup() {
+	// Tray available only on Windows
 }

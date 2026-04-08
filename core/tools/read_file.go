@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"vectora/core/policies"
+
+	"github.com/Kaffyn/Vectora/core/policies"
 )
 
 const MAX_READ_BYTES = 50 * 1024 // 50KB
@@ -15,26 +16,28 @@ type ReadFileTool struct {
 	Guardian    *policies.Guardian
 }
 
-func (t *ReadFileTool) Name() string        { return "read_file" }
-func (t *ReadFileTool) Description() string { return "Lê o conteúdo de um arquivo dentro do Trust Folder." }
-func (t *ReadFileTool) Schema() string {
-	return `{"type": "object", "properties": {"path": {"type": "string"}}, "required": ["path"]}`
+func (t *ReadFileTool) Name() string { return "read_file" }
+func (t *ReadFileTool) Description() string {
+	return "Reads the content of a file within the Trust Folder."
+}
+func (t *ReadFileTool) Schema() json.RawMessage {
+	return []byte(`{"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}`)
 }
 
 func (t *ReadFileTool) Execute(ctx context.Context, args json.RawMessage) (*ToolResult, error) {
-	var params struct{ Path string `json:"path"` }
+	var params struct {
+		Path string `json:"path"`
+	}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return &ToolResult{Output: "Invalid args", IsError: true}, nil
 	}
 
 	safePath := filepath.Join(t.TrustFolder, params.Path)
 
-	// 1. Validação de Escopo e Guardian
 	if !t.Guardian.IsPathSafe(safePath) || t.Guardian.IsProtected(safePath) {
 		return &ToolResult{Output: "Access Denied", IsError: true}, nil
 	}
 
-	// 2. Leitura Controlada
 	data, err := os.ReadFile(safePath)
 	if err != nil {
 		return &ToolResult{Output: err.Error(), IsError: true}, nil
@@ -52,7 +55,7 @@ func (t *ReadFileTool) Execute(ctx context.Context, args json.RawMessage) (*Tool
 	}
 
 	return &ToolResult{
-		Output: content,
+		Output:   content,
 		Metadata: map[string]interface{}{"truncated": truncated, "size": len(data)},
 	}, nil
 }

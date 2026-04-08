@@ -3,8 +3,8 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"vectora/core/engine"
-	"vectora/core/tools"
+
+	"github.com/Kaffyn/Vectora/core/engine"
 )
 
 type ToolCallRequest struct {
@@ -18,8 +18,11 @@ type ToolCallResponse struct {
 }
 
 func HandleToolsCall(ctx context.Context, eng *engine.Engine, req ToolCallRequest) (*ToolCallResponse, error) {
-	// Delega para o executor de ferramentas do Engine
-	result, err := eng.ExecuteTool(ctx, req.Name, req.Arguments)
+	engineReq := engine.ToolCallRequest{
+		Name:      req.Name,
+		Arguments: req.Arguments,
+	}
+	result, err := eng.ExecuteTool(ctx, engineReq)
 	if err != nil {
 		return &ToolCallResponse{
 			Content: []map[string]string{{"type": "text", "text": err.Error()}},
@@ -39,4 +42,4 @@ type InitResponse struct{}
 type ToolsListResponse struct{}
 
 func HandleInitialize(req InitRequest) InitResponse { return InitResponse{} }
-func HandleToolsList() ToolsListResponse { return ToolsListResponse{} }
+func HandleToolsList() ToolsListResponse            { return ToolsListResponse{} }

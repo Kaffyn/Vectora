@@ -1,55 +1,58 @@
 package llm
 
 import (
+	"context"
 	"fmt"
-	// "vectora/core/config"
 )
 
-// Emulação do pacote config
-type Config struct {
-	Gemini struct {
-		APIKey string
-		Model  string
-	}
-}
-
 type Router struct {
-	providers       map[string]LLMProvider
+	providers       map[string]Provider
 	defaultProvider string
 }
 
-func NewRouter(cfg *Config) (*Router, error) {
-	r := &Router{
-		providers: make(map[string]LLMProvider),
+func NewRouter() *Router {
+	return &Router{
+		providers: make(map[string]Provider),
 	}
-
-	// Inicializa providers disponíveis
-	if cfg.Gemini.APIKey != "" {
-		p, err := NewGeminiProvider(cfg.Gemini.APIKey, cfg.Gemini.Model)
-		if err != nil {
-			return nil, err
-		}
-		r.providers["gemini"] = p
-		r.defaultProvider = "gemini"
-	}
-
-	// Futuro: Adicionar Qwen/Local aqui
-	// if cfg.Qwen.Enabled { ... }
-
-	if len(r.providers) == 0 {
-		return nil, fmt.Errorf("no LLM providers configured")
-	}
-
-	return r, nil
 }
 
-func (r *Router) GetProvider(name string) (LLMProvider, error) {
+func (r *Router) RegisterProvider(name string, p Provider, asDefault bool) {
+	r.providers[name] = p
+	if asDefault || r.defaultProvider == "" {
+		r.defaultProvider = name
+	}
+}
+
+func (r *Router) GetProvider(name string) (Provider, error) {
 	if p, ok := r.providers[name]; ok {
 		return p, nil
 	}
 	return nil, fmt.Errorf("provider %s not found", name)
 }
 
-func (r *Router) GetDefault() LLMProvider {
+func (r *Router) GetDefault() Provider {
+	if r.defaultProvider == "" {
+		return nil
+	}
 	return r.providers[r.defaultProvider]
+}
+
+func (r *Router) Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error) {
+	p := r.GetDefault()
+	if p == nil {
+		return CompletionResponse{}, fmt.Errorf("no LLM provider configured")
+	}
+	return p.Complete(ctx, req)
+}
+
+func (r *Router) Embed(ctx context.Context, input string) ([]float32, error) {
+	p := r.GetDefault()
+	if p == nil {
+		return nil, fmt.Errorf("no LLM provider configured")
+	}
+	return p.Embed(ctx, input)
+}
+
+func (r *Router) IsConfigured() bool {
+	return r.GetDefault() != nil && r.GetDefault().IsConfigured()
 }

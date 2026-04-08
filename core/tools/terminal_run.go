@@ -11,28 +11,32 @@ import (
 
 const CMD_TIMEOUT = 30 * time.Second
 
-type TerminalRunTool struct {
+type ShellTool struct {
 	TrustFolder string
 }
 
-func (t *TerminalRunTool) Name() string        { return "terminal_run" }
-func (t *TerminalRunTool) Description() string { return "Executa um comando shell no diretório do projeto." }
-func (t *TerminalRunTool) Schema() string {
-	return `{"type": "object", "properties": {"command": {"type": "string"}}, "required": ["command"]}`
+func (t *ShellTool) Name() string        { return "run_shell_command" }
+func (t *ShellTool) Description() string { return "Executes a shell command on the host system." }
+func (t *ShellTool) Schema() json.RawMessage {
+	return []byte(`{"type":"object","properties":{"command":{"type":"string"}},"required":["command"]}`)
 }
 
-func (t *TerminalRunTool) Execute(ctx context.Context, args json.RawMessage) (*ToolResult, error) {
-	var params struct{ Command string `json:"command"` }
-	json.Unmarshal(args, &params)
+func (t *ShellTool) Execute(ctx context.Context, args json.RawMessage) (*ToolResult, error) {
+	var params struct {
+		Command string `json:"command"`
+	}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return &ToolResult{Output: "Invalid args", IsError: true}, nil
+	}
 
 	cmdCtx, cancel := context.WithTimeout(ctx, CMD_TIMEOUT)
 	defer cancel()
 
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		cmd = exec.CommandContext(cmdCtx, "cmd", "/C", params.Command)
+		cmd = exec.CommandContext(cmdCtx, "powershell", "-c", params.Command)
 	} else {
-		cmd = exec.CommandContext(cmdCtx, "sh", "-c", params.Command)
+		cmd = exec.CommandContext(cmdCtx, "bash", "-c", params.Command)
 	}
 	cmd.Dir = t.TrustFolder
 

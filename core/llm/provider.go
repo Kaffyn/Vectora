@@ -2,44 +2,51 @@ package llm
 
 import (
 	"context"
-	"io"
+	"encoding/json"
 )
 
-// Message representa uma unidade de conversa.
 type Message struct {
-	Role    string // "user", "model", "system"
+	Role    Role
 	Content string
 }
 
-// ChatRequest encapsula os parâmetros de uma chamada de chat.
-type ChatRequest struct {
-	Messages        []Message
-	Temperature     float32
-	MaxOutputTokens int
-	// Tools         []ToolDefinition // Schema das ferramentas disponíveis (a definir)
+type ToolDefinition struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	Schema      json.RawMessage `json:"schema"` // JSON Schema bruto
 }
 
-// ChatResponse streama a resposta do modelo.
-type ChatResponse struct {
-	Text  string
-	Done  bool
-	Error error
+type ToolCall struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Args string `json:"args"` // JSON string of generated arguments
 }
 
-// EmbedRequest para geração de vetores.
-type EmbedRequest struct {
-	Text  string
-	Model string // ex: "gemini-embedding-2"
+type TokenUsage struct {
+	PromptTokens     int `json:"prompt_tokens"`
+	CompletionTokens int `json:"completion_tokens"`
+	TotalTokens      int `json:"total_tokens"`
 }
 
-// LLMProvider é a interface mestre.
-type LLMProvider interface {
-	// Chat envia mensagens e retorna um reader para streamar a resposta.
-	Chat(ctx context.Context, req ChatRequest) (io.ReadCloser, error)
+type CompletionRequest struct {
+	Model        string
+	Messages     []Message
+	SystemPrompt string
+	MaxTokens    int
+	Temperature  float32
+	Tools        []ToolDefinition
+}
 
-	// Embed gera o vetor para um texto específico.
-	Embed(ctx context.Context, req EmbedRequest) ([]float32, error)
+type CompletionResponse struct {
+	Content   string     `json:"content"`
+	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
+	Usage     TokenUsage `json:"usage"`
+}
 
-	// Name retorna o identificador do provider (ex: "gemini-pro")
+// Provider abstracts any LLM Backend (Qwen/Gemini/OpenAI) under Vectora's unified interface.
+type Provider interface {
+	Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error)
+	Embed(ctx context.Context, input string) ([]float32, error)
 	Name() string
+	IsConfigured() bool
 }

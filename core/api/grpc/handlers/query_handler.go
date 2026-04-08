@@ -1,8 +1,7 @@
 package handlers
 
 import (
-	// pb "vectora/core/api/grpc/proto"
-	"vectora/core/engine"
+	"github.com/Kaffyn/Vectora/core/engine"
 )
 
 type QueryHandler struct {

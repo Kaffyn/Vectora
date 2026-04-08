@@ -2,7 +2,6 @@ package ingestion
 
 import (
 	"regexp"
-	"strings"
 )
 
 // DependencyGraph mapeia arquivos para suas dependências (imports).

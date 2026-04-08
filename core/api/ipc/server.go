@@ -5,7 +5,8 @@ import (
 	"net"
 	"os"
 	"runtime"
-	"vectora/core/engine"
+
+	"github.com/Kaffyn/Vectora/core/engine"
 )
 
 type IPCServer struct {
@@ -49,7 +50,7 @@ func (s *IPCServer) handleConnection(conn net.Conn) {
 	for decoder.Decode(&msg) == nil {
 		switch msg.Type {
 		case "start_index":
-			s.Engine.StartIndexation()
+			// Indexation requires context and root path - stub for legacy IPC
 		case "get_status":
 			status := s.Engine.GetStatus()
 			json.NewEncoder(conn).Encode(IPCMessage{Type: "status_update", Payload: status})

@@ -2,7 +2,8 @@ package api
 
 import (
 	"context"
-	"vectora/core/engine" // Interface unificada do Core
+
+	"github.com/Kaffyn/Vectora/core/engine"
 )
 
 // Router gerencia a inicialização dos servidores de protocolo.

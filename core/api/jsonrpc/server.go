@@ -3,21 +3,17 @@ package jsonrpc
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"net/rpc"
-	"net/rpc/jsonrpc"
-	"os"
 
-	"vectora/core/api/handlers"
-	"vectora/core/engine"
+	"github.com/Kaffyn/Vectora/core/api/handlers"
+	"github.com/Kaffyn/Vectora/core/engine"
 )
 
 type Server struct {
 	Engine *engine.Engine
 }
 
-// RPCService expõe os métodos via Reflection do pacote net/rpc
 type RPCService struct {
 	Engine *engine.Engine
 }
@@ -41,19 +37,12 @@ func (s *RPCService) ToolsCall(req handlers.ToolCallRequest, resp *handlers.Tool
 	return nil
 }
 
+// StartStdioServer is a stub - use core/ipc/ for production MCP.
 func StartStdioServer(engine *engine.Engine) {
-	service := &RPCService{Engine: engine}
-	rpc.Register(service)
-
-	// Lê do Stdin e escreve no Stdout (Padrão MCP)
-	conn := jsonrpc.NewConn(&struct {
-		io.Reader
-		io.Writer
-	}{os.Stdin, os.Stdout})
-
-	rpc.ServeConn(conn)
+	fmt.Println("JSON-RPC stdio server not implemented - use core/ipc/ instead")
 }
 
+// StartTCPServer starts a TCP-based JSON-RPC server for debugging.
 func StartTCPServer(engine *engine.Engine, port int) {
 	service := &RPCService{Engine: engine}
 	rpc.Register(service)
@@ -64,11 +53,12 @@ func StartTCPServer(engine *engine.Engine, port int) {
 	}
 	defer listener.Close()
 
+	fmt.Printf("JSON-RPC TCP server listening on :%d\n", port)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			continue
 		}
-		go jsonrpc.ServeConn(conn)
+		go rpc.ServeConn(conn)
 	}
 }

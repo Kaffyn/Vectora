@@ -6,20 +6,21 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-	"vectora/core/llm"
-	"vectora/core/policies"
-	"vectora/core/storage"
+
+	"github.com/Kaffyn/Vectora/core/llm"
+	"github.com/Kaffyn/Vectora/core/policies"
+	"github.com/Kaffyn/Vectora/core/storage"
 )
 
 type Indexer struct {
 	Storage  *storage.Engine
-	LLM      llm.LLMProvider
+	LLM      llm.Provider
 	Guardian *policies.Guardian
 	Parser   *ParserSelector
 	Graph    *DependencyGraph
 }
 
-func NewIndexer(storage *storage.Engine, provider llm.LLMProvider, guardian *policies.Guardian) *Indexer {
+func NewIndexer(storage *storage.Engine, provider llm.Provider, guardian *policies.Guardian) *Indexer {
 	return &Indexer{
 		Storage:  storage,
 		LLM:      provider,

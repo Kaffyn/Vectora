@@ -4,7 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"vectora/core/policies"
+
+	"github.com/Kaffyn/Vectora/core/policies"
 )
 
 // ParsedFile representa o conteúdo extraído e metadados de um arquivo.

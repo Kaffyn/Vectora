@@ -3,7 +3,8 @@ package methods
 import (
 	"context"
 	"encoding/json"
-	"vectora/core/tools"
+
+	"github.com/Kaffyn/Vectora/core/tools"
 )
 
 type ToolCallRequest struct {
