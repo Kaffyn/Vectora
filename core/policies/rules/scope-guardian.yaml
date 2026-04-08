@@ -1,0 +1,37 @@
+policy_id: strict_scope_isolation
+rule: "All I/O operations must occur within the Trust Folder."
+enforcement:
+  pre_condition: "resolve symlinks and verify if absolute_path is a subdirectory of Trust_Folder"
+  on_violation: "blocked (Returns ErrSecurityViolation: Out of bounds)"
+
+policy_id: symlink_security
+rule: "Symlinks pointing outside the Trust Folder are treated as violations."
+enforcement:
+  check_method: "os.Readlink() + filepath.EvalSymlinks() before any access"
+  on_violation: "blocked (Returns ErrSecurityViolation: Unsafe Symlink)"
+
+policy_id: hard_coded_guardian
+rule: "Vectora never accesses, reads, edits, or tracks sensitive metadata, binaries, or build artifacts."
+enforcement:
+  block_extensions:
+    # Binários e Executáveis
+    - ".exe", ".dll", ".so", ".dylib", ".bin", ".apk", ".ipa"
+    # Bancos de Dados e State
+    - ".db", ".sqlite", ".sqlitedb", ".mdb", ".accdb"
+    # Chaves e Certificados
+    - ".key", ".pem", ".p12", ".pfx", ".keystore"
+    # Logs e Dump
+    - ".log", ".dump", ".core"
+  block_files:
+    - ".env", ".env.local", ".env.production"
+    - "secrets.yml", "credentials.json", "service-account.json"
+    - "id_rsa", "id_ed25519", "authorized_keys"
+  on_violation: "silent_skip on indexing; explicit block on Tooling layer"
+
+policy_id: artifact_exclusion
+rule: "Build artifacts and dependency folders are excluded from indexing to reduce noise."
+enforcement:
+  exclude_dirs:
+    - "node_modules", "vendor", "dist", "build", "target", ".next", "out"
+    - ".git", ".svn", ".hg"
+  on_violation: "skip directory during walk"

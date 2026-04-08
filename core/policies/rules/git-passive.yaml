@@ -1,0 +1,19 @@
+policy_id: passive_git_integration
+rule: "Vectora orchestrates existing Git without invading the machine."
+enforcement:
+  passive_check: "run `git rev-parse --is-inside-work-tree` at startup"
+  no_forced_install: "If `git` does not exist, silently disable snapshots"
+  no_forced_init: "If not a git repository, NEVER execute `git init`"
+
+policy_id: granular_snapshots
+rule: "Vectora only versions files it has modified itself, keeping the human history clean."
+enforcement:
+  pre_write_action: "git status --porcelain <target_file>"
+  action_strategy: "Execute `git add <target_file>` only. NEVER run `git add .`"
+  commit_messaging: "Intermediate commits must be traceable (e.g., 'Vectora Snapshot: Edit <file>')"
+
+policy_id: user_authorization_gate
+rule: "Mutations require prior permission from the environment (IDE or CLI)."
+enforcement:
+  via_acp_ide: "Send JSON-RPC request asking for permission in UI. Wait for approval."
+  via_mcp_cli: "Ask [Y/n] interactively or trust the auto-git-snapshot: true flag"
