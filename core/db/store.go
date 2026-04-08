@@ -90,3 +90,10 @@ func (s *BBoltStore) List(ctx context.Context, bucket string, prefix string) ([]
 	})
 	return keys, err
 }
+
+func (s *BBoltStore) Close() error {
+	if s.db != nil {
+		return s.db.Close()
+	}
+	return nil
+}
