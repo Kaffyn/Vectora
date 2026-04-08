@@ -1,247 +1,283 @@
 # Vectora
 
 > [!TIP]
-> Read this file in another language | Leia esse arquivo em outro idioma.  
+> Read this file in another language | Leia esse arquivo em outro idioma.
 > [English](README.md) | [Português](README.pt.md)
 
-**A private NotebookLM that runs entirely on your machine.**
-
-Vectora is a local AI assistant that learns from whatever you provide — documents, code, articles, images — and answers questions strictly based on that content. Think of Google NotebookLM, but running on your hardware, with your data never leaving your machine.
-
-No cloud dependency. No recurring cost. No data leaves your machine.
-
----
-
-## The Problem
-
-You know when you ask an AI about something very specific — a particular version of a framework, an internal document, a niche technical article — and it makes something up or gives a generic answer that completely misses the point?
-
-This happens because the AI doesn't have access to _your_ context. Vectora solves this. Provide your files, point to a knowledge base, and it will answer exactly based on that — nothing more, nothing less.
+> [!NOTE]
+>
+> **Hybrid RAG for real-world codebases.**
+> Understand your code as a system — not as text.
 
 ---
 
-## 🛡️ Security and Privacy by Design
+**Traditional RAG operates on isolated chunks.
+Vectora operates on real system relationships.**
 
-### Hard-Coded Guardian (Always Active - Deterministic)
+- semantic search (embeddings)
+- code structure (files, functions, dependencies)
+- codebase graph
+- multi-hop reasoning
 
-- **System Filter:** Regardless of the chosen mode (Local or Cloud), Vectora has an immutable internal protection layer. Indexing and reading tools **automatically ignore** sensitive files such as `.env`, `.key`, `.pem`, databases (`.db`, `.sqlite`), and executable binaries (`.exe`, `.dll`, `.so`).
-- **Blocking at the source:** These files are never read, never embedded in the vector database, and never reach the inference engine (whether local or via API).
-- **Guarantee:** Security does not depend on the model's intelligence, but on operational system rules. Your secrets are protected even if you are using the cloud.
-
-### Local Mode (Total Privacy)
-
-- **Guardian Model:** `Qwen3-Embedding` (0.6B) acts as the only authorized process to modify the local vector database and filter content.
-- **Data Filtering (DLP):** Before sending any prompt to the cloud, Vectora analyzes the retrieved context. If it detects critical secret patterns (keys, passwords) that passed through previous layers, it alerts the user and blocks the transmission.
-
-### Cloud-Only Mode (Disclaimer)
-
-- **Secure Context:** Even in this mode, the **Hard-Coded Guardian** prevents the indexing of sensitive files. Only legitimate documents (source code, docs, scripts) are sent to the API.
-- **Data Transfer:** To use advanced cloud capabilities (Gemini, Claude, etc.), Vectora sends the retrieved context directly to the API provider.
-- **Disclaimer:** By activating Cloud-Only Mode, the user acknowledges they are providing the retrieved context for processing on third-party servers. Kaffyn **is not responsible** for any leaks, misuse, or training of data by external AI providers. We strongly recommend avoiding the transmission of sensitive information, production keys, or critical proprietary code in this mode.
+Result: answers based on how the system actually works — not just on isolated snippets.
 
 ---
 
-## 📚 Vectora Index: The Heart of Knowledge
+- **Hybrid RAG (Core):** Semantic + structural + relational retrieval
+- **Codebase-Aware:** Understands real relationships between modules and files
+- **Real Multi-hop:** Navigates multiple points in the system to answer complex questions
+- **Agentic Execution:** Acts on code with context and safety
+- **Total Privacy:** Data and embeddings stay local
 
-**Vectora Index** is the strategic asset that separates Vectora from other generic AIs. It is a curated marketplace of knowledge bases (vector datasets).
+---
 
-### How It Works
+## Why Vectora?
 
-Vectora embeds your files and downloaded knowledge bases into isolated local vector databases. When you ask a question, it retrieves the most semantically relevant context from any active workspaces and sends everything — along with your question — to the language model.
+Most solutions require combining multiple tools:
 
-```mermaid
-graph TD
-    A["🤖 Base AI Model<br/>(Qwen / Gemini)<br/>always present, generalist"]
-    B["📚 Workspace: Godot 4.2<br/>downloaded from Vectora Index"]
-    C["📊 Workspace: Physics Articles<br/>downloaded from Vectora Index"]
-    D["📁 Workspace: Your Files<br/>added by you, private"]
-    E["❓ Your Question"]
-    F["🔍 Cross-workspace<br/>retrieval"]
-    G["✨ Answer"]
+- vector database
+- RAG framework
+- embeddings
+- orchestration
 
-    A --> F
-    B --> F
-    C --> F
-    D --> F
-    E --> F
-    F --> G
+Vectora integrates all of this into a single local core, ready for use.
+
+---
+
+## Agentic Operation: Specialized Sub-Agent for your IDE
+
+Vectora acts as a **Sub-Agent (Tier 2)** coupled to your IDE, designed to execute complex tasks based on a real understanding of the codebase.
+
+While the main agent (Tier 1) orchestrates user interaction, Vectora takes on tasks that require **deep retrieval, structural analysis, and controlled execution**.
+
+- **High-Level Delegation:**
+  The IDE can delegate operations such as multi-file refactorings, impact analysis, and dependency navigation. Vectora executes based on the actual state of the code.
+
+- **Context-Aware Execution:**
+  All actions are guided by contextual retrieval (RAG), ensuring that reads, writes, and commands are based on the actual structure and relationships of the project.
+
+- **Scope-Restricted Execution:**
+  Tools operate exclusively within the Trust Folder, ensuring predictability and isolation.
+
+- **Transactional Security (Git Snapshots):**
+  Code modifications are preceded by automatic snapshots, allowing for immediate reversion.
+
+---
+
+## Retrieval Engine: Systemic Understanding of the Codebase
+
+Traditional RAG operates on isolated chunks.
+Vectora retrieves **connected context**.
+
+- **Retrieval Layers:**
+  Combines semantic search (embeddings) with structural code analysis (files, functions, modules, and dependencies).
+
+- **Codebase Graph:**
+  The project is modeled as a graph of relationships between entities, allowing for navigation beyond file boundaries.
+
+- **Multi-hop Reasoning:**
+  Queries traverse multiple points in the system, connecting dependencies and execution flows to answer questions that require global context.
+
+---
+
+## Installation and Integration
+
+Vectora is designed to adapt to your workflow:
+
+**1. Portable Binary (Manual & MCP Server):**
+
+Ideal for full control or usage outside of IDEs.
+
+- **Download:** Download `vectora.exe` from the [Releases](https://github.com/Kaffyn/Vectora/releases) page.
+- **CLI Mode:** Interactive interface for indexing and quick semantic searches via terminal.
+- **MCP Server Mode:** Configure the binary path as an MCP server for tools like **Claude Desktop**, **Claude Code (CLI)**, and **Gemini CLI**. The core communicates via **stdio**, exposing its agentic arsenal to any compatible client.
+
+**2. IDE Extensions (ACP Mode):**
+
+For a complete agentic experience.
+
+- **Bundled:** The extension already includes Vectora Core; you don't need to download the binary separately.
+- **Integration:** The core is started as an invisible process by the IDE, allowing agents like **Antigravity**, **Cursor**, **Zed**, and **JetBrains** to access your code natively and securely.
+
+---
+
+## Protocols: MCP vs ACP
+
+Vectora integrates into the modern agent and IDE ecosystem through standard protocols:
+
+- **MCP (Model Context Protocol):** Exposing tools and local context.
+- **ACP (Agent Client Protocol):** Direct communication between editor and agent.
+
+You write the knowledge once — and it becomes accessible in any compatible client.
+
+---
+
+## Quick Start (CLI Cobra)
+
+```bash
+# 1. Start the core in the project folder
+vectora start
+
+# 2. Configure your key (Ex: Gemini)
+vectora config --gemini YOUR_KEY
+
+# 3. Generate embeddings
+vectora embed
+
+# 4. Ask about the code
+vectora ask "How does authentication work?"
 ```
 
-Each workspace is a completely isolated namespace. Contexts never leak between workspaces. You control which workspaces are active per session.
+---
 
-### Key Features
+## Use Cases
 
-- **Curated Datasets:** Official documentation (Godot 4.x, Python, Rust), technical articles, engine specifications, and reference source code.
-- **Secure Download:** Downloaded datasets are indexed locally. After download, no network requests are made during queries.
-- **Safe Re-Embedding:** When publishing a project to the Index, content is processed by Kaffyn's dedicated servers using `Qwen3-Embedding` before indexing. This ensures maximum quality without exposing raw data to public models during processing.
-- **Restrictive Sharing (RBAC):**
-  - **Private:** Only you.
-  - **Team:** Share with specific members via Kaffyn Account. Set read/write permissions.
-  - **Public:** Available to everyone in the catalog. When publishing publicly, you acknowledge that others may perform RAG on this dataset, but the indexing process was done securely.
+- **Legacy Codebase Mastery:**
+  Understand unknown systems quickly with real context.
 
-> [!IMPORTANT] > **Index Privacy Policy:** Kaffyn performs curation and processing **only on datasets marked as Public**. **Private** and **Team** workspaces remain exclusively on your device or your private encrypted cloud. **Neither Kaffyn nor our servers have access to data contained in private or team workspaces.** They are secure, isolated, and inaccessible to us.
+- **Niche Documentation:**
+  Answers based on specific versions of technical documentation.
 
-**Examples of what you'll find in the Index:**
+- **Requirement Correlation:**
+  Compare specifications with actual implementation.
 
-- Godot 4.x documentation (by version)
-- Frontend and backend framework references
-- Engineering articles, physics, and computer science resources
-- Game design resources, language specifications, and more
-
-Every dataset downloaded from the Index is indexed and stored locally. After download, no network requests are made during query time.
+- **Accelerated Onboarding:**
+  Learn patterns and architectural decisions directly from the codebase.
 
 ---
 
-## What You Can Do With It
+## Tech Stack
 
-**Study & Research**
-Drag PDFs, articles, or notes into a workspace. Ask Vectora to explain, summarize, correlate, or test your knowledge. Everything stays local and private.
-
-**Development**
-Combine a motor documentation workspace with your own code workspace. Get answers that know both the API contract and your actual implementation.
-
-**Deep Work**
-Use Gemini mode to index images, PDFs, and audio alongside text — all processed and stored locally after indexing.
-
-**IDE Integration**
-Expose any workspace as an MCP server, providing precise context directly to tools like Cursor, VS Code, or Claude Code.
+- **Language:** Go 1.23+
+- **CLI/Daemon:** Cobra CLI + Systray
+- **Vector DB:** chromem-go (lightweight, local-first)
+- **Metadata DB:** bbolt (ACID)
+- **IA Engine:** Direct calls (HTTP/STDIO) — no framework overhead
+- **Local Inference:** llama.cpp (Qwen3)
+- **Protocol:** ACP (JSON-RPC 2.0)
+- **Transport:** Named Pipes (Windows)
 
 ---
 
-## Installation
+## Privacy and Control (Trust Folder)
 
-**System Requirements:**
-
-- **OS:** Windows 10+, macOS 11+, Linux (Ubuntu/Debian).
-- **RAM:** **8GB Minimum** (Total System). **16GB Recommended**.
-- **Internet:** Required for initial setup and cloud model usage.
-
-**Download and Install:**
-
-1. **Download Setup** from [latest release](https://github.com/Kaffyn/Vectora/releases)
-
-   - Windows: `vectora-setup.exe`
-   - macOS: `vectora-setup.dmg`
-   - Linux: `vectora-setup.deb`
-
-2. **Run and Configure Packages**
-
-   - On first launch, the setup will integrate LPM and MPM tools to configure your environment:
-   - **LPM (Llama Package Manager):** Downloads and configures the inference engine (`llama.cpp`) optimized for your hardware.
-   - **MPM (Model Package Manager):** Manages the catalog and downloads AI models.
-   - During installation, use the interface to select and download your desired model via **MPM** (e.g., **Qwen3-7B** for balanced performance or **Qwen3-0.6B** for modest hardware).
-
-3. **First Run**
-   - After installation, the **Vectora Daemon** starts automatically in the system tray.
-   - Click the icon to open the **Desktop app (Fyne)** or type `vectora tui` in the terminal for the text interface.
-
-**Configuration:**
-
-**Option 1: Qwen (Local / Offline)** — Recommended for privacy
-
-- No configuration needed for basic functionality
-- Manage your models via **MPM**
-- Models are stored locally in `%USERPROFILE%\.Vectora\models\`
-
-**Option 2: Gemini (Cloud / Multimodal):**
-
-- Go to Settings → LLM Providers
-- Click "Configure Gemini"
-- Paste your Gemini API key
-- The key is encrypted and stored only on your machine
+- **Master Directory (Config):** Your global settings, logs, and API keys stay isolated in %USERPROFILE%/.vectora.
+- **Trust Folder (Scope):** By default, the location where you run **Vectora Core** is your "Trust Folder". The core will only have permission to read or modify files within this scope.
+- **Repositioning:** If you want to grant access to another location on the system, use the --path flag via CLI (e.g., vectora start --path D:\MyProject) to reposition the trust folder.
+- **Hard-Coded Guardian:** Even within the Trust Folder, Vectora automatically ignores sensitive files like .env, .key, and .pem.
 
 ---
 
-## AI Providers
+## Agentic Toolkit (Industrial Grade)
 
-Vectora natively supports two providers, with the engine built to accommodate more in the future:
+Exposed via MCP/ACP and built from scratch in Go, the Agentic Toolkit is the arsenal of tools that transforms Vectora from a simple chatbot into an operational agent capable of directly interacting with your system — always within the Trust Folder and with transactional security.
 
-**Qwen3 (Local / Offline)**
-Runs entirely on your hardware via `llama-cli` using streaming pipes. No internet required. Supports the Qwen3 family — from lightweight generalist models (0.6B, 1.7B, 4B, 8B) to specialized reasoning and code variants. Ideal for fully private workflows.
+### File and System Tools
 
-**Gemini (Cloud / Multimodal)**
-Uses your own Gemini API key, stored only in your local config. Unlocks multimodal indexing — PDFs, images, and audio are all supported. The key never leaves your machine.
+- **`read_file`:** Precise reading of individual files with line pagination support for large files.
+- **`write_file`:** Complete writing of new files or controlled overwrite (with automatic Git snapshot).
+- **`read_folder`:** Recursive directory listing with structure metadata (size, modification, permissions).
+- **`edit`:** Intelligent patching — refined editing of specific snippets without rewriting the entire file. Locates the exact context via semantic search-and-replace and applies surgical changes.
 
-Both providers include dedicated embedding models. Vectora doesn't depend on a separate embedding service.
+### Search and Retrieval Tools
 
-## Official Qwen3 and Qwen3.5 Models
+- **`find_files`:** Fast search using glob patterns (e.g., `**/*.ts`, `src/**/*.tsx`) with name and extension filtering.
+- **`grep_search`:** Powerful ripgrep-based search with full regex support, file type filtering, and result limiting.
+- **`google_search`:** Web search integration to bring in up-to-date external context — ideal for recent documentation, changelogs, and troubleshooting.
+- **`web_fetch`:** Direct URL fetching, converting HTML to markdown and extracting the relevant content for the conversation context.
 
-Vectora supports the new **Qwen3** and **Qwen3.5** families, optimized for different development fronts:
+### System and Terminal Tools
 
-- **Qwen3 (1.7B/4B/8B):** Lightweight instruction-following models for general tasks, summarization, and content generation. Small footprint, ideal for resource-constrained environments.
+- **`run_shell_command`:** Shell command execution in a controlled environment with real-time stdout/stderr capture. Supports background execution for long-running processes and configurable timeout.
 
-- **Qwen3-Embedding (0.6B/4B/8B):** The vector search engines powering chromem-go. **We recommend the 0.6B version** for strict 4GB RAM limits, ensuring your code context is retrieved accurately without compromising system performance.
+### Memory and Planning Tools
 
----
+- **`save_memory`:** Persistence of important facts and user preferences in long-term memory (global or per-project), enabling continuous personalization across sessions.
+- **`enter_plan_mode`:** Activation of structured planning mode — before executing complex tasks, the agent elaborates a step-by-step plan, validates it with the user, and only then begins implementation.
 
-## Interfaces
+### Security and Isolation
 
-Vectora isn't a single app — it's an ecosystem of interfaces sharing a common core via IPC, all orchestrated by a lightweight daemon in the system tray:
-
-| Interface               | Description                                                                                                    |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Daemon Core (Cobra)** | The central brain. Manages lifecycle, installation, updates, and connections.                                  |
-| **Desktop App (Fyne)**  | Native cross-platform desktop application. Chat interface, workspace management, config, and Index navigation. |
-| **Vectora TUI**         | Interactive terminal interface. Minimal footprint, instant response.                                           |
-| **MCP/ACP Server**      | Exposes Vectora knowledge to external AI tools and IDEs via HTTP.                                              |
+All tools operate exclusively within the user-defined **Trust Folder**. The **Hard-Coded Guardian** automatically blocks reading/writing of sensitive files (`.env`, `.key`, `.pem`, databases, binaries), regardless of the model's intelligence or prompt instructions.
 
 ---
 
-## Toolkit for Agents
+## Key Features
 
-When operating in MCP or ACP mode, Vectora exposes a shared set of tools built from scratch in Go:
+**Hybrid Brain (Cloud Intelligence + Local Data):**
 
-- **Filesystem:** `read_file`, `write_file`, `read_folder`, `edit`
-- **Search:** `find_files`, `grep_search`, `google_search`, `web_fetch`
-- **System:** `run_shell_command`
-- **Memory:** `save_memory`, `enter_plan_mode`
+Vectora uses the power of Gemini 3 Flash for logical reasoning and Gemini Embedding 2 to create high-precision vectors. While intelligence resides in the cloud, knowledge data and vector storage remain local, ensuring fast on-demand retrieval.
 
-> [!IMPORTANT]
-> Every write action or shell command triggers an automatic snapshot via `GitBridge` in `internal/git` before execution. Any agentic action can be fully reverted with a single `undo` command.
+**Agentic Arsenal (Industrial Grade):**
 
----
+Unlike purely chat models, Vectora has real tools to interact with your system (within the Trust Folder):
 
-## Architecture
+- **Files:** Read, write, list, and edit (read, write, ls, edit).
+- **IDE Git Support:** Vectora operates in harmony with the user's Git environment, allowing the IDE's integrated version control to manage history and snapshots.
+- **Terminal:** Shell command execution with real-time output capture.
+- **Knowledge Search:** Deep semantic search in your local workspaces using chromem-go.
 
-Vectora is written entirely in Go. The core runs as a lightweight daemon in the system tray orchestrated by **Cobra**, the industry-standard CLI framework for Go.
+## Core Architecture
 
-| Component       | Technology          | Role                                                                     |
-| --------------- | ------------------- | ------------------------------------------------------------------------ |
-| Vector DB       | chromem-go          | Semantic search and embeddings                                           |
-| Key-Value DB    | bbolt               | Chat history, logs, configuration                                        |
-| AI Engine       | **Direct Calls**    | Optimized HTTP/STDIO calls to APIs and `llama.cpp`. No heavy frameworks. |
-| Local Inference | llama-cli (pipes)   | Offline model execution (Qwen3)                                          |
-| **Daemon Core** | **Cobra + Systray** | **Master daemon: exposes CLI, Systray, IPC (local), HTTP API (remote)**  |
-| Installer       | **Cobra + Fyne**    | **Dual mode: headless CLI installation or graphical assistant**          |
-| Desktop App     | **Fyne**            | **Native GUI application (spawned subprocess via IPC)**                  |
-| TUI Interface   | **Bubbletea**       | **Terminal User Interface (spawned subprocess via IPC)**                 |
-| Index Server    | Go (net/http)       | Catalog and distribution of vector datasets                              |
-| LPM/MPM         | **Cobra CLI**       | Pure command-line tools for managing llama.cpp binaries and GGUF models. |
-
-### Why Cobra?
-
-**Cobra** serves as the unified CLI foundation for both the Installer and Daemon:
-
-- **Single Source of Truth**: The same business logic that executes `vectora install --headless` via terminal also powers the graphical installer. No divergence between CLI and GUI modes.
-- **No Sidecars**: The Daemon itself _is_ the CLI. Commands like `vectora status`, `vectora update`, `vectora logs` execute directly without external scripts or wrappers.
-- **Automatic UX**: When you run `vectora` without flags, Cobra detects the environment and silently spawns the Fyne UI. In headless environments, it operates in pure CLI mode.
-- **Headless First**: Essential for CI/CD, SSH deployments, and automation. A single binary works on interactive desktops, headless servers, and automation pipelines.
-
-### Interface Architecture
-
-```
-vectora [Cobra CLI] ← Single daemon binary
-├─ --headless → Pure CLI mode (no UI)
-├─ default → Systray + Fyne UI (auto-detect)
-├─ tui → Spawns Bubbletea TUI (subprocess)
-└─ http :8080 → HTTP API for MCP/ACP (always available)
-```
-
-**IPC** (pipes/named pipes) manages **local inter-process communication** between daemon and UI subprocesses.
-**HTTP** (required for MCP/ACP) manages **remote integrations** with external tools and IDEs — we're flexible here, not rigid.
-
-Designed to operate on **less than 4GB of RAM** on modest hardware.
+| Component           | Technology             | Role                                                                       |
+| ------------------- | ---------------------- | -------------------------------------------------------------------------- |
+| **Vector DB**       | **chromem-go**         | Semantic search and embeddings                                             |
+| **Key-Value DB**    | **bbolt**              | Chat history, logs, configuration                                          |
+| **IA Motor**        | **Direct Calls**       | Optimized HTTP/STDIO calls to APIs and `llama.cpp`. No framework overhead. |
+| **Local Inference** | **llama.cpp (native)** | Offline model execution (Qwen3) via native system integration              |
+| **Vectora Core**    | **Cobra + Systray**    | CLI, Systray, IPC (local), HTTP API (remote)                               |
 
 ---
 
-_Part of the open source [Kaffyn](https://github.com/Kaffyn) organization._
+## How to Use
+
+1. Run `vectora.exe`
+2. The core starts in the current directory
+3. Configure your API key
+4. Connect your IDE or agent
+
+---
+
+## Future Plans
+
+Vectora Core is the foundation of a larger ecosystem focused on hybrid RAG and AI-assisted development.
+
+**100% Local Mode:**
+
+- Native integration with **llama.cpp**
+- Complete offline execution (including embeddings)
+- Support for **Qwen3** and **Qwen3.5** models
+
+---
+
+**Recovery Engine Evolution:**
+
+- Codebase graph enhancement (richer relationships)
+- More efficient multi-hop with lower latency
+- Hybrid ranking (semantic + structural + relational)
+
+---
+
+**Vectora Assets:**
+
+- Vector knowledge base marketplace
+- Official documentations, tech specs, and curated datasets
+- Instant download and indexing
+
+---
+
+**Advanced Interfaces:**
+
+- **Vectora Desktop (Fyne):** Native UI for workspace management and graph navigation
+- **Vectora TUI (Bubbletea):** Optimized terminal interface for productivity
+
+---
+
+**Cloud Services:**
+
+- **Vectora Web:** remote access to your workspace
+- **Vectora Auth:** authentication and access control (RBAC)
+- **Collaboration:** secure knowledge sharing between teams
+
+---
+
+_Part of the Kaffyn open source organization._
