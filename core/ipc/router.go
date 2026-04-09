@@ -74,7 +74,9 @@ func RegisterRoutes(
 
 	// [2] Chat History
 	server.Register("chat.history", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
-		var req struct{ ID string `json:"id"` }
+		var req struct {
+			ID string `json:"id"`
+		}
 		if err := json.Unmarshal(payload, &req); err != nil {
 			return nil, ErrIPCPayloadInvalid
 		}
@@ -114,7 +116,7 @@ func RegisterRoutes(
 			return nil, ErrIPCPayloadInvalid
 		}
 
-		results, err := memService.SearchInsight(ctx, req.Query, req.TopK)
+		results, err := memService.SearchInsight(ctx, req.Query, nil, req.TopK)
 		if err != nil {
 			return nil, &IPCError{Code: "memory_error", Message: err.Error()}
 		}
@@ -123,7 +125,9 @@ func RegisterRoutes(
 
 	// [5] i18n
 	server.Register("i18n.get", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
-		var req struct{ Locale string `json:"locale"` }
+		var req struct {
+			Locale string `json:"locale"`
+		}
 		if err := json.Unmarshal(payload, &req); err != nil {
 			return nil, ErrIPCPayloadInvalid
 		}
@@ -156,7 +160,9 @@ func RegisterRoutes(
 
 	// [8] Delete Chat
 	server.Register("chat.delete", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
-		var req struct{ ID string `json:"id"` }
+		var req struct {
+			ID string `json:"id"`
+		}
 		if err := json.Unmarshal(payload, &req); err != nil {
 			return nil, ErrIPCPayloadInvalid
 		}

@@ -211,45 +211,34 @@ func testChromemVectors(testDir string) {
 	exists := vec.CollectionExists(ctx, "test-collection")
 	assert("Collection not exists yet", !exists, "")
 
-	// Chromem-go requires an embedding API key for UpsertChunk.
-	// Without a key, UpsertChunk will fail with 401.
-	// This is expected behavior - in production, users configure an API key.
-	// We test that the collection lifecycle works without embeddings.
-
-	// Collection creation happens on first Query or explicit creation
-	// Since UpsertChunk requires embeddings, we skip embedding-dependent tests
-	// but verify the API is called correctly.
-
+	// ChromemStore requires pre-generated embeddings. In production, these come
+	// from the LLM provider (Gemini/Claude embedding API). For testing without
+	// API keys, we use deterministic hash-based dummy embeddings.
 	chunk := db.Chunk{
 		ID:       "doc-1",
 		Content:  "hello world this is a test document for vector store",
 		Metadata: map[string]string{"source": "test.txt", "filename": "test.txt"},
+		Vector:   db.GenerateDummyEmbedding("hello world this is a test document for vector store", 768),
 	}
 	err = vec.UpsertChunk(ctx, "test-collection", chunk)
-	if err != nil && strings.Contains(err.Error(), "401") {
-		skip("UpsertChunk (requires embedding API key)", "no API key configured - this is expected without API key")
-		// Collection still gets created on the attempt
-		exists = vec.CollectionExists(ctx, "test-collection")
-		assert("Collection created despite embedding error", exists, "")
+	assert("UpsertChunk creates collection", err == nil, fmt.Sprintf("err=%v", err))
 
-		err = vec.DeleteCollection(ctx, "test-collection")
-		assert("DeleteCollection", err == nil, fmt.Sprintf("err=%v", err))
+	exists = vec.CollectionExists(ctx, "test-collection")
+	assert("Collection exists after insert", exists, "")
 
-		exists = vec.CollectionExists(ctx, "test-collection")
-		assert("Collection deleted after failed upsert", !exists, "")
-	} else if err == nil {
-		assert("UpsertChunk creates collection", true, "")
-		exists = vec.CollectionExists(ctx, "test-collection")
-		assert("Collection exists after insert", exists, "")
-
-		err = vec.DeleteCollection(ctx, "test-collection")
-		assert("DeleteCollection", err == nil, fmt.Sprintf("err=%v", err))
-
-		exists = vec.CollectionExists(ctx, "test-collection")
-		assert("Collection deleted", !exists, "")
-	} else {
-		assert("UpsertChunk creates collection", false, fmt.Sprintf("err=%v", err))
+	// Query with pre-generated embedding
+	queryVec := db.GenerateDummyEmbedding("hello world", 768)
+	results, err := vec.Query(ctx, "test-collection", queryVec, 1)
+	assert("Query returns results", err == nil && len(results) > 0, fmt.Sprintf("err=%v results=%d", err, len(results)))
+	if len(results) > 0 {
+		assert("Query result matches content", results[0].Content == chunk.Content, fmt.Sprintf("got '%s'", results[0].Content))
 	}
+
+	err = vec.DeleteCollection(ctx, "test-collection")
+	assert("DeleteCollection", err == nil, fmt.Sprintf("err=%v", err))
+
+	exists = vec.CollectionExists(ctx, "test-collection")
+	assert("Collection deleted", !exists, "")
 }
 
 // ---- 6. Memory Service ----
@@ -261,19 +250,14 @@ func testMemoryService(ctx context.Context, testDir string) {
 		return
 	}
 
-	err = ms.StoreInsight(ctx, "fact-1", "Go uses garbage collection", map[string]string{"category": "programming"})
-	if err != nil && strings.Contains(err.Error(), "401") {
-		skip("StoreInsight (requires embedding API key)", "no API key configured")
-		skip("SearchInsight (requires embedding API key)", "no API key configured")
-	} else if err == nil {
-		assert("StoreInsight", true, "")
-		results, err := ms.SearchInsight(ctx, "garbage collection", 5)
-		assert("SearchInsight finds data", err == nil && len(results) > 0, fmt.Sprintf("err=%v results=%d", err, len(results)))
-		if len(results) > 0 {
-			assert("Search result contains content", strings.Contains(results[0], "garbage collection"), fmt.Sprintf("got '%s'", results[0]))
-		}
-	} else {
-		assert("StoreInsight", false, fmt.Sprintf("err=%v", err))
+	// In production, embeddings come from Gemini/Claude API. For testing, use dummy embeddings.
+	err = ms.StoreInsightWithFallback(ctx, "fact-1", "Go uses garbage collection", map[string]string{"category": "programming"})
+	assert("StoreInsight", err == nil, fmt.Sprintf("err=%v", err))
+
+	results, err := ms.SearchInsight(ctx, "garbage collection", db.GenerateDummyEmbedding("garbage collection", 768), 1)
+	assert("SearchInsight finds data", err == nil && len(results) > 0, fmt.Sprintf("err=%v results=%d", err, len(results)))
+	if len(results) > 0 {
+		assert("Search result contains content", strings.Contains(results[0], "garbage collection"), fmt.Sprintf("got '%s'", results[0]))
 	}
 }
 
@@ -481,9 +465,10 @@ func testIPC(ctx context.Context, testDir string, kv *db.BBoltStore) {
 			TopK  int    `json:"top_k"`
 		}
 		json.Unmarshal(payload, &req)
-		results, err := memService.SearchInsight(ctx, req.Query, req.TopK)
-		if err != nil && strings.Contains(err.Error(), "401") {
-			return []string{}, nil // Skip embedding error in test
+		vec := db.GenerateDummyEmbedding(req.Query, 768)
+		results, err := memService.SearchInsight(ctx, req.Query, vec, req.TopK)
+		if err != nil {
+			return []string{}, nil
 		}
 		return results, nil
 	})
