@@ -355,7 +355,7 @@ func testIngestion(testDir string) {
 	os.WriteFile(filepath.Join(testDir, "sample.go"), []byte("package main\n\nfunc main() {\n\tfmt.Println(\"hello\")\n}"), 0644)
 	os.WriteFile(filepath.Join(testDir, "notes.md"), []byte("# Notes\n\nThis is a test document."), 0644)
 
-	idx := ingestion.NewIndexer(nil, nil, g)
+	idx := ingestion.NewIndexer(nil, g)
 	assert("NewIndexer creates", idx != nil, "")
 
 	parsed, err := idx.Parser.ParseFile(filepath.Join(testDir, "sample.go"))

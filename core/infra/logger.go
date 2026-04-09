@@ -4,11 +4,12 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"github.com/Kaffyn/Vectora/core/telemetry"
 )
 
-var Logger *slog.Logger
-
-// SetupLogger initializes the global structured logger.
+// SetupLogger initializes the global structured logger with rotating file output.
+// Delegates to core/telemetry for RotatingWriter (10MB rotation, 1 backup).
 func SetupLogger() error {
 	userProfile, err := os.UserHomeDir()
 	if err != nil {
@@ -16,20 +17,12 @@ func SetupLogger() error {
 	}
 
 	logDir := filepath.Join(userProfile, ".Vectora", "logs")
-	if err := os.MkdirAll(logDir, 0755); err != nil {
-		return err
-	}
+	return telemetry.InitLogger(logDir)
+}
 
-	logFile, err := os.OpenFile(filepath.Join(logDir, "daemon.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		return err
-	}
-
-	handler := slog.NewJSONHandler(logFile, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	})
-
-	Logger = slog.New(handler)
-	slog.SetDefault(Logger)
-	return nil
+// Logger returns the global structured logger.
+// After SetupLogger() is called, this returns the telemetry.GlobalLogger.
+// Before SetupLogger(), it returns a fallback stderr logger.
+func Logger() *slog.Logger {
+	return telemetry.GetLogger()
 }

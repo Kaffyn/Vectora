@@ -9,20 +9,17 @@ import (
 
 	"github.com/Kaffyn/Vectora/core/llm"
 	"github.com/Kaffyn/Vectora/core/policies"
-	"github.com/Kaffyn/Vectora/core/storage"
 )
 
 type Indexer struct {
-	Storage  *storage.Engine
 	LLM      llm.Provider
 	Guardian *policies.Guardian
 	Parser   *ParserSelector
 	Graph    *DependencyGraph
 }
 
-func NewIndexer(storage *storage.Engine, provider llm.Provider, guardian *policies.Guardian) *Indexer {
+func NewIndexer(provider llm.Provider, guardian *policies.Guardian) *Indexer {
 	return &Indexer{
-		Storage:  storage,
 		LLM:      provider,
 		Guardian: guardian,
 		Parser:   NewParserSelector(guardian),
@@ -58,14 +55,6 @@ func (idx *Indexer) IndexDirectory(ctx context.Context, rootPath string) error {
 		// Extrair Dependências para o Grafo
 		idx.Graph.ExtractImports(path, parsed.Content)
 
-		// Indexar no Storage (Hash check + Upsert vetorial)
-		// RelPath é usado para consistência no banco
-		relPath, _ := filepath.Rel(rootPath, path)
-		if err := idx.Storage.IndexFile(ctx, relPath, parsed.Content); err != nil {
-			fmt.Printf("Warning: Failed to index %s: %v\n", path, err)
-			return nil
-		}
-
 		fileCount++
 		return nil
 	})
@@ -74,14 +63,7 @@ func (idx *Indexer) IndexDirectory(ctx context.Context, rootPath string) error {
 		return err
 	}
 
-	// Atualizar Metadata do Workspace
-	meta, _ := idx.Storage.Meta.GetWorkspaceMeta()
-	meta.LastIndexedAt = time.Now()
-	meta.TotalFiles = fileCount
-	meta.Status = "idle"
-	idx.Storage.Meta.SaveWorkspaceMeta(*meta)
-
-	fmt.Printf("Indexing complete: %d files in %v\n", fileCount, time.Since(startTime))
+	fmt.Printf("Parsing complete: %d files in %v\n", fileCount, time.Since(startTime))
 	return nil
 }
 

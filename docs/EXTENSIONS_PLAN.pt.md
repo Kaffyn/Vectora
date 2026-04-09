@@ -1,43 +1,57 @@
 # Plano de Implementação: Extensões Vectora
 
-> **Contexto:** O core do Vectora já está funcional — ACP server over stdio, embedding via Gemini, ferramentas agênticas, RAG pipeline, IPC, systray. Agora precisamos construir os **clientes** que conectam ao core: uma extensão para VS Code e um plugin para Gemini CLI.
+> **Contexto:** O core do Vectora já está funcional — ACP server over stdio, MCP server over stdio, embedding via Gemini, ferramentas agênticas, RAG pipeline, IPC, systray. Agora precisamos construir os **clientes** que conectam ao core: uma extensão para VS Code (ACP) e um MCP server para Gemini CLI.
 
 ---
 
 ## 1. Visão Geral da Arquitetura
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     EDITOR / CLI                        │
-│                                                         │
-│  ┌──────────────┐        ┌──────────────────────────┐  │
-│  │ VS Code Ext. │        │   Gemini CLI Extension   │  │
-│  │ (ACP Client) │        │    (ACP Client)          │  │
-│  └──────┬───────┘        └──────────┬───────────────┘  │
-│         │                           │                   │
-│         │ stdio (JSON-RPC 2.0)      │ stdio             │
-│         │                           │                   │
-│  ┌──────▼───────────────────────────▼───────────────┐  │
-│  │           Vectora Core (ACP Server)              │  │
-│  │   ├── initialize / session / prompt / tools      │  │
-│  │   ├── Engine (RAG + Tools + LLM Router)          │  │
-│  │   └── Chromem-go + BBolt (local storage)         │  │
-│  └──────────────────────────────────────────────────┘  │
-│                                                         │
-│  ┌──────────────────────────────────────────────────┐  │
-│  │           Gemini Embedding API (remote)           │  │
-│  │              Claude API (remote)                  │  │
-│  └──────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                      EDITOR / AGENTE                            │
+│                                                                 │
+│  ┌──────────────────┐           ┌──────────────────────┐       │
+│  │  VS Code         │           │  Gemini CLI          │       │
+│  │  (ACP Client)    │           │  (MCP Client)        │       │
+│  └─────────────────┘           ──────────┬───────────┘       │
+│           │                                │                    │
+│           │ ACP (JSON-RPC 2.0)             │ MCP (JSON-RPC 2.0)│
+│           │ stdio                          │ stdio              │
+│           │                                │                    │
+│  ┌────────▼────────────────────────────────▼───────────────┐   │
+│  │              Vectora Core (Dual Server)                 │   │
+│  │   ┌─────────────────────┐   ┌──────────────────────┐   │   │
+│  │   │  ACP Server         │   │  MCP Server          │   │   │
+│  │   │  (Agent Mode)       │   │  (Tool Provider)     │   │   │
+│  │   │  - session/prompt   │   │  - tools/list        │   │   │
+│  │   │  - tools/call       │   │  - tools/call        │   │   │
+│  │   │  - fs/read, write   │   │  - resources/*       │   │   │
+│  │   └──────────┬──────────┘   └─────────────────────┘   │   │
+│  │              │                         │                │   │
+│  │  ┌───────────▼─────────────────────────▼────────────┐   │   │
+│  │  │  Engine (RAG + Tools + LLM Router + Chromem)     │   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │         Gemini Embedding / Claude API (remote)            │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-**Princípio:** O Vectora Core é o **único** processo inteligente. As extensões são **clientes ACP** burros — apenas renderizam UI e repassam JSON-RPC.
+**Princípio:** Vectora é **agente** para o VS Code (ACP) e **provedor de ferramentas** para o Gemini CLI (MCP). O core é o mesmo — apenas o protocolo de entrada muda.
 
 ---
 
-## 2. VS Code Extension
+## 2. VS Code Extension (ACP Client)
 
-### 2.1 Estrutura do Projeto
+### 2.1 Papel: Cliente ACP
+
+- VS Code é o **client** — orquestra a UI e repassa interações ao agente
+- Vectora é o **agent** — pensa, pesquisa, executa ferramentas
+- Protocolo: ACP over stdio (JSON-RPC 2.0)
+
+### 2.2 Estrutura do Projeto
 
 ```
 extensions/vscode/
@@ -47,7 +61,7 @@ extensions/vscode/
 │   ├── extension.ts          → entry point, activation
 │   ├── acp-client.ts         → cliente ACP over stdio
 │   ├── chat-panel.ts         → WebView sidebar (chat UI)
-│   ├── tool-handler.ts       → aprovações de tool calls
+│   ├── permission-handler.ts → UI de aprovação de tool calls
 │   ├── diff-provider.ts      → inline diffs no editor
 │   ├── session-manager.ts    → gerencia sessões ACP
 │   └── types/
@@ -58,7 +72,7 @@ extensions/vscode/
 └── webpack.config.js         → bundler
 ```
 
-### 2.2 `package.json` — Manifest
+### 2.3 `package.json` — Manifest
 
 ```json
 {
@@ -104,7 +118,7 @@ extensions/vscode/
       "properties": {
         "vectora.corePath": {
           "type": "string",
-          "default": "vectora.exe",
+          "default": "vectora",
           "description": "Path to Vectora core binary"
         },
         "vectora.workspace": {
@@ -123,20 +137,20 @@ extensions/vscode/
 }
 ```
 
-### 2.3 `src/acp-client.ts` — Cliente ACP over stdio
+### 2.4 `src/acp-client.ts` — Cliente ACP over stdio
 
 ```typescript
 import * as cp from "child_process";
 import * as vscode from "vscode";
-import { ACPMessage, ACPSessionUpdate, ToolCall, PermissionRequest } from "./types/acp";
+import { ACPMessage, ACPSessionUpdate, PermissionRequest } from "./types/acp";
 
 export class ACPClient {
   private process: cp.ChildProcess | null = null;
   private buffer = "";
   private pendingRequests = new Map<number, { resolve: Function; reject: Function }>();
   private nextId = 0;
-  private onSessionUpdate?: (update: ACPSessionUpdate) => void;
-  private onPermissionRequest?: (req: PermissionRequest) => void;
+  public onSessionUpdate?: (update: ACPSessionUpdate) => void;
+  public onPermissionRequest?: (req: PermissionRequest) => void;
 
   constructor(private corePath: string) {}
 
@@ -195,20 +209,17 @@ export class ACPClient {
     this.notify("session/cancel", { sessionId });
   }
 
-  // JSON-RPC request/response
   private request(method: string, params: any): Promise<any> {
     return new Promise((resolve, reject) => {
       const id = this.nextId++;
       this.pendingRequests.set(id, { resolve, reject });
-
       const msg: ACPMessage = { jsonrpc: "2.0", id, method, params };
       this.write(JSON.stringify(msg) + "\n");
     });
   }
 
   private notify(method: string, params: any): void {
-    const msg = { jsonrpc: "2.0", method, params };
-    this.write(JSON.stringify(msg) + "\n");
+    this.write(JSON.stringify({ jsonrpc: "2.0", method, params }) + "\n");
   }
 
   private write(data: string): void {
@@ -217,36 +228,25 @@ export class ACPClient {
 
   private onData(chunk: Buffer): void {
     this.buffer += chunk.toString();
-
     while (true) {
       const idx = this.buffer.indexOf("\n");
       if (idx === -1) break;
-
       const line = this.buffer.substring(0, idx);
       this.buffer = this.buffer.substring(idx + 1);
-
       if (!line.trim()) continue;
-
       try {
-        const msg = JSON.parse(line);
-        this.handleMessage(msg);
-      } catch {
-        // Skip malformed lines (stderr leakage)
-      }
+        this.handleMessage(JSON.parse(line));
+      } catch {}
     }
   }
 
   private handleMessage(msg: any): void {
     if (msg.id !== undefined) {
-      // Response to our request
       const pending = this.pendingRequests.get(msg.id);
       if (pending) {
         this.pendingRequests.delete(msg.id);
-        if (msg.error) {
-          pending.reject(new Error(msg.error.message));
-        } else {
-          pending.resolve(msg.result);
-        }
+        if (msg.error) pending.reject(new Error(msg.error.message));
+        else pending.resolve(msg.result);
       }
     } else if (msg.method === "session/update") {
       this.onSessionUpdate?.(msg.params.update);
@@ -262,7 +262,7 @@ export class ACPClient {
 }
 ```
 
-### 2.4 `src/chat-panel.ts` — WebView Sidebar
+### 2.5 `src/chat-panel.ts` — WebView Sidebar
 
 ```typescript
 import * as vscode from "vscode";
@@ -272,10 +272,7 @@ export class ChatPanel {
   private panel: vscode.WebviewPanel | undefined;
   private sessionId: string | undefined;
 
-  constructor(
-    private client: ACPClient,
-    private context: vscode.ExtensionContext,
-  ) {
+  constructor(private client: ACPClient) {
     this.client.onSessionUpdate = (update) => this.handleUpdate(update);
     this.client.onPermissionRequest = (req) => this.handlePermission(req);
   }
@@ -290,18 +287,9 @@ export class ChatPanel {
       enableScripts: true,
       retainContextWhenHidden: true,
     });
-
     this.panel.webview.html = this.getHtml();
     this.panel.webview.onDidReceiveMessage(async (msg) => {
-      if (msg.type === "send") {
-        await this.sendMessage(msg.text);
-      } else if (msg.type === "permission") {
-        // Forward permission decision
-        this.panel?.webview.postMessage({
-          type: "permission_result",
-          optionId: msg.optionId,
-        });
-      }
+      if (msg.type === "send") await this.sendMessage(msg.text);
     });
   }
 
@@ -309,31 +297,21 @@ export class ChatPanel {
     if (!this.sessionId) {
       this.sessionId = await this.client.newSession(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || ".");
     }
-
-    // Show user message in UI
     this.panel?.webview.postMessage({ type: "user_message", text });
-
-    // Send to ACP
     const result = await this.client.prompt(this.sessionId, text);
-
-    // Show stop reason
     this.panel?.webview.postMessage({ type: "done", stopReason: result.stopReason });
   }
 
   private handleUpdate(update: any): void {
     if (!this.panel) return;
-
     switch (update.sessionUpdate) {
       case "agent_message_chunk":
-        // Stream text to UI
         this.panel.webview.postMessage({
           type: "agent_chunk",
           text: update.content?.[0]?.content?.text || "",
         });
         break;
-
       case "tool_call":
-        // Show tool call pending
         this.panel.webview.postMessage({
           type: "tool_call",
           toolCallId: update.toolCallId,
@@ -342,23 +320,15 @@ export class ChatPanel {
           status: update.status,
         });
         break;
-
       case "tool_call_update":
-        // Update tool call status
         this.panel.webview.postMessage({
           type: "tool_call_update",
           toolCallId: update.toolCallId,
           status: update.status,
-          content: update.content,
         });
         break;
-
       case "plan":
-        // Show plan entries
-        this.panel.webview.postMessage({
-          type: "plan",
-          entries: update.entries,
-        });
+        this.panel.webview.postMessage({ type: "plan", entries: update.entries });
         break;
     }
   }
@@ -378,129 +348,49 @@ export class ChatPanel {
 <head>
   <meta charset="UTF-8">
   <style>
-    body { font-family: var(--vscode-font-family); padding: 8px; }
+    body { font-family: var(--vscode-font-family); padding: 8px; padding-bottom: 50px; }
     .message { margin: 4px 0; padding: 6px 10px; border-radius: 4px; }
     .user { background: var(--vscode-input-background); text-align: right; }
     .agent { background: var(--vscode-editor-background); }
     .tool { font-size: 0.85em; opacity: 0.7; }
     .plan { border-left: 2px solid var(--vscode-focusBorder); padding-left: 8px; margin: 4px 0; }
-    input { width: 100%; padding: 6px; border: 1px solid var(--vscode-input-border); background: var(--vscode-input-background); color: var(--vscode-input-foreground); }
+    #input-bar { position:fixed; bottom:0; left:0; right:0; padding:8px; background: var(--vscode-editor-background); }
+    #input { width: 100%; padding: 6px; border: 1px solid var(--vscode-input-border); background: var(--vscode-input-background); color: var(--vscode-input-foreground); }
   </style>
 </head>
 <body>
   <div id="chat"></div>
-  <div style="position:fixed;bottom:0;left:0;right:0;padding:8px;">
-    <input id="input" placeholder="Ask Vectora..." onkeydown="if(event.key==='Enter')send()">
-  </div>
+  <div id="input-bar"><input id="input" placeholder="Ask Vectora..." onkeydown="if(event.key==='Enter')send()"></div>
   <script>
     const chat = document.getElementById('chat');
     const vscode = acquireVsCodeApi();
-
     function send() {
       const input = document.getElementById('input');
       if (!input.value.trim()) return;
       vscode.postMessage({ type: 'send', text: input.value });
       input.value = '';
     }
-
     window.addEventListener('message', (e) => {
-      const { type, text, stopReason, entries, toolCallId, status, title, kind, options } = e.data;
-
-      if (type === 'user_message') {
-        chat.innerHTML += '<div class="message user">' + escapeHtml(text) + '</div>';
-      } else if (type === 'agent_chunk') {
+      const d = e.data;
+      if (d.type === 'user_message') {
+        chat.innerHTML += '<div class="message user">' + esc(d.text) + '</div>';
+      } else if (d.type === 'agent_chunk') {
         let last = chat.querySelector('.message.agent:last-child');
-        if (!last) {
-          last = document.createElement('div');
-          last.className = 'message agent';
-          chat.appendChild(last);
-        }
-        last.textContent += text;
-      } else if (type === 'done') {
-        chat.innerHTML += '<div style="opacity:0.5;font-size:0.8em;">— ' + stopReason + ' —</div>';
-      } else if (type === 'tool_call') {
-        chat.innerHTML += '<div class="message tool">🔧 ' + escapeHtml(title || kind) + ' (' + status + ')</div>';
-      } else if (type === 'tool_call_update') {
-        // Update existing tool call status
-      } else if (type === 'plan') {
-        const planHtml = entries.map(e => '<div class="plan">⏳ ' + escapeHtml(e.content) + '</div>').join('');
-        chat.innerHTML += planHtml;
-      } else if (type === 'permission_request') {
-        const optsHtml = options.map(o =>
-          '<button onclick="vscode.postMessage({type:\\"permission\\",optionId:\\"'+o.optionId+'\\"})">' + escapeHtml(o.name) + '</button>'
-        ).join(' ');
-        chat.innerHTML += '<div style="padding:4px;">Approve? ' + optsHtml + '</div>';
+        if (!last) { last = document.createElement('div'); last.className = 'message agent'; chat.appendChild(last); }
+        last.textContent += d.text;
+      } else if (d.type === 'done') {
+        chat.innerHTML += '<div style="opacity:0.5;font-size:0.8em;">— ' + d.stopReason + ' —</div>';
+      } else if (d.type === 'tool_call') {
+        chat.innerHTML += '<div class="message tool">🔧 ' + esc(d.title || d.kind) + ' (' + d.status + ')</div>';
+      } else if (d.type === 'plan') {
+        chat.innerHTML += d.entries.map(e => '<div class="plan">⏳ ' + esc(e.content) + '</div>').join('');
       }
-
       chat.scrollTop = chat.scrollHeight;
     });
-
-    function escapeHtml(t) {
-      const d = document.createElement('div');
-      d.textContent = t;
-      return d.innerHTML;
-    }
+    function esc(t) { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
   </script>
 </body>
 </html>`;
-  }
-}
-```
-
-### 2.5 `src/diff-provider.ts` — Inline Diffs
-
-```typescript
-import * as vscode from "vscode";
-
-export class DiffProvider {
-  private decorations: vscode.TextEditorDecorationType[] = [];
-
-  // Apply a diff received from ACP tool_call_update
-  applyDiff(filePath: string, oldText: string, newText: string): vscode.Disposable {
-    const uri = vscode.Uri.file(filePath);
-
-    return vscode.workspace.openTextDocument(uri).then((doc) => {
-      return vscode.window.showTextDocument(doc).then((editor) => {
-        // Create decoration for added/removed lines
-        const addedDecoration = vscode.window.createTextEditorDecorationType({
-          backgroundColor: new vscode.ThemeColor("diffEditor.insertedLineBackground"),
-          isWholeLine: true,
-        });
-
-        const removedDecoration = vscode.window.createTextEditorDecorationType({
-          backgroundColor: new vscode.ThemeColor("diffEditor.removedLineBackground"),
-          isWholeLine: true,
-        });
-
-        this.decorations.push(addedDecoration, removedDecoration);
-
-        // Highlight the changed region
-        const range = editor.document.getText().includes(oldText)
-          ? this.findRange(editor.document, oldText)
-          : undefined;
-
-        if (range) {
-          editor.setDecorations(removedDecoration, [range]);
-        }
-
-        return {
-          dispose: () => {
-            addedDecoration.dispose();
-            removedDecoration.dispose();
-          },
-        };
-      });
-    });
-  }
-
-  private findRange(doc: vscode.TextDocument, text: string): vscode.Range | undefined {
-    const content = doc.getText();
-    const start = content.indexOf(text);
-    if (start === -1) return undefined;
-
-    const startPos = doc.positionAt(start);
-    const endPos = doc.positionAt(start + text.length);
-    return new vscode.Range(startPos, endPos);
   }
 }
 ```
@@ -511,11 +401,9 @@ export class DiffProvider {
 import * as vscode from "vscode";
 import { ACPClient } from "./acp-client";
 import { ChatPanel } from "./chat-panel";
-import { DiffProvider } from "./diff-provider";
 
 let client: ACPClient | undefined;
 let chatPanel: ChatPanel | undefined;
-let diffProvider: DiffProvider | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
   const config = vscode.workspace.getConfiguration("vectora");
@@ -527,37 +415,24 @@ export async function activate(context: vscode.ExtensionContext) {
     return;
   }
 
-  // Initialize ACP client
   client = new ACPClient(corePath);
   await client.start(workspacePath);
 
-  // Initialize components
-  chatPanel = new ChatPanel(client, context);
-  diffProvider = new DiffProvider();
+  chatPanel = new ChatPanel(client);
 
-  // Register commands
   context.subscriptions.push(
-    vscode.commands.registerCommand("vectora.newSession", async () => {
-      await chatPanel?.show();
-    }),
+    vscode.commands.registerCommand("vectora.newSession", async () => await chatPanel?.show()),
     vscode.commands.registerCommand("vectora.explainCode", async () => {
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
-
-      const selection = editor.selection;
-      const selectedCode = editor.document.getText(selection);
-
+      const code = editor.document.getText(editor.selection);
       await chatPanel?.show();
-      await chatPanel["sendMessage"](`Explain this code:\n\n\`\`\`\n${selectedCode}\n\`\`\``);
+      await chatPanel["sendMessage"](`Explain this code:\n\n\`\`\`\n${code}\n\`\`\``);
     }),
   );
 
-  // Auto-open chat panel
   await chatPanel.show();
-
-  context.subscriptions.push({
-    dispose: () => client?.stop(),
-  });
+  context.subscriptions.push({ dispose: () => client?.stop() });
 }
 
 export function deactivate() {
@@ -567,250 +442,445 @@ export function deactivate() {
 
 ---
 
-## 3. Gemini CLI Extension
+## 3. Gemini CLI Integration (MCP Server)
 
-### 3.1 Visão Geral
+### 3.1 Papel: Servidor MCP
 
-O **Gemini CLI** (antigo `gemini`) é uma interface de linha de comando da Google para desenvolvimento assistido por IA. A extensão Vectora permite que o Gemini CLI use o Vectora como **backend de agente** via ACP.
+- **Gemini CLI** é um **agente** — ele pensa e decide
+- **Vectora** é um **MCP Server** — expõe ferramentas e recursos
+- Protocolo: MCP over stdio (JSON-RPC 2.0)
+- Gemini CLI se conecta ao Vectora como um **MCP client** para acessar:
+  - Ferramentas agênticas (read_file, grep_search, run_shell_command, etc.)
+  - Recursos RAG (busca semântica na codebase indexada)
+  - Contexto do workspace
 
 ### 3.2 Estrutura do Projeto
 
 ```
-extensions/gemini-cli/
-├── package.json
+extensions/mcp-server/
+├── package.json              → manifest do pacote MCP
 ├── tsconfig.json
 ├── src/
-│   ├── index.ts              → CLI entry point
-│   ├── acp-client.ts         → mesmo cliente ACP (compartilhado)
-│   ├── session.ts            → sessão interativa REPL
-│   ├── tool-executor.ts      → executa tools localmente
+│   ├── index.ts              → MCP server entry point (stdio)
+│   ├── tools.ts              → registro de ferramentas Vectora
+│   ├── resources.ts          → recursos RAG (workspace context)
 │   └── types/
-│       └── acp.d.ts          → tipos ACP
+│       └── mcp.d.ts          → tipos MCP
 └── scripts/
     └── install.sh            → script de instalação
 ```
 
-### 3.3 `src/index.ts` — CLI Entry Point
+### 3.3 `src/index.ts` — MCP Server Entry Point
 
 ```typescript
 #!/usr/bin/env node
 
 import * as readline from "readline";
-import * as path from "path";
-import { ACPClient } from "./acp-client";
-import { Session } from "./session";
+import { ToolRegistry } from "./tools";
+import { ResourceRegistry } from "./resources";
 
-async function main() {
-  const corePath = process.env.VECTORA_CORE_PATH || "vectora";
-  const cwd = process.cwd();
+// MCP JSON-RPC over stdio
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+  terminal: false,
+});
 
-  console.log("🚀 Vectora for Gemini CLI");
-  console.log("Connecting to Vectora core...");
+const tools = new ToolRegistry();
+const resources = new ResourceRegistry();
 
-  // Start ACP client
-  const client = new ACPClient(corePath);
-  await client.start(cwd);
+rl.on("line", async (line) => {
+  if (!line.trim()) return;
 
-  // Create new session
-  const sessionId = await client.newSession(cwd);
+  let msg: any;
+  try {
+    msg = JSON.parse(line);
+  } catch {
+    writeError(null, -32700, "Parse error");
+    return;
+  }
 
-  console.log("✅ Connected. Type your questions or commands.\n");
+  if (msg.method === "initialize") {
+    writeResult(msg.id, {
+      protocolVersion: "2024-11-05",
+      capabilities: {
+        tools: {},
+        resources: {},
+      },
+      serverInfo: {
+        name: "vectora-mcp",
+        version: "0.1.0",
+      },
+    });
+  } else if (msg.method === "tools/list") {
+    writeResult(msg.id, { tools: tools.list() });
+  } else if (msg.method === "tools/call") {
+    const result = await tools.call(msg.params.name, msg.params.arguments);
+    writeResult(msg.id, result);
+  } else if (msg.method === "resources/list") {
+    writeResult(msg.id, { resources: resources.list() });
+  } else if (msg.method === "resources/read") {
+    const content = await resources.read(msg.params.uri);
+    writeResult(msg.id, { contents: content });
+  } else {
+    writeError(msg.id, -32601, `Method '${msg.method}' not found`);
+  }
+});
 
-  // REPL loop
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  const session = new Session(client, sessionId, rl);
-  await session.run();
+function writeResult(id: number, result: any): void {
+  console.log(JSON.stringify({ jsonrpc: "2.0", id, result }));
 }
 
-main().catch((err) => {
-  console.error("Fatal error:", err.message);
-  process.exit(1);
-});
+function writeError(id: number | null, code: number, message: string): void {
+  console.log(JSON.stringify({ jsonrpc: "2.0", id, error: { code, message } }));
+}
 ```
 
-### 3.4 `src/session.ts` — REPL Interativo
+### 3.4 `src/tools.ts` — Registro de Ferramentas Vectora
 
 ```typescript
-import * as readline from "readline";
-import { ACPClient } from "./acp-client";
+import { exec } from "child_process";
+import * as fs from "fs";
+import * as path from "path";
 
-export class Session {
-  private toolCalls = new Map<string, { title: string; kind: string }>();
+interface MCPTool {
+  name: string;
+  description: string;
+  inputSchema: {
+    type: "object";
+    properties: Record<string, { type: string; description: string }>;
+    required: string[];
+  };
+}
 
-  constructor(
-    private client: ACPClient,
-    private sessionId: string,
-    private rl: readline.Interface,
-  ) {
-    this.client.onSessionUpdate = (update) => this.handleUpdate(update);
+export class ToolRegistry {
+  private tools: MCPTool[] = [
+    {
+      name: "read_file",
+      description: "Read the content of a file within the Vectora workspace.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "File path relative to workspace root" },
+        },
+        required: ["path"],
+      },
+    },
+    {
+      name: "write_file",
+      description: "Write content to a file within the Vectora workspace.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "File path relative to workspace root" },
+          content: { type: "string", description: "File content" },
+        },
+        required: ["path", "content"],
+      },
+    },
+    {
+      name: "grep_search",
+      description: "Search file contents using regex within the Vectora workspace.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          pattern: { type: "string", description: "Regex pattern to search for" },
+          case_sensitive: { type: "boolean", description: "Whether to match case" },
+        },
+        required: ["pattern"],
+      },
+    },
+    {
+      name: "run_shell_command",
+      description: "Execute a shell command within the Vectora workspace directory.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          command: { type: "string", description: "Shell command to execute" },
+        },
+        required: ["command"],
+      },
+    },
+    {
+      name: "vector_search",
+      description: "Perform semantic search on the Vectora indexed codebase using RAG.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Natural language search query" },
+          top_k: { type: "integer", description: "Number of results to return" },
+        },
+        required: ["query"],
+      },
+    },
+  ];
+
+  list(): MCPTool[] {
+    return this.tools;
   }
 
-  async run(): Promise<void> {
-    while (true) {
-      const input = await this.prompt();
-      if (!input || input.trim() === "/exit" || input.trim() === "/quit") {
-        break;
-      }
+  async call(name: string, args: any): Promise<any> {
+    const cwd = process.env.VECTORA_WORKSPACE || process.cwd();
 
-      // Handle slash commands
-      if (input.startsWith("/")) {
-        await this.handleCommand(input);
-        continue;
-      }
+    switch (name) {
+      case "read_file":
+        return this.readFile(cwd, args.path);
 
-      // Send prompt to Vectora
-      process.stdout.write("\n");
-      const result = await this.client.prompt(this.sessionId, input);
+      case "write_file":
+        return this.writeFile(cwd, args.path, args.content);
 
-      if (result.stopReason === "refusal") {
-        console.log("⚠️  Vectora refused to answer.");
-      }
-      console.log("");
+      case "grep_search":
+        return this.grepSearch(cwd, args.pattern, args.case_sensitive);
+
+      case "run_shell_command":
+        return this.runShellCommand(cwd, args.command);
+
+      case "vector_search":
+        return this.vectorSearch(args.query, args.top_k || 5);
+
+      default:
+        return {
+          content: [{ type: "text", text: `Tool '${name}' not found` }],
+          isError: true,
+        };
     }
-
-    this.client.stop();
-    this.rl.close();
   }
 
-  private prompt(): Promise<string> {
+  private readFile(cwd: string, filePath: string): any {
+    try {
+      const absPath = path.resolve(cwd, filePath);
+      if (!absPath.startsWith(cwd)) {
+        return { content: [{ type: "text", text: "Access denied: outside workspace" }], isError: true };
+      }
+      const content = fs.readFileSync(absPath, "utf-8");
+      return { content: [{ type: "text", text: content }] };
+    } catch (err: any) {
+      return { content: [{ type: "text", text: err.message }], isError: true };
+    }
+  }
+
+  private writeFile(cwd: string, filePath: string, content: string): any {
+    try {
+      const absPath = path.resolve(cwd, filePath);
+      if (!absPath.startsWith(cwd)) {
+        return { content: [{ type: "text", text: "Access denied: outside workspace" }], isError: true };
+      }
+      fs.writeFileSync(absPath, content, "utf-8");
+      return { content: [{ type: "text", text: `File written: ${filePath}` }] };
+    } catch (err: any) {
+      return { content: [{ type: "text", text: err.message }], isError: true };
+    }
+  }
+
+  private grepSearch(cwd: string, pattern: string, caseSensitive: boolean): any {
     return new Promise((resolve) => {
-      this.rl.question(" > ", resolve);
+      const flags = caseSensitive ? "" : "i";
+      exec(`grep -r${flags} "${pattern}" --include="*.*" . 2>/dev/null | head -50`, { cwd }, (err, stdout) => {
+        if (err && stdout === "") {
+          resolve({ content: [{ type: "text", text: "No matches found" }] });
+        } else {
+          resolve({ content: [{ type: "text", text: stdout || err?.message || "" }] });
+        }
+      });
     });
   }
 
-  private async handleCommand(cmd: string): Promise<void> {
-    const parts = cmd.split(" ");
-    switch (parts[0]) {
-      case "/embed":
-        // Trigger embedding of current directory
-        console.log("📦 Embedding workspace...");
-        // This would call vectora embed via subprocess
-        break;
-      case "/clear":
-        this.toolCalls.clear();
-        console.log("🧹 Session cleared.");
-        break;
-      case "/help":
-        console.log(`
-Commands:
-  /embed          - Embed current workspace
-  /clear          - Clear session context
-  /help           - Show this help
-  /exit, /quit    - Exit
-        `);
-        break;
-      default:
-        console.log("Unknown command. Type /help for available commands.");
-    }
+  private runShellCommand(cwd: string, command: string): any {
+    return new Promise((resolve) => {
+      exec(command, { cwd, timeout: 30000 }, (err, stdout, stderr) => {
+        const output = stdout + (stderr ? `\nstderr: ${stderr}` : "");
+        resolve({ content: [{ type: "text", text: output || "Command executed successfully" }] });
+      });
+    });
   }
 
-  private handleUpdate(update: any): void {
-    switch (update.sessionUpdate) {
-      case "agent_message_chunk":
-        const text = update.content?.[0]?.content?.text || "";
-        process.stdout.write(text);
-        break;
+  private async vectorSearch(query: string, topK: number): Promise<any> {
+    // Call Vectora IPC or internal API to perform RAG search
+    // For now, return a placeholder
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Vector search for "${query}" — integrate with Vectora chromem-go for real results.`,
+        },
+      ],
+    };
+  }
+}
+```
 
-      case "tool_call":
-        console.log(`\n🔧 ${update.title || update.kind}...`);
-        this.toolCalls.set(update.toolCallId, {
-          title: update.title,
-          kind: update.kind,
-        });
-        break;
+### 3.5 `src/resources.ts` — Recursos RAG
 
-      case "tool_call_update":
-        const tc = this.toolCalls.get(update.toolCallId);
-        if (tc && update.status === "completed") {
-          console.log(`✅ ${tc.title || tc.kind} done.\n`);
-        }
-        break;
+```typescript
+import * as fs from "fs";
+import * as path from "path";
 
-      case "plan":
-        console.log("\n📋 Plan:");
-        update.entries.forEach((e: any) => {
-          console.log(`  ${e.status === "completed" ? "✅" : "⏳"} ${e.content}`);
-        });
-        console.log("");
-        break;
+interface MCPResource {
+  uri: string;
+  name: string;
+  description: string;
+  mimeType?: string;
+}
+
+interface MCPResourceContent {
+  uri: string;
+  mimeType: string;
+  text: string;
+}
+
+export class ResourceRegistry {
+  private cwd: string;
+
+  constructor() {
+    this.cwd = process.env.VECTORA_WORKSPACE || process.cwd();
+  }
+
+  list(): MCPResource[] {
+    return [
+      {
+        uri: `file://${this.cwd}`,
+        name: "Workspace Context",
+        description: "Full context of the indexed Vectora workspace including RAG embeddings.",
+        mimeType: "text/markdown",
+      },
+      {
+        uri: `vectora://workspace/dependencies`,
+        name: "Dependency Graph",
+        description: "Codebase dependency graph extracted during indexing.",
+        mimeType: "application/json",
+      },
+      {
+        uri: `vectora://workspace/index-status`,
+        name: "Index Status",
+        description: "Current RAG index status — files indexed, last update time.",
+        mimeType: "application/json",
+      },
+    ];
+  }
+
+  async read(uri: string): Promise<MCPResourceContent[]> {
+    if (uri.startsWith("file://")) {
+      const filePath = uri.replace("file://", "");
+      const content = fs.readFileSync(filePath, "utf-8");
+      return [{ uri, mimeType: "text/plain", text: content }];
+    }
+
+    if (uri === "vectora://workspace/index-status") {
+      return [
+        {
+          uri,
+          mimeType: "application/json",
+          text: JSON.stringify({
+            status: "indexed",
+            filesCount: 0,
+            lastIndexed: new Date().toISOString(),
+          }),
+        },
+      ];
+    }
+
+    return [{ uri, mimeType: "text/plain", text: "Resource not found" }];
+  }
+}
+```
+
+### 3.6 Configuração do Gemini CLI
+
+O Gemini CLI conecta ao Vectora via MCP adicionando o server ao config:
+
+```bash
+# ~/.config/gemini/settings.json
+{
+  "mcpServers": {
+    "vectora": {
+      "command": "vectora",
+      "args": ["mcp"],
+      "env": {
+        "VECTORA_WORKSPACE": "/path/to/project"
+      }
     }
   }
 }
 ```
 
-### 3.5 Integração com Gemini CLI Existente
+Ou via variável de ambiente:
 
-O Gemini CLI original (do pacote `@google/gemini-cli`) pode ser **patcheado** para usar o Vectora como agente backend:
-
-```typescript
-// Patch: node_modules/@google/gemini-cli/dist/agent.js
-const { ACPClient } = require("vectora-gemini-cli");
-
-// Override the default agent
-const originalAgent = Agent.create;
-Agent.create = async (options) => {
-  const acpClient = new ACPClient(process.env.VECTORA_CORE_PATH || "vectora");
-  await acpClient.start(process.cwd());
-
-  return {
-    async chat(messages) {
-      const prompt = messages.map((m) => m.content).join("\n");
-      const result = await acpClient.prompt("default", prompt);
-      return { content: result };
-    },
-    async tools() {
-      // Vectora tools are exposed via ACP
-      return acpClient.getAvailableTools();
-    },
-  };
-};
+```bash
+export GEMINI_MCP_SERVERS='{"vectora":{"command":"vectora","args":["mcp"]}}'
+gemini
 ```
 
 ---
 
-## 4. Cronograma de Implementação
+## 4. Protocolo de Comunicação — Resumo
+
+| Camada            | Protocolo            | Transporte    | Direção          | Papel do Vectora                       |
+| ----------------- | -------------------- | ------------- | ---------------- | -------------------------------------- |
+| VS Code → Core    | **ACP** JSON-RPC 2.0 | stdio (pipes) | Bidirecional     | **Agent** (pensa, responde, usa tools) |
+| Gemini CLI → Core | **MCP** JSON-RPC 2.0 | stdio (pipes) | Request/Response | **Server** (expõe tools + resources)   |
+| Core → Embedding  | Gemini Embedding API | HTTPS         | Request/Response | Client                                 |
+| Core → LLM        | Gemini/Claude API    | HTTPS         | Stream/Request   | Client                                 |
+| Core → Vector DB  | chromem-go           | Local file    | In-process       | Owner                                  |
+
+**Nenhuma comunicação de rede entre clientes e core** — tudo local via stdio. O único tráfego remoto é do core para APIs de IA.
+
+---
+
+## 5. Cronograma de Implementação
 
 ### Fase 1: VS Code Extension (Semana 1-2)
 
 - [ ] Scaffold com Yeoman (`yo code`)
-- [ ] ACP client over stdio
-- [ ] WebView chat panel
-- [ ] Session management
-- [ ] Streaming de respostas
+- [ ] ACP client over stdio (spawn `vectora acp`)
+- [ ] WebView chat panel com streaming
+- [ ] Session management (newSession, prompt, cancel)
+- [ ] Tool call notifications (tool_call, tool_call_update)
+- [ ] Permission request UI (allow/reject tool calls)
 
-### Fase 2: Tool Calls & Permissões (Semana 2-3)
+### Fase 2: VS Code Tool Integration (Semana 2-3)
 
-- [ ] UI de aprovação de tool calls
-- [ ] Diff provider para inline edits
-- [ ] File system integration (read/write via ACP)
-
-### Fase 3: Gemini CLI Extension (Semana 3-4)
-
-- [ ] CLI scaffolding
-- [ ] REPL interativo
+- [ ] File system methods (fs/read_text_file, fs/write_text_file)
+- [ ] Inline diff provider para edições de arquivo
+- [ ] Terminal integration (terminal/create, terminal/output)
 - [ ] Slash commands (/embed, /clear, /help)
-- [ ] Patch do Gemini CLI original
 
-### Fase 4: Polimento (Semana 4-5)
+### Fase 3: MCP Server para Gemini CLI (Semana 3-4)
 
-- [ ] Testes E2E
+- [ ] MCP server over stdio (spawn `vectora mcp`)
+- [ ] Tool registry (read_file, write_file, grep_search, run_shell_command)
+- [ ] Resource registry (workspace context, dependency graph, index status)
+- [ ] vector_search tool (integração com chromem-go via IPC)
+- [ ] Configuração do Gemini CLI (settings.json)
+
+### Fase 4: Polimento e Testes (Semana 4-5)
+
+- [ ] Testes E2E VS Code (simulated stdio)
+- [ ] Testes E2E MCP (JSON-RPC over stdio)
 - [ ] Packaging (`vsce package`)
 - [ ] README e documentação
 - [ ] Publicação no VS Code Marketplace
 
 ---
 
-## 5. Protocolo de Comunicação — Resumo
+## 6. Notas Técnicas
 
-| Camada           | Protocolo            | Transporte    | Direção          |
-| ---------------- | -------------------- | ------------- | ---------------- |
-| Extensão → Core  | ACP JSON-RPC 2.0     | stdio (pipes) | Bidirecional     |
-| Core → Embedding | Gemini Embedding API | HTTPS         | Request/Response |
-| Core → LLM       | Gemini/Claude API    | HTTPS         | Stream/Request   |
-| Core → Vector DB | chromem-go           | Local file    | In-process       |
+### ACP vs MCP — Quando usar cada um
 
-**Nenhuma comunicação de rede entre extensão e core** — tudo local via stdio. O único tráfego remoto é do core para APIs de IA.
+| Protocolo | Use quando...                                                                                    | Vectora é...                      |
+| --------- | ------------------------------------------------------------------------------------------------ | --------------------------------- |
+| **ACP**   | O cliente é uma IDE/editor que quer um **assistente de codificação** com chat, diffs, permissões | **Agent** (ativo, pensa, decide)  |
+| **MCP**   | O cliente é um **agente** (Gemini CLI, Claude Code, Cursor) que quer **ferramentas e contexto**  | **Server** (passivo, expõe tools) |
+
+### Compartilhamento de código
+
+O ACP client (TypeScript) e o MCP server (TypeScript/Go) compartilham:
+
+- **Core logic**: Ambos chamam o mesmo Vectora core binário
+- **Transport**: Ambos usam stdio com JSON-RPC 2.0
+- **Tools**: As mesmas ferramentas (read_file, grep_search, etc.) são expostas em ambos os protocolos
+
+### Vetor de ataque de segurança
+
+- **ACP**: O cliente (VS Code) tem controle total sobre permissões de tool calls
+- **MCP**: O servidor (Vectora) aplica Guardian — bloqueia .env, .key, .db, .exe
+- Ambos: Workspace-scoped — ferramentas operam apenas dentro do Trust Folder

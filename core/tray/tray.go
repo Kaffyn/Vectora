@@ -182,7 +182,7 @@ func onExit() {
 	if ActiveProvider != nil && ActiveProvider.Name() == "gemini" {
 		// Gemini client cleanup if needed
 	}
-	if infra.Logger != nil {
-		infra.Logger.Info("Daemon shutting down...")
+	if infra.Logger() != nil {
+		infra.Logger().Info("Daemon shutting down...")
 	}
 }

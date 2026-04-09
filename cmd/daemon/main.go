@@ -10,12 +10,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Kaffyn/Vectora/core/api/acp"
 	"github.com/Kaffyn/Vectora/core/api/ipc"
 	"github.com/Kaffyn/Vectora/core/db"
 	"github.com/Kaffyn/Vectora/core/infra"
 	"github.com/Kaffyn/Vectora/core/llm"
 	vecos "github.com/Kaffyn/Vectora/core/os"
 	"github.com/Kaffyn/Vectora/core/policies"
+	"github.com/Kaffyn/Vectora/core/tools"
 	"github.com/Kaffyn/Vectora/core/tray"
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
@@ -60,6 +62,29 @@ var stopCmd = &cobra.Command{
 	Long:  "Stop the running Vectora daemon.",
 	Run: func(cmd *cobra.Command, args []string) {
 		runStop()
+	},
+}
+
+var acpCmd = &cobra.Command{
+	Use:   "acp",
+	Short: "Start ACP server over stdio",
+	Long: `Start the Vectora ACP (Agent Client Protocol) server over stdin/stdout.
+This allows code editors (VS Code, JetBrains, Zed) to connect to Vectora
+as an AI coding agent via the ACP protocol.
+
+The server reads JSON-RPC 2.0 messages from stdin and writes responses to stdout.
+All logging goes to stderr to avoid interfering with the protocol.
+
+Usage:
+  vectora acp              # Start ACP server for current directory
+  vectora acp /path/to/proj # Start ACP server for specific workspace
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		workspace := "."
+		if len(args) > 0 {
+			workspace = args[0]
+		}
+		return runAcp(workspace)
 	},
 }
 
@@ -119,6 +144,7 @@ func init() {
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(stopCmd)
 	rootCmd.AddCommand(embedCmd)
+	rootCmd.AddCommand(acpCmd)
 
 	daemonCmd.Flags().IntVar(&daemonPort, "port", 42780, "Custom daemon port")
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
@@ -441,10 +467,10 @@ func runDaemon() {
 	appDataDir, _ := systemManager.GetAppDataDir()
 	envPath := filepath.Join(appDataDir, ".env")
 	if err := godotenv.Load(envPath); err != nil {
-		infra.Logger.Warn(fmt.Sprintf("Global config (.env) not found at: %s. Using defaults.", envPath))
+		infra.Logger().Warn(fmt.Sprintf("Global config (.env) not found at: %s. Using defaults.", envPath))
 	}
 
-	infra.Logger.Info("Starting Vectora Daemon...")
+	infra.Logger().Info("Starting Vectora Daemon...")
 
 	kvStore, _ := db.NewKVStore()
 	vecStore, _ := db.NewVectorStore()
@@ -484,4 +510,212 @@ func runStop() {
 		exec.Command("taskkill", "/F", "/IM", "vectora.exe").Run()
 		fmt.Println("Vectora terminated.")
 	}
+}
+
+// ---- ACP Server ----
+
+// acpEngine implements acp.Engine using Vectora's core components.
+type acpEngine struct {
+	provider llm.Provider
+	vecStore *db.ChromemStore
+	kvStore  *db.BBoltStore
+	tools    *tools.Registry
+	guardian *policies.Guardian
+	cwd      string
+}
+
+func (e *acpEngine) Embed(ctx context.Context, text string) ([]float32, error) {
+	if e.provider == nil {
+		return nil, fmt.Errorf("no LLM provider configured")
+	}
+	return e.provider.Embed(ctx, text)
+}
+
+func (e *acpEngine) Query(ctx context.Context, query string, workspaceID string) (string, error) {
+	if e.provider == nil {
+		return fmt.Sprintf("No LLM provider configured. Query: %s", query), nil
+	}
+
+	// RAG: embed query, search vectors, build context, complete
+	vector, err := e.provider.Embed(ctx, query)
+	if err != nil {
+		return e.completeWithProvider(ctx, query, "")
+	}
+
+	chunks, err := e.vecStore.Query(ctx, "ws_"+workspaceID, vector, 5)
+	if err != nil {
+		chunks = []db.ScoredChunk{}
+	}
+
+	contextText := ""
+	for _, chunk := range chunks {
+		if filename, ok := chunk.Metadata["filename"]; ok {
+			contextText += "File: " + filename + "\n"
+		}
+		contextText += chunk.Content + "\n---\n"
+	}
+
+	return e.completeWithProvider(ctx, query, contextText)
+}
+
+func (e *acpEngine) completeWithProvider(ctx context.Context, query string, contextText string) (string, error) {
+	systemPrompt := "You are Vectora, an AI coding assistant."
+	if contextText != "" {
+		systemPrompt += "\n\nUse the following context as your source of truth:\n" + contextText
+	}
+
+	messages := []llm.Message{
+		{Role: llm.RoleSystem, Content: systemPrompt},
+		{Role: llm.RoleUser, Content: query},
+	}
+
+	resp, err := e.provider.Complete(ctx, llm.CompletionRequest{
+		Messages:    messages,
+		MaxTokens:   2000,
+		Temperature: 0.2,
+	})
+	if err != nil {
+		return "", fmt.Errorf("LLM error: %w", err)
+	}
+
+	return resp.Content, nil
+}
+
+func (e *acpEngine) ExecuteTool(ctx context.Context, name string, args map[string]any) (acp.ToolResult, error) {
+	tool, ok := e.tools.GetTool(name)
+	if !ok {
+		return acp.ToolResult{Output: fmt.Sprintf("Tool '%s' not found", name), IsError: true}, nil
+	}
+
+	argsJSON, _ := json.Marshal(args)
+	result, err := tool.Execute(ctx, argsJSON)
+	if err != nil {
+		return acp.ToolResult{Output: err.Error(), IsError: true}, nil
+	}
+
+	return acp.ToolResult{Output: result.Output, IsError: result.IsError}, nil
+}
+
+func (e *acpEngine) ReadFile(ctx context.Context, path string) (string, error) {
+	tool, _ := e.tools.GetTool("read_file")
+	if tool == nil {
+		return "", fmt.Errorf("read_file tool not available")
+	}
+
+	argsJSON, _ := json.Marshal(map[string]string{"path": path})
+	result, err := tool.Execute(ctx, argsJSON)
+	if err != nil {
+		return "", err
+	}
+	if result.IsError {
+		return "", fmt.Errorf(result.Output)
+	}
+	return result.Output, nil
+}
+
+func (e *acpEngine) WriteFile(ctx context.Context, path, content string) error {
+	tool, _ := e.tools.GetTool("write_file")
+	if tool == nil {
+		return fmt.Errorf("write_file tool not available")
+	}
+
+	argsJSON, _ := json.Marshal(map[string]string{"path": path, "content": content})
+	result, err := tool.Execute(ctx, argsJSON)
+	if err != nil {
+		return err
+	}
+	if result.IsError {
+		return fmt.Errorf(result.Output)
+	}
+	return nil
+}
+
+func (e *acpEngine) RunCommand(ctx context.Context, cwd, command string) (string, error) {
+	tool, _ := e.tools.GetTool("run_shell_command")
+	if tool == nil {
+		return "", fmt.Errorf("run_shell_command tool not available")
+	}
+
+	argsJSON, _ := json.Marshal(map[string]string{"command": command})
+	result, err := tool.Execute(ctx, argsJSON)
+	if err != nil {
+		return "", err
+	}
+	if result.IsError {
+		return result.Output, fmt.Errorf("command failed")
+	}
+	return result.Output, nil
+}
+
+func runAcp(workspace string) error {
+	ctx := context.Background()
+
+	absPath, err := filepath.Abs(workspace)
+	if err != nil {
+		return fmt.Errorf("invalid workspace path: %w", err)
+	}
+
+	// Log to stderr so it doesn't interfere with stdio protocol
+	fmt.Fprintln(os.Stderr, "🚀 Vectora ACP Server starting...")
+	fmt.Fprintln(os.Stderr, "📁 Workspace:", absPath)
+
+	// Load config
+	cfg := infra.LoadConfig()
+	if cfg.GeminiAPIKey == "" && cfg.ClaudeAPIKey == "" {
+		fmt.Fprintln(os.Stderr, "⚠️  No API key configured. Set GEMINI_API_KEY or CLAUDE_API_KEY in .env")
+	}
+
+	// Initialize stores
+	kvStore, err := db.NewKVStore()
+	if err != nil {
+		return fmt.Errorf("failed to init KV store: %w", err)
+	}
+	defer kvStore.Close()
+
+	vecStore, err := db.NewVectorStore()
+	if err != nil {
+		return fmt.Errorf("failed to init vector store: %w", err)
+	}
+
+	// Initialize provider (prefer Gemini, fallback to Claude)
+	var provider llm.Provider
+	if cfg.GeminiAPIKey != "" {
+		provider, err = llm.NewGeminiProvider(ctx, cfg.GeminiAPIKey)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "⚠️  Failed to init Gemini: %v\n", err)
+		}
+	}
+	if provider == nil && cfg.ClaudeAPIKey != "" {
+		provider, err = llm.NewClaudeProvider(ctx, cfg.ClaudeAPIKey)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "⚠️  Failed to init Claude: %v\n", err)
+		}
+	}
+
+	// Initialize tools
+	guardian := policies.NewGuardian(absPath)
+	toolRegistry := tools.NewRegistry(absPath, guardian, kvStore)
+
+	// Create engine
+	engine := &acpEngine{
+		provider: provider,
+		vecStore: vecStore,
+		kvStore:  kvStore,
+		tools:    toolRegistry,
+		guardian: guardian,
+		cwd:      absPath,
+	}
+
+	if provider != nil {
+		fmt.Fprintln(os.Stderr, "🤖 Provider:", provider.Name())
+	} else {
+		fmt.Fprintln(os.Stderr, "⚠️  No LLM provider — will operate in tool-only mode")
+	}
+
+	fmt.Fprintln(os.Stderr, "📡 Listening on stdio (JSON-RPC 2.0)")
+	fmt.Fprintln(os.Stderr, "========================================")
+
+	// Run ACP server
+	server := acp.NewServer(engine)
+	return server.Run(ctx)
 }
