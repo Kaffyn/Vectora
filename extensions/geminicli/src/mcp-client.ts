@@ -66,7 +66,7 @@ export class McpClient {
    * Creates a new session (ACP-specific, wrapped for MCP).
    */
   async newSession(cwd: string): Promise<string> {
-    const result = await this.request('session/new', { cwd });
+    const result = await this.request<{ cwd: string }, { sessionId: string }>('session/new', { cwd });
     this._sessionId = result.sessionId;
     return result.sessionId;
   }

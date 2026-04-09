@@ -1,10 +1,15 @@
 {
-  "name": "vectora-vscode",
+  "name": "@vectora/vscode",
   "displayName": "Vectora AI",
   "description": "Local AI coding assistant — RAG + agentic tools via ACP",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "restricted"
+  },
   "publisher": "kaffyn",
   "license": "MIT",
+  "readme": "README.md",
+  "icon": "media/icon.ico",
   "repository": {
     "type": "git",
     "url": "https://github.com/Kaffyn/Vectora.git"
@@ -12,6 +17,13 @@
   "engines": {
     "vscode": "^1.90.0"
   },
+  "files": [
+    "dist",
+    "media",
+    "README.md",
+    "README.pt.md",
+    "LICENSE"
+  ],
   "categories": [
     "AI",
     "Chat",
@@ -23,30 +35,16 @@
     "coding",
     "rag",
     "agent",
-    "local"
+    "local",
+    "acp"
   ],
   "activationEvents": [
     "onStartupFinished"
   ],
+  "extensionDependencies": [
+    "formulahendry.acp-client"
+  ],
   "contributes": {
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "vectora",
-          "title": "Vectora",
-          "icon": "media/icon.svg"
-        }
-      ]
-    },
-    "views": {
-      "vectora": [
-        {
-          "id": "vectora.chat",
-          "type": "webview",
-          "name": "Chat"
-        }
-      ]
-    },
     "commands": [
       {
         "command": "vectora.newSession",
@@ -92,7 +90,17 @@
           "group": "vectora@2"
         }
       ]
-    }
+    },
+    "acpAgents": [
+      {
+        "id": "vectora",
+        "name": "Vectora",
+        "description": "Local AI coding assistant with RAG and agentic tools",
+        "command": "vectora",
+        "args": ["acp"],
+        "icon": "media/icon.png"
+      }
+    ]
   },
   "main": "./dist/extension.js",
   "scripts": {

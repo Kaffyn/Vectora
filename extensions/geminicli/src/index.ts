@@ -268,7 +268,7 @@ async function cmdCallTool(args: string[]): Promise<void> {
   try {
     const result = await client.callTool(toolName, toolArgs ? { query: toolArgs } : {});
     result.content.forEach((c) => {
-      if (c.type === 'text') process.stdout.write(c.text);
+      if (c.type === 'text' && c.text) process.stdout.write(c.text);
     });
   } catch (err: any) {
     console.error(`Error: ${err.message}`);

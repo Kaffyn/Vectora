@@ -1,12 +1,9 @@
-name: Release
+name: Release Core
 
 on:
   push:
     tags:
       - 'v*'
-    branches:
-      - main
-      - master
   workflow_dispatch:
 
 jobs:
@@ -140,32 +137,13 @@ jobs:
       - name: Create build output directory
         run: mkdir -p bin
 
-      - name: Build all binaries (non-Fyne)
+      - name: Build Vectora Core Daemon
         run: |
-          go build -v -ldflags="-s -w" -o bin/vectora${{ matrix.artifact_suffix }} ./cmd/daemon
-          go build -v -ldflags="-s -w" -o bin/vectora-tui${{ matrix.artifact_suffix }} ./cmd/tui
-          go build -v -ldflags="-s -w" -o bin/mpm${{ matrix.artifact_suffix }} ./cmd/mpm
-          go build -v -ldflags="-s -w" -o bin/lpm${{ matrix.artifact_suffix }} ./cmd/lpm
+          go build -v -ldflags="-s -w" -o bin/vectora-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.artifact_suffix }} ./cmd/daemon
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
           CGO_ENABLED: 0
-
-      - name: Build vectora-setup (Fyne GUI)
-        run: |
-          go build -v -ldflags="-s -w" -o bin/vectora-setup${{ matrix.artifact_suffix }} ./cmd/setup
-        env:
-          GOOS: ${{ matrix.os }}
-          GOARCH: ${{ matrix.arch }}
-          CGO_ENABLED: 1
-
-      - name: Build vectora-desktop (Fyne GUI)
-        run: |
-          go build -v -ldflags="-s -w" -o bin/vectora-desktop${{ matrix.artifact_suffix }} ./cmd/desktop
-        env:
-          GOOS: ${{ matrix.os }}
-          GOARCH: ${{ matrix.arch }}
-          CGO_ENABLED: 1
 
       - name: Create checksums (Linux/macOS)
         if: runner.os != 'Windows'
@@ -189,35 +167,9 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.version }}
           files: |
-            bin/vectora${{ matrix.artifact_suffix }}
-            bin/vectora-tui${{ matrix.artifact_suffix }}
-            bin/vectora-setup${{ matrix.artifact_suffix }}
-            bin/vectora-desktop${{ matrix.artifact_suffix }}
-            bin/mpm${{ matrix.artifact_suffix }}
-            bin/lpm${{ matrix.artifact_suffix }}
+            bin/vectora-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.artifact_suffix }}
             checksums-${{ matrix.os }}-${{ matrix.arch }}.txt
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  release-summary:
-    name: Release Summary
-    runs-on: ubuntu-latest
-    needs: build-and-upload
-    if: always()
-
-    steps:
-      - name: Check release status
-        run: |
-          if [ "${{ needs.build-and-upload.result }}" == "failure" ]; then
-            echo "❌ Release build failed on one or more platforms"
-            exit 1
-          fi
-          echo "✅ Release completed successfully"
-          echo "🎉 All binaries are now available for download"
-
-      - name: Summary
-        run: |
-          echo "📦 Release: ${{ github.ref }}"
-          echo "🔗 Release page: https://github.com/Kaffyn/Vectora/releases/${{ github.ref }}"

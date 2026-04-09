@@ -250,6 +250,18 @@ type FSWriteRequest struct {
 	Content   string `json:"content"`
 }
 
+type FSCompletionRequest struct {
+	SessionID string `json:"sessionId"`
+	Path      string `json:"path"`
+	Prefix    string `json:"prefix"`
+	Suffix    string `json:"suffix,omitempty"`
+	Language  string `json:"language,omitempty"`
+}
+
+type FSCompletionResponse struct {
+	Content string `json:"content"`
+}
+
 // ---- Terminal ----
 
 type TerminalCreateRequest struct {
@@ -309,6 +321,8 @@ type Engine interface {
 	ReadFile(ctx context.Context, path string) (string, error)
 	// WriteFile writes content to a file at the given path.
 	WriteFile(ctx context.Context, path, content string) error
+	// CompleteCode suggests code based on prefix and suffix.
+	CompleteCode(ctx context.Context, path, prefix, suffix, language string) (string, error)
 	// RunCommand executes a shell command.
 	RunCommand(ctx context.Context, cwd, command string) (string, error)
 }

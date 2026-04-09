@@ -1,30 +1,25 @@
 import * as vscode from 'vscode';
 import { ACPClient } from './acp-client';
-import { SessionUpdate, ToolCallStatus } from './types/acp';
+import { SessionUpdate } from './types/acp';
 
 /**
  * ChatPanel manages the WebView sidebar for Vectora chat.
- * It renders the chat UI, handles user input, and displays
- * streaming responses and tool call updates from the ACP agent.
+ * Renders Markdown via marked.js with CSP protection.
  */
 export class ChatPanel {
   private panel: vscode.WebviewPanel | undefined;
-  private messageBuffer = '';
   private isStreaming = false;
+  private currentAgentMessageElementId: string | null = null;
 
   constructor(
     private client: ACPClient,
     private context: vscode.ExtensionContext
   ) {
-    // Wire up ACP client events
-    this.client.onSessionUpdate(this.handleSessionUpdate, this);
-    this.client.onPermissionRequest(this.handlePermissionRequest, this);
+    this.client.onSessionUpdate.event(this.handleSessionUpdate, this);
+    this.client.onPermissionRequest.event(this.handlePermissionRequest, this);
   }
 
-  /**
-   * Shows or reveals the chat panel.
-   */
-  async show(): Promise<void> {
+  public async show(): Promise<void> {
     if (this.panel) {
       this.panel.reveal(vscode.ViewColumn.One);
       return;
@@ -32,7 +27,7 @@ export class ChatPanel {
 
     this.panel = vscode.window.createWebviewPanel(
       'vectoraChat',
-      'Vectora Chat',
+      'Vectora AI',
       vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -42,130 +37,113 @@ export class ChatPanel {
     );
 
     this.panel.webview.html = this.getHtml();
-    this.panel.onDidDispose(() => {
-      this.panel = undefined;
-    });
+    this.panel.onDidDispose(() => { this.panel = undefined; });
 
-    // Handle messages from the webview
     this.panel.webview.onDidReceiveMessage(async (msg) => {
       switch (msg.type) {
         case 'send':
-          await this.sendMessage(msg.text);
+          await this.sendMessageInternal(msg.text);
           break;
         case 'cancel':
           if (this.client.sessionId) {
             this.client.cancel(this.client.sessionId);
-            this.panel?.webview.postMessage({ type: 'done', stopReason: 'cancelled' });
-            this.isStreaming = false;
-            this.messageBuffer = '';
+            this.updateUIState(false);
+            this.panel?.webview.postMessage({ type: 'stream_end', stopReason: 'cancelled' });
           }
-          break;
-        case 'permission':
-          // Forward permission decision back to ACP client
-          // This would need a response mechanism in the ACP protocol
           break;
       }
     });
   }
 
   /**
-   * Sends a user message to the agent.
+   * Public method to send a message programmatically (e.g., from commands).
    */
-  private async sendMessage(text: string): Promise<void> {
+  public async sendMessage(text: string): Promise<void> {
+    await this.show();
+    setTimeout(() => {
+      this.panel?.webview.postMessage({ type: 'inject_message', text });
+    }, 100);
+  }
+
+  public async clearChat(): Promise<void> {
+    this.panel?.webview.postMessage({ type: 'clear_chat' });
+  }
+
+  private async sendMessageInternal(text: string): Promise<void> {
+    if (!text.trim()) return;
+
     if (!this.client.sessionId) {
       const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       if (!workspacePath) {
-        vscode.window.showErrorMessage('No workspace folder open. Vectora requires a workspace.');
+        vscode.window.showErrorMessage('Vectora: No workspace folder open.');
         return;
       }
       await this.client.newSession(workspacePath);
     }
 
-    // Show user message in UI
+    this.updateUIState(true);
     this.panel?.webview.postMessage({ type: 'user_message', text });
-
-    // Clear buffer and start streaming
-    this.messageBuffer = '';
-    this.isStreaming = true;
-    this.panel?.webview.postMessage({ type: 'stream_start' });
 
     try {
       const result = await this.client.prompt(this.client.sessionId!, text);
-      this.isStreaming = false;
-      this.panel?.webview.postMessage({ type: 'done', stopReason: result.stopReason });
+      this.updateUIState(false);
+      this.panel?.webview.postMessage({ type: 'stream_end', stopReason: result.stopReason });
     } catch (err: any) {
-      this.isStreaming = false;
+      this.updateUIState(false);
       this.panel?.webview.postMessage({ type: 'error', message: err.message });
     }
   }
 
-  /**
-   * Handles session update events from the ACP agent.
-   */
+  private updateUIState(streaming: boolean): void {
+    this.isStreaming = streaming;
+    this.panel?.webview.postMessage({ type: 'set_ui_state', isStreaming: streaming });
+  }
+
   private handleSessionUpdate(update: SessionUpdate): void {
-    if (!this.panel || !this.isStreaming) return;
-
+    if (!this.panel) return;
     const u = update.update;
+
     switch (u.sessionUpdate) {
-      case 'agent_message_chunk':
-        // Stream text chunks to the UI
+      case 'agent_message_chunk': {
         const text = u.content?.[0]?.content?.text || '';
-        if (text) {
-          this.messageBuffer += text;
-          this.panel.webview.postMessage({ type: 'agent_chunk', text });
-        }
+        if (text) this.panel.webview.postMessage({ type: 'agent_chunk', text });
         break;
-
+      }
       case 'tool_call':
-        // Show tool call pending notification
-        this.panel.webview.postMessage({
-          type: 'tool_call',
-          toolCallId: u.toolCallId,
-          title: u.title || u.kind || 'Tool',
-          status: u.status,
-        });
+        this.panel.webview.postMessage({ type: 'tool_call', toolCallId: u.toolCallId, title: u.title || u.kind || 'Tool', status: u.status });
         break;
-
       case 'tool_call_update':
-        // Update tool call status
-        this.panel.webview.postMessage({
-          type: 'tool_call_update',
-          toolCallId: u.toolCallId,
-          status: u.status,
-          content: u.content,
-        });
+        this.panel.webview.postMessage({ type: 'tool_call_update', toolCallId: u.toolCallId, status: u.status });
         break;
-
       case 'plan':
-        // Show plan entries
-        this.panel.webview.postMessage({
-          type: 'plan',
-          entries: u.entries || [],
-        });
+        this.panel.webview.postMessage({ type: 'plan', entries: u.entries || [] });
         break;
     }
   }
 
-  /**
-   * Handles permission request events from the ACP agent.
-   */
-  private handlePermissionRequest(req: { toolCall: { toolCallId: string }; options: any[] }): void {
+  private handlePermissionRequest(req: any): void {
     if (!this.panel) return;
-    this.panel.webview.postMessage({
-      type: 'permission_request',
-      toolCallId: req.toolCall.toolCallId,
-      options: req.options,
-    });
+    vscode.window.showInformationMessage(
+      `Vectora wants to execute: ${req.toolCall?.kind || 'unknown'}`,
+      { modal: true },
+      'Allow', 'Deny'
+    );
   }
 
-  /**
-   * Generates the HTML for the chat WebView.
-   */
+  private getNonce(): string {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) text += possible.charAt(Math.floor(Math.random() * possible.length));
+    return text;
+  }
+
   private getHtml(): string {
+    const nonce = this.getNonce();
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}' https://cdn.jsdelivr.net;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
@@ -173,17 +151,14 @@ export class ChatPanel {
       --fg: var(--vscode-editor-foreground);
       --input-bg: var(--vscode-input-background);
       --input-fg: var(--vscode-input-foreground);
-      --input-border: var(--vscode-input-border);
-      --focus: var(--vscode-focusBorder);
-      --user-bg: var(--vscode-input-background);
-      --agent-bg: var(--vscode-editor-inactiveSelectionBackground);
-      --tool-bg: var(--vscode-textBlockQuote-background);
-      --plan-bg: var(--vscode-textLink-foreground);
+      --border: var(--vscode-input-border);
+      --accent: var(--vscode-button-background);
+      --accent-fg: var(--vscode-button-foreground);
+      --code-bg: var(--vscode-textCodeBlock-background);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: var(--vscode-font-family);
-      font-size: var(--vscode-font-size);
       color: var(--fg);
       background: var(--bg);
       display: flex;
@@ -191,209 +166,189 @@ export class ChatPanel {
       height: 100vh;
       overflow: hidden;
     }
-    #chat {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-      padding-bottom: 60px;
-    }
-    .message {
-      margin: 4px 0;
-      padding: 6px 10px;
-      border-radius: 6px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
+    #chat-container { flex: 1; overflow-y: auto; padding: 10px; scroll-behavior: smooth; }
+    .message-row { margin-bottom: 12px; display: flex; flex-direction: column; }
+    .message-row.user { align-items: flex-end; }
+    .message-bubble {
+      max-width: 90%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
       line-height: 1.5;
+      word-wrap: break-word;
     }
-    .user {
-      background: var(--user-bg);
-      text-align: right;
-      margin-left: 20%;
+    .user .message-bubble {
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--input-fg);
     }
-    .agent {
-      background: var(--agent-bg);
-      margin-right: 10%;
-    }
-    .tool {
-      font-size: 0.85em;
-      opacity: 0.75;
-      background: var(--tool-bg);
-      border-left: 3px solid var(--focus);
-    }
-    .plan {
-      border-left: 2px solid var(--focus);
-      padding: 4px 8px;
-      margin: 4px 0;
-      font-size: 0.9em;
-    }
-    .plan-entry { padding: 2px 0; }
-    .status-done { opacity: 0.5; font-size: 0.8em; text-align: center; padding: 4px; }
-    .status-error { color: var(--vscode-errorForeground); font-size: 0.9em; padding: 4px 8px; background: var(--vscode-inputValidation-errorBackground); }
-    #input-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+    .agent .message-bubble { background: transparent; padding-left: 0; }
+    .markdown-body { font-size: 13px; }
+    .markdown-body pre {
+      background: var(--code-bg);
       padding: 8px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 4px 0;
+    }
+    .markdown-body code {
+      font-family: var(--vscode-editor-font-family);
+      font-size: var(--vscode-editor-font-size);
+    }
+    .tool-call {
+      font-size: 12px;
+      background: var(--code-bg);
+      border-left: 3px solid var(--accent);
+      padding: 6px;
+      margin: 4px 0;
+      opacity: 0.8;
+    }
+    #input-area {
+      padding: 10px;
+      border-top: 1px solid var(--border);
       background: var(--bg);
-      border-top: 1px solid var(--input-border);
       display: flex;
       gap: 8px;
     }
-    #input {
+    textarea {
       flex: 1;
-      padding: 6px 10px;
-      border: 1px solid var(--input-border);
-      border-radius: 4px;
       background: var(--input-bg);
       color: var(--input-fg);
-      font-family: inherit;
-      font-size: inherit;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 8px;
       resize: none;
+      font-family: inherit;
+      min-height: 40px;
+      max-height: 150px;
     }
-    #input:focus { outline: 1px solid var(--focus); }
-    #send-btn {
-      padding: 6px 16px;
+    textarea:focus { outline: 1px solid var(--accent); }
+    textarea:disabled { opacity: 0.5; }
+    button {
+      background: var(--accent);
+      color: var(--accent-fg);
       border: none;
       border-radius: 4px;
-      background: var(--focus);
-      color: var(--vscode-button-foreground);
+      padding: 0 16px;
       cursor: pointer;
       font-weight: bold;
     }
-    #send-btn:hover { opacity: 0.9; }
-    #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
     #cancel-btn {
-      padding: 6px 12px;
-      border: 1px solid var(--vscode-errorForeground);
-      border-radius: 4px;
       background: transparent;
+      border: 1px solid var(--vscode-errorForeground);
       color: var(--vscode-errorForeground);
-      cursor: pointer;
+      display: none;
     }
-    .thinking { display: inline-block; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
   </style>
 </head>
 <body>
-  <div id="chat"></div>
-  <div id="input-bar">
-    <textarea id="input" rows="1" placeholder="Ask Vectora..." onkeydown="handleKey(event)"></textarea>
-    <button id="send-btn" onclick="send()">Send</button>
-    <button id="cancel-btn" onclick="cancel()" style="display:none;">Cancel</button>
+  <div id="chat-container"></div>
+  <div id="input-area">
+    <textarea id="user-input" placeholder="Ask Vectora..." rows="1"></textarea>
+    <button id="send-btn">Send</button>
+    <button id="cancel-btn">Stop</button>
   </div>
-  <script>
-    const chat = document.getElementById('chat');
-    const input = document.getElementById('input');
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script nonce="${nonce}">
+    const vscode = acquireVsCodeApi();
+    const chat = document.getElementById('chat-container');
+    const input = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
     const cancelBtn = document.getElementById('cancel-btn');
-    const vscode = acquireVsCodeApi();
-    let agentMessageEl = null;
+    let agentBubble = null;
 
-    function handleKey(e) {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        send();
+    sendBtn.addEventListener('click', () => { send(input.value.trim()); input.value = ''; input.style.height = 'auto'; });
+    cancelBtn.addEventListener('click', () => { vscode.postMessage({ type: 'cancel' }); });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input.value.trim()); input.value = ''; input.style.height = 'auto'; } });
+    input.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 150) + 'px'; });
+
+    function send(text) { if (!text) return; vscode.postMessage({ type: 'send', text }); }
+    function scrollBottom() { chat.scrollTop = chat.scrollHeight; }
+
+    function createBubble(type, content) {
+      const row = document.createElement('div');
+      row.className = 'message-row ' + type;
+      const bubble = document.createElement('div');
+      bubble.className = 'message-bubble ' + type;
+      if (type === 'agent') {
+        const md = document.createElement('div');
+        md.className = 'markdown-body';
+        md.innerHTML = content || '';
+        bubble.appendChild(md);
+        agentBubble = md;
+      } else {
+        bubble.textContent = content || '';
       }
-    }
-
-    function send() {
-      const text = input.value.trim();
-      if (!text) return;
-      vscode.postMessage({ type: 'send', text });
-      input.value = '';
-      input.style.height = 'auto';
-    }
-
-    function cancel() {
-      vscode.postMessage({ type: 'cancel' });
-      cancelBtn.style.display = 'none';
-      sendBtn.disabled = false;
+      row.appendChild(bubble);
+      chat.appendChild(row);
+      scrollBottom();
+      return bubble;
     }
 
     window.addEventListener('message', (e) => {
       const d = e.data;
       switch (d.type) {
+        case 'inject_message':
+          input.value = d.text;
+          send(d.text);
+          break;
+        case 'clear_chat':
+          chat.innerHTML = '';
+          agentBubble = null;
+          break;
         case 'user_message':
-          if (agentMessageEl) agentMessageEl = null;
-          appendMessage(d.text, 'user');
+          agentBubble = null;
+          createBubble('user', d.text);
           break;
         case 'stream_start':
-          agentMessageEl = appendMessage('', 'agent');
-          cancelBtn.style.display = 'inline-block';
-          sendBtn.disabled = true;
+          createBubble('agent', '');
           break;
         case 'agent_chunk':
-          if (!agentMessageEl) agentMessageEl = appendMessage('', 'agent');
-          agentMessageEl.textContent += d.text;
-          scrollToBottom();
+          if (!agentBubble) createBubble('agent', '');
+          const txt = (agentBubble.innerText || '') + d.text;
+          agentBubble.innerHTML = marked.parse(txt);
+          scrollBottom();
           break;
-        case 'done':
-          cancelBtn.style.display = 'none';
-          sendBtn.disabled = false;
-          const statusEl = document.createElement('div');
-          statusEl.className = 'status-done';
-          statusEl.textContent = '— ' + d.stopReason + ' —';
-          chat.appendChild(statusEl);
-          scrollToBottom();
+        case 'stream_end':
+          const st = document.createElement('div');
+          st.style.cssText = 'font-size:10px;opacity:0.5;margin-top:4px;';
+          st.textContent = '— ' + d.stopReason + ' —';
+          if (agentBubble?.parentElement) agentBubble.parentElement.appendChild(st);
+          scrollBottom();
+          break;
+        case 'set_ui_state':
+          sendBtn.style.display = d.isStreaming ? 'none' : 'block';
+          cancelBtn.style.display = d.isStreaming ? 'block' : 'none';
+          input.disabled = d.isStreaming;
+          if (!d.isStreaming) input.focus();
           break;
         case 'error':
-          cancelBtn.style.display = 'none';
-          sendBtn.disabled = false;
-          const errEl = document.createElement('div');
-          errEl.className = 'status-error';
-          errEl.textContent = 'Error: ' + d.message;
-          chat.appendChild(errEl);
-          scrollToBottom();
+          const err = document.createElement('div');
+          err.style.cssText = 'color:var(--vscode-errorForeground);padding:10px;';
+          err.textContent = 'Error: ' + d.message;
+          chat.appendChild(err);
+          scrollBottom();
           break;
         case 'tool_call':
-          const toolEl = document.createElement('div');
-          toolEl.className = 'message tool';
-          toolEl.textContent = '🔧 ' + esc(d.title) + ' (' + d.status + ')';
-          chat.appendChild(toolEl);
-          scrollToBottom();
-          break;
-        case 'tool_call_update':
-          // Could update existing tool call element
+          const tc = document.createElement('div');
+          tc.className = 'tool-call';
+          tc.textContent = '🛠️ ' + (d.title || '') + ' (' + d.status + ')';
+          chat.appendChild(tc);
+          scrollBottom();
           break;
         case 'plan':
-          const planEl = document.createElement('div');
-          planEl.className = 'plan';
-          d.entries.forEach(e => {
-            const entry = document.createElement('div');
-            entry.className = 'plan-entry';
-            entry.textContent = (e.status === 'completed' ? '✅' : '⏳') + ' ' + e.content;
-            planEl.appendChild(entry);
+          const pl = document.createElement('div');
+          pl.style.cssText = 'border-left:2px solid var(--accent);padding:4px 8px;margin:4px 0;font-size:0.9em;';
+          (d.entries || []).forEach(en => {
+            const pe = document.createElement('div');
+            pe.textContent = (en.status === 'completed' ? '✅' : '⏳') + ' ' + en.content;
+            pl.appendChild(pe);
           });
-          chat.appendChild(planEl);
-          scrollToBottom();
+          chat.appendChild(pl);
+          scrollBottom();
           break;
       }
-    });
-
-    function appendMessage(text, cls) {
-      const el = document.createElement('div');
-      el.className = 'message ' + cls;
-      el.textContent = text;
-      chat.appendChild(el);
-      scrollToBottom();
-      return el;
-    }
-
-    function scrollToBottom() {
-      chat.scrollTop = chat.scrollHeight;
-    }
-
-    function esc(t) {
-      const d = document.createElement('div');
-      d.textContent = t || '';
-      return d.innerHTML;
-    }
-
-    // Auto-resize textarea
-    input.addEventListener('input', () => {
-      input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
     });
   </script>
 </body>

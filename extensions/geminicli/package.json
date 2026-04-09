@@ -1,6 +1,6 @@
 {
-  "name": "vectora-geminicli",
-  "version": "0.1.0",
+  "name": "vectora/geminicli",
+  "version": "0.0.1-alpha",
   "description": "Vectora MCP integration for Gemini CLI — enables Gemini CLI to use Vectora as a tool provider",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

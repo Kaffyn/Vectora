@@ -72,6 +72,8 @@ func (s *Server) handleRequest(ctx context.Context, method string, params json.R
 		result, errMsg = s.handleFSRead(ctx, params)
 	case "fs/write_text_file":
 		result, errMsg = s.handleFSWrite(ctx, params)
+	case "fs/completion":
+		result, errMsg = s.handleFSCompletion(ctx, params)
 	default:
 		s.writeError(id, -32601, "Method not found", fmt.Sprintf("Method '%s' is not supported", method))
 		return
@@ -313,6 +315,20 @@ func (s *Server) handleFSWrite(ctx context.Context, params json.RawMessage) (any
 	}
 
 	return nil, ""
+}
+
+func (s *Server) handleFSCompletion(ctx context.Context, params json.RawMessage) (any, string) {
+	var req FSCompletionRequest
+	if err := json.Unmarshal(params, &req); err != nil {
+		return nil, fmt.Sprintf("Invalid fs/completion params: %v", err)
+	}
+
+	suggestion, err := s.engine.CompleteCode(ctx, req.Path, req.Prefix, req.Suffix, req.Language)
+	if err != nil {
+		return nil, fmt.Sprintf("Failed to get code completion: %v", err)
+	}
+
+	return FSCompletionResponse{Content: suggestion}, ""
 }
 
 // ---- Helper Methods ----

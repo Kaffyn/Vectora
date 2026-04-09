@@ -174,3 +174,30 @@ func (e *Engine) StartIndexation(ctx context.Context, rootPath string) error {
 func (e *Engine) GetStatus() string {
 	return e.Status
 }
+
+// CompleteCode suggests code based on prefix and suffix.
+func (e *Engine) CompleteCode(ctx context.Context, path, prefix, suffix, language string) (string, error) {
+	provider := e.LLM.GetDefault()
+	if provider == nil || !provider.IsConfigured() {
+		return "", fmt.Errorf("no LLM provider configured")
+	}
+
+	// Simple FIM (Fill-In-the-Middle) prompt
+	prompt := fmt.Sprintf("Complete the code for the file: %s in language: %s.\n\nPREFIX:\n%s\n\nSUFFIX:\n%s\n\nReturn ONLY the code to be inserted between PREFIX and SUFFIX. Do not include markdown blocks or explanations.", path, language, prefix, suffix)
+
+	messages := []llm.Message{
+		{Role: llm.RoleSystem, Content: "You are an expert software engineer specialized in code completion. Response must contain only the code to be inserted, without any preamble or backticks."},
+		{Role: llm.RoleUser, Content: prompt},
+	}
+
+	resp, err := provider.Complete(ctx, llm.CompletionRequest{
+		Messages:    messages,
+		MaxTokens:   128, // Small for speed
+		Temperature: 0.0, // Stable
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return resp.Content, nil
+}
