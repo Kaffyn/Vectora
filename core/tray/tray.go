@@ -4,9 +4,7 @@ package tray
 
 import (
 	"context"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 
 	"github.com/Kaffyn/Vectora/assets"
 	"github.com/Kaffyn/Vectora/core/i18n"
@@ -18,13 +16,10 @@ import (
 
 var (
 	mStatus *systray.MenuItem
-	mApp    *systray.MenuItem
-	mCli    *systray.MenuItem
 	mProv   *systray.MenuItem
 	mGemini *systray.MenuItem
 	mQwen   *systray.MenuItem
 	mLang   *systray.MenuItem
-	mSet    *systray.MenuItem
 	mQuit   *systray.MenuItem
 
 	mEn *systray.MenuItem
@@ -35,6 +30,9 @@ var (
 	ActiveProvider llm.Provider
 )
 
+// Setup configures and launches the systray.
+// MVP: minimal tray — status, provider switch, language, quit.
+// No Desktop app, no CLI launcher, no settings dialog.
 func Setup() {
 	systray.Run(onReady, onExit)
 }
@@ -42,21 +40,20 @@ func Setup() {
 func onReady() {
 	systray.SetIcon(assets.IconData)
 	systray.SetTitle("Vectora")
-	systray.SetTooltip("Vectora - Agentic System")
+	systray.SetTooltip("Vectora - Local AI Assistant (MVP)")
 
+	// Status (disabled, informational only)
 	mStatus = systray.AddMenuItem("", "")
 	mStatus.Disable()
 	systray.AddSeparator()
 
-	mApp = systray.AddMenuItem("", "")
-	mCli = systray.AddMenuItem("", "")
-	systray.AddSeparator()
-
+	// AI Provider selection
 	mProv = systray.AddMenuItem("", "")
 	mGemini = mProv.AddSubMenuItemCheckbox("", "", false)
 	mQwen = mProv.AddSubMenuItemCheckbox("", "", false)
 	systray.AddSeparator()
 
+	// Language selection
 	mLang = systray.AddMenuItem("", "")
 	mEn = mLang.AddSubMenuItemCheckbox("English", "", false)
 	mPt = mLang.AddSubMenuItemCheckbox("Português", "", false)
@@ -75,39 +72,33 @@ func onReady() {
 	}
 
 	systray.AddSeparator()
-	mSet = systray.AddMenuItem("", "")
 	mQuit = systray.AddMenuItem("", "")
 
 	updateLabels()
 
-	// Initial config check
+	// Initial config check for default provider
 	cfg := infra.LoadConfig()
 	if cfg.GeminiAPIKey != "" {
 		mGemini.Check()
-		go switchProvider("gemini", cfg.GeminiAPIKey)
+		setProvider("gemini", cfg.GeminiAPIKey)
 	} else {
 		mQwen.Check()
-		go switchProvider("qwen", "")
+		setProvider("qwen", "")
 	}
 
+	// Event loop
 	go func() {
 		for {
 			select {
-			case <-mApp.ClickedCh:
-				if infra.Logger != nil {
-					infra.Logger.Info("Open Vectora Desktop Application")
-				}
-			case <-mCli.ClickedCh:
-				openTerminal()
 			case <-mGemini.ClickedCh:
 				cfg := infra.LoadConfig()
 				mGemini.Check()
 				mQwen.Uncheck()
-				switchProvider("gemini", cfg.GeminiAPIKey)
+				setProvider("gemini", cfg.GeminiAPIKey)
 			case <-mQwen.ClickedCh:
 				mQwen.Check()
 				mGemini.Uncheck()
-				switchProvider("qwen", "")
+				setProvider("qwen", "")
 			case <-mEn.ClickedCh:
 				mEn.Check()
 				mPt.Uncheck()
@@ -136,10 +127,6 @@ func onReady() {
 				mEs.Uncheck()
 				i18n.SetLanguage("fr")
 				updateLabels()
-			case <-mSet.ClickedCh:
-				if infra.Logger != nil {
-					infra.Logger.Info("Open Settings")
-				}
 			case <-mQuit.ClickedCh:
 				systray.Quit()
 			}
@@ -147,7 +134,7 @@ func onReady() {
 	}()
 }
 
-func switchProvider(id, secret string) {
+func setProvider(id, secret string) {
 	if ActiveProvider != nil && ActiveProvider.Name() == "qwen" {
 		if qProv, ok := ActiveProvider.(*llm.QwenProvider); ok {
 			qProv.Shutdown()
@@ -155,20 +142,20 @@ func switchProvider(id, secret string) {
 	}
 
 	if id == "gemini" {
-		infra.Logger.Info("Initializing Gemini provider...")
 		ctx := context.Background()
 		prov, err := llm.NewGeminiProvider(ctx, secret)
 		if err != nil {
-			infra.NotifyOS("Vectora AI Setup", "Alert: Verify Google API Key Configuration.")
+			infra.NotifyOS("Vectora", "Gemini API key invalid or missing.")
 			return
 		}
 		if secret != "" {
 			infra.SaveConfig(&infra.Config{GeminiAPIKey: secret})
 		}
 		ActiveProvider = prov
-		infra.NotifyOS("Vectora Engine", "Gemini connected.")
+		infra.NotifyOS("Vectora", "Gemini provider activated.")
 	} else if id == "qwen" {
-		infra.Logger.Info("Starting Qwen local engine...")
+		// Qwen local requires llama.cpp binary + GGUF model
+		// In MVP, this is optional — user must have llama-server + qwen.gguf in AppData
 		osMgr, _ := vecos.NewManager()
 		base, _ := osMgr.GetAppDataDir()
 		binPath := filepath.Join(base, "llama-server")
@@ -177,36 +164,21 @@ func switchProvider(id, secret string) {
 		ctx := context.Background()
 		prov, err := llm.NewQwenProvider(ctx, binPath, modelPath)
 		if err != nil {
-			msg := "Llama.cpp unavailable or GGUF not found in AppData."
-			infra.Logger.Warn(msg, "err", err)
-			infra.NotifyOS("Local Failure", msg)
+			infra.NotifyOS("Vectora", "Qwen local: llama.cpp or model not found in AppData.")
 			return
 		}
 		ActiveProvider = prov
-		infra.NotifyOS("Vectora Engine", "Qwen GGUF activated.")
+		infra.NotifyOS("Vectora", "Qwen local provider activated.")
 	}
 }
 
 func updateLabels() {
 	mStatus.SetTitle(i18n.T("tray_status"))
-	mApp.SetTitle(i18n.T("tray_open_app"))
-	mCli.SetTitle(i18n.T("tray_open_cli"))
 	mProv.SetTitle(i18n.T("tray_provider"))
 	mGemini.SetTitle(i18n.T("tray_prov_gemini"))
 	mQwen.SetTitle(i18n.T("tray_prov_qwen"))
 	mLang.SetTitle(i18n.T("tray_language"))
-	mSet.SetTitle(i18n.T("tray_settings"))
 	mQuit.SetTitle(i18n.T("tray_quit"))
-}
-
-func openTerminal() {
-	var cmd *exec.Cmd
-	if runtime.GOOS == "windows" {
-		cmd = exec.Command("cmd", "/c", "start", "cmd", "/k", "vectora")
-	}
-	if cmd != nil {
-		cmd.Start()
-	}
 }
 
 func onExit() {
