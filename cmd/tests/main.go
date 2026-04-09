@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Kaffyn/Vectora/core/api/ipc"
 	"github.com/Kaffyn/Vectora/core/db"
 	"github.com/Kaffyn/Vectora/core/engine"
 	"github.com/Kaffyn/Vectora/core/i18n"
 	"github.com/Kaffyn/Vectora/core/ingestion"
-	"github.com/Kaffyn/Vectora/core/ipc"
 	"github.com/Kaffyn/Vectora/core/llm"
 	vecos "github.com/Kaffyn/Vectora/core/os"
 	"github.com/Kaffyn/Vectora/core/policies"

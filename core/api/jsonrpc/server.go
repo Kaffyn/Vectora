@@ -37,9 +37,9 @@ func (s *RPCService) ToolsCall(req handlers.ToolCallRequest, resp *handlers.Tool
 	return nil
 }
 
-// StartStdioServer is a stub - use core/ipc/ for production MCP.
+// StartStdioServer is a stub - use core/api/ipc/ for production MCP.
 func StartStdioServer(engine *engine.Engine) {
-	fmt.Println("JSON-RPC stdio server not implemented - use core/ipc/ instead")
+	fmt.Println("JSON-RPC stdio server not implemented - use core/api/ipc/ instead")
 }
 
 // StartTCPServer starts a TCP-based JSON-RPC server for debugging.
