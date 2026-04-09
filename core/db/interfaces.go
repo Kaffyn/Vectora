@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 )
 
 // Chunk represents an enriched and indexable text fragment with its metadata.
@@ -16,6 +18,21 @@ type Chunk struct {
 type ScoredChunk struct {
 	Chunk
 	Score float32
+}
+
+// FileIndexEntry mapeia um arquivo físico para seus vetores no Chromem.
+type FileIndexEntry struct {
+	AbsolutePath string   `json:"absolute_path"`
+	ContentHash  string   `json:"content_hash"`
+	ChunkIDs     []string `json:"chunk_ids"`
+	SizeBytes    int64    `json:"size_bytes"`
+}
+
+// CalculateHash gera SHA-256 de um conteúdo.
+func CalculateHash(content string) string {
+	h := sha256.New()
+	h.Write([]byte(content))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // VectorStore provides an abstraction for the Vector Database (Chromem-go).
