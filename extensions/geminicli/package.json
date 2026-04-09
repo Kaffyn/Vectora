@@ -1,0 +1,25 @@
+{
+  "name": "vectora-geminicli",
+  "version": "0.1.0",
+  "description": "Vectora MCP integration for Gemini CLI — enables Gemini CLI to use Vectora as a tool provider",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "vectora-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kaffyn/Vectora.git"
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "name": "vectora-vscode",
+  "displayName": "Vectora AI",
+  "description": "Local AI coding assistant — RAG + agentic tools via ACP",
+  "version": "0.1.0",
+  "publisher": "kaffyn",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kaffyn/Vectora.git"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Programming Languages"
+  ],
+  "keywords": [
+    "ai",
+    "assistant",
+    "coding",
+    "rag",
+    "agent",
+    "local"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vectora",
+          "title": "Vectora",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "vectora": [
+        {
+          "id": "vectora.chat",
+          "type": "webview",
+          "name": "Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "vectora.newSession",
+        "title": "Vectora: New Session",
+        "icon": "$(add)"
+      },
+      {
+        "command": "vectora.explainCode",
+        "title": "Vectora: Explain Code"
+      },
+      {
+        "command": "vectora.refactorCode",
+        "title": "Vectora: Refactor Code"
+      }
+    ],
+    "configuration": {
+      "title": "Vectora",
+      "properties": {
+        "vectora.corePath": {
+          "type": "string",
+          "default": "vectora",
+          "description": "Path to the Vectora core binary. Use 'vectora' if it's in your PATH."
+        },
+        "vectora.workspace": {
+          "type": "string",
+          "description": "Workspace folder for RAG indexing. Defaults to the first workspace folder."
+        },
+        "vectora.streaming": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable streaming responses from the AI agent."
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "vectora.explainCode",
+          "group": "vectora@1"
+        },
+        {
+          "command": "vectora.refactorCode",
+          "group": "vectora@2"
+        }
+      ]
+    }
+  },
+  "main": "./dist/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "webpack --mode production",
+    "watch": "webpack --mode development --watch",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.0.0",
+    "ts-loader": "^9.5.0",
+    "typescript": "^5.3.0",
+    "webpack": "^5.90.0",
+    "webpack-cli": "^5.1.0",
+    "@vscode/vsce": "^2.24.0"
+  }
+}

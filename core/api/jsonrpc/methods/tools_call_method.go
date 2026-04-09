@@ -1,34 +1,43 @@
+// Package methods provides JSON-RPC method handlers for the Vectora API.
 package methods
 
 import (
-	"context"
 	"encoding/json"
 
+	"github.com/Kaffyn/Vectora/core/api/jsonrpc"
 	"github.com/Kaffyn/Vectora/core/api/shared"
 	"github.com/Kaffyn/Vectora/core/engine"
 )
 
-func HandleToolsCall(ctx context.Context, deps *shared.CoreDeps, params json.RawMessage) (interface{}, error) {
-	var r map[string]interface{}
-	if err := json.Unmarshal(params, &r); err != nil {
-		return nil, err
+// HandleToolsCall processes a tool call via the shared CoreDeps.
+func HandleToolsCall(deps *shared.CoreDeps, params json.RawMessage) (interface{}, error) {
+	var req struct {
+		Name      string                 `json:"name"`
+		Arguments map[string]interface{} `json:"arguments"`
+	}
+	if err := json.Unmarshal(params, &req); err != nil {
+		return nil, jsonrpc.NewError(-32602, "Invalid params")
 	}
 
-	name, _ := r["name"].(string)
-	argsBytes, _ := json.Marshal(r["arguments"])
+	// Convert arguments back to JSON for the engine
+	argsJSON, _ := json.Marshal(req.Arguments)
 
-	req := engine.ToolCallRequest{
-		Name:      name,
-		Arguments: json.RawMessage(argsBytes),
-	}
-
-	result, err := deps.Engine.ExecuteTool(ctx, req)
+	result, err := deps.Engine.ExecuteTool(nil, engine.ToolCallRequest{
+		Name:      req.Name,
+		Arguments: argsJSON,
+	})
 	if err != nil {
-		return nil, err
+		return nil, jsonrpc.NewError(-32000, err.Error())
+	}
+
+	if result.IsError {
+		return nil, jsonrpc.NewErrorWithData(-32001, result.Output, map[string]string{
+			"tool": req.Name,
+		})
 	}
 
 	return map[string]interface{}{
 		"content": []map[string]string{{"type": "text", "text": result.Output}},
-		"isError": result.IsError,
+		"isError": false,
 	}, nil
 }
