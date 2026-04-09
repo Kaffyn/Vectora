@@ -11,6 +11,7 @@ import (
 
 type Config struct {
 	GeminiAPIKey string
+	ClaudeAPIKey string
 }
 
 func LoadConfig() *Config {
@@ -31,10 +32,11 @@ func LoadConfig() *Config {
 
 	return &Config{
 		GeminiAPIKey: os.Getenv("GEMINI_API_KEY"),
+		ClaudeAPIKey: os.Getenv("CLAUDE_API_KEY"),
 	}
 }
 
-// SaveConfig persists sensitive keys like GeminiAPIKey to the user's .env file.
+// SaveConfig persists API keys to the user's .env file.
 func SaveConfig(cfg *Config) error {
 	userProfile, err := os.UserHomeDir()
 	if err != nil {
@@ -42,6 +44,14 @@ func SaveConfig(cfg *Config) error {
 	}
 
 	envPath := filepath.Join(userProfile, ".Vectora", ".env")
-	content := fmt.Sprintf("GEMINI_API_KEY=%s\n", cfg.GeminiAPIKey)
+
+	content := ""
+	if cfg.GeminiAPIKey != "" {
+		content += fmt.Sprintf("GEMINI_API_KEY=%s\n", cfg.GeminiAPIKey)
+	}
+	if cfg.ClaudeAPIKey != "" {
+		content += fmt.Sprintf("CLAUDE_API_KEY=%s\n", cfg.ClaudeAPIKey)
+	}
+
 	return os.WriteFile(envPath, []byte(content), 0600)
 }

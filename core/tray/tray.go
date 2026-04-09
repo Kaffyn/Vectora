@@ -4,13 +4,11 @@ package tray
 
 import (
 	"context"
-	"path/filepath"
 
 	"github.com/Kaffyn/Vectora/assets"
 	"github.com/Kaffyn/Vectora/core/i18n"
 	"github.com/Kaffyn/Vectora/core/infra"
 	"github.com/Kaffyn/Vectora/core/llm"
-	vecos "github.com/Kaffyn/Vectora/core/os"
 	"github.com/getlantern/systray"
 )
 
@@ -18,7 +16,7 @@ var (
 	mStatus *systray.MenuItem
 	mProv   *systray.MenuItem
 	mGemini *systray.MenuItem
-	mQwen   *systray.MenuItem
+	mClaude *systray.MenuItem
 	mLang   *systray.MenuItem
 	mQuit   *systray.MenuItem
 
@@ -31,8 +29,7 @@ var (
 )
 
 // Setup configures and launches the systray.
-// MVP: minimal tray — status, provider switch, language, quit.
-// No Desktop app, no CLI launcher, no settings dialog.
+// MVP: minimal tray — status, provider switch (Gemini/Claude), language, quit.
 func Setup() {
 	systray.Run(onReady, onExit)
 }
@@ -42,15 +39,15 @@ func onReady() {
 	systray.SetTitle("Vectora")
 	systray.SetTooltip("Vectora - Local AI Assistant (MVP)")
 
-	// Status (disabled, informational only)
+	// Status (informational only)
 	mStatus = systray.AddMenuItem("", "")
 	mStatus.Disable()
 	systray.AddSeparator()
 
-	// AI Provider selection
+	// AI Provider selection (Gemini / Claude)
 	mProv = systray.AddMenuItem("", "")
 	mGemini = mProv.AddSubMenuItemCheckbox("", "", false)
-	mQwen = mProv.AddSubMenuItemCheckbox("", "", false)
+	mClaude = mProv.AddSubMenuItemCheckbox("", "", false)
 	systray.AddSeparator()
 
 	// Language selection
@@ -81,9 +78,12 @@ func onReady() {
 	if cfg.GeminiAPIKey != "" {
 		mGemini.Check()
 		setProvider("gemini", cfg.GeminiAPIKey)
+	} else if cfg.ClaudeAPIKey != "" {
+		mClaude.Check()
+		setProvider("claude", cfg.ClaudeAPIKey)
 	} else {
-		mQwen.Check()
-		setProvider("qwen", "")
+		// Default to Gemini — user must configure API key
+		mGemini.Check()
 	}
 
 	// Event loop
@@ -93,12 +93,13 @@ func onReady() {
 			case <-mGemini.ClickedCh:
 				cfg := infra.LoadConfig()
 				mGemini.Check()
-				mQwen.Uncheck()
+				mClaude.Uncheck()
 				setProvider("gemini", cfg.GeminiAPIKey)
-			case <-mQwen.ClickedCh:
-				mQwen.Check()
+			case <-mClaude.ClickedCh:
+				cfg := infra.LoadConfig()
+				mClaude.Check()
 				mGemini.Uncheck()
-				setProvider("qwen", "")
+				setProvider("claude", cfg.ClaudeAPIKey)
 			case <-mEn.ClickedCh:
 				mEn.Check()
 				mPt.Uncheck()
@@ -135,9 +136,10 @@ func onReady() {
 }
 
 func setProvider(id, secret string) {
-	if ActiveProvider != nil && ActiveProvider.Name() == "qwen" {
-		if qProv, ok := ActiveProvider.(*llm.QwenProvider); ok {
-			qProv.Shutdown()
+	// Shutdown previous provider if needed
+	if ActiveProvider != nil && ActiveProvider.Name() == "claude" {
+		if cProv, ok := ActiveProvider.(*llm.ClaudeProvider); ok {
+			cProv.Close()
 		}
 	}
 
@@ -148,27 +150,17 @@ func setProvider(id, secret string) {
 			infra.NotifyOS("Vectora", "Gemini API key invalid or missing.")
 			return
 		}
-		if secret != "" {
-			infra.SaveConfig(&infra.Config{GeminiAPIKey: secret})
-		}
 		ActiveProvider = prov
 		infra.NotifyOS("Vectora", "Gemini provider activated.")
-	} else if id == "qwen" {
-		// Qwen local requires llama.cpp binary + GGUF model
-		// In MVP, this is optional — user must have llama-server + qwen.gguf in AppData
-		osMgr, _ := vecos.NewManager()
-		base, _ := osMgr.GetAppDataDir()
-		binPath := filepath.Join(base, "llama-server")
-		modelPath := filepath.Join(base, "qwen.gguf")
-
+	} else if id == "claude" {
 		ctx := context.Background()
-		prov, err := llm.NewQwenProvider(ctx, binPath, modelPath)
+		prov, err := llm.NewClaudeProvider(ctx, secret)
 		if err != nil {
-			infra.NotifyOS("Vectora", "Qwen local: llama.cpp or model not found in AppData.")
+			infra.NotifyOS("Vectora", "Claude API key invalid or missing.")
 			return
 		}
 		ActiveProvider = prov
-		infra.NotifyOS("Vectora", "Qwen local provider activated.")
+		infra.NotifyOS("Vectora", "Claude provider activated.")
 	}
 }
 
@@ -176,16 +168,19 @@ func updateLabels() {
 	mStatus.SetTitle(i18n.T("tray_status"))
 	mProv.SetTitle(i18n.T("tray_provider"))
 	mGemini.SetTitle(i18n.T("tray_prov_gemini"))
-	mQwen.SetTitle(i18n.T("tray_prov_qwen"))
+	mClaude.SetTitle(i18n.T("tray_prov_claude"))
 	mLang.SetTitle(i18n.T("tray_language"))
 	mQuit.SetTitle(i18n.T("tray_quit"))
 }
 
 func onExit() {
-	if ActiveProvider != nil && ActiveProvider.Name() == "qwen" {
-		if qProv, ok := ActiveProvider.(*llm.QwenProvider); ok {
-			qProv.Shutdown()
+	if ActiveProvider != nil && ActiveProvider.Name() == "claude" {
+		if cProv, ok := ActiveProvider.(*llm.ClaudeProvider); ok {
+			cProv.Close()
 		}
+	}
+	if ActiveProvider != nil && ActiveProvider.Name() == "gemini" {
+		// Gemini client cleanup if needed
 	}
 	if infra.Logger != nil {
 		infra.Logger.Info("Daemon shutting down...")
