@@ -68,7 +68,7 @@ func (s *Server) Start() error {
 		addr := `\\.\pipe\vectora`
 		l, err = net.Listen("unix", addr)
 		if err != nil {
-			l, err = net.Listen("tcp", "127.0.0.1:42780")
+			l, err = net.Listen("tcp", "127.0.0.1:42781")
 		}
 	} else {
 		os.Remove(s.addr)
