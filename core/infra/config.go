@@ -33,6 +33,7 @@ import (
 type Config struct {
 	GeminiAPIKey string
 	ClaudeAPIKey string
+	VoyageAPIKey string
 }
 
 // LoadConfig loads configuration from %USERPROFILE%\.Vectora\.env.
@@ -57,6 +58,7 @@ func LoadConfig() *Config {
 	return &Config{
 		GeminiAPIKey: os.Getenv("GEMINI_API_KEY"),
 		ClaudeAPIKey: os.Getenv("CLAUDE_API_KEY"),
+		VoyageAPIKey: os.Getenv("VOYAGE_API_KEY"),
 	}
 }
 
@@ -76,6 +78,9 @@ func SaveConfig(cfg *Config) error {
 	}
 	if cfg.ClaudeAPIKey != "" {
 		content += fmt.Sprintf("CLAUDE_API_KEY=%s\n", cfg.ClaudeAPIKey)
+	}
+	if cfg.VoyageAPIKey != "" {
+		content += fmt.Sprintf("VOYAGE_API_KEY=%s\n", cfg.VoyageAPIKey)
 	}
 
 	return os.WriteFile(envPath, []byte(content), 0600)

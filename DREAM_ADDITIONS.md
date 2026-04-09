@@ -25,7 +25,7 @@ Aplicação GUI nativa construída com o framework **Fyne** (Go + OpenGL/Metal/D
 - **Gestão Visual de Workspaces:** Navegação gráfica pelos workspaces ativos, com indicadores de status, tamanho e última indexação.
 - **Chat Integrado:** Interface de conversa com o agente, exibindo histórico, fontes citadas e ações executadas.
 - **Navegação no Assets:** Catálogo visual para buscar, preview e baixar datasets curados do marketplace.
-- **Systray Daemon:** O Desktop é spawnado como subprocesso pelo Core via IPC (Named Pipes/Unix Sockets), comunicando-se com o daemon central na bandeja do sistema.
+- **Systray Core:** O Desktop é spawnado como subprocesso pelo Core via IPC (Named Pipes/Unix Sockets), comunicando-se com o core central na bandeja do sistema.
 - **Cross-Platform Nativo:** Fyne compila para Windows, macOS e Linux sem código de adaptação por plataforma.
 
 **Vectora CLI (Bubbletea):**
@@ -34,7 +34,7 @@ Interface de terminal interativa (TUI) construída com o framework **Bubbletea**
 
 - **Resposta em Tempo Real:** Streaming de tokens diretamente no terminal, sem delays de renderização.
 - **Footprint Mínimo:** Consumo de memória drasticamente inferior a qualquer GUI, ideal para SSH, containers e máquinas remotas.
-- **Gestão Rápida:** Comandos interativos para `status`, `logs`, `embed`, `ask` e controle do daemon.
+- **Gestão Rápida:** Comandos interativos para `status`, `logs`, `embed`, `ask` e controle do core.
 - **Subprocesso IPC:** Assim como o Desktop, a CLI é spawnada pelo Core via IPC, compartilhando o mesmo engine de negócio.
 
 **Vectora Web (Next.js):**
@@ -112,7 +112,7 @@ Todo conteúdo multi-modal é processado durante a indexação e armazenado loca
 
 Filosofia de instalação por componentes, permitindo que cada usuário instale apenas o necessário:
 
-- **Core Only:** Apenas o daemon e servidor ACP/MCP. Ideal para integração direta com IDEs via MCP Server.
+- **Core Only:** Apenas o core e servidor ACP/MCP. Ideal para integração direta com IDEs via MCP Server.
 - **+ CLI:** Adiciona a interface de terminal interativa (Bubbletea) para gestão rápida e consultas via SSH.
 - **+ Desktop:** Adiciona a interface gráfica Fyne para gestão visual de workspaces, chat e navegação no Assets.
 - **+ llama.cpp:** Adiciona o motor de inferência local para privacidade total e operação offline.
@@ -160,7 +160,7 @@ Ao publicar um projeto no Assets, o conteúdo é processado pelos servidores ded
 O framework **Cobra** (padrão da indústria para CLIs em Go) serve como "Fonte Única da Verdade" unificando três componentes que antes eram separados:
 
 - **CLI:** Comandos como `vectora status`, `vectora embed`, `vectora ask` executam diretamente.
-- **Daemon:** O mesmo binário roda como daemon no systray quando chamado sem flags.
+- **Core:** O mesmo binário roda como core no systray quando chamado sem flags.
 - **Instalador:** A lógica de instalação de componentes reutiliza os mesmos handlers do CLI.
 
 **Por que isso importa:** A mesma lógica de negócio que executa `vectora install --headless` via terminal também alimenta o instalador gráfico Fyne. Sem divergência entre modos CLI e GUI. Sem sidecars ou wrappers externos.
@@ -175,7 +175,7 @@ O Core não embute as UIs — ele as orquestra:
 - **IPC para Comunicação Local:** Mensagens de status, eventos de indexação e requisições de permissão trafegam por pipes nomeados com permissões restritas ao usuário atual.
 
 ```
-vectora [Cobra CLI] ← Binário daemon único
+vectora [Cobra CLI] ← Binário core único
 ├─ --headless → Modo CLI puro (sem UI)
 ├─ padrão → Systray + UI Fyne (auto-detecção)
 ├─ cli → Spawna Bubbletea CLI (subprocesso)

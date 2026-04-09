@@ -1,6 +1,6 @@
-# Rust: Linha do Tempo Completa, Evolução e Ecossistema
+# Rust: Linha do Tempo e Ecossistema (Arquivado / Visão Histórica)
 
-> Documento de referência técnica. Cobre o Rust do nascimento até 2025, changelog detalhado de versões, Edições, sistema de ownership e borrow checker, FFI e interoperabilidade com C/C++, unsafe Rust, além da evolução completa do ecossistema — runtimes assíncronos, frameworks web, CLI, GUI, banco de dados, embedded, WASM, testes, observabilidade e ferramentas de desenvolvimento.
+> [!NOTE] > **Nota Histórica do Projeto:** Originalmente, o Vectora considerou Rust para seu núcleo. No entanto, em Março de 2026, o projeto migrou oficialmente para **Go** como linguagem principal do Core para maximizar a portabilidade e a velocidade de integração com o ecossistema de IDEs e ferramentas de sistema nativas. Este documento permanece como referência técnica da linguagem.
 
 ---
 

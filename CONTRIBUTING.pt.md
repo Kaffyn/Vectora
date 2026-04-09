@@ -41,7 +41,7 @@ O Vectora é organizado como um monorepo. O foco atual do MVP é 100% no **core*
 **1. Preparação:**
 
 - Certifique-se de ter o Go 1.23 instalado.
-- Configure seu ambiente para executar o daemon (o uso de named pipes requer Windows).
+- Configure seu ambiente para executar o core (o uso de named pipes requer Windows).
 
 **2. Branching e Commits:**
 

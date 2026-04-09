@@ -15,7 +15,7 @@ $NC = "`e[0m" # No Color
 
 $BIN_DIR = "bin"
 $APP_NAME = "vectora"
-$CMD_PATH = "./cmd/daemon"
+$CMD_PATH = "./cmd/core"
 $VERSION = "0.1.0"
 
 # Cleanup bin/
@@ -92,9 +92,6 @@ function Build-Binary {
     Write-Host ("Building {0,-35} ..." -f $outputName) -NoNewline
 
     $finalFlags = "-s -w"
-    if ($os -eq "windows") {
-        $finalFlags += " -H=windowsgui"
-    }
     if ($ldflags -ne "") {
         $finalFlags += " $ldflags"
     }
@@ -226,21 +223,50 @@ $env:CGO_ENABLED = ""
 Write-Host ""
 Write-Host "${YELLOW}[PHASE 2] Packaging for distribution...${NC}"
 
+# Stop running instances to release file locks
+Write-Host "  Stopping any active Vectora processes..."
+Stop-Process -Name "vectora" -Force -ErrorAction SilentlyContinue
+Start-Sleep -Seconds 1
+Get-Process "${APP_NAME}" -ErrorAction SilentlyContinue | Stop-Process -Force
+
 # --- Windows: Install to user-local directory + PATH ---
 $InstallDir = Join-Path $env:USERPROFILE "AppData\Local\Vectora"
 New-Item -ItemType Directory -Force $InstallDir | Out-Null
 Copy-Item "$BIN_DIR/${APP_NAME}-windows-amd64.exe" "$InstallDir\vectora.exe" -Force
 
-# Add to PATH if not already there
-$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if ($currentPath -notlike "*$InstallDir*") {
-    Write-Host "  Adding $InstallDir to User PATH..."
-    [Environment]::SetEnvironmentVariable("Path", "$currentPath;$InstallDir", "User")
-    $env:Path += ";$InstallDir"
-    Write-Host "  ${GREEN}OK${NC} - PATH updated (restart terminal to use)"
+# --- PHASE 3: Build Extensions ---
+Write-Host ""
+Write-Host "${YELLOW}[PHASE 3] Building Extensions...${NC}"
+
+# 3.1 VS Code Extension
+Write-Host "  Packaging VS Code Extension..." -NoNewline
+Push-Location "extensions/vscode"
+$oldEAP = $ErrorActionPreference
+$ErrorActionPreference = "Continue" # Allow warnings
+& npm install --no-audit --no-fund 2>$null | Out-Null
+& npx vsce package --out "../../bin/vectora-vscode.vsix" 2>$null | Out-Null
+$ErrorActionPreference = $oldEAP
+if (Test-Path "../../bin/vectora-vscode.vsix") {
+    Write-Host " ${GREEN}OK${NC} (.vsix generated)"
+    Write-Host "  Installing extension to VS Code..." -NoNewline
+    & code --install-extension "../../bin/vectora-vscode.vsix" --force 2>$null | Out-Null
+    Write-Host " ${GREEN}OK${NC}"
 } else {
-    Write-Host "  ${GREEN}OK${NC} - Install dir already in PATH"
+    Write-Host " ${RED}FAIL${NC}"
 }
+Pop-Location
+
+# 3.2 Gemini CLI
+Write-Host "  Building Gemini CLI..." -NoNewline
+Push-Location "extensions/geminicli"
+& npm install --no-audit --no-fund 2>$null | Out-Null
+& npm run build 2>$null | Out-Null
+if ($LASTEXITCODE -eq 0) {
+    Write-Host " ${GREEN}OK${NC}"
+} else {
+    Write-Host " ${RED}FAIL${NC}"
+}
+Pop-Location
 
 # --- Linux: Create .tar.gz for distribution ---
 $linuxBin = "$BIN_DIR/${APP_NAME}-linux-amd64"

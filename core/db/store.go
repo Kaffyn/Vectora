@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	vecos "github.com/Kaffyn/Vectora/core/os"
 	"go.etcd.io/bbolt"
@@ -30,7 +31,8 @@ func NewKVStoreAtPath(dbPath string) (*BBoltStore, error) {
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
 		return nil, err
 	}
-	db, err := bbolt.Open(dbPath, 0600, nil)
+    options := &bbolt.Options{Timeout: 1 * time.Second}
+	db, err := bbolt.Open(dbPath, 0600, options)
 	if err != nil {
 		return nil, err
 	}

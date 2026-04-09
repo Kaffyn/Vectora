@@ -15,6 +15,8 @@ package acp
 
 import (
 	"context"
+	"io"
+	"os"
 )
 
 // ProtocolVersion is the current ACP major version we support.
@@ -101,6 +103,9 @@ type SessionCancelRequest struct {
 type SessionPromptRequest struct {
 	SessionID string         `json:"sessionId"`
 	Prompt    []ContentBlock `json:"prompt"`
+	Model     string         `json:"model,omitempty"`
+	Mode      string         `json:"mode,omitempty"`
+	Policy    string         `json:"policy,omitempty"`
 }
 
 type PromptResponse struct {
@@ -306,6 +311,7 @@ type TerminalKillRequest struct {
 type Server struct {
 	engine   Engine
 	sessions map[string]*Session
+	out      io.Writer
 }
 
 // Engine is the interface the ACP server uses to execute operations.
@@ -313,8 +319,8 @@ type Server struct {
 type Engine interface {
 	// Embed generates an embedding vector for the given text.
 	Embed(ctx context.Context, text string) ([]float32, error)
-	// Query performs a RAG query and returns the answer.
-	Query(ctx context.Context, query string, workspaceID string) (string, error)
+	// Query performs an agentic query with specific model, mode and policy.
+	Query(ctx context.Context, query string, workspaceID string, model string, mode string, policy string) (string, error)
 	// ExecuteTool runs a tool by name with the given arguments.
 	ExecuteTool(ctx context.Context, name string, args map[string]any) (ToolResult, error)
 	// ReadFile reads a file at the given path.
@@ -325,6 +331,14 @@ type Engine interface {
 	CompleteCode(ctx context.Context, path, prefix, suffix, language string) (string, error)
 	// RunCommand executes a shell command.
 	RunCommand(ctx context.Context, cwd, command string) (string, error)
+	// GrepSearch performs a regex search across the codebase.
+	GrepSearch(ctx context.Context, root, pattern string) (string, error)
+	// Edit applies changes to a file using the edit tool.
+	Edit(ctx context.Context, path, instruction, content string) (string, error)
+	// WebSearch performs a web search.
+	WebSearch(ctx context.Context, query string) (string, error)
+	// WebFetch fetches content from a URL.
+	WebFetch(ctx context.Context, url string) (string, error)
 }
 
 type ToolResult struct {
@@ -350,11 +364,12 @@ func NewServer(engine Engine) *Server {
 	return &Server{
 		engine:   engine,
 		sessions: make(map[string]*Session),
+		out:      os.Stdout,
 	}
 }
 
 // Run starts the ACP server reading from stdin and writing to stdout.
 // This blocks until the connection is closed.
 func (s *Server) Run(ctx context.Context) error {
-	return runStdioServer(ctx, s)
+	return s.RunStream(ctx, os.Stdin, os.Stdout)
 }

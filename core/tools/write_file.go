@@ -30,8 +30,11 @@ func (t *WriteFileTool) Execute(ctx context.Context, args json.RawMessage) (*Too
 	}
 
 	safePath := filepath.Join(t.TrustFolder, params.Path)
-	if !t.Guardian.IsPathSafe(safePath) {
-		return &ToolResult{Output: "Access Denied: Out of Trust Folder", IsError: true}, nil
+	if !t.Guardian.IsPathSafe(safePath) || t.Guardian.IsProtected(safePath) {
+		return &ToolResult{Output: "Access Denied: Out of Trust Folder or Core Protected", IsError: true}, nil
+	}
+	if t.Guardian.IsModificationBlocked(safePath) {
+		return &ToolResult{Output: "Modification Denied: File protected by .vectoraignore", IsError: true}, nil
 	}
 
 	// Backup existing file before overwrite

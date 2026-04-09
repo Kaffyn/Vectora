@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -10,9 +11,11 @@ import (
 type Guardian struct {
 	TrustFolder   string
 	BlockedExts   map[string]bool
-	BlockedFiles  map[string]bool
-	ExcludedDirs  map[string]bool
-	SecretRegexes []*regexp.Regexp
+	BlockedFiles           map[string]bool
+	ExcludedDirs           map[string]bool
+	SecretRegexes          []*regexp.Regexp
+	ModifyIgnorePatterns   []string
+	ModifyUnignorePatterns []string
 }
 
 func NewGuardian(trustFolder string) *Guardian {
@@ -36,6 +39,23 @@ func NewGuardian(trustFolder string) *Guardian {
 		regexp.MustCompile(`AKIA[0-9A-Z]{16}`),
 		regexp.MustCompile(`ghp_[a-zA-Z0-9]{36}`),
 		regexp.MustCompile(`sk-[a-zA-Z0-9]{48}`),
+	}
+
+	// Tenta carregar .vectoraignore (erros são ignorados silenciosamente caso não exista)
+	ignorePath := filepath.Join(trustFolder, ".vectoraignore")
+	if data, err := os.ReadFile(ignorePath); err == nil {
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			if strings.HasPrefix(line, "!") {
+				g.ModifyUnignorePatterns = append(g.ModifyUnignorePatterns, strings.TrimPrefix(line, "!"))
+			} else {
+				g.ModifyIgnorePatterns = append(g.ModifyIgnorePatterns, line)
+			}
+		}
 	}
 
 	return g
@@ -73,6 +93,66 @@ func (g *Guardian) IsProtected(path string) bool {
 		return true
 	}
 	return false
+}
+
+// IsModificationBlocked verifica se o arquivo bate com as regras do .vectoraignore
+func (g *Guardian) IsModificationBlocked(path string) bool {
+	if len(g.ModifyIgnorePatterns) == 0 && len(g.ModifyUnignorePatterns) == 0 {
+		return false
+	}
+
+	// Usaremos caminhos relativos ao TrustFolder, se possível
+	relPath := path
+	if rel, err := filepath.Rel(g.TrustFolder, path); err == nil {
+		relPath = rel
+	}
+	
+	// Normaliza separadores no Windows para barra normal para funcionar bem no filepath.Match e com nomes do repositório
+	relPath = filepath.ToSlash(relPath)
+	filename := filepath.Base(relPath)
+
+	isIgnored := false
+
+	for _, pattern := range g.ModifyIgnorePatterns {
+		// Checa tanto a string completa quanto apenas o arquivo local
+		if m, _ := filepath.Match(pattern, relPath); m {
+			isIgnored = true
+		} else if m, _ := filepath.Match(pattern, filename); m {
+			isIgnored = true
+		} else if strings.Contains(pattern, "/") {
+			// Se o padrão tem barra, ele pode querer dar match no início do path
+			if strings.HasPrefix(relPath, pattern) {
+				isIgnored = true
+			} else {
+				m, _ := filepath.Match(pattern+"/*", relPath)
+				if m {
+					isIgnored = true
+				}
+			}
+		}
+	}
+
+	if isIgnored {
+		// Checa as exceções com "!"
+		for _, pattern := range g.ModifyUnignorePatterns {
+			if m, _ := filepath.Match(pattern, relPath); m {
+				isIgnored = false // Arquivo salvo pela regra de safe-list
+			} else if m, _ := filepath.Match(pattern, filename); m {
+				isIgnored = false
+			} else if strings.Contains(pattern, "/") {
+				if strings.HasPrefix(relPath, pattern) {
+					isIgnored = false
+				} else {
+					m, _ := filepath.Match(pattern+"/*", relPath)
+					if m {
+						isIgnored = false
+					}
+				}
+			}
+		}
+	}
+
+	return isIgnored
 }
 
 // IsExcludedDir verifica se um diretório deve ser ignorado na indexação

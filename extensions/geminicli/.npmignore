@@ -1,0 +1,6 @@
+src/
+tsconfig.json
+package-lock.json
+npm-debug.log
+**/*.map
+# Keep only dist and package.json

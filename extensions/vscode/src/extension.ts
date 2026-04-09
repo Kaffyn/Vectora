@@ -1,122 +1,145 @@
 import * as vscode from 'vscode';
-import { ACPClient } from './acp-client';
-import { ChatPanel } from './chat-panel';
-import { InitializeResponse } from './types/acp';
+import { Client } from './client';
+import { ChatViewProvider } from './chat-panel';
+import { BinaryManager } from './binary-manager';
+import { VectoraInlineProvider } from './inline-completion';
+import { InitializeRequest, InitializeResponse } from './types/client';
 
-let client: ACPClient | undefined;
-let chatPanel: ChatPanel | undefined;
+let coreClient: Client | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
-let currentSessionId: string | undefined;
+let chatProvider: ChatViewProvider | undefined;
+let binaryManager = new BinaryManager();
 
-/**
- * Activates the Vectora VS Code extension.
- * This is called when VS Code activates the extension (on startup).
- */
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const config = vscode.workspace.getConfiguration('vectora');
-  const corePath = config.get<string>('corePath') || 'vectora';
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-
-  if (!workspaceFolder) {
-    vscode.window.showErrorMessage('Vectora requires an open workspace folder to start.');
-    return;
-  }
-
+  // Create status bar early
   statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  statusBarItem.text = '$(loading~spin) Vectora starting...';
-  statusBarItem.tooltip = 'Initializing Vectora Core...';
+  statusBarItem.command = 'vectora.toggleStatus';
+  statusBarItem.text = '$(circle-outline) Vectora: Stopped';
+  statusBarItem.tooltip = 'Click to Start Vectora';
   statusBarItem.show();
   context.subscriptions.push(statusBarItem);
 
+  // Register Commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand('vectora.toggleStatus', async () => {
+      if (coreClient && coreClient.isRunning) {
+        await stopVectora();
+      } else {
+        await startVectora(context);
+      }
+    }),
+
+    vscode.commands.registerCommand('vectora.newSession', async () => {
+      await vscode.commands.executeCommand('vectora.chatView.focus');
+    }),
+
+    vscode.commands.registerCommand('vectora.explainCode', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor) {
+        const selection = editor.document.getText(editor.selection);
+        if (selection) {
+          await vscode.commands.executeCommand('vectora.chatView.focus');
+          if (chatProvider) await chatProvider.sendMessage(`Explain this code:\n\n\`\`\`\n${selection}\n\`\`\``);
+        }
+      }
+    }),
+
+    vscode.commands.registerCommand('vectora.refactorCode', async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (editor) {
+        const selection = editor.document.getText(editor.selection);
+        if (selection) {
+          await vscode.commands.executeCommand('vectora.chatView.focus');
+          if (chatProvider) await chatProvider.sendMessage(`Refactor this code:\n\n\`\`\`\n${selection}\n\`\`\``);
+        }
+      }
+    })
+  );
+
+  // Auto-start
+  await startVectora(context);
+}
+
+async function startVectora(context: vscode.ExtensionContext) {
+  if (statusBarItem) {
+    statusBarItem.text = '$(sync~spin) Vectora: Starting...';
+    statusBarItem.tooltip = 'Vectora is initializing';
+  }
+
   try {
-    client = new ACPClient(corePath);
-    const initResult = await client.start(workspaceFolder.uri.fsPath);
-    currentSessionId = await client.newSession(workspaceFolder.uri.fsPath);
+    const binPath = await binaryManager.ensureBinary();
+    
+    coreClient = new Client('Vectora Core', binPath, ['acp']);
+    await coreClient.start();
 
-    updateStatusBar(true, initResult.agentInfo);
+    // Initialize with Core
+    await coreClient.request<InitializeRequest, InitializeResponse>('initialize', {
+      protocolVersion: 1,
+      clientCapabilities: {
+        fs: { readTextFile: true, writeTextFile: true },
+        terminal: true,
+      },
+      clientInfo: {
+        name: 'vectora-vscode',
+        title: 'Vectora VS Code',
+        version: '0.1.0',
+      },
+    });
 
-    chatPanel = new ChatPanel(client, context);
+    if (!chatProvider) {
+      chatProvider = new ChatViewProvider(coreClient, context);
+      context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(ChatViewProvider.viewType, chatProvider)
+      );
+    } else {
+      chatProvider.setClient(coreClient);
+    }
 
+    // Ghost Text / Inline Completion
+    const inlineProvider = new VectoraInlineProvider(coreClient);
     context.subscriptions.push(
-      vscode.commands.registerCommand('vectora.newSession', async () => {
-        if (client && currentSessionId) {
-          client.cancel(currentSessionId);
-        }
-        currentSessionId = await client?.newSession(workspaceFolder.uri.fsPath);
-        vscode.window.showInformationMessage('New Vectora session started.');
-        await chatPanel?.clearChat();
-        await chatPanel?.show();
-      }),
-
-      vscode.commands.registerCommand('vectora.explainCode', async () => {
-        const codeContext = getCodeContext();
-        if (!codeContext) return;
-        await chatPanel?.show();
-        await chatPanel?.sendMessage(
-          `Explain the following code in detail:\n\n\`\`\`${codeContext.language}\n${codeContext.code}\n\`\`\``
-        );
-      }),
-
-      vscode.commands.registerCommand('vectora.refactorCode', async () => {
-        const codeContext = getCodeContext();
-        if (!codeContext) return;
-        await chatPanel?.show();
-        await chatPanel?.sendMessage(
-          `Refactor the following code to be cleaner, more efficient, and follow best practices.\nExplain your changes:\n\n\`\`\`${codeContext.language}\n${codeContext.code}\n\`\`\``
-        );
-      })
+      vscode.languages.registerInlineCompletionItemProvider({ pattern: '**' }, inlineProvider)
     );
 
-    context.subscriptions.push(
-      vscode.workspace.onDidChangeConfiguration((e) => {
-        if (e.affectsConfiguration('vectora.corePath')) {
-          vscode.window.showWarningMessage('Changes to Core Path require reloading VS Code.');
-        }
-      })
-    );
+    if (statusBarItem) {
+      statusBarItem.text = '$(check) Vectora: Ready';
+      statusBarItem.tooltip = 'Vectora is running. Click to Stop.';
+      statusBarItem.color = new vscode.ThemeColor('statusBarItem.prominentForeground');
+    }
 
-    client.onError.event((msg) => {
-      updateStatusBar(false, undefined, msg);
-      vscode.window.showErrorMessage(`Vectora: ${msg}`);
+    // Monitor for unexpected exit
+    coreClient.onExit.event(() => {
+        updateStatusStopped();
     });
 
   } catch (err: any) {
-    console.error('Vectora activation error:', err);
-    updateStatusBar(false, undefined, err.message);
+    if (statusBarItem) {
+        statusBarItem.text = `$(error) Vectora: Error`;
+        statusBarItem.tooltip = `Error: ${err.message}. Click to retry.`;
+        statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+    }
     vscode.window.showErrorMessage(`Vectora failed to start: ${err.message}`);
   }
 }
 
+async function stopVectora() {
+  if (coreClient) {
+    coreClient.stop();
+    coreClient = undefined;
+  }
+  updateStatusStopped();
+}
+
+function updateStatusStopped() {
+    if (statusBarItem) {
+        statusBarItem.text = '$(circle-outline) Vectora: Stopped';
+        statusBarItem.tooltip = 'Vectora is offline. Click to Start.';
+        statusBarItem.color = undefined;
+        statusBarItem.backgroundColor = undefined;
+    }
+}
+
 export function deactivate(): void {
-  if (client) client.stop();
+  if (coreClient) coreClient.stop();
   if (statusBarItem) statusBarItem.dispose();
-}
-
-function updateStatusBar(isConnected: boolean, agentInfo?: { name: string; version: string }, errorMsg?: string): void {
-  if (!statusBarItem) return;
-  if (errorMsg) {
-    statusBarItem.text = '$(error) Vectora Error';
-    statusBarItem.tooltip = errorMsg;
-  } else if (isConnected && agentInfo) {
-    statusBarItem.text = `$(check) Vectora: ${agentInfo.name}`;
-    statusBarItem.tooltip = `Vectora Active\nProvider: ${agentInfo.name}\nVersion: ${agentInfo.version}`;
-  } else {
-    statusBarItem.text = '$(circle-outline) Vectora Disconnected';
-    statusBarItem.tooltip = 'Vectora is not connected';
-  }
-}
-
-function getCodeContext(): { code: string; language: string } | null {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor) {
-    vscode.window.showWarningMessage('No active editor found.');
-    return null;
-  }
-  const selection = editor.selection;
-  const code = selection.isEmpty ? editor.document.getText() : editor.document.getText(selection);
-  if (!code.trim()) {
-    vscode.window.showWarningMessage('No code selected.');
-    return null;
-  }
-  return { code, language: editor.document.languageId };
 }

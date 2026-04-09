@@ -1,318 +1,87 @@
-# Blueprint: API Multi-Protocolo (The Gateway)
+# Blueprint: API & Protocolo ACP (Agent Client Protocol)
 
-**Status:** Fase 4 - Implementação Concluída  
-**Módulo:** `core/api/`  
-**Dependencies:** `net/rpc/jsonrpc`, `google.golang.org/grpc`, `net`, `encoding/json`, `vectora/core/engine` (Lógica de Negócio Unificada)
+**Status:** Implementado  
+**Módulo:** `core/api/acp/`  
+**Transporte:** JSON-RPC 2.0 sobre Stdio (IPC)
 
-## 1. O Roteador Central (`router.go`)
+O Vectora utiliza o **Agent Client Protocol (ACP)** como sua espinha dorsal de comunicação. Este protocolo foi projetado para ser leve, assíncrono e compatível com os princípios do MCP (Model Context Protocol), otimizando a interação entre IDEs e o motor agêntico.
 
-Este componente não contém lógica de negócio. Ele atua como um "Dispatcher" que recebe chamadas de qualquer protocolo e as encaminha para o `Engine`.
+---
 
-```go
-package api
+## 1. Ciclo de Vida da Conexão
 
-import (
-	"context"
-	"vectora/core/engine" // Interface unificada do Core
-)
+A comunicação ocorre via `stdin`/`stdout`, garantindo segurança e baixo overhead.
 
-// Router gerencia a inicialização dos servidores de protocolo.
-type Router struct {
-	Engine *engine.Engine
-	Config *RouterConfig
-}
+1.  **Handshake (`initialize`):** O cliente (ex: VS Code) inicia a conexão enviando suas capacidades e recebendo as capacidades do Core.
+2.  **Sessão (`session/new`):** Cria um contexto de trabalho isolado para um diretório específico (Workspace).
+3.  **Interação (`session/prompt`):** O fluxo principal de chat, onde o cliente envia mensagens e recebe um stream de tokens ou chamadas de ferramentas.
 
-type RouterConfig struct {
-	EnableJSONRPC bool
-	EnablegRPC    bool
-	EnableIPC     bool
-	TCPPort       int    // Para JSON-RPC over TCP (Dev Mode)
-	IPCPath       string // Path para Named Pipe ou Unix Socket
-}
+---
 
-func NewRouter(engine *engine.Engine, cfg *RouterConfig) *Router {
-	return &Router{Engine: engine, Config: cfg}
-}
+## 2. Métodos do Protocolo (JSON-RPC)
 
-// StartAll inicia os listeners em goroutines separadas.
-func (r *Router) StartAll(ctx context.Context) error {
-	if r.Config.EnableJSONRPC {
-		go r.startJSONRPCServer(ctx)
-	}
-	if r.Config.EnablegRPC {
-		go r.startgRPCServer(ctx)
-	}
-	if r.Config.EnableIPC {
-		go r.startIPCServer(ctx)
-	}
-	return nil
-}
+### `initialize`
 
-// --- Stubs para implementação nos módulos específicos ---
-func (r *Router) startJSONRPCServer(ctx context.Context) { /* ... */ }
-func (r *Router) startgRPCServer(ctx context.Context)    { /* ... */ }
-func (r *Router) startIPCServer(ctx context.Context)     { /* ... */ }
-```
+Negocia a versão do protocolo e capacities.
 
-## 2. Implementação JSON-RPC 2.0 (`jsonrpc/server.go`)
+- **Request:** `{"method": "initialize", "params": { "protocolVersion": 1, "clientInfo": {...} }}`
+- **Response:** Inclui as capacidades do Agente (se suporta RAG, Terminal, etc).
 
-Implementa o padrão MCP/ACP via `stdio` (padrão) ou TCP.
+### `session/new`
 
-```go
-package jsonrpc
+Inicia uma nova sessão técnica.
 
-import (
-	"context"
-	"encoding/json"
-	"io"
-	"net"
-	"net/rpc"
-	"net/rpc/jsonrpc"
-	"os"
-	"vectora/core/api/handlers"
-	"vectora/core/engine"
-)
+- **Request:** `{"method": "session/new", "params": { "cwd": "c:/path/to/project" }}`
+- **Response:** `{"sessionId": "sess_..."}`
 
-type Server struct {
-	Engine *engine.Engine
-}
+### `session/prompt` (Streaming)
 
-// RPCService expõe os métodos via Reflection do pacote net/rpc
-type RPCService struct {
-	Engine *engine.Engine
-}
+Envia uma instrução ao agente.
 
-func (s *RPCService) Initialize(req handlers.InitRequest, resp *handlers.InitResponse) error {
-	*resp = handlers.HandleInitialize(req)
-	return nil
-}
+- **Request:** `{"method": "session/prompt", "params": { "sessionId": "...", "prompt": [...] }}`
+- **Notifications:** O servidor envia notificações `session/update` contendo tokens parciais, status de ferramentas ou resultados parciais.
 
-func (s *RPCService) ToolsList(req interface{}, resp *handlers.ToolsListResponse) error {
-	*resp = handlers.HandleToolsList()
-	return nil
-}
+---
 
-func (s *RPCService) ToolsCall(req handlers.ToolCallRequest, resp *handlers.ToolCallResponse) error {
-	result, err := handlers.HandleToolsCall(context.Background(), s.Engine, req)
-	if err != nil {
-		return err
-	}
-	*resp = *result
-	return nil
-}
+## 3. Integração com Tools (ACP -> Tools)
 
-func StartStdioServer(engine *engine.Engine) {
-	service := &RPCService{Engine: engine}
-	rpc.Register(service)
+Quando o LLM decide agir, o Core traduz a intenção para uma chamada de método interna no ACP:
 
-	// Lê do Stdin e escreve no Stdout (Padrão MCP)
-	conn := jsonrpc.NewConn(&struct {
-		io.Reader
-		io.Writer
-	}{os.Stdin, os.Stdout})
+### `fs/read_text_file`
 
-	rpc.ServeConn(conn)
-}
+Solicitação segura de leitura de arquivo monitorada pelo Guardian.
 
-func StartTCPServer(engine *engine.Engine, port int) {
-	service := &RPCService{Engine: engine}
-	rpc.Register(service)
-
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-	if err != nil {
-		panic(err)
-	}
-	defer listener.Close()
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			continue
-		}
-		go jsonrpc.ServeConn(conn)
-	}
+```json
+{
+  "method": "fs/read_text_file",
+  "params": { "sessionId": "...", "path": "src/main.go" }
 }
 ```
 
-## 3. Handlers Modulares (`jsonrpc/methods/`)
+### `terminal/run_command`
 
-Cada método é um arquivo separado, facilitando a manutenção e testes unitários.
+Execução de comando via Sub-Agente ou Tool direta.
 
-### `methods/tools_call.go`
-
-```go
-package methods
-
-import (
-	"context"
-	"vectora/core/engine"
-	"vectora/core/tools"
-)
-
-type ToolCallRequest struct {
-	Name      string                 `json:"name"`
-	Arguments map[string]interface{} `json:"arguments"`
-}
-
-type ToolCallResponse struct {
-	Content []map[string]string `json:"content"`
-	IsError bool                `json:"isError"`
-}
-
-func HandleToolsCall(ctx context.Context, eng *engine.Engine, req ToolCallRequest) (*ToolCallResponse, error) {
-	// Delega para o executor de ferramentas do Engine
-	result, err := eng.ExecuteTool(ctx, req.Name, req.Arguments)
-	if err != nil {
-		return &ToolCallResponse{
-			Content: []map[string]string{{"type": "text", "text": err.Error()}},
-			IsError: true,
-		}, nil
-	}
-
-	return &ToolCallResponse{
-		Content: []map[string]string{{"type": "text", "text": result.Output}},
-		IsError: result.IsError,
-	}, nil
-}
-```
-
-## 4. Implementação gRPC (`grpc/server.go`)
-
-Para streaming de alta performance (ex: indexação em tempo real).
-
-### `proto/vectora.proto`
-
-```protobuf
-syntax = "proto3";
-package vectora;
-
-service VectoraService {
-  rpc Query (QueryRequest) returns (stream QueryResponse);
-  rpc Index (IndexRequest) returns (stream IndexProgress);
-}
-
-message QueryRequest { string query = 1; string workspace_id = 2; }
-message QueryResponse {
-  string token = 1;
-  repeated string sources = 2;
-  bool is_final = 3;
-}
-
-message IndexRequest { string path = 1; }
-message IndexProgress { int32 files_processed = 1; int32 total_files = 2; string status = 3; }
-```
-
-### `grpc/handlers/query_handler.go`
-
-```go
-package handlers
-
-import (
-	"context"
-	pb "vectora/core/api/grpc/proto"
-	"vectora/core/engine"
-)
-
-type QueryHandler struct {
-	pb.UnimplementedVectoraServiceServer
-	Engine *engine.Engine
-}
-
-func (h *QueryHandler) Query(req *pb.QueryRequest, stream pb.VectoraService_QueryServer) error {
-	// Usa o engine para fazer RAG e streamar tokens
-	resultStream, err := h.Engine.StreamQuery(stream.Context(), req.Query, req.WorkspaceId)
-	if err != nil {
-		return err
-	}
-
-	for chunk := range resultStream {
-		if err := stream.Send(&pb.QueryResponse{
-			Token:   chunk.Token,
-			Sources: chunk.Sources,
-			IsFinal: chunk.IsFinal,
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-```
-
-## 5. Implementação IPC (`ipc/server.go`)
-
-Usa Named Pipes (Windows) ou Unix Sockets (Linux/Mac) para comunicação local segura entre Daemon e UI.
-
-```go
-package ipc
-
-import (
-	"encoding/json"
-	"net"
-	"os"
-	"runtime"
-	"vectora/core/engine"
-)
-
-type IPCServer struct {
-	Engine *engine.Engine
-	Path   string
-}
-
-type IPCMessage struct {
-	Type    string      `json:"type"` // "status_update", "permission_req"
-	Payload interface{} `json:"payload"`
-}
-
-func (s *IPCServer) Start() error {
-	// Remove socket antigo se existir
-	os.Remove(s.Path)
-
-	listener, err := net.Listen("unix", s.Path)
-	if err != nil {
-		if runtime.GOOS == "windows" {
-			// Lógica específica para Named Pipes no Windows
-			// listener, err = winio.ListenPipe(`\\.\pipe\vectora`, nil)
-		}
-		return err
-	}
-	defer listener.Close()
-
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			continue
-		}
-		go s.handleConnection(conn)
-	}
-}
-
-func (s *IPCServer) handleConnection(conn net.Conn) {
-	defer conn.Close()
-	decoder := json.NewDecoder(conn)
-
-	var msg IPCMessage
-	for decoder.Decode(&msg) == nil {
-		switch msg.Type {
-		case "start_index":
-			s.Engine.StartIndexation()
-		case "get_status":
-			status := s.Engine.GetStatus()
-			json.NewEncoder(conn).Encode(IPCMessage{Type: "status_update", Payload: status})
-		}
-	}
+```json
+{
+  "method": "terminal/run_command",
+  "params": { "sessionId": "...", "command": "go test ./..." }
 }
 ```
 
 ---
 
-### Resumo da Arquitetura de API
+## 4. O Cliente Unificado (TypeScript)
 
-1.  **Modularidade Extrema:** Adicionar um novo método JSON-RPC exige apenas criar um novo arquivo em `methods/` e registrá-lo. Não há "god classes".
-2.  **Agnosticismo de Transporte:** O `Engine` não sabe se está sendo chamado via gRPC ou JSON-RPC. Ele apenas executa a lógica.
-3.  **Segurança por Design:**
-    - **JSON-RPC:** Validado pelo `Guardian` antes de executar tools.
-    - **gRPC:** Ideal para conexões internas confiáveis ou enterprise.
-    - **IPC:** Restrito ao sistema local via permissões de arquivo do socket.
-4.  **Conformidade com Padrões:** JSON-RPC segue a spec 2.0, compatível com MCP. gRPC usa protobufs tipados.
+Na extensão VS Code, a classe `Client` centraliza toda esta lógica, abstraindo o protocolo para os componentes de UI (`ChatPanel`) e editores (`InlineCompletion`).
 
-Esta camada de API está pronta para ser integrada ao `main.go`, conectando todos os módulos anteriores (Storage, LLM, Tools, Policies) ao mundo externo.
+- **Auto-Gerenciamento de ID:** Atribuídos sequencialmente pelo cliente.
+- **Timeouts:** Padrão de 30s para respostas de ferramentas.
+- **Session Management:** Mantém o `sessionId` ativo durante todo o ciclo de vida do painel.
+
+---
+
+## 5. Próximas Implementações
+
+- **ACP over WebSocket:** Para permitir Web UIs remotas conectarem ao Core local.
+- **Binary Streams:** Para transferência eficiente de arquivos e imagens (snapshots de UI).

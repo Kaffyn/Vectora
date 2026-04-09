@@ -6,8 +6,10 @@ import (
 )
 
 type Message struct {
-	Role    Role
-	Content string
+	Role       Role       `json:"role"`
+	Content    string     `json:"content"`
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string     `json:"tool_call_id,omitempty"`
 }
 
 type ToolDefinition struct {

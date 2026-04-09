@@ -35,6 +35,9 @@ func (t *EditTool) Execute(ctx context.Context, args json.RawMessage) (*ToolResu
 	if !t.Guardian.IsPathSafe(safePath) || t.Guardian.IsProtected(safePath) {
 		return &ToolResult{Output: "Access Denied", IsError: true}, nil
 	}
+	if t.Guardian.IsModificationBlocked(safePath) {
+		return &ToolResult{Output: "Modification Denied: File protected by .vectoraignore", IsError: true}, nil
+	}
 
 	data, err := os.ReadFile(safePath)
 	if err != nil {

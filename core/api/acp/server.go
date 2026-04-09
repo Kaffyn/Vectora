@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
+	"io"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -13,9 +13,12 @@ import (
 	"github.com/google/uuid"
 )
 
-// runStdioServer runs the JSON-RPC 2.0 server over stdin/stdout.
-func runStdioServer(ctx context.Context, s *Server) error {
-	scanner := bufio.NewScanner(os.Stdin)
+// RunStream runs the JSON-RPC 2.0 server over given input and output streams.
+func (s *Server) RunStream(ctx context.Context, in io.Reader, out io.Writer) error {
+	if out != nil {
+		s.out = out // overrides os.Stdout default
+	}
+	scanner := bufio.NewScanner(in)
 	buf := make([]byte, 10*1024*1024) // 10MB buffer
 	scanner.Buffer(buf, len(buf))
 
@@ -74,6 +77,14 @@ func (s *Server) handleRequest(ctx context.Context, method string, params json.R
 		result, errMsg = s.handleFSWrite(ctx, params)
 	case "fs/completion":
 		result, errMsg = s.handleFSCompletion(ctx, params)
+	case "tools/grep_search":
+		result, errMsg = s.handleGrepSearch(ctx, params)
+	case "tools/edit":
+		result, errMsg = s.handleEdit(ctx, params)
+	case "tools/google_search":
+		result, errMsg = s.handleWebSearch(ctx, params)
+	case "tools/web_fetch":
+		result, errMsg = s.handleWebFetch(ctx, params)
 	default:
 		s.writeError(id, -32601, "Method not found", fmt.Sprintf("Method '%s' is not supported", method))
 		return
@@ -85,6 +96,61 @@ func (s *Server) handleRequest(ctx context.Context, method string, params json.R
 	}
 
 	s.writeResult(id, result)
+}
+
+func (s *Server) handleGrepSearch(ctx context.Context, params json.RawMessage) (any, string) {
+	var req struct {
+		Pattern string `json:"pattern"`
+		Path    string `json:"path"`
+	}
+	if err := json.Unmarshal(params, &req); err != nil {
+		return nil, err.Error()
+	}
+	res, err := s.engine.GrepSearch(ctx, req.Path, req.Pattern)
+	if err != nil {
+		return nil, err.Error()
+	}
+	return map[string]string{"output": res}, ""
+}
+
+func (s *Server) handleEdit(ctx context.Context, params json.RawMessage) (any, string) {
+	var req struct {
+		Path        string `json:"path"`
+		Instruction string `json:"instruction"`
+		Content     string `json:"content"`
+	}
+	if err := json.Unmarshal(params, &req); err != nil {
+		return nil, err.Error()
+	}
+	res, err := s.engine.Edit(ctx, req.Path, req.Instruction, req.Content)
+	if err != nil {
+		return nil, err.Error()
+	}
+	return map[string]string{"output": res}, ""
+}
+
+func (s *Server) handleWebSearch(ctx context.Context, params json.RawMessage) (any, string) {
+	var req struct{ Query string `json:"query"` }
+	if err := json.Unmarshal(params, &req); err != nil {
+		return nil, err.Error()
+	}
+	res, err := s.engine.WebSearch(ctx, req.Query)
+	if err != nil {
+		return nil, err.Error()
+	}
+	return map[string]string{"output": res}, ""
+}
+
+func (s *Server) handleWebFetch(ctx context.Context, params json.RawMessage) (any, string) {
+	var req struct{ URL string `json:"url"` }
+	if err := json.Unmarshal(params, &req); err != nil {
+		return nil, err.Error()
+	}
+	res, err := s.engine.WebFetch(ctx, req.URL)
+	if err != nil {
+		return nil, err.Error()
+	}
+	return map[string]string{"output": res}, ""
 }
 
 func (s *Server) handleNotification(ctx context.Context, method string, params json.RawMessage) {
@@ -212,7 +278,7 @@ func (s *Server) handleSessionPrompt(ctx context.Context, params json.RawMessage
 	})
 
 	// Execute the query via engine
-	answer, err := s.engine.Query(ctx, queryText, "default")
+	answer, err := s.engine.Query(ctx, queryText, "default", req.Model, req.Mode, req.Policy)
 	if err != nil {
 		s.sendUpdate(session, UpdateData{
 			SessionUpdate: "plan",
@@ -380,7 +446,7 @@ func (s *Server) writeResult(id json.RawMessage, result any) {
 	defer outputMu.Unlock()
 
 	data, _ := json.Marshal(resp)
-	fmt.Fprintln(os.Stdout, string(data))
+	fmt.Fprintln(s.out, string(data))
 }
 
 func (s *Server) writeError(id json.RawMessage, code int, message string, data string) {
@@ -403,11 +469,11 @@ func (s *Server) writeError(id json.RawMessage, code int, message string, data s
 	defer outputMu.Unlock()
 
 	dataBytes, _ := json.Marshal(resp)
-	fmt.Fprintln(os.Stdout, string(dataBytes))
+	fmt.Fprintln(s.out, string(dataBytes))
 }
 
-// sendNotification writes a JSON-RPC notification to stdout (no id).
-func sendNotification(method string, params any) {
+// sendNotification writes a JSON-RPC notification to s.out (no id).
+func (s *Server) sendNotification(method string, params any) {
 	notif := map[string]any{
 		"jsonrpc": "2.0",
 		"method":  method,
@@ -418,12 +484,12 @@ func sendNotification(method string, params any) {
 	defer outputMu.Unlock()
 
 	data, _ := json.Marshal(notif)
-	fmt.Fprintln(os.Stdout, string(data))
+	fmt.Fprintln(s.out, string(data))
 }
 
-// sendSessionUpdate sends a session/update notification to stdout.
+// sendSessionUpdate sends a session/update notification to s.out.
 func (s *Server) sendSessionUpdateStdout(update SessionUpdate) {
-	sendNotification("session/update", update)
+	s.sendNotification("session/update", update)
 }
 
 // sendPermissionRequest sends a session/request_permission to stdout and waits for response.
@@ -436,7 +502,7 @@ func (s *Server) sendPermissionRequest(ctx context.Context, session *Session, re
 		"params":  req,
 	}
 	data, _ := json.Marshal(notifData)
-	fmt.Fprintln(os.Stdout, string(data))
+	fmt.Fprintln(s.out, string(data))
 	outputMu.Unlock()
 
 	// Wait for response

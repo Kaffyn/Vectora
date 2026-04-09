@@ -55,7 +55,7 @@ func (c *Client) Connect() error {
 	if runtime.GOOS == "windows" {
 		conn, err = net.Dial("unix", c.addr)
 		if err != nil {
-			conn, err = net.Dial("tcp", "127.0.0.1:42780")
+			conn, err = net.Dial("tcp", "127.0.0.1:42781")
 		}
 	} else {
 		conn, err = net.Dial("unix", c.addr)

@@ -1,9 +1,10 @@
 import * as vscode from 'vscode';
-import { ACPClient } from './acp-client';
+import { Client } from './client';
+import { FSCompletionRequest, FSCompletionResponse } from './types/client';
 
 export class VectoraInlineProvider implements vscode.InlineCompletionItemProvider {
   
-  constructor(private client: ACPClient) {}
+  constructor(private client: Client) {}
 
   async provideInlineCompletionItems(
     document: vscode.TextDocument,
@@ -73,13 +74,14 @@ export class VectoraInlineProvider implements vscode.InlineCompletionItemProvide
 
     try {
       // Call the real completion endpoint on Vectora Core
-      const suggestion = await this.client.getCompletion(
-        this.client.sessionId,
-        vscode.window.activeTextEditor?.document.uri.fsPath || '',
+      const resp = await this.client.request<FSCompletionRequest, FSCompletionResponse>('fs/completion', {
+        sessionId: this.client.sessionId, 
+        path: vscode.window.activeTextEditor?.document.uri.fsPath || '',
         prefix,
         suffix,
-        lang
-      );
+        language: lang
+      });
+      const suggestion = resp.content;
 
       // Check for cancellation after network call
       if (token.isCancellationRequested) {

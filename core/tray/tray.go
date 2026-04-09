@@ -37,7 +37,7 @@ func Setup() {
 func onReady() {
 	systray.SetIcon(assets.IconData)
 	systray.SetTitle("Vectora")
-	systray.SetTooltip("Vectora - Local AI Assistant (MVP)")
+	systray.SetTooltip("Vectora - AI Assistant")
 
 	// Status (informational only)
 	mStatus = systray.AddMenuItem("", "")
@@ -136,13 +136,6 @@ func onReady() {
 }
 
 func setProvider(id, secret string) {
-	// Shutdown previous provider if needed
-	if ActiveProvider != nil && ActiveProvider.Name() == "claude" {
-		if cProv, ok := ActiveProvider.(*llm.ClaudeProvider); ok {
-			cProv.Close()
-		}
-	}
-
 	if id == "gemini" {
 		ctx := context.Background()
 		prov, err := llm.NewGeminiProvider(ctx, secret)
@@ -174,15 +167,7 @@ func updateLabels() {
 }
 
 func onExit() {
-	if ActiveProvider != nil && ActiveProvider.Name() == "claude" {
-		if cProv, ok := ActiveProvider.(*llm.ClaudeProvider); ok {
-			cProv.Close()
-		}
-	}
-	if ActiveProvider != nil && ActiveProvider.Name() == "gemini" {
-		// Gemini client cleanup if needed
-	}
 	if infra.Logger() != nil {
-		infra.Logger().Info("Daemon shutting down...")
+		infra.Logger().Info("Core shutting down...")
 	}
 }

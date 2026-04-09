@@ -4,10 +4,12 @@ const path = require('path');
 module.exports = {
   target: 'node',
   mode: 'none',
-  entry: './src/extension.ts',
+  entry: {
+    extension: './src/extension.ts'
+  },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'extension.js',
+    filename: '[name].js',
     libraryTarget: 'commonjs2',
   },
   externals: {

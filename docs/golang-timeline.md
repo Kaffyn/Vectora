@@ -1471,7 +1471,7 @@ Geração de documentação Swagger/OpenAPI a partir de comentários Go. Integra
 | **Generics**       | Sem generics, `interface{}`      | Sem generics            | Sem generics               | Go 1.18+: generics nativos                    |
 | **Deps**           | GOPATH + `go get` HEAD           | `dep`, `glide`, `godep` | Go Modules padrão          | Modules + toolchain management                |
 | **Debugger**       | GDB (sem suporte a goroutines)   | Delve v1                | Delve + DAP                | Delve maduro, LSP/gopls                       |
-| **Tray/Daemon**    | CGO + API nativa por OS          | getlantern/systray      | systray estável            | systray multiplataforma                       |
+| **Tray/Core**      | CGO + API nativa por OS          | getlantern/systray      | systray estável            | systray multiplataforma                       |
 | **Inferência IA**  | Sidecar Python/TF via HTTP       | Sidecar Python via HTTP | Sidecar llama.cpp via HTTP | Sidecar llama.cpp via STDIO, langchaingo      |
 | **Embeddings**     | Servidor externo obrigatório     | Servidor externo        | chromem-go early           | chromem-go estável, in-process                |
 | **gRPC**           | HTTP/REST apenas                 | grpc-go v1              | grpc-go consolidado        | connect-go como alternativa                   |
@@ -1491,4 +1491,17 @@ O ecossistema Go caminhou consistentemente em direção a **CGO_ENABLED=0** como
 
 Desde o Go 1.0, a linguagem manteve sua filosofia central: **explícito é melhor que implícito**, **composição é melhor que herança**, **concorrência é uma primitiva, não uma biblioteca**. O ecossistema reflete isso — frameworks Go tendem a ser composáveis, transparentes e próximos da stdlib em vez de opacos e mágicos como Rails ou Spring.
 
-O Go de 2025 é a mesma linguagem de 2012 em espírito — mas com generics, modules, GC de sub-milissegundo, ecossistema desktop maduro, e um toolchain que compete com Rust em segurança de concorrência e com Python em produtividade de desenvolvimento.
+## O Go de 2025 é a mesma linguagem de 2012 em espírito — mas com generics, modules, GC de sub-milissegundo, ecossistema desktop maduro, e um toolchain que compete com Rust em segurança de concorrência e com Python em produtividade de desenvolvimento.
+
+## 14. Linha do Tempo Vectora (Go-Based)
+
+O Vectora escolheu Go como sua linguagem de núcleo por sua portabilidade, simplicidade de implantação (binário único) e excelente suporte para concorrência e ferramentas de sistema.
+
+- **Março 2026 — Concepção:** Decisão de migrar o motor agêntico de Rust para Go para acelerar o desenvolvimento de ferramentas de sistema e integração com IDEs.
+- **Abril 2026 — MVP Alpha:** Implementação do Daemon básico, suporte a JSON-RPC e integração com Gemini 1.5.
+- **Abril 2026 — Estabilização (v0.1.0):** Integração total com VS Code, motor Guardian implementado e suporte a protocolo ACP unificado.
+- **Abril 2026 — Auditoria Técnica:** Documentação total dos blueprints e auditoria completa de testes.
+
+---
+
+_Documento de referência para o ecossistema Go. Atualizado conforme a evolução do projeto Vectora._

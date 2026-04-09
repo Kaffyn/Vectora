@@ -128,6 +128,38 @@ vectora embed
 vectora ask "How does authentication work?"
 ```
 
+## 🧪 Testing
+
+O Vectora utiliza uma estratégia de testes em pirâmide para garantir estabilidade tanto no Core quanto na Extensão.
+
+### Go Core
+
+Testes unitários e de integração com motor de mock persistente.
+
+```bash
+go test ./... -race
+```
+
+### VS Code Extension
+
+Testes unitários para o cliente IPC e integração de UI via `vscode-test`.
+
+```bash
+cd extensions/vscode
+npm install
+npm test
+```
+
+### E2E Smoke Tests
+
+Validação do fluxo completo usando o Core mockado. Rodado automaticamente como parte da suíte `npm test`.
+
+---
+
+## 📜 License
+
+MIT
+
 ---
 
 ## Use Cases
@@ -149,7 +181,7 @@ vectora ask "How does authentication work?"
 ## Tech Stack
 
 - **Language:** Go 1.23+
-- **CLI/Daemon:** Cobra CLI + Systray
+- **CLI/Core:** Cobra CLI + Systray
 - **Vector DB:** chromem-go (lightweight, local-first)
 - **Metadata DB:** bbolt (ACID)
 - **IA Engine:** Direct calls (HTTP/STDIO) — no framework overhead

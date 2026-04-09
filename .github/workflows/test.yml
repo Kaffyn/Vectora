@@ -7,11 +7,11 @@ on:
       - master
       - develop
     paths:
-      - 'cmd/**'
-      - 'internal/**'
-      - 'go.mod'
-      - 'go.sum'
-      - '.github/workflows/test.yml'
+      - "cmd/**"
+      - "internal/**"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/test.yml"
   pull_request:
     branches:
       - main
@@ -35,7 +35,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.22'
+          go-version: "1.22"
           cache: true
 
       - name: Run unit tests
@@ -66,13 +66,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.22'
+          go-version: "1.22"
           cache: true
 
       - name: Build binaries for testing
         run: |
           mkdir -p bin
-          go build -o bin/vectora ./cmd/daemon
+          go build -o bin/vectora ./cmd/core
           go build -o bin/vectora-tui ./cmd/tui
           go build -o bin/vectora-setup ./cmd/setup
           go build -o bin/mpm ./cmd/mpm
@@ -89,7 +89,7 @@ jobs:
       - name: Test binary execution on Windows
         if: runner.os == 'Windows'
         run: |
-          .\bin\vectora.exe --version 2>$null || echo "Note: daemon may require systray context"
+          .\bin\vectora.exe --version 2>$null || echo "Note: core may require systray context"
           .\bin\vectora-tui.exe --version 2>$null || echo "Note: TUI may require terminal"
           .\bin\mpm.exe list
           .\bin\lpm.exe list
@@ -113,7 +113,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.22'
+          go-version: "1.22"
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
@@ -132,7 +132,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.22'
+          go-version: "1.22"
 
       - name: Check go fmt
         run: |
@@ -154,7 +154,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.22'
+          go-version: "1.22"
 
       - name: Run go vet
         run: go vet ./...

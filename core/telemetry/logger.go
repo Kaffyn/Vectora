@@ -10,7 +10,7 @@ import (
 var GlobalLogger *slog.Logger
 
 // InitLogger configura o logger global do Vectora Core.
-// Deve ser chamado uma única vez no startup do daemon.
+// Deve ser chamado uma única vez no startup do core.
 func InitLogger(logDir string) error {
 	logPath := filepath.Join(logDir, "vectora-core.log")
 

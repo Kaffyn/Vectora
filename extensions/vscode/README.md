@@ -116,7 +116,7 @@ Place `vectora.exe` (Windows) or `vectora` (Linux/macOS) in your `PATH`, or conf
 ```bash
 git clone https://github.com/Kaffyn/Vectora.git
 cd Vectora
-go build -o vectora ./cmd/daemon/
+go build -o vectora ./cmd/core/
 # Move to PATH or set vectora.corePath in VS Code settings
 ```
 
@@ -331,7 +331,7 @@ cat ~/.Vectora/.env
 **Check logs:**
 
 ```
-%USERPROFILE%\.Vectora\logs\daemon.log
+%USERPROFILE%\.Vectora\logs\core.log
 ```
 
 ### "Vectora failed to start"
@@ -384,7 +384,7 @@ npx vsce package         # generate .vsix
 extensions/vscode/
 ├── src/
 │   ├── extension.ts         # Activation, commands, status bar
-│   ├── acp-client.ts        # ACP JSON-RPC client (stdio transport)
+│   ├── client.ts        # ACP JSON-RPC client (stdio transport)
 │   ├── chat-panel.ts        # WebviewPanel with streaming UI
 │   ├── binary-manager.ts    # Binary resolution + auto-download
 │   ├── inline-completion.ts # InlineCompletionItemProvider (stub)

@@ -41,7 +41,7 @@ Vectora is organized as a monorepo. The current MVP focus is 100% on the **core*
 **1. Preparation:**
 
 - Ensure you have Go 1.23 installed.
-- Configure your environment to run the daemon (using named pipes requires Windows).
+- Configure your environment to run the core (using named pipes requires Windows).
 
 **2. Branching and Commits:**
 

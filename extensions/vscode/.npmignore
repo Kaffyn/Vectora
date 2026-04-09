@@ -1,0 +1,9 @@
+src/
+tsconfig.json
+webpack.config.js
+package-lock.json
+.vscode/
+.vscodeignore
+npm-debug.log
+**/*.map
+# Keep only dist, package.json, and documentation

@@ -1,5 +1,5 @@
 {
-  "name": "@vectora/vscode",
+  "name": "vectora",
   "displayName": "Vectora AI",
   "description": "Local AI coding assistant — RAG + agentic tools via ACP",
   "version": "0.1.0",
@@ -17,13 +17,6 @@
   "engines": {
     "vscode": "^1.90.0"
   },
-  "files": [
-    "dist",
-    "media",
-    "README.md",
-    "README.pt.md",
-    "LICENSE"
-  ],
   "categories": [
     "AI",
     "Chat",
@@ -39,16 +32,13 @@
     "acp"
   ],
   "activationEvents": [
-    "onStartupFinished"
-  ],
-  "extensionDependencies": [
-    "formulahendry.acp-client"
+    "onView:vectora.chatView"
   ],
   "contributes": {
     "commands": [
       {
         "command": "vectora.newSession",
-        "title": "Vectora: New Session",
+        "title": "Vectora: Open Chat",
         "icon": "$(add)"
       },
       {
@@ -58,8 +48,30 @@
       {
         "command": "vectora.refactorCode",
         "title": "Vectora: Refactor Code"
+      },
+      {
+        "command": "vectora.toggleStatus",
+        "title": "Vectora: Start/Stop Core"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vectora-sidebar",
+          "title": "Vectora AI",
+          "icon": "media/icon.ico"
+        }
+      ]
+    },
+    "views": {
+      "vectora-sidebar": [
+        {
+          "type": "webview",
+          "id": "vectora.chatView",
+          "name": "Chat"
+        }
+      ]
+    },
     "configuration": {
       "title": "Vectora",
       "properties": {
@@ -90,26 +102,18 @@
           "group": "vectora@2"
         }
       ]
-    },
-    "acpAgents": [
-      {
-        "id": "vectora",
-        "name": "Vectora",
-        "description": "Local AI coding assistant with RAG and agentic tools",
-        "command": "vectora",
-        "args": ["acp"],
-        "icon": "media/icon.png"
-      }
-    ]
+    }
   },
   "main": "./dist/extension.js",
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "webpack --mode production",
     "watch": "webpack --mode development --watch",
+    "compile-tests": "tsc",
     "lint": "eslint src --ext ts",
     "package": "vsce package",
-    "publish": "vsce publish"
+    "publish": "vsce publish",
+    "test": "npm run compile-tests && node ./dist/test/runTest.js"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -121,6 +125,11 @@
     "typescript": "^5.3.0",
     "webpack": "^5.90.0",
     "webpack-cli": "^5.1.0",
-    "@vscode/vsce": "^2.24.0"
+    "@vscode/vsce": "^2.24.0",
+    "@vscode/test-electron": "^2.4.0",
+    "mocha": "^10.4.0",
+    "@types/mocha": "^10.0.6",
+    "glob": "^10.3.12",
+    "@types/glob": "^8.1.0"
   }
 }

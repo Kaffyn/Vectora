@@ -25,8 +25,9 @@ func RegisterRoutes(
 	// [1] Main RAG Query
 	server.Register("workspace.query", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
 		var req struct {
-			WorkspaceID string `json:"workspace_id"`
-			Query       string `json:"query"`
+			WorkspaceID    string `json:"workspace_id"`
+			Query          string `json:"query"`
+			ConversationID string `json:"conversation_id,omitempty"`
 		}
 		if err := json.Unmarshal(payload, &req); err != nil {
 			return nil, ErrIPCPayloadInvalid
@@ -55,10 +56,37 @@ func RegisterRoutes(
 			contextText += doc.Content + "\n---\n"
 		}
 
-		messages := []llm.Message{
-			{Role: llm.RoleSystem, Content: "You are Vectora. Use the following context:\n" + contextText},
-			{Role: llm.RoleUser, Content: req.Query},
+		var messages []llm.Message
+
+		if req.ConversationID != "" {
+			// Load or create conversation
+			conv, err := msgService.GetConversation(ctx, req.ConversationID)
+			if err != nil {
+				// First turn: create it
+				msgService.CreateConversation(ctx, req.ConversationID, "chat")
+				messages = append(messages, llm.Message{
+					Role:    llm.RoleSystem,
+					Content: "You are Vectora. Use the following context:\n" + contextText,
+				})
+			} else {
+				// Inject system prompt first, then history
+				messages = append(messages, llm.Message{
+					Role:    llm.RoleSystem,
+					Content: "You are Vectora. Use the following context:\n" + contextText,
+				})
+				for _, m := range conv.Messages {
+					messages = append(messages, llm.Message{Role: m.Role, Content: m.Content})
+				}
+			}
+			msgService.AddMessage(ctx, req.ConversationID, llm.RoleUser, req.Query)
+		} else {
+			messages = append(messages, llm.Message{
+				Role:    llm.RoleSystem,
+				Content: "You are Vectora. Use the following context:\n" + contextText,
+			})
 		}
+
+		messages = append(messages, llm.Message{Role: llm.RoleUser, Content: req.Query})
 
 		resp, err := provider.Complete(ctx, llm.CompletionRequest{
 			Messages:    messages,
@@ -67,6 +95,10 @@ func RegisterRoutes(
 		})
 		if err != nil {
 			return nil, &IPCError{Code: "llm_failed", Message: err.Error()}
+		}
+
+		if req.ConversationID != "" {
+			msgService.AddMessage(ctx, req.ConversationID, llm.RoleAssistant, resp.Content)
 		}
 
 		return map[string]any{"answer": resp.Content, "sources": chunks}, nil

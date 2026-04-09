@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"strings"
+
+	"github.com/Kaffyn/Vectora/core/api/acp"
 	"github.com/Kaffyn/Vectora/core/db"
 	"github.com/Kaffyn/Vectora/core/ingestion"
 	"github.com/Kaffyn/Vectora/core/llm"
@@ -56,41 +59,86 @@ type ToolCallRequest struct {
 }
 
 // ExecuteTool delegates to the tools registry with Guardian validation.
-func (e *Engine) ExecuteTool(ctx context.Context, req ToolCallRequest) (*tools.ToolResult, error) {
-	tool, ok := e.Tools.GetTool(req.Name)
+func (e *Engine) ExecuteTool(ctx context.Context, name string, args map[string]any) (acp.ToolResult, error) {
+	tool, ok := e.Tools.GetTool(name)
 	if !ok {
-		return nil, fmt.Errorf("tool %s not found", req.Name)
+		return acp.ToolResult{Output: fmt.Sprintf("Tool %s not found", name), IsError: true}, nil
 	}
-	return tool.Execute(ctx, req.Arguments)
+	
+	argsJSON, _ := json.Marshal(args)
+	result, err := tool.Execute(ctx, argsJSON)
+	if err != nil {
+		return acp.ToolResult{Output: err.Error(), IsError: true}, nil
+	}
+	
+	return acp.ToolResult{Output: result.Output, IsError: result.IsError}, nil
 }
 
-// StreamQuery executes a RAG query and streams back results.
-func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID string) (chan QueryChunk, error) {
+// Embed generates an embedding vector using the default provider.
+func (e *Engine) Embed(ctx context.Context, text string) ([]float32, error) {
+	provider := e.LLM.GetDefault()
+	if provider == nil {
+		return nil, fmt.Errorf("no LLM provider configured")
+	}
+	return provider.Embed(ctx, text)
+}
+
+// Query is the entry point for the ACP server. It uses the agentic StreamQuery loop.
+func (e *Engine) Query(ctx context.Context, query string, workspaceID string, model string, mode string, policy string) (string, error) {
+	ch, err := e.StreamQuery(ctx, query, workspaceID, model, mode, policy)
+	if err != nil {
+		return "", err
+	}
+	
+	var finalAnswer string
+	for chunk := range ch {
+		if chunk.IsFinal {
+			finalAnswer = chunk.Token
+		}
+	}
+	return finalAnswer, nil
+}
+
+// StreamQuery executes an agentic query with multi-turn tool support.
+func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID string, model string, mode string, policy string) (chan QueryChunk, error) {
 	ch := make(chan QueryChunk)
 
 	go func() {
 		defer close(ch)
 
 		provider := e.LLM.GetDefault()
+		
+		// If a model is specified, try to find the provider for it
+		if model != "" {
+			if strings.HasPrefix(model, "claude") || strings.HasPrefix(model, "4.6") {
+				if p, err := e.LLM.GetProvider("claude"); err == nil && p.IsConfigured() {
+					provider = p
+				}
+			} else if strings.HasPrefix(model, "gemini") {
+				if p, err := e.LLM.GetProvider("gemini"); err == nil && p.IsConfigured() {
+					provider = p
+				}
+			}
+		}
+
 		if provider == nil || !provider.IsConfigured() {
 			ch <- QueryChunk{Token: "No LLM provider configured.", IsFinal: true}
 			return
 		}
 
-		// 1. Embed query
+		// 1. Embed query for RAG
 		vector, err := provider.Embed(ctx, query)
 		if err != nil {
 			ch <- QueryChunk{Token: fmt.Sprintf("Embed error: %v", err), IsFinal: true}
 			return
 		}
 
-		// 2. Retrieve from vector store
+		// 2. Retrieve context
 		chunks, err := e.Storage.Query(ctx, "ws_"+workspaceID, vector, 5)
 		if err != nil {
 			chunks = []db.ScoredChunk{}
 		}
 
-		// 3. Build context
 		contextText := ""
 		for _, doc := range chunks {
 			if filename, ok := doc.Metadata["filename"]; ok {
@@ -99,7 +147,7 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 			contextText += doc.Content + "\n---\n"
 		}
 
-		// 4. Build tool definitions for LLM
+		// 3. Prepare Tool Definitions
 		var toolDefs []llm.ToolDefinition
 		for _, t := range e.Tools.GetAll() {
 			toolDefs = append(toolDefs, llm.ToolDefinition{
@@ -109,36 +157,64 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 			})
 		}
 
-		// 5. Complete
+		// 4. Agent Loop (Multi-turn)
 		messages := []llm.Message{
-			{Role: llm.RoleSystem, Content: "You are Vectora. Use the following context as your source of truth:\n" + contextText},
+			{Role: llm.RoleSystem, Content: "You are Vectora, an expert AI coding assistant. Use the provided tools to fulfill requests. Trust Folder: " + e.Tools.TrustFolder + "\n\nContext:\n" + contextText},
 			{Role: llm.RoleUser, Content: query},
 		}
 
-		resp, err := provider.Complete(ctx, llm.CompletionRequest{
-			Messages:    messages,
-			MaxTokens:   1500,
-			Temperature: 0.1,
-			Tools:       toolDefs,
-		})
-		if err != nil {
-			ch <- QueryChunk{Token: fmt.Sprintf("LLM error: %v", err), IsFinal: true}
-			return
+		maxTurns := 5
+		if mode == "planning" {
+			maxTurns = 10
 		}
 
-		// 6. Handle tool calls
-		if len(resp.ToolCalls) > 0 {
+		for turn := 0; turn < maxTurns; turn++ {
+			resp, err := provider.Complete(ctx, llm.CompletionRequest{
+				Messages:    messages,
+				Model:       model,
+				MaxTokens:   4000,
+				Temperature: 0.1,
+				Tools:       toolDefs,
+			})
+			if err != nil {
+				ch <- QueryChunk{Token: fmt.Sprintf("LLM error: %v", err), IsFinal: true}
+				return
+			}
+
+			// Add assistant message (including tool calls) to history
+			messages = append(messages, llm.Message{
+				Role:      llm.RoleAssistant,
+				Content:   resp.Content,
+				ToolCalls: resp.ToolCalls,
+			})
+
+			if len(resp.ToolCalls) == 0 {
+				// No more tools to call, return final answer
+				ch <- QueryChunk{Token: resp.Content, Sources: chunks, IsFinal: true}
+				return
+			}
+
+			// Execute tools and add results to history
 			for _, tc := range resp.ToolCalls {
+				ch <- QueryChunk{Token: fmt.Sprintf("\n[Executing %s...]", tc.Name), IsFinal: false}
+				
 				result, err := e.Tools.ExecuteStringArgs(ctx, tc.Name, tc.Args)
+				output := ""
 				if err != nil {
-					ch <- QueryChunk{Token: fmt.Sprintf("\n[Tool %s error: %v]", tc.Name, err), IsFinal: false}
+					output = fmt.Sprintf("Error: %v", err)
 				} else {
-					ch <- QueryChunk{Token: fmt.Sprintf("\n[Tool %s]: %s", tc.Name, result.Output), IsFinal: false}
+					output = result.Output
 				}
+
+				messages = append(messages, llm.Message{
+					Role:       llm.RoleTool,
+					Content:    output,
+					ToolCallID: tc.ID,
+				})
 			}
 		}
 
-		ch <- QueryChunk{Token: resp.Content, Sources: chunks, IsFinal: true}
+		ch <- QueryChunk{Token: "Max tool turns reached.", IsFinal: true}
 	}()
 
 	return ch, nil
@@ -147,7 +223,7 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 // ProcessQuery is the synchronous version of StreamQuery.
 func (e *Engine) ProcessQuery(query string, workspaceID string) (string, error) {
 	ctx := context.Background()
-	ch, err := e.StreamQuery(ctx, query, workspaceID)
+	ch, err := e.StreamQuery(ctx, query, workspaceID, "", "", "")
 	if err != nil {
 		return "", err
 	}
@@ -156,6 +232,82 @@ func (e *Engine) ProcessQuery(query string, workspaceID string) (string, error) 
 		result += chunk.Token
 	}
 	return result, nil
+}
+
+// ReadFile reads a file via the read_file tool.
+func (e *Engine) ReadFile(ctx context.Context, path string) (string, error) {
+	res, err := e.ExecuteTool(ctx, "read_file", map[string]any{"path": path})
+	if err != nil {
+		return "", err
+	}
+	if res.IsError {
+		return "", fmt.Errorf("%s", res.Output)
+	}
+	return res.Output, nil
+}
+
+// WriteFile writes to a file via the write_file tool.
+func (e *Engine) WriteFile(ctx context.Context, path, content string) error {
+	res, err := e.ExecuteTool(ctx, "write_file", map[string]any{"path": path, "content": content})
+	if err != nil {
+		return err
+	}
+	if res.IsError {
+		return fmt.Errorf("%s", res.Output)
+	}
+	return nil
+}
+
+// RunCommand executes a shell command via the terminal_run tool.
+func (e *Engine) RunCommand(ctx context.Context, cwd, command string) (string, error) {
+	res, err := e.ExecuteTool(ctx, "terminal_run", map[string]any{"command": command})
+	if err != nil {
+		return "", err
+	}
+	if res.IsError {
+		return res.Output, fmt.Errorf("command failed")
+	}
+	return res.Output, nil
+}
+
+// GrepSearch performs a regex search via the grep_search tool.
+func (e *Engine) GrepSearch(ctx context.Context, root, pattern string) (string, error) {
+	res, err := e.ExecuteTool(ctx, "grep_search", map[string]any{"pattern": pattern, "path": root})
+	if err != nil {
+		return "", err
+	}
+	return res.Output, nil
+}
+
+// Edit applies changes to a file via the edit tool.
+func (e *Engine) Edit(ctx context.Context, path, instruction, content string) (string, error) {
+	res, err := e.ExecuteTool(ctx, "edit", map[string]any{
+		"path":        path,
+		"instruction": instruction,
+		"content":     content,
+	})
+	if err != nil {
+		return "", err
+	}
+	return res.Output, nil
+}
+
+// WebSearch performs a web search via the google_search tool.
+func (e *Engine) WebSearch(ctx context.Context, query string) (string, error) {
+	res, err := e.ExecuteTool(ctx, "google_search", map[string]any{"query": query})
+	if err != nil {
+		return "", err
+	}
+	return res.Output, nil
+}
+
+// WebFetch fetches content via the web_fetch tool.
+func (e *Engine) WebFetch(ctx context.Context, url string) (string, error) {
+	res, err := e.ExecuteTool(ctx, "web_fetch", map[string]any{"url": url})
+	if err != nil {
+		return "", err
+	}
+	return res.Output, nil
 }
 
 // StartIndexation triggers the indexing pipeline.

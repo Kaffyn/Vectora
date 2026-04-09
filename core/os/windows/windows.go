@@ -124,7 +124,7 @@ func (m *WindowsManager) UnregisterApp(installDir string) {
 }
 
 func (m *WindowsManager) EnforceSingleInstance() error {
-	mutexName, _ := windows.UTF16PtrFromString("Global\\VectoraDaemonMutex_v1")
+	mutexName, _ := windows.UTF16PtrFromString("Global\\VectoraCoreMutex_v1")
 	_, err := windows.CreateMutex(nil, false, mutexName)
 	if err == windows.ERROR_ALREADY_EXISTS {
 		return errors.New("instance_already_running")

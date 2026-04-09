@@ -4,29 +4,25 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/Kaffyn/Vectora/core/db"
+	"strings"
 )
 
-// ClaudeProvider implements the Provider interface for Anthropic Claude via HTTP API.
 type ClaudeProvider struct {
 	apiKey string
-	model  string
 	client *http.Client
 }
 
-// NewClaudeProvider creates a new Claude provider using the Anthropic API.
 func NewClaudeProvider(ctx context.Context, apiKey string) (*ClaudeProvider, error) {
 	if apiKey == "" {
-		return nil, fmt.Errorf("claude_api_key_required: Claude API key was not provided")
+		return nil, errors.New("claude_api_key_required: Claude API key was not provided")
 	}
 
 	return &ClaudeProvider{
 		apiKey: apiKey,
-		model:  "claude-3-5-sonnet-20241022",
 		client: &http.Client{},
 	}, nil
 }
@@ -36,54 +32,94 @@ func (p *ClaudeProvider) Name() string {
 }
 
 func (p *ClaudeProvider) IsConfigured() bool {
-	return p.apiKey != "" && p.client != nil
+	return p.apiKey != ""
 }
 
-// Complete sends a completion request to Claude API.
+type claudeMessage struct {
+	Role    string      `json:"role"`
+	Content interface{} `json:"content"` // can be string or []interface{}
+}
+
+type claudeTool struct {
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	InputSchema interface{} `json:"input_schema"`
+}
+
+type claudeRequest struct {
+	Model       string         `json:"model"`
+	Messages    []claudeMessage `json:"messages"`
+	System      string         `json:"system,omitempty"`
+	MaxTokens   int            `json:"max_tokens"`
+	Temperature float32        `json:"temperature"`
+	Tools       []claudeTool   `json:"tools,omitempty"`
+}
+
+type claudeResponse struct {
+	ID      string `json:"id"`
+	Content []struct {
+		Type string `json:"type"`
+		Text string `json:"text,omitempty"`
+		ID   string `json:"id,omitempty"`   // for tool_use
+		Name string `json:"name,omitempty"` // for tool_use
+		Input json.RawMessage `json:"input,omitempty"`
+	} `json:"content"`
+	Usage struct {
+		InputTokens  int `json:"input_tokens"`
+		OutputTokens int `json:"output_tokens"`
+	} `json:"usage"`
+}
+
 func (p *ClaudeProvider) Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error) {
-	// Build messages array for Claude API
-	var messages []map[string]string
+	modelName := req.Model
+	if modelName == "" {
+		modelName = "claude-3-5-sonnet-20241022"
+	}
+	
+	// Map "4.6" aliases to real models
+	if strings.Contains(modelName, "4.6-sonnet") {
+		modelName = "claude-3-5-sonnet-20241022"
+	} else if strings.Contains(modelName, "4.6-opus") {
+		modelName = "claude-3-opus-20240229"
+	} else if strings.Contains(modelName, "4.6-haiku") {
+		modelName = "claude-3-5-haiku-20241022"
+	}
+
+	url := "https://api.anthropic.com/v1/messages"
+
+	var messages []claudeMessage
 	for _, msg := range req.Messages {
-		role := string(msg.Role)
-		if role == "system" {
-			// Claude handles system prompt separately
+		if msg.Role == RoleSystem {
 			continue
 		}
-		if role == "model" {
-			role = "assistant"
-		}
-		messages = append(messages, map[string]string{
-			"role":    role,
-			"content": msg.Content,
+		messages = append(messages, claudeMessage{
+			Role:    string(msg.Role),
+			Content: msg.Content,
 		})
 	}
 
-	// Extract system prompt
-	var systemPrompt string
-	for _, msg := range req.Messages {
-		if msg.Role == "system" {
-			systemPrompt = msg.Content
-			break
+	claudeReq := claudeRequest{
+		Model:       modelName,
+		Messages:    messages,
+		System:      req.SystemPrompt,
+		MaxTokens:   req.MaxTokens,
+		Temperature: req.Temperature,
+	}
+
+	if len(req.Tools) > 0 {
+		for _, t := range req.Tools {
+			var schema interface{}
+			json.Unmarshal(t.Schema, &schema)
+			claudeReq.Tools = append(claudeReq.Tools, claudeTool{
+				Name:        t.Name,
+				Description: t.Description,
+				InputSchema: schema,
+			})
 		}
 	}
 
-	// Build request body
-	body := map[string]any{
-		"model":       p.model,
-		"messages":    messages,
-		"max_tokens":  req.MaxTokens,
-		"temperature": req.Temperature,
-	}
-	if systemPrompt != "" {
-		body["system"] = systemPrompt
-	}
-
-	bodyJSON, err := json.Marshal(body)
-	if err != nil {
-		return CompletionResponse{}, fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", "https://api.anthropic.com/v1/messages", bytes.NewReader(bodyJSON))
+	body, _ := json.Marshal(claudeReq)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
 	if err != nil {
 		return CompletionResponse{}, err
 	}
@@ -94,7 +130,7 @@ func (p *ClaudeProvider) Complete(ctx context.Context, req CompletionRequest) (C
 
 	resp, err := p.client.Do(httpReq)
 	if err != nil {
-		return CompletionResponse{}, fmt.Errorf("claude request failed: %w", err)
+		return CompletionResponse{}, err
 	}
 	defer resp.Body.Close()
 
@@ -103,48 +139,36 @@ func (p *ClaudeProvider) Complete(ctx context.Context, req CompletionRequest) (C
 		return CompletionResponse{}, fmt.Errorf("claude API error (%d): %s", resp.StatusCode, string(respBody))
 	}
 
-	var claudeResp struct {
-		Content []struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		} `json:"content"`
-		Usage struct {
-			InputTokens  int `json:"input_tokens"`
-			OutputTokens int `json:"output_tokens"`
-		} `json:"usage"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&claudeResp); err != nil {
-		return CompletionResponse{}, fmt.Errorf("failed to decode response: %w", err)
+	var cResp claudeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&cResp); err != nil {
+		return CompletionResponse{}, err
 	}
 
 	var content string
-	for _, c := range claudeResp.Content {
-		if c.Type == "text" {
-			content += c.Text
+	var tCalls []ToolCall
+	for _, item := range cResp.Content {
+		if item.Type == "text" {
+			content += item.Text
+		} else if item.Type == "tool_use" {
+			tCalls = append(tCalls, ToolCall{
+				ID:   item.ID,
+				Name: item.Name,
+				Args: string(item.Input),
+			})
 		}
 	}
 
 	return CompletionResponse{
-		Content: content,
+		Content:   content,
+		ToolCalls: tCalls,
 		Usage: TokenUsage{
-			PromptTokens:     claudeResp.Usage.InputTokens,
-			CompletionTokens: claudeResp.Usage.OutputTokens,
-			TotalTokens:      claudeResp.Usage.InputTokens + claudeResp.Usage.OutputTokens,
+			PromptTokens:     cResp.Usage.InputTokens,
+			CompletionTokens: cResp.Usage.OutputTokens,
+			TotalTokens:      cResp.Usage.InputTokens + cResp.Usage.OutputTokens,
 		},
 	}, nil
 }
 
-// Embed generates an embedding using Claude. Note: Claude doesn't natively support embeddings,
-// so this falls back to a simple hash-based embedding for compatibility.
-// In production, use a dedicated embedding model (e.g., Gemini Embedding).
 func (p *ClaudeProvider) Embed(ctx context.Context, input string) ([]float32, error) {
-	// Claude doesn't have a native embedding API.
-	// Return a deterministic hash-based embedding for compatibility.
-	// For production RAG, configure Gemini as the embedding provider.
-	return db.GenerateDummyEmbedding(input, 768), nil
-}
-
-// Close releases resources held by the provider.
-func (p *ClaudeProvider) Close() {
-	// No persistent connections to close
+	return nil, errors.New("claude_no_native_embedding")
 }

@@ -149,7 +149,7 @@ vectora ask "Como funciona a autenticação?"
 ## Stack Tecnológica
 
 - **Linguagem:** Go 1.23+
-- **CLI/Daemon:** Cobra CLI + Systray
+- **CLI/Core:** Cobra CLI + Systray
 - **Vector DB:** chromem-go (leve, local-first)
 - **Metadata DB:** bbolt (ACID)
 - **Motor de IA:** Chamadas diretas (HTTP/STDIO) — sem overhead de frameworks

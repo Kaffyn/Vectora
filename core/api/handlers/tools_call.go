@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -68,10 +69,7 @@ func HandleToolsCall(eng *engine.Engine, params json.RawMessage) (interface{}, e
 	}
 
 	// Execute tool via engine
-	result, err := eng.ExecuteTool(nil, engine.ToolCallRequest{
-		Name:      req.Name,
-		Arguments: params, // Pass raw params for the engine to parse
-	})
+	result, err := eng.ExecuteTool(context.Background(), req.Name, req.Arguments)
 	if err != nil {
 		return nil, jsonrpc.NewError(-32000, err.Error())
 	}
@@ -164,8 +162,8 @@ func HandleSessionPrompt(eng *engine.Engine, params json.RawMessage) (interface{
 		return nil, jsonrpc.NewError(-32602, "Empty prompt")
 	}
 
-	// Execute query via engine
-	answer, err := eng.ProcessQuery(queryText, "default")
+	// Execute query via engine using Query instead of ProcessQuery (which might be deprecated/renamed)
+	answer, err := eng.Query(context.Background(), queryText, "default", "gemini-3-flash", "fast", "ask")
 	if err != nil {
 		return nil, jsonrpc.NewError(-32000, err.Error())
 	}
