@@ -131,13 +131,13 @@ function App() {
             <div className="flex-grow overflow-y-auto scrollbar-none scroll-smooth pb-8 pt-2">
                 <div className="max-w-3xl mx-auto px-4 space-y-2">
                     {messages.length === 0 ? (
-                        <div className="h-[60vh] flex flex-col items-center justify-center opacity-80 space-y-4 animate-in fade-in duration-700">
-                             <div className="w-16 h-16 rounded-2xl bg-vscode-accent/10 flex items-center justify-center border border-vscode-accent/20 rotate-3 group-hover:rotate-0 transition-transform">
-                                <img src="https://raw.githubusercontent.com/Kaffyn/Vectora/main/media/icon.png" className="w-10 h-10 grayscale opacity-80" alt="Vectora" />
+                        <div className="h-[65vh] flex flex-col items-center justify-center space-y-4 animate-in fade-in duration-1000">
+                             <div className="w-14 h-14 rounded-xl bg-vscode-widget-shadow/10 flex items-center justify-center border border-vscode-widget-border contrast-125">
+                                <img src="https://raw.githubusercontent.com/Kaffyn/Vectora/main/media/icon.png" className="w-8 h-8 opacity-80" alt="Vectora" />
                              </div>
                              <div className="text-center">
-                                <h2 className="text-lg font-bold tracking-tight">Vectora AI</h2>
-                                <p className="text-xs">How can I help you today?</p>
+                                <h2 className="text-sm font-bold tracking-tight text-vscode-editor-foreground">Vectora AI</h2>
+                                <p className="text-[11px] text-vscode-descriptionForeground font-medium mt-1">Ready to assist Master with engineering questions</p>
                              </div>
                         </div>
                     ) : (

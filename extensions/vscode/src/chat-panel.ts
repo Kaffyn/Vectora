@@ -70,6 +70,20 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   private async sendMessageInternal(text: string): Promise<void> {
     if (!text.trim()) return;
 
+    if (!this.client.isRunning) {
+        await vscode.commands.executeCommand('vectora.start');
+        // Wait a few seconds for initialization to complete
+        for (let i = 0; i < 20; i++) {
+            if (this.client.isRunning) break;
+            await new Promise(r => setTimeout(r, 500));
+        }
+    }
+
+    if (!this.client.isRunning) {
+        this._view?.webview.postMessage({ type: 'error', message: 'Vectora Core is not running. Failed to auto-start.' });
+        return;
+    }
+
     if (!this.client.sessionId) {
       const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       if (!workspacePath) {
@@ -77,10 +91,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         return;
       }
       
-      const resp = await this.client.request<SessionNewRequest, SessionNewResponse>('session/new', { 
-        cwd: workspacePath 
-      });
-      this.client.sessionId = resp.sessionId;
+      try {
+        const resp = await this.client.request<SessionNewRequest, SessionNewResponse>('session/new', { 
+            cwd: workspacePath 
+        });
+        this.client.sessionId = resp.sessionId;
+      } catch (err: any) {
+        this._view?.webview.postMessage({ type: 'error', message: `Failed to create session: ${err.message}` });
+        return;
+      }
     }
 
     this._view?.webview.postMessage({ type: 'user_message', id: Date.now().toString(), text });

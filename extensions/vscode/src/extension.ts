@@ -11,13 +11,15 @@ let chatProvider: ChatViewProvider | undefined;
 const binaryManager = new BinaryManager();
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  // Create status bar early
-  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  statusBarItem.command = 'vectora.toggleStatus';
-  statusBarItem.text = '$(circle-outline) Vectora: Stopped';
-  statusBarItem.tooltip = 'Click to Start Vectora';
+  // Ensure we only ever have one status bar item
+  if (!statusBarItem) {
+    statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    statusBarItem.command = 'vectora.toggleStatus';
+    context.subscriptions.push(statusBarItem);
+  }
+  
+  updateStatusStopped();
   statusBarItem.show();
-  context.subscriptions.push(statusBarItem);
 
   // Register Commands
   context.subscriptions.push(
@@ -27,6 +29,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       } else {
         await startVectora(context);
       }
+    }),
+
+    vscode.commands.registerCommand('vectora.start', async () => {
+        await startVectora(context);
+    }),
+
+    vscode.commands.registerCommand('vectora.stop', async () => {
+        await stopVectora();
     }),
 
     vscode.commands.registerCommand('vectora.newSession', async () => {
@@ -56,21 +66,46 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     })
   );
 
-  // Auto-start
-  await startVectora(context);
+  // Initial attempt
+  startVectora(context);
 }
 
 async function startVectora(context: vscode.ExtensionContext) {
-  if (statusBarItem) {
-    statusBarItem.text = '$(sync~spin) Vectora: Starting...';
-    statusBarItem.tooltip = 'Vectora is initializing';
+  if (!statusBarItem) return;
+  
+  if (coreClient && coreClient.isRunning) {
+      return; 
   }
+
+  statusBarItem.text = '$(sync~spin) Vectora: Starting...';
+  statusBarItem.tooltip = 'Vectora is initializing';
+  statusBarItem.backgroundColor = undefined;
+  statusBarItem.color = undefined;
 
   try {
     const binPath = await binaryManager.ensureBinary();
     
+    // To show the Tray, we need the background core started.
+    // We'll run 'vectora start' which is detached.
+    const cp = require('child_process');
+    cp.spawn(binPath, ['start'], { detached: true, stdio: 'ignore' }).unref();
+
+    // Now connect via 'acp' bridge which talks to the background core
     coreClient = new Client('Vectora Core', binPath, ['acp']);
-    await coreClient.start();
+    
+    // Wait a bit for the core tray process to open the socket
+    let connected = false;
+    for (let i = 0; i < 10; i++) {
+        try {
+            await coreClient.start();
+            connected = true;
+            break;
+        } catch {
+            await new Promise(r => setTimeout(r, 500));
+        }
+    }
+
+    if (!connected) throw new Error("Core background service didn't start in time.");
 
     // Initialize with Core
     await coreClient.request<InitializeRequest, InitializeResponse>('initialize', {
@@ -101,11 +136,10 @@ async function startVectora(context: vscode.ExtensionContext) {
       vscode.languages.registerInlineCompletionItemProvider({ pattern: '**' }, inlineProvider)
     );
 
-    if (statusBarItem) {
-      statusBarItem.text = '$(check) Vectora: Ready';
-      statusBarItem.tooltip = 'Vectora is running. Click to Stop.';
-      statusBarItem.color = new vscode.ThemeColor('statusBarItem.prominentForeground');
-    }
+    statusBarItem.text = '$(check) Vectora: Ready';
+    statusBarItem.tooltip = 'Vectora is running. Click to Stop.';
+    statusBarItem.color = new vscode.ThemeColor('statusBarItem.prominentForeground');
+    statusBarItem.backgroundColor = undefined;
 
     // Monitor for unexpected exit
     coreClient.onExit.event(() => {
@@ -113,12 +147,14 @@ async function startVectora(context: vscode.ExtensionContext) {
     });
 
   } catch (err: any) {
-    if (statusBarItem) {
-        statusBarItem.text = `$(error) Vectora: Error`;
-        statusBarItem.tooltip = `Error: ${err.message}. Click to retry.`;
-        statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-    }
-    vscode.window.showErrorMessage(`Vectora failed to start: ${err.message}`);
+    statusBarItem.text = `$(error) Vectora: Error`;
+    statusBarItem.tooltip = `Error: ${err.message}. Click to retry.`;
+    statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+    statusBarItem.color = undefined;
+    
+    // Only show error message if it's a manual start attempt? 
+    // For now let's keep it visible since user complained about it not starting.
+    console.error(`Vectora start error: ${err.message}`);
   }
 }
 
