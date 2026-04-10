@@ -36,7 +36,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this.getHtml(webviewView.webview);
 
-    webviewView.webview.onDidReceiveMessage(async (msg) => {
+  webviewView.webview.onDidReceiveMessage(async (msg) => {
       switch (msg.type) {
         case 'send':
           await this.sendMessageInternal(msg.text);
@@ -44,9 +44,11 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
         case 'cancel':
           if (this.client.sessionId) {
             this.client.notify('session/cancel', { sessionId: this.client.sessionId });
-            this.updateUIState(false);
             this._view?.webview.postMessage({ type: 'stream_end', stopReason: 'cancelled' });
           }
+          break;
+        case 'clear':
+          await this.clearChat();
           break;
       }
     });
@@ -81,25 +83,17 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       this.client.sessionId = resp.sessionId;
     }
 
-    this.updateUIState(true);
-    this._view?.webview.postMessage({ type: 'user_message', text });
+    this._view?.webview.postMessage({ type: 'user_message', id: Date.now().toString(), text });
 
     try {
       const result = await this.client.request<SessionPromptRequest, PromptResponse>('session/prompt', {
         sessionId: this.client.sessionId!,
         prompt: [{ type: 'text', text }]
       });
-      this.updateUIState(false);
       this._view?.webview.postMessage({ type: 'stream_end', stopReason: result.stopReason });
     } catch (err: any) {
-      this.updateUIState(false);
       this._view?.webview.postMessage({ type: 'error', message: err.message });
     }
-  }
-
-  private updateUIState(streaming: boolean): void {
-    this.isStreaming = streaming;
-    this._view?.webview.postMessage({ type: 'set_ui_state', isStreaming: streaming });
   }
 
   private handleNotification(notification: any): void {
@@ -117,14 +111,23 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     switch (u.sessionUpdate) {
       case 'agent_message_chunk': {
         const text = u.content?.[0]?.content?.text || '';
-        if (text) this._view.webview.postMessage({ type: 'agent_chunk', text });
+        if (text) this._view.webview.postMessage({ type: 'agent_chunk', id: update.sessionId, text });
         break;
       }
       case 'tool_call':
-        this._view.webview.postMessage({ type: 'tool_call', toolCallId: u.toolCallId, title: u.title || u.kind || 'Tool', status: u.status });
+        this._view.webview.postMessage({ 
+            type: 'tool_call', 
+            toolCallId: u.toolCallId, 
+            title: u.title || u.kind || 'Tool', 
+            status: u.status 
+        });
         break;
       case 'tool_call_update':
-        this._view.webview.postMessage({ type: 'tool_call_update', toolCallId: u.toolCallId, status: u.status });
+        this._view.webview.postMessage({ 
+            type: 'tool_call_update', 
+            toolCallId: u.toolCallId, 
+            status: u.status 
+        });
         break;
       case 'plan':
         this._view.webview.postMessage({ type: 'plan', entries: u.entries || [] });
@@ -139,7 +142,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       { modal: true },
       'Allow', 'Deny'
     ).then(_choice => {
-      // Logic for permission handling via client.request
+      // Logic for permission handling
     });
   }
 

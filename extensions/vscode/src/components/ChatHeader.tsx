@@ -1,48 +1,46 @@
 import React from 'react';
-import { Plus, History, Settings, X, Cpu } from 'lucide-react';
+import { Plus, History, Settings, X, Sparkles } from 'lucide-react';
 import { vscode } from '../utils/vscode';
 
 export const ChatHeader: React.FC = () => {
     return (
-        <div className="flex items-center justify-between px-4 py-3 border-b border-vscode-border bg-vscode-bg/80 backdrop-blur-md sticky top-0 z-10">
-            <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-md bg-vscode-accent flex items-center justify-center">
-                    <Cpu size={12} className="text-vscode-accentFg" />
+        <div className="flex items-center justify-between px-4 py-3 border-b border-vscode-border/20 bg-vscode-bg/60 backdrop-blur-xl sticky top-0 z-20 shadow-sm">
+            <div className="flex items-center gap-2.5 group cursor-default">
+                <div className="w-6 h-6 rounded-lg bg-vscode-accent flex items-center justify-center shadow-lg shadow-vscode-accent/30 group-hover:scale-110 transition-transform duration-500">
+                    <Sparkles size={14} className="text-vscode-accentFg animate-pulse" />
                 </div>
-                <h1 className="text-[11px] font-bold uppercase tracking-[2px] opacity-80">
-                    Vectora AI
-                </h1>
+                <div className="flex flex-col -space-y-1">
+                    <h1 className="text-[10px] font-black uppercase tracking-[3px] opacity-90 text-vscode-accent">
+                        Vectora
+                    </h1>
+                    <span className="text-[8px] font-bold opacity-30 uppercase tracking-widest">
+                        Advanced AI
+                    </span>
+                </div>
             </div>
 
-            <div className="flex items-center gap-1.5 grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all">
+            <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity duration-300">
                 <button 
-                    onClick={() => vscode.postMessage({ type: 'new_chat' })}
-                    className="p-1.5 rounded-md hover:bg-vscode-inputBg transition-colors"
-                    title="New Chat"
+                    onClick={() => vscode.postMessage({ type: 'clear' })}
+                    className="p-1.5 rounded-lg hover:bg-vscode-inputBg hover:text-vscode-accent transition-all active:scale-90"
+                    title="Clear Session"
                 >
-                    <Plus size={16} />
+                    <Plus size={15} strokeWidth={2.5} />
                 </button>
                 <button 
                     onClick={() => vscode.postMessage({ type: 'show_history' })}
-                    className="p-1.5 rounded-md hover:bg-vscode-inputBg transition-colors"
+                    className="p-1.5 rounded-lg hover:bg-vscode-inputBg hover:text-vscode-accent transition-all active:scale-90"
                     title="History"
                 >
-                    <History size={16} />
+                    <History size={15} strokeWidth={2.5} />
                 </button>
+                <div className="w-[1px] h-3.5 bg-vscode-border/30 mx-0.5" />
                 <button 
                     onClick={() => vscode.postMessage({ type: 'open_settings' })}
-                    className="p-1.5 rounded-md hover:bg-vscode-inputBg transition-colors"
-                    title="Settings"
+                    className="p-1.5 rounded-lg hover:bg-vscode-inputBg hover:text-vscode-accent transition-all active:scale-90"
+                    title="Configure Vectora"
                 >
-                    <Settings size={16} />
-                </button>
-                <div className="w-[1px] h-4 bg-vscode-border/50 mx-1" />
-                <button 
-                    onClick={() => vscode.postMessage({ type: 'close_panel' })}
-                    className="p-1.5 rounded-md hover:bg-vscode-inputBg transition-colors text-red-400/70 hover:text-red-400"
-                    title="Hide Panel"
-                >
-                    <X size={16} />
+                    <Settings size={15} strokeWidth={2.5} />
                 </button>
             </div>
         </div>
