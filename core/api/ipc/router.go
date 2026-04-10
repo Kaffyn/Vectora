@@ -281,11 +281,11 @@ func RegisterRoutes(
 	// [13] Start Embedding Background Job
 	server.Register("workspace.embed.start", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
 		var req struct {
-			RootPath string `json:"rootPath"`
-			Include  string `json:"include"`
-			Exclude  string `json:"exclude"`
+			RootPath  string `json:"rootPath"`
+			Include   string `json:"include"`
+			Exclude   string `json:"exclude"`
 			Workspace string `json:"workspace"`
-			Force    bool   `json:"force"`
+			Force     bool   `json:"force"`
 		}
 		if err := json.Unmarshal(payload, &req); err != nil {
 			return nil, ErrIPCPayloadInvalid
@@ -309,16 +309,15 @@ func RegisterRoutes(
 					Force:          req.Force,
 					CollectionName: "ws_" + req.Workspace,
 				},
-				kvStore.(*db.BBoltStore), 
-				vecStore.(*db.ChromemStore),
+				kvStore,
+				vecStore,
 				provider,
 				func(prog engine.EmbedProgress) {
 					server.Broadcast("embed.progress", prog)
 				},
 			)
 		}()
-		
+
 		return map[string]bool{"started": true}, nil
 	})
 }
-

@@ -253,7 +253,7 @@ func runEmbed(rootPath string) error {
 		if err := spawnDetached(); err != nil {
 			return fmt.Errorf("failed to start background core: %v", err)
 		}
-		
+
 		// Poll until connected
 		retries := 10
 		connected := false

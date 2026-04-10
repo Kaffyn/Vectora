@@ -12,8 +12,8 @@ import (
 
 	"github.com/Kaffyn/Vectora/core/db"
 	"github.com/Kaffyn/Vectora/core/infra"
-	"github.com/Kaffyn/Vectora/core/policies"
 	"github.com/Kaffyn/Vectora/core/llm"
+	"github.com/Kaffyn/Vectora/core/policies"
 )
 
 type EmbedJobConfig struct {
@@ -48,7 +48,7 @@ var (
 )
 
 // RunEmbedJob contains the entire directory walking and chunking logic.
-func RunEmbedJob(ctx context.Context, cfg EmbedJobConfig, kvStore *db.BBoltStore, storage *db.ChromemStore, provider llm.Provider, onProgress func(EmbedProgress)) {
+func RunEmbedJob(ctx context.Context, cfg EmbedJobConfig, kvStore db.KVStore, storage db.VectorStore, provider llm.Provider, onProgress func(EmbedProgress)) {
 	activeJobsLock.Lock()
 	if activeJobs[cfg.Workspace] {
 		activeJobsLock.Unlock()
@@ -272,10 +272,10 @@ func RunEmbedJob(ctx context.Context, cfg EmbedJobConfig, kvStore *db.BBoltStore
 
 	if len(filesToEmbed) == 0 {
 		onProgress(EmbedProgress{
-			IsComplete: true, 
-			FilesSkipped: filesSkipped, 
+			IsComplete:   true,
+			FilesSkipped: filesSkipped,
 			FilesAlready: filesAlreadyIndexed,
-			TotalFiles: 0,
+			TotalFiles:   0,
 		})
 		return
 	}
@@ -303,10 +303,10 @@ func RunEmbedJob(ctx context.Context, cfg EmbedJobConfig, kvStore *db.BBoltStore
 
 		// Emit "Started file" progress
 		onProgress(EmbedProgress{
-			CurrentIdx: i,
-			TotalFiles: len(filesToEmbed),
-			DisplayPath: displayPath,
-			ElapsedSeconds: time.Since(startTime).Seconds(),
+			CurrentIdx:      i,
+			TotalFiles:      len(filesToEmbed),
+			DisplayPath:     displayPath,
+			ElapsedSeconds:  time.Since(startTime).Seconds(),
 			CurrentFilePath: relPath,
 		})
 
@@ -328,10 +328,14 @@ func RunEmbedJob(ctx context.Context, cfg EmbedJobConfig, kvStore *db.BBoltStore
 		language := "text"
 		ext := strings.ToLower(filepath.Ext(filePath))
 		switch ext {
-		case ".go": language = "go"
-		case ".py": language = "python"
-		case ".js", ".ts": language = "javascript"
-		case ".md": language = "markdown"
+		case ".go":
+			language = "go"
+		case ".py":
+			language = "python"
+		case ".js", ".ts":
+			language = "javascript"
+		case ".md":
+			language = "markdown"
 		}
 
 		embedErr := false
@@ -382,7 +386,7 @@ func RunEmbedJob(ctx context.Context, cfg EmbedJobConfig, kvStore *db.BBoltStore
 				totalEmbedded++
 				totalChunks += fileChunks
 			}
-			
+
 			onProgress(EmbedProgress{
 				CurrentIdx: i, TotalFiles: len(filesToEmbed), DisplayPath: displayPath,
 				ElapsedSeconds: time.Since(startTime).Seconds(), CurrentFilePath: relPath,
@@ -395,13 +399,13 @@ func RunEmbedJob(ctx context.Context, cfg EmbedJobConfig, kvStore *db.BBoltStore
 	infra.NotifyOS("Vectora Indexing", fmt.Sprintf("Completed indexing. %d files embedded.", totalEmbedded))
 
 	onProgress(EmbedProgress{
-		IsComplete: true,
-		FilesSkipped: filesSkipped,
-		FilesAlready: filesAlreadyIndexed,
-		TotalFiles: len(filesToEmbed),
-		TotalEmbedded: totalEmbedded,
-		TotalChunks: totalChunks,
-		TotalErrors: totalErrors,
+		IsComplete:     true,
+		FilesSkipped:   filesSkipped,
+		FilesAlready:   filesAlreadyIndexed,
+		TotalFiles:     len(filesToEmbed),
+		TotalEmbedded:  totalEmbedded,
+		TotalChunks:    totalChunks,
+		TotalErrors:    totalErrors,
 		ElapsedSeconds: time.Since(startTime).Seconds(),
 	})
 }
@@ -438,8 +442,12 @@ func chunkContent(content string, maxTokens int, overlap int) []string {
 		}
 		chunks = append(chunks, string(runes[start:chunkEnd]))
 		start = chunkEnd - overlapChars
-		if start < 0 { start = 0 }
-		if start >= chunkEnd { break }
+		if start < 0 {
+			start = 0
+		}
+		if start >= chunkEnd {
+			break
+		}
 	}
 	return chunks
 }

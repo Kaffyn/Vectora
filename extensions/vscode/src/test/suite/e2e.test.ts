@@ -4,7 +4,8 @@ import * as path from 'path';
 
 suite('Vectora E2E Smoke Test', () => {
     
-    test('Extension should start and communicate with mock core', async () => {
+    test('Extension should start and communicate with mock core', async function() {
+        this.timeout(10000); // 10 seconds timeout for E2E
         // 1. Point corePath to our mock script
         // In a real E2E, we'd use the compiled JS.
         // For testing, we point to the mock script via Node.
