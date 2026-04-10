@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { type ModelInfo, type ProviderSettings, openAiModelInfoSaneDefaults } from "@roo-code/types"
 import { openAiCodexDefaultModelId } from "@roo-code/types"
 
-import * as ExtensionStateContext from "../../context/ExtensionStateContext"
+import * as ExtensionStateContext from "@context/ExtensionStateContext"
 const { ExtensionStateContextProvider } = ExtensionStateContext
 
 import ApiOptions, { ApiOptionsProps } from "../ApiOptions"

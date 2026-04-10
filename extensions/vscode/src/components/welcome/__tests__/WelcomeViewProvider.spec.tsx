@@ -2,7 +2,7 @@
 
 import { render, screen, fireEvent } from "@/utils/test-utils"
 
-import * as ExtensionStateContext from "../../context/ExtensionStateContext"
+import * as ExtensionStateContext from "@context/ExtensionStateContext"
 const { ExtensionStateContextProvider } = ExtensionStateContext
 
 import WelcomeViewProvider from "../WelcomeViewProvider"

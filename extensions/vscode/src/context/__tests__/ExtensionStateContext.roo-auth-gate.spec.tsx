@@ -7,7 +7,7 @@ vi.mock("@src/utils/vscode", () => ({
 	},
 }))
 
-import { ExtensionStateContextProvider } from "../../context/ExtensionStateContext"
+import { ExtensionStateContextProvider } from "@context/ExtensionStateContext"
 import { vscode } from "@src/utils/vscode"
 
 describe("ExtensionStateContext Roo auth gate", () => {

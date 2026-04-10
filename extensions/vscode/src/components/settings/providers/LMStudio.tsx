@@ -1,6 +1,6 @@
 import { useCallback, useState, useMemo, useEffect } from "react"
 import { useEvent } from "react-use"
-import { Trans } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 import { Checkbox } from "vscrui"
 import { VSCodeLink, VSCodeTextField } from "@vscode/webview-ui-toolkit/react"
 

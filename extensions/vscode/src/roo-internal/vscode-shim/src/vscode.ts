@@ -144,13 +144,14 @@ export type {
 } from "./interfaces/workspace.js"
 
 // ============================================================================
-// Secret Storage interface (backwards compatibility)
+// API Instances
 // ============================================================================
-export interface SecretStorage {
-	get(key: string): Thenable<string | undefined>
-	store(key: string, value: string): Thenable<void>
-	delete(key: string): Thenable<void>
-}
+import { createVSCodeAPIMock } from "./api/create-vscode-api-mock.js"
 
-// Import Thenable for SecretStorage interface
-import type { Thenable } from "./types.js"
+const mock = createVSCodeAPIMock("", "")
+export const workspace = mock.workspace
+export const window = mock.window
+export const commands = mock.commands
+export const env = mock.env
+
+export default mock

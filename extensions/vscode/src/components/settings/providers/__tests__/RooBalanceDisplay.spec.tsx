@@ -12,7 +12,7 @@ vi.mock("../../context/ExtensionStateContext", () => ({
 }))
 
 import { useRooCreditBalance } from "@/components/ui/hooks/useRooCreditBalance"
-import { useExtensionState } from "../../context/ExtensionStateContext"
+import { useExtensionState } from "@context/ExtensionStateContext"
 
 describe("RooBalanceDisplay", () => {
 	beforeEach(() => {

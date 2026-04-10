@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useTranslation } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 import { Share2Icon } from "lucide-react"
 
 import { type HistoryItem, type ShareVisibility, TelemetryEventName } from "@roo-code/types"

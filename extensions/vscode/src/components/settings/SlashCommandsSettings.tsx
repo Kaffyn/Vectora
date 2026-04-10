@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react"
 import { Plus, Globe, Folder, Edit, Trash2 } from "lucide-react"
-import { Trans } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 
 import type { Command } from "@roo-code/types"
 

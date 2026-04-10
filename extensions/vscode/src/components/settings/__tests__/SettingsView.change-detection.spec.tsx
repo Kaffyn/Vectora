@@ -12,7 +12,7 @@ const mockVscode = {
 
 // Import the actual component
 import SettingsView from "../SettingsView"
-import { useExtensionState } from "../../context/ExtensionStateContext"
+import { useExtensionState } from "@context/ExtensionStateContext"
 
 // Mock the extension state context
 vi.mock("../../context/ExtensionStateContext", () => ({

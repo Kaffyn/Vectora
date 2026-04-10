@@ -1,4 +1,4 @@
-import { useTranslation } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 
 import { render, screen, fireEvent, waitFor } from "@/utils/test-utils"
 import { vscode } from "@/utils/vscode"

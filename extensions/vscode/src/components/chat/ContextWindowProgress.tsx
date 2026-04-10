@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { useTranslation } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 
 import { formatLargeNumber } from "@/utils/format"
 import { calculateTokenDistribution } from "@/utils/model-utils"

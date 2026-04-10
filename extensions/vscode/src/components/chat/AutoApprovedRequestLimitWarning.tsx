@@ -1,5 +1,5 @@
 import React, { memo, useState } from "react"
-import { Trans } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 
 import type { ClineMessage } from "@roo-code/types"
 

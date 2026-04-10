@@ -1,4 +1,4 @@
-import i18next from "i18next"
+import { i18n as i18next } from "@src/i18n/TranslationContext"
 
 export function formatLargeNumber(num: number): string {
 	if (num >= 1e9) {

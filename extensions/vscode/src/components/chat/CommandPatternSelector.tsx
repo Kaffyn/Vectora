@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react"
 import { Check, CheckCheck, ChevronUp, X } from "lucide-react"
 import { cn } from "../../lib/utils"
-import { useTranslation } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 import { StandardTooltip } from "../ui/standard-tooltip"
 
 interface CommandPattern {

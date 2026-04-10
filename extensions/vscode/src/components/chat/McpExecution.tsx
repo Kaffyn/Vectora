@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, memo } from "react"
 import { Server, ChevronDown } from "lucide-react"
 import { useEvent } from "react-use"
-import { useTranslation } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 
 import {
 	type ExtensionMessage,

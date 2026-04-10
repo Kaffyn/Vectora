@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import type { ClineMessage } from "@roo-code/types"
 
-import { ExtensionStateContextProvider } from "../../context/ExtensionStateContext"
+import { ExtensionStateContextProvider } from "@context/ExtensionStateContext"
 
 import ChatView, { type ChatViewProps } from "../ChatView"
 

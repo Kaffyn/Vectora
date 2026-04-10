@@ -1,5 +1,5 @@
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
-import { Trans } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 
 interface CheckpointWarningProps {
 	warning: {

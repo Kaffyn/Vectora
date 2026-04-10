@@ -16,7 +16,7 @@ import {
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { Button, StandardTooltip } from "@src/components/ui"
 
-import { convertHeadersToObject } from "../utils/headers"
+import { convertHeadersToObject } from "@utils/headers"
 import { inputEventTransform, noTransform } from "../transforms"
 import { ModelPicker } from "../ModelPicker"
 import { R1FormatSetting } from "../R1FormatSetting"

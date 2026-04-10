@@ -1,4 +1,4 @@
-import { useTranslation } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 import { Dialog, DialogContent, DialogHeader, Button } from "@/components/ui"
 import RooHero from "../welcome/RooHero"
 import { ArrowRight, Brain, Cable, CircleDollarSign, FileStack, Router, Users2 } from "lucide-react"

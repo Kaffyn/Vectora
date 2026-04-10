@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Square, Command, Mic, ArrowLeft, FileText, ListChecks } from 'lucide-react';
-import { cn } from '../utils/cn';
+import { cn } from "@utils/cn";
 import { ContextSelector } from './selectors/ContextSelector';
 import { ModeSelector, MODES } from './selectors/ModeSelector';
 import { ModelSelector, MODELS } from './selectors/ModelSelector';

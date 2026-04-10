@@ -1,6 +1,6 @@
 import React, { Component } from "react"
 import { telemetryClient } from "@src/utils/TelemetryClient"
-import { withTranslation, WithTranslation } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 import { enhanceErrorWithSourceMaps } from "@src/utils/sourceMapUtils"
 
 type ErrorProps = {

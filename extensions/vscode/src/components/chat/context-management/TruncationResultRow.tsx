@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useTranslation } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 import { FoldVertical } from "lucide-react"
 
 import type { ContextTruncation } from "@roo-code/types"

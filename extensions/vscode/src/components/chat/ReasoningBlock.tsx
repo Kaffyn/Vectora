@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import { useTranslation } from "../../hooks/useTranslation"
-import { useExtensionState } from "../../context/ExtensionStateContext"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
+import { useExtensionState } from "@context/ExtensionStateContext"
 
 import MarkdownBlock from "../common/MarkdownBlock"
 import { Lightbulb, ChevronUp } from "lucide-react"

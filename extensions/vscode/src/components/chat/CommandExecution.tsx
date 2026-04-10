@@ -1,6 +1,6 @@
 import { useCallback, useState, memo, useMemo } from "react"
 import { useEvent } from "react-use"
-import { t } from "i18next"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"; const { t } = { t: (key, opts) => (window as any).translate(key, opts) }; // Polyfill for direct t usage
 import { ChevronDown, OctagonX } from "lucide-react"
 
 import { type ExtensionMessage, type CommandExecutionStatus, commandExecutionStatusSchema } from "@roo-code/types"
@@ -11,7 +11,7 @@ import { parseCommand } from "@roo/parse-command"
 
 import { vscode } from "@src/utils/vscode"
 import { extractPatternsFromCommand } from "@src/utils/command-parser"
-import { useExtensionState } from "../../context/ExtensionStateContext"
+import { useExtensionState } from "@context/ExtensionStateContext"
 import { cn } from "@src/lib/utils"
 
 import { Button, StandardTooltip } from "@src/components/ui"

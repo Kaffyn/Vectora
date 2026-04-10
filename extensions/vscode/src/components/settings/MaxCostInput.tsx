@@ -1,4 +1,4 @@
-import { useTranslation } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 
 import { FormattedTextField, unlimitedDecimalFormatter } from "../common/FormattedTextField"
 

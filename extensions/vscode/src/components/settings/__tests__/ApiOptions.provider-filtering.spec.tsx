@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import type { ProviderSettings, OrganizationAllowList } from "@roo-code/types"
 
-import { useExtensionState } from "../../context/ExtensionStateContext"
+import { useExtensionState } from "@context/ExtensionStateContext"
 import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel"
 
 import ApiOptions from "../ApiOptions"

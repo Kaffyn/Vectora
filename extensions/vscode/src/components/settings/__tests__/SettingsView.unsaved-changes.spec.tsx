@@ -240,7 +240,7 @@ vi.mock("../SettingsSearch", () => ({
 	SettingsSearch: () => null,
 }))
 
-import { useExtensionState } from "../../context/ExtensionStateContext"
+import { useExtensionState } from "@context/ExtensionStateContext"
 import ApiOptions from "../ApiOptions"
 
 describe("SettingsView - Unsaved Changes Detection", () => {

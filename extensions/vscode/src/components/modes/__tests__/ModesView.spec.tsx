@@ -2,7 +2,7 @@
 
 import { render, screen, fireEvent, waitFor } from "@/utils/test-utils"
 import ModesView from "../ModesView"
-import { ExtensionStateContext } from "../../context/ExtensionStateContext"
+import { ExtensionStateContext } from "@context/ExtensionStateContext"
 import { vscode } from "@src/utils/vscode"
 
 // Mock vscode API

@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import CodebaseSearchResult from "./CodebaseSearchResult"
-import { Trans } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 
 interface CodebaseSearchResultsDisplayProps {
 	results: Array<{

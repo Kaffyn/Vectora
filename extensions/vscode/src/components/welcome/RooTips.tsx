@@ -1,6 +1,5 @@
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react"
-import { useTranslation } from "../../hooks/useTranslation"
-import { Trans } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 
 import { buildDocLink } from "@src/utils/docLinks"
 import { ReplaceAll, Users } from "lucide-react"

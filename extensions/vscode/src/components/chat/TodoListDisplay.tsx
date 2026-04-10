@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { t } from "i18next"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"; const { t } = { t: (key, opts) => (window as any).translate(key, opts) }; // Polyfill for direct t usage
 import { ArrowRight, Check, ListChecks, SquareDashed } from "lucide-react"
 import { useState, useRef, useMemo, useEffect } from "react"
 

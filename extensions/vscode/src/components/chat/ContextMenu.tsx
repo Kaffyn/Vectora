@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { getIconForFilePath, getIconUrlByName, getIconForDirectoryPath } from "vscode-material-icons"
-import { Trans } from "../../hooks/useTranslation"
-import { t } from "i18next"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 import { Settings } from "lucide-react"
 
 import type { ModeConfig, Command } from "@roo-code/types"

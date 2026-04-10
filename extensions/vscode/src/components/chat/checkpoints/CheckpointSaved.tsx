@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from "react"
-import { useTranslation } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 import { cn } from "@/lib/utils"
 
 import { CheckpointMenu } from "./CheckpointMenu"

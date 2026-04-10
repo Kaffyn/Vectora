@@ -14,13 +14,13 @@ import { RouterName } from "@roo/api"
 
 import { useAppTranslation } from "@src/i18n/TranslationContext"
 import { VSCodeButtonLink } from "@src/components/common/VSCodeButtonLink"
-import { useExtensionState } from "../../context/ExtensionStateContext"
+import { useExtensionState } from "@context/ExtensionStateContext"
 import { vscode } from "@src/utils/vscode"
 import { Button } from "@src/components/ui"
 
 import { inputEventTransform } from "../transforms"
 import { ModelPicker } from "../ModelPicker"
-import { handleModelChangeSideEffects } from "../utils/providerModelConfig"
+import { handleModelChangeSideEffects } from "@utils/providerModelConfig"
 
 type PoeProps = {
 	apiConfiguration: ProviderSettings

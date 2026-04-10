@@ -1,7 +1,7 @@
 import { defaultModeSlug } from "@roo/modes"
 
 import { render, fireEvent, screen } from "@src/utils/test-utils"
-import { useExtensionState } from "../../context/ExtensionStateContext"
+import { useExtensionState } from "@context/ExtensionStateContext"
 import { vscode } from "@src/utils/vscode"
 
 import { ChatTextArea } from "../ChatTextArea"

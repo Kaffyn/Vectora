@@ -4,7 +4,7 @@ import React from "react"
 import { render, waitFor } from "@/utils/test-utils"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-import { ExtensionStateContextProvider } from "../../context/ExtensionStateContext"
+import { ExtensionStateContextProvider } from "@context/ExtensionStateContext"
 
 import ChatView, { ChatViewProps } from "../ChatView"
 

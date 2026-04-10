@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react"
 import { CheckIcon, Cross2Icon } from "@radix-ui/react-icons"
-import { useTranslation } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 
 import { Button, Popover, PopoverContent, PopoverTrigger, StandardTooltip } from "@/components/ui"
 import { useRooPortal } from "@/components/ui/hooks"

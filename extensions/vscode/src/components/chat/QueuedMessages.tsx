@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useTranslation } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 
 import { QueuedMessage } from "@roo-code/types"
 

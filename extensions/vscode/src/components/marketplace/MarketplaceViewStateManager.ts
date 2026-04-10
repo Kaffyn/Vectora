@@ -13,7 +13,7 @@
 
 import { MarketplaceItem, MarketplaceInstalledMetadata } from "@roo-code/types"
 
-import { vscode } from "../../utils/vscode"
+import { vscode } from "@utils/vscode"
 import { WebviewMessage } from "../../../../src/shared/WebviewMessage"
 
 export interface ViewState {

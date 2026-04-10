@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react"
-import { vscode } from "../utils/vscode"
+import { vscode } from "@utils/vscode"
 
 // Minimal types for the ported components
 export interface ExtensionState {

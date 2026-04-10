@@ -7,7 +7,7 @@ import {
 	VSCodeLink,
 	VSCodeTextField,
 } from "@vscode/webview-ui-toolkit/react"
-import { Trans } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 import { ChevronDown, X, Upload, Download } from "lucide-react"
 
 import { ModeConfig, GroupEntry, PromptComponent, ToolGroup, modeConfigSchema } from "@roo-code/types"
@@ -27,7 +27,7 @@ import { TOOL_GROUPS } from "@roo/tools"
 import { vscode } from "@src/utils/vscode"
 import { buildDocLink } from "@src/utils/docLinks"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { useExtensionState } from "../../context/ExtensionStateContext"
+import { useExtensionState } from "@context/ExtensionStateContext"
 import { Section } from "@src/components/settings/Section"
 import {
 	Button,

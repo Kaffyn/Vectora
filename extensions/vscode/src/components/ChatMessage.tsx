@@ -3,7 +3,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { User, Cpu, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import type { Message, ToolCall } from '../types';
-import { cn } from '../utils/cn';
+import { cn } from "@utils/cn";
 
 interface ChatMessageProps {
     message: Message;

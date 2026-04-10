@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, History, Settings, X, Sparkles } from 'lucide-react';
-import { vscode } from '../utils/vscode';
+import { vscode } from "@utils/vscode";
 
 export const ChatHeader: React.FC = () => {
     return (

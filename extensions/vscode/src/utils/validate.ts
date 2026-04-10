@@ -1,4 +1,4 @@
-import i18next from "i18next"
+import { i18n as i18next } from "@src/i18n/TranslationContext"
 
 import {
 	type ProviderSettings,

@@ -1,6 +1,6 @@
 import { HTMLAttributes, useState } from "react"
 import { X } from "lucide-react"
-import { Trans } from "../../hooks/useTranslation"
+import { useTranslation, Trans } from "@src/i18n/TranslationContext"
 import { Package } from "@roo/package"
 
 import { useAppTranslation } from "@/i18n/TranslationContext"
