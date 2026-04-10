@@ -18,11 +18,15 @@ export async function run(): Promise<void> {
 		// Run the mocha test
 		return new Promise((c, e) => {
 			mocha.run((failures: number) => {
-				if (failures > 0) {
-					e(new Error(`${failures} tests failed.`));
-				} else {
-					c();
-				}
+				// Add 40s delay inside VS Code before returning control to test-electron
+				console.log('[TEST] Tests completed. Waiting 40 seconds before closing VS Code...');
+				setTimeout(() => {
+					if (failures > 0) {
+						e(new Error(`${failures} tests failed.`));
+					} else {
+						c();
+					}
+				}, 40000);
 			});
 		});
 	} catch (err) {

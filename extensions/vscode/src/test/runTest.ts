@@ -22,17 +22,13 @@ async function main() {
 
 		console.log(`Using VS Code executable: ${vscodeExecutablePath}`);
 
-		// Run integration tests
-		await runTests({ 
+        // Run integration tests
+        await runTests({ 
             vscodeExecutablePath,
             extensionDevelopmentPath, 
             extensionTestsPath,
             launchArgs: ['--disable-extensions']
         });
-
-        // Add 10s delay after tests so the user can verify the state visually
-        console.log('[TEST] Tests completed. Waiting 10 seconds before closing VS Code...');
-        await new Promise(resolve => setTimeout(resolve, 10000));
 	} catch (err) {
 		console.error('Failed to run tests');
 		process.exit(1);
