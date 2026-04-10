@@ -1,4 +1,5 @@
-import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Client } from './client';
 import { SessionUpdate, InitializeRequest, InitializeResponse, SessionNewRequest, SessionNewResponse, SessionPromptRequest, PromptResponse } from './types/client';
 
@@ -35,6 +36,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     };
 
     webviewView.webview.html = this.getHtml(webviewView.webview);
+    this.sendTranslations();
 
   webviewView.webview.onDidReceiveMessage(async (msg) => {
       switch (msg.type) {
@@ -163,6 +165,32 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     ).then(_choice => {
       // Logic for permission handling
     });
+  }
+
+  private sendTranslations(): void {
+    try {
+        const csvPath = path.join(this.context.extensionPath, 'core', 'i18n', 'translations.csv');
+        if (fs.existsSync(csvPath)) {
+            const content = fs.readFileSync(csvPath, 'utf8');
+            const lines = content.split('\n').filter(l => l.trim());
+            const headers = lines[0].split(',');
+            const translations: Record<string, any> = {};
+            
+            for (let i = 1; i < lines.length; i++) {
+                const parts = lines[i].split(',');
+                if (parts.length < headers.length) continue;
+                const key = parts[0];
+                translations[key] = {};
+                for (let j = 1; j < headers.length; j++) {
+                    translations[key][headers[j]] = parts[j];
+                }
+            }
+            
+            this._view?.webview.postMessage({ type: 'translations', translations });
+        }
+    } catch (err) {
+        console.error('Failed to load translations:', err);
+    }
   }
 
   private getNonce(): string {

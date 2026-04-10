@@ -8,7 +8,6 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"github.com/google/uuid"
 )
@@ -22,8 +21,6 @@ func (s *Server) RunStream(ctx context.Context, in io.Reader, out io.Writer) err
 	buf := make([]byte, 10*1024*1024) // 10MB buffer
 	scanner.Buffer(buf, len(buf))
 
-	var idCounter int64
-
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if len(line) == 0 {
@@ -36,20 +33,22 @@ func (s *Server) RunStream(ctx context.Context, in io.Reader, out io.Writer) err
 			continue
 		}
 
-		// Check if it's a notification (no id)
-		_, hasID := raw["id"]
+		// JSON-RPC 2.0: 'id' is OPTIONAL for notifications, but MUST be returned in responses for requests.
+		id, hasID := raw["id"]
 
-		method, _ := raw["method"]
-		methodStr := strings.Trim(string(method), "\"")
+		methodJSON, hasMethod := raw["method"]
+		if !hasMethod {
+			if hasID {
+				s.writeError(id, -32600, "Invalid Request", "Missing method field")
+			}
+			continue
+		}
+		methodStr := strings.Trim(string(methodJSON), "\"")
 
 		params, _ := raw["params"]
 
 		if hasID {
-			var id int64
-			if err := json.Unmarshal(raw["id"], &id); err == nil {
-				atomic.StoreInt64(&idCounter, id)
-			}
-			go s.handleRequest(ctx, methodStr, params, raw["id"])
+			go s.handleRequest(ctx, methodStr, params, id)
 		} else {
 			go s.handleNotification(ctx, methodStr, params)
 		}
@@ -181,7 +180,7 @@ func (s *Server) handleInitialize(ctx context.Context, params json.RawMessage) (
 		ProtocolVersion: negotiatedVersion,
 		AgentInfo: &Info{
 			Name:    "vectora",
-			Title:   "Vectora AI Agent",
+			Title:   "Vectora AI - Autonomous Engineering Assistant",
 			Version: "0.1.0",
 		},
 		AgentCapabilities: &AgentCapabilities{
