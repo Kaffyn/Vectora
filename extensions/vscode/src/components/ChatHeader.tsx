@@ -10,16 +10,16 @@ export const ChatHeader: React.FC = () => {
                     <Sparkles size={14} className="text-vscode-accentFg animate-pulse" />
                 </div>
                 <div className="flex flex-col -space-y-1">
-                    <h1 className="text-[10px] font-black uppercase tracking-[3px] opacity-90 text-vscode-accent">
+                    <h1 className="text-[10px] font-black uppercase tracking-[3px] text-vscode-accent">
                         Vectora
                     </h1>
-                    <span className="text-[8px] font-bold opacity-30 uppercase tracking-widest">
+                    <span className="text-[8px] font-bold opacity-60 uppercase tracking-widest">
                         Advanced AI
                     </span>
                 </div>
             </div>
 
-            <div className="flex items-center gap-1 opacity-40 hover:opacity-100 transition-opacity duration-300">
+            <div className="flex items-center gap-1 opacity-80 hover:opacity-100 transition-opacity duration-300">
                 <button 
                     onClick={() => vscode.postMessage({ type: 'clear' })}
                     className="p-1.5 rounded-lg hover:bg-vscode-inputBg hover:text-vscode-accent transition-all active:scale-90"

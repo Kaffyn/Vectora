@@ -73,13 +73,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, onCancel, isStream
             </div>
             
             <div className="flex items-center justify-center gap-4 px-2 select-none">
-                <div className="flex items-center gap-1.5 opacity-20 hover:opacity-40 transition-opacity">
+                <div className="flex items-center gap-1.5 opacity-50 hover:opacity-80 transition-opacity">
                     <Command size={10} />
-                    <span className="text-[9px] font-bold uppercase tracking-tighter">Enter to send</span>
+                    <span className="text-[9px] font-bold uppercase tracking-tighter text-vscode-fg">Enter to send</span>
                 </div>
                 <div className="w-1 h-1 rounded-full bg-vscode-fg/20" />
-                <div className="flex items-center gap-1.5 opacity-20 hover:opacity-40 transition-opacity">
-                    <span className="text-[9px] font-bold uppercase tracking-tighter">Shift + Enter for multiline</span>
+                <div className="flex items-center gap-1.5 opacity-50 hover:opacity-80 transition-opacity">
+                    <span className="text-[9px] font-bold uppercase tracking-tighter text-vscode-fg">Shift + Enter for multiline</span>
                 </div>
             </div>
         </div>

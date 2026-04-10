@@ -131,7 +131,7 @@ function App() {
             <div className="flex-grow overflow-y-auto scrollbar-none scroll-smooth pb-8 pt-2">
                 <div className="max-w-3xl mx-auto px-4 space-y-2">
                     {messages.length === 0 ? (
-                        <div className="h-[60vh] flex flex-col items-center justify-center opacity-40 space-y-4 animate-in fade-in duration-700">
+                        <div className="h-[60vh] flex flex-col items-center justify-center opacity-80 space-y-4 animate-in fade-in duration-700">
                              <div className="w-16 h-16 rounded-2xl bg-vscode-accent/10 flex items-center justify-center border border-vscode-accent/20 rotate-3 group-hover:rotate-0 transition-transform">
                                 <img src="https://raw.githubusercontent.com/Kaffyn/Vectora/main/media/icon.png" className="w-10 h-10 grayscale opacity-80" alt="Vectora" />
                              </div>
