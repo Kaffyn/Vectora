@@ -493,6 +493,9 @@ func runEmbed(rootPath string) error {
 	fmt.Printf("INFO: Found %d files to embed (%d skipped, %d already indexed)\n", len(filesToEmbed), filesSkipped, filesAlreadyIndexed)
 	fmt.Println()
 
+	// Notify OS that embedding started
+	infra.NotifyOS("Vectora Indexing", fmt.Sprintf("Started indexing %d files", len(filesToEmbed)))
+
 	// Embed each file
 	collectionName := "ws_" + embedWorkspace
 	totalEmbedded := 0
@@ -505,9 +508,23 @@ func runEmbed(rootPath string) error {
 			relPath = rel
 		}
 
+		startTime := time.Now()
+		done := make(chan bool)
+		go func(path string, current int, total int) {
+			for {
+				select {
+				case <-done:
+					return
+				case <-time.After(100 * time.Millisecond):
+					fmt.Printf("\r  ⏳ [%d/%d] Embedding: %s [%.1fs]", current+1, total, path, time.Since(startTime).Seconds())
+				}
+			}
+		}(relPath, i, len(filesToEmbed))
+
 		content, err := os.ReadFile(filePath)
 		if err != nil {
-			fmt.Printf("  ERR %s: read error\n", relPath)
+			close(done)
+			fmt.Printf("\r  ERR [%d/%d] %s: read error                      \n", i+1, len(filesToEmbed), relPath)
 			totalErrors++
 			continue
 		}
@@ -530,12 +547,15 @@ func runEmbed(rootPath string) error {
 			language = "markdown"
 		}
 
+		embedErr := false
 		for j, chunk := range chunks {
-			// Generate embedding via Gemini API
+			// Generate embedding via remote API
 			vec, err := provider.Embed(ctx, chunk)
 			if err != nil {
-				fmt.Printf("  ERR %s[%d]: embed error: %v\n", relPath, j, err)
+				close(done)
+				fmt.Printf("\r  ERR [%d/%d] %s[%d]: embed error: %v           \n", i+1, len(filesToEmbed), relPath, j, err)
 				totalErrors++
+				embedErr = true
 				break
 			}
 
@@ -547,35 +567,38 @@ func runEmbed(rootPath string) error {
 				Vector:   vec,
 			})
 			if err != nil {
-				fmt.Printf("  ERR %s[%d]: store error: %v\n", relPath, j, err)
+				close(done)
+				fmt.Printf("\r  ERR [%d/%d] %s[%d]: store error: %v           \n", i+1, len(filesToEmbed), relPath, j, err)
 				totalErrors++
+				embedErr = true
 				break
 			}
 			fileChunks++
 		}
 
-		if fileChunks > 0 {
-			// Save index metadata
-			contentHash := db.CalculateHash(string(content))
-			entry := db.FileIndexEntry{
-				AbsolutePath: filePath,
-				ContentHash:  contentHash,
-				SizeBytes:    int64(len(content)),
+		if !embedErr {
+			close(done)
+			if fileChunks > 0 {
+				// Save index metadata
+				contentHash := db.CalculateHash(string(content))
+				entry := db.FileIndexEntry{
+					AbsolutePath: filePath,
+					ContentHash:  contentHash,
+					SizeBytes:    int64(len(content)),
+				}
+				entryBytes, _ := json.Marshal(entry)
+				kvStore.Set(ctx, "file_index", relPath, entryBytes)
+
+				totalEmbedded++
+				totalChunks += fileChunks
+				fmt.Printf("\r  ✅ [%d/%d] %s → %d chunks (%.1fs)                  \n", i+1, len(filesToEmbed), relPath, fileChunks, time.Since(startTime).Seconds())
+			} else {
+				fmt.Printf("\r  ⏭️ [%d/%d] %s → ignored (0 chunks) (%.1fs)         \n", i+1, len(filesToEmbed), relPath, time.Since(startTime).Seconds())
 			}
-			entryBytes, _ := json.Marshal(entry)
-			kvStore.Set(ctx, "file_index", relPath, entryBytes)
-
-			totalEmbedded++
-			totalChunks += fileChunks
-			fmt.Printf("  OK  %s → %d chunks\n", relPath, fileChunks)
-		}
-
-		// Progress indicator
-		if (i+1)%10 == 0 || i+1 == len(filesToEmbed) {
-			fmt.Printf("  ... %d/%d files processed\n", i+1, len(filesToEmbed))
 		}
 	}
 
+	infra.NotifyOS("Vectora Indexing", fmt.Sprintf("Completed indexing. %d files embedded.", totalEmbedded))
 	fmt.Println()
 	fmt.Println("==========================================================")
 	fmt.Printf("  Embedding complete!\n")

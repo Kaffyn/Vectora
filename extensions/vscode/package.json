@@ -110,7 +110,7 @@
     "compile": "npm run build:webview && webpack --mode production",
     "watch": "webpack --mode development --watch",
     "compile-tests": "tsc",
-    "lint": "eslint src --ext ts",
+    "lint": "eslint src",
     "package": "vsce package",
     "publish": "vsce publish",
     "test": "npm run compile-tests && node ./dist/test/runTest.js",

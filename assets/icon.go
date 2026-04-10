@@ -3,6 +3,7 @@ package assets
 import _ "embed"
 
 // Core application icons
+//
 //go:embed vectora.ico
 var VectoraIconData []byte
 
@@ -22,6 +23,7 @@ var LPMIconData []byte
 var MPMIconData []byte
 
 // Legacy aliases for compatibility
+//
 //go:embed vectora.ico
 var IconData []byte
 
