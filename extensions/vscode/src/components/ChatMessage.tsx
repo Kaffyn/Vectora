@@ -3,12 +3,7 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import { User, Cpu, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
 import type { Message, ToolCall } from '../types';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
+import { cn } from '../utils/cn';
 
 interface ChatMessageProps {
     message: Message;
