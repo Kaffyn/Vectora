@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronDown, Zap, Terminal, Edit3 } from 'lucide-react';
-import { Dropdown, DropdownItem } from '../Dropdown';
+import { Dropdown, DropdownItem } from './Dropdown';
 
 export type PolicyItem = { id: string; name: string; description: string; icon: React.ReactNode };
 

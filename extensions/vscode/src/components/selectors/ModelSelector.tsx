@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronDown, Sparkles, AlertTriangle } from 'lucide-react';
-import { Dropdown, DropdownItem } from '../Dropdown';
+import { Dropdown, DropdownItem } from './Dropdown';
 
 export type ModelItem = { id: string; name: string; info?: string; isNew?: boolean; isThinking?: boolean; group: string };
 

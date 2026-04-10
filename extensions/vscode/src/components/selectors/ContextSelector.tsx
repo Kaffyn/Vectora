@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Image as ImageIcon, AtSign, Edit3 } from 'lucide-react';
-import { Dropdown, DropdownItem } from '../Dropdown';
+import { Dropdown, DropdownItem } from './Dropdown';
 
 export const ContextSelector: React.FC = () => {
     return (

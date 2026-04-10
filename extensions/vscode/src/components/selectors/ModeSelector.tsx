@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
-import { Dropdown, DropdownItem } from '../Dropdown';
+import { Dropdown, DropdownItem } from './Dropdown';
 
 export type ModeItem = { id: string; name: string; description: string };
 
