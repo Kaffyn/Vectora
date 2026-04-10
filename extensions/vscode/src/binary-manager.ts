@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as https from 'https';
-
+import * as cp from 'child_process';
 // Directory where the Vectora binary will be installed
 const VECTORA_BIN_DIR = path.join(os.homedir(), '.vectora', 'bin');
 
@@ -157,9 +157,8 @@ export class BinaryManager {
   private async findInPath(): Promise<string | null> {
     const cmd = os.platform() === 'win32' ? 'where vectora' : 'which vectora';
     try {
-      const { exec } = require('child_process');
       return new Promise((resolve) => {
-        exec(cmd, (error: Error | null, stdout: string) => {
+        cp.exec(cmd, (error: Error | null, stdout: string) => {
           if (error || !stdout) {
             resolve(null);
           } else {

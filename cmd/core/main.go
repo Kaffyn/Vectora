@@ -154,6 +154,7 @@ var (
 	embedExclude   string
 	embedWorkspace string
 	embedForce     bool
+	embedDetached  bool
 )
 
 var embedCmd = &cobra.Command{
@@ -195,6 +196,7 @@ func init() {
 	embedCmd.Flags().StringVar(&embedExclude, "exclude", "", "Comma-separated patterns to exclude (e.g. node_modules,.git,*.log)")
 	embedCmd.Flags().StringVar(&embedWorkspace, "workspace", "default", "Workspace ID for embedding isolation")
 	embedCmd.Flags().BoolVar(&embedForce, "force", false, "Re-embed files even if already indexed")
+	embedCmd.Flags().BoolVarP(&embedDetached, "background", "d", false, "Start embedding in background and exit")
 
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(statusCmd)
@@ -234,14 +236,6 @@ func main() {
 	}
 }
 
-func getGeminiProvider(ctx context.Context) (llm.Provider, error) {
-	cfg := infra.LoadConfig()
-	if cfg.GeminiAPIKey == "" {
-		return nil, fmt.Errorf("GEMINI_API_KEY not configured. Set it in %%USERPROFILE%%\\.Vectora\\.env")
-	}
-	return llm.NewGeminiProvider(ctx, cfg.GeminiAPIKey)
-}
-
 func runEmbed(rootPath string) error {
 	ctx := context.Background()
 
@@ -253,410 +247,90 @@ func runEmbed(rootPath string) error {
 	fmt.Printf("Scanning: %s\n", absPath)
 	fmt.Println()
 
-	// Initialize stores
-	kvStore, err := db.NewKVStore()
-	if err != nil {
-		if strings.Contains(err.Error(), "timeout") {
-			fmt.Println("Error: Vectora Core is running in the background and managing the database.")
-			fmt.Println("To use the bulk embedding command, please stop the Core temporarily:")
-			fmt.Println("   1. vectora stop")
-			fmt.Println("   2. vectora embed")
-			fmt.Println("   3. vectora start")
-			return fmt.Errorf("database locked by core")
+	client, err := ipc.NewClient()
+	if err != nil || client.Connect() != nil {
+		fmt.Println("Vectora Core not running. Starting in background...")
+		if err := spawnDetached(); err != nil {
+			return fmt.Errorf("failed to start background core: %v", err)
 		}
-		return fmt.Errorf("failed to init KV store: %w", err)
-	}
-	defer kvStore.Close()
-
-	vecStore, err := db.NewVectorStore()
-	if err != nil {
-		return fmt.Errorf("failed to init vector store: %w", err)
-	}
-
-	// Get Gemini provider for embeddings
-	provider, err := getGeminiProvider(ctx)
-	if err != nil {
-		return fmt.Errorf("embedding requires Gemini API: %w", err)
-	}
-
-	guardian := policies.NewGuardian(absPath)
-
-	fmt.Printf("Embedding provider: %s\n", provider.Name())
-	fmt.Println()
-
-	// Parse include/exclude patterns
-	var includePatterns []string
-	if embedInclude != "" {
-		includePatterns = strings.Split(embedInclude, ",")
-		for i, p := range includePatterns {
-			includePatterns[i] = strings.TrimSpace(p)
-		}
-	}
-
-	var excludePatterns []string
-	var unignorePatterns []string
-	if embedExclude != "" {
-		parts := strings.Split(embedExclude, ",")
-		for _, p := range parts {
-			p = strings.TrimSpace(p)
-			if strings.HasPrefix(p, "!") {
-				unignorePatterns = append(unignorePatterns, strings.TrimPrefix(p, "!"))
-			} else {
-				excludePatterns = append(excludePatterns, p)
+		
+		// Poll until connected
+		retries := 10
+		connected := false
+		for i := 0; i < retries; i++ {
+			time.Sleep(500 * time.Millisecond)
+			if client.Connect() == nil {
+				connected = true
+				break
 			}
 		}
-	}
-
-	// Tenta carregar .embedignore
-	ignorePath := filepath.Join(absPath, ".embedignore")
-	if data, err := os.ReadFile(ignorePath); err == nil {
-		lines := strings.Split(string(data), "\n")
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if line == "" || strings.HasPrefix(line, "#") {
-				continue
-			}
-			if strings.HasPrefix(line, "!") {
-				unignorePatterns = append(unignorePatterns, strings.TrimPrefix(line, "!"))
-			} else {
-				excludePatterns = append(excludePatterns, line)
-			}
+		if !connected {
+			return fmt.Errorf("could not connect to Vectora Core after starting it")
 		}
 	}
+	defer client.Close()
 
-	// Collect files
-	var filesToEmbed []string
-	var filesSkipped int
-	var filesAlreadyIndexed int
-
-	err = filepath.WalkDir(absPath, func(path string, d os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return nil
-		}
-		if d.IsDir() {
-			relPath, _ := filepath.Rel(absPath, path)
-			relPath = filepath.ToSlash(relPath)
-			name := d.Name()
-
-			// Always skip known large dirs
-			if guardian.IsExcludedDir(name) {
-				return filepath.SkipDir
-			}
-
-			// Check exclusions
-			isIgnored := false
-			for _, pattern := range excludePatterns {
-				if m, _ := filepath.Match(pattern, relPath); m {
-					isIgnored = true
-				} else if m, _ := filepath.Match(pattern, name); m {
-					isIgnored = true
-				} else if strings.Contains(pattern, "/") {
-					if strings.HasPrefix(relPath, pattern) {
-						isIgnored = true
-					} else {
-						m, _ := filepath.Match(pattern+"/*", relPath)
-						if m {
-							isIgnored = true
-						}
-					}
-				}
-			}
-
-			if isIgnored {
-				for _, pattern := range unignorePatterns {
-					if m, _ := filepath.Match(pattern, relPath); m {
-						isIgnored = false
-					} else if m, _ := filepath.Match(pattern, name); m {
-						isIgnored = false
-					} else if strings.Contains(pattern, "/") {
-						if strings.HasPrefix(relPath, pattern) {
-							isIgnored = false
+	if !embedDetached {
+		client.OnEvent = func(method string, payload json.RawMessage) {
+			if method == "embed.progress" {
+				var prog engine.EmbedProgress
+				if err := json.Unmarshal(payload, &prog); err == nil {
+					if prog.IsComplete {
+						if prog.HasError {
+							fmt.Printf("\r\033[2K  ❌ Embedding Error: %s\n", prog.ErrorMsg)
 						} else {
-							m, _ := filepath.Match(pattern+"/*", relPath)
-							if m {
-								isIgnored = false
-							}
+							fmt.Println("\n==========================================================")
+							fmt.Printf("  Embedding complete!\n")
+							fmt.Printf("  OK  %d files embedded (%d skipped, %d already indexed)\n", prog.TotalEmbedded, prog.FilesSkipped, prog.FilesAlready)
+							fmt.Printf("  --- %d total chunks\n", prog.TotalChunks)
+							fmt.Printf("  ERR %d errors\n", prog.TotalErrors)
+							fmt.Printf("  DIR Workspace: ws_%s\n", embedWorkspace)
+							fmt.Println("==========================================================")
 						}
+						os.Exit(0)
 					}
-				}
-			}
 
-			if isIgnored {
-				return filepath.SkipDir
-			}
-			return nil
-		}
+					if prog.HasError {
+						fmt.Printf("\r\033[2K  ERR [%d/%d] %s: %s\n", prog.CurrentIdx+1, prog.TotalFiles, prog.CurrentFilePath, prog.ErrorMsg)
+					} else if prog.FileChunks > 0 {
+						fmt.Printf("\r\033[2K  ✅ [%d/%d] %s → %d chunks (%.1fs)\n", prog.CurrentIdx+1, prog.TotalFiles, prog.CurrentFilePath, prog.FileChunks, prog.ElapsedSeconds)
+					}
 
-		// Check Guardian blocks
-		if guardian.IsProtected(path) {
-			filesSkipped++
-			return nil
-		}
-
-		// Check include patterns
-		if len(includePatterns) > 0 {
-			name := d.Name()
-			matched := false
-			for _, pattern := range includePatterns {
-				if m, _ := filepath.Match(pattern, name); m {
-					matched = true
-					break
-				}
-			}
-			if !matched {
-				filesSkipped++
-				return nil
-			}
-		}
-
-		// Check exclude patterns
-		relPath, _ := filepath.Rel(absPath, path)
-		relPath = filepath.ToSlash(relPath)
-		name := d.Name()
-
-		isIgnored := false
-		for _, pattern := range excludePatterns {
-			if m, _ := filepath.Match(pattern, relPath); m {
-				isIgnored = true
-			} else if m, _ := filepath.Match(pattern, name); m {
-				isIgnored = true
-			} else if strings.Contains(pattern, "/") {
-				if strings.HasPrefix(relPath, pattern) {
-					isIgnored = true
-				} else {
-					m, _ := filepath.Match(pattern+"/*", relPath)
-					if m {
-						isIgnored = true
+					// Always reprint the status line mapping the current ongoing operation so it is at the bottom
+					if !prog.HasError && prog.FileChunks == 0 {
+						fmt.Printf("\r\033[2K  ⏳ [%d/%d] Embedding: %s [%.1fs]", prog.CurrentIdx+1, prog.TotalFiles, prog.DisplayPath, prog.ElapsedSeconds)
 					}
 				}
 			}
 		}
+	}
 
-		if isIgnored {
-			for _, pattern := range unignorePatterns {
-				if m, _ := filepath.Match(pattern, relPath); m {
-					isIgnored = false
-				} else if m, _ := filepath.Match(pattern, name); m {
-					isIgnored = false
-				} else if strings.Contains(pattern, "/") {
-					if strings.HasPrefix(relPath, pattern) {
-						isIgnored = false
-					} else {
-						m, _ := filepath.Match(pattern+"/*", relPath)
-						if m {
-							isIgnored = false
-						}
-					}
-				}
-			}
-		}
+	reqPayload := map[string]any{
+		"rootPath":  absPath,
+		"include":   embedInclude,
+		"exclude":   embedExclude,
+		"workspace": embedWorkspace,
+		"force":     embedForce,
+	}
 
-		if isIgnored {
-			filesSkipped++
-			return nil
-		}
+	var resp struct {
+		Started bool `json:"started"`
+	}
 
-		// relPath already initialized above
-		content, readErr := os.ReadFile(path)
-		if readErr != nil {
-			filesSkipped++
-			return nil
-		}
-
-		if !embedForce {
-			existing, _ := kvStore.Get(ctx, "file_index", relPath)
-			if existing != nil {
-				// Compare hash to detect changes
-				var entry db.FileIndexEntry
-				if err := json.Unmarshal(existing, &entry); err == nil {
-					contentHash := db.CalculateHash(string(content))
-					if entry.ContentHash == contentHash {
-						filesAlreadyIndexed++
-						return nil
-					}
-				}
-			}
-		}
-
-		filesToEmbed = append(filesToEmbed, path)
-		return nil
-	})
+	err = client.Send(ctx, "workspace.embed.start", reqPayload, &resp)
 	if err != nil {
-		return fmt.Errorf("walk error: %w", err)
+		return fmt.Errorf("failed to start embed job: %v", err)
 	}
 
-	if len(filesToEmbed) == 0 {
-		fmt.Printf("OK: No new files to embed. (%d skipped, %d already indexed)\n", filesSkipped, filesAlreadyIndexed)
+	if embedDetached {
+		fmt.Println("✅ Embedding task submitted successfully.")
+		fmt.Println("The job is now running seamlessly in the background Vectora Core.")
+		fmt.Println("You can safely close this terminal.")
 		return nil
 	}
 
-	fmt.Printf("INFO: Found %d files to embed (%d skipped, %d already indexed)\n", len(filesToEmbed), filesSkipped, filesAlreadyIndexed)
-	fmt.Println()
-
-	// Notify OS that embedding started
-	infra.NotifyOS("Vectora Indexing", fmt.Sprintf("Started indexing %d files", len(filesToEmbed)))
-
-	// Embed each file
-	collectionName := "ws_" + embedWorkspace
-	totalEmbedded := 0
-	totalChunks := 0
-	totalErrors := 0
-
-	for i, filePath := range filesToEmbed {
-		relPath, _ := filepath.Abs(filePath)
-		if rel, err := filepath.Rel(absPath, filePath); err == nil {
-			relPath = rel
-		}
-
-		startTime := time.Now()
-		done := make(chan bool)
-		go func(path string, current int, total int) {
-			for {
-				select {
-				case <-done:
-					return
-				case <-time.After(100 * time.Millisecond):
-					fmt.Printf("\r  ⏳ [%d/%d] Embedding: %s [%.1fs]", current+1, total, path, time.Since(startTime).Seconds())
-				}
-			}
-		}(relPath, i, len(filesToEmbed))
-
-		content, err := os.ReadFile(filePath)
-		if err != nil {
-			close(done)
-			fmt.Printf("\r  ERR [%d/%d] %s: read error                      \n", i+1, len(filesToEmbed), relPath)
-			totalErrors++
-			continue
-		}
-
-		// Chunk the content directly
-		chunks := chunkContent(string(content), 800, 100)
-		fileChunks := 0
-
-		// Detect language from extension
-		language := "text"
-		ext := strings.ToLower(filepath.Ext(filePath))
-		switch ext {
-		case ".go":
-			language = "go"
-		case ".py":
-			language = "python"
-		case ".js", ".ts":
-			language = "javascript"
-		case ".md":
-			language = "markdown"
-		}
-
-		embedErr := false
-		for j, chunk := range chunks {
-			// Generate embedding via remote API
-			vec, err := provider.Embed(ctx, chunk)
-			if err != nil {
-				close(done)
-				fmt.Printf("\r  ERR [%d/%d] %s[%d]: embed error: %v           \n", i+1, len(filesToEmbed), relPath, j, err)
-				totalErrors++
-				embedErr = true
-				break
-			}
-
-			docID := fmt.Sprintf("%s:%d", relPath, j)
-			err = vecStore.UpsertChunk(ctx, collectionName, db.Chunk{
-				ID:       docID,
-				Content:  chunk,
-				Metadata: map[string]string{"source": relPath, "filename": filepath.Base(filePath), "language": language},
-				Vector:   vec,
-			})
-			if err != nil {
-				close(done)
-				fmt.Printf("\r  ERR [%d/%d] %s[%d]: store error: %v           \n", i+1, len(filesToEmbed), relPath, j, err)
-				totalErrors++
-				embedErr = true
-				break
-			}
-			fileChunks++
-		}
-
-		if !embedErr {
-			close(done)
-			if fileChunks > 0 {
-				// Save index metadata
-				contentHash := db.CalculateHash(string(content))
-				entry := db.FileIndexEntry{
-					AbsolutePath: filePath,
-					ContentHash:  contentHash,
-					SizeBytes:    int64(len(content)),
-				}
-				entryBytes, _ := json.Marshal(entry)
-				kvStore.Set(ctx, "file_index", relPath, entryBytes)
-
-				totalEmbedded++
-				totalChunks += fileChunks
-				fmt.Printf("\r  ✅ [%d/%d] %s → %d chunks (%.1fs)                  \n", i+1, len(filesToEmbed), relPath, fileChunks, time.Since(startTime).Seconds())
-			} else {
-				fmt.Printf("\r  ⏭️ [%d/%d] %s → ignored (0 chunks) (%.1fs)         \n", i+1, len(filesToEmbed), relPath, time.Since(startTime).Seconds())
-			}
-		}
-	}
-
-	infra.NotifyOS("Vectora Indexing", fmt.Sprintf("Completed indexing. %d files embedded.", totalEmbedded))
-	fmt.Println()
-	fmt.Println("==========================================================")
-	fmt.Printf("  Embedding complete!\n")
-	fmt.Printf("  OK  %d files embedded\n", totalEmbedded)
-	fmt.Printf("  --- %d total chunks\n", totalChunks)
-	fmt.Printf("  ERR %d errors\n", totalErrors)
-	fmt.Printf("  DIR Workspace: %s\n", collectionName)
-	fmt.Println("==========================================================")
-
-	return nil
-}
-
-func chunkContent(content string, maxTokens int, overlap int) []string {
-	if len(content) == 0 {
-		return []string{}
-	}
-
-	// ~4 chars per token approximation
-	maxChars := maxTokens * 4
-	overlapChars := overlap * 4
-
-	runes := []rune(content)
-	totalRunes := len(runes)
-
-	if maxChars >= totalRunes {
-		return []string{content}
-	}
-
-	var chunks []string
-	start := 0
-	for start < totalRunes {
-		end := start + maxChars
-		if end > totalRunes {
-			end = totalRunes
-		}
-
-		// Try to break at newline
-		chunkEnd := end
-		if end < totalRunes {
-			for i := end; i < totalRunes && i < end+maxChars/2; i++ {
-				if runes[i] == '\n' {
-					chunkEnd = i + 1
-					break
-				}
-			}
-		}
-
-		chunks = append(chunks, string(runes[start:chunkEnd]))
-		start = chunkEnd - overlapChars
-		if start < 0 {
-			start = 0
-		}
-		if start >= chunkEnd {
-			break
-		}
-	}
-
-	return chunks
+	// Keep alive waiting for events
+	select {}
 }
 
 func runCore() {

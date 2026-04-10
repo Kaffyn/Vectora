@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Kaffyn/Vectora/core/db"
+	"github.com/Kaffyn/Vectora/core/engine"
 	"github.com/Kaffyn/Vectora/core/i18n"
 	"github.com/Kaffyn/Vectora/core/llm"
 )
@@ -276,4 +277,48 @@ func RegisterRoutes(
 		}
 		return translations, nil
 	})
+
+	// [13] Start Embedding Background Job
+	server.Register("workspace.embed.start", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+		var req struct {
+			RootPath string `json:"rootPath"`
+			Include  string `json:"include"`
+			Exclude  string `json:"exclude"`
+			Workspace string `json:"workspace"`
+			Force    bool   `json:"force"`
+		}
+		if err := json.Unmarshal(payload, &req); err != nil {
+			return nil, ErrIPCPayloadInvalid
+		}
+
+		provider := getProvider()
+		if provider == nil || !provider.IsConfigured() {
+			return nil, ErrProviderNotConfig
+		}
+
+		// Import statement required below but since this is within RegisterRoutes we ensure we import "github.com/Kaffyn/Vectora/core/engine"
+		// at the top of router.go. I'll modify the imports via another call if needed.
+		go func() {
+			engine.RunEmbedJob(
+				context.Background(),
+				engine.EmbedJobConfig{
+					RootPath:       req.RootPath,
+					Include:        req.Include,
+					Exclude:        req.Exclude,
+					Workspace:      req.Workspace,
+					Force:          req.Force,
+					CollectionName: "ws_" + req.Workspace,
+				},
+				kvStore.(*db.BBoltStore), 
+				vecStore.(*db.ChromemStore),
+				provider,
+				func(prog engine.EmbedProgress) {
+					server.Broadcast("embed.progress", prog)
+				},
+			)
+		}()
+		
+		return map[string]bool{"started": true}, nil
+	})
 }
+

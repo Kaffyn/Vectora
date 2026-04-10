@@ -57,7 +57,9 @@ suite('Chat Panel Unit Test Suite', () => {
 		const mockWebview: any = {
 			postMessage: (msg: any) => { lastPostedMessage = msg; return Promise.resolve(true); },
 			onDidReceiveMessage: () => ({ dispose: () => {} }),
-			options: {}
+			options: {},
+			asWebviewUri: (uri: vscode.Uri) => uri,
+			cspSource: ''
 		};
 		const mockView: any = { webview: mockWebview, show: () => {} };
 		const mockClient = new Client('Test', 'dummy');

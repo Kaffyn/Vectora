@@ -147,9 +147,8 @@ export class Client {
 
   private onData(chunk: Buffer): void {
     this.buffer += chunk.toString();
-    while (true) {
-      const idx = this.buffer.indexOf('\n');
-      if (idx === -1) break;
+    let idx = this.buffer.indexOf('\n');
+    while (idx !== -1) {
       const line = this.buffer.substring(0, idx).trim();
       this.buffer = this.buffer.substring(idx + 1);
       if (!line) continue;
@@ -160,6 +159,7 @@ export class Client {
       } catch (err) {
         console.warn(`[${this.name}] Failed to parse JSON-RPC line: ${line}`);
       }
+      idx = this.buffer.indexOf('\n');
     }
   }
 

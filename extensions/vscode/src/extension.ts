@@ -8,7 +8,7 @@ import { InitializeRequest, InitializeResponse } from './types/client';
 let coreClient: Client | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
 let chatProvider: ChatViewProvider | undefined;
-let binaryManager = new BinaryManager();
+const binaryManager = new BinaryManager();
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   // Create status bar early
