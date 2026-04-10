@@ -50,7 +50,7 @@ func TestRouter_Registration(t *testing.T) {
 
 func TestRouter_IsConfigured(t *testing.T) {
 	router := NewRouter()
-	
+
 	if router.IsConfigured() {
 		t.Error("empty router should not be configured")
 	}

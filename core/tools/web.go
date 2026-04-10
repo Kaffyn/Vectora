@@ -19,7 +19,9 @@ func (t *GoogleSearchTool) Schema() json.RawMessage {
 }
 
 func (t *GoogleSearchTool) Execute(ctx context.Context, args json.RawMessage) (*ToolResult, error) {
-	var params struct{ Query string `json:"query"` }
+	var params struct {
+		Query string `json:"query"`
+	}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return &ToolResult{Output: "Invalid args", IsError: true}, nil
 	}
@@ -58,7 +60,9 @@ func (t *WebFetchTool) Schema() json.RawMessage {
 }
 
 func (t *WebFetchTool) Execute(ctx context.Context, args json.RawMessage) (*ToolResult, error) {
-	var params struct{ URL string `json:"url"` }
+	var params struct {
+		URL string `json:"url"`
+	}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return &ToolResult{Output: "Invalid args", IsError: true}, nil
 	}

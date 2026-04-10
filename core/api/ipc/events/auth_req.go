@@ -21,12 +21,12 @@ func SendPermissionRequest(conn Connection, payload PermissionPayload) error {
 		"event_type": "permission_request",
 		"payload":    payload,
 	}
-	
+
 	data, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
-	
+
 	// Appends EOL to ensure atomic reading on the UI end
 	data = append(data, '\n')
 	_, err = conn.Write(data)

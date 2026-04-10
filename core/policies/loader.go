@@ -48,7 +48,7 @@ func (l *Loader) LoadAll() error {
 		// Note: Alguns YAMLs podem ter múltiplas regras se usarmos separadores ou lermos como slice.
 		// Para simplificar o blueprint, lemos como múltiplos documentos ou um único objeto.
 		// Aqui assumimos que cada arquivo pode ter múltiplas regras.
-		
+
 		// Tentativa de ler como lista
 		var rule PolicyRule
 		if err := yaml.Unmarshal(data, &rule); err == nil && rule.PolicyID != "" {

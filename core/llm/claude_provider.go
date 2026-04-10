@@ -47,21 +47,21 @@ type claudeTool struct {
 }
 
 type claudeRequest struct {
-	Model       string         `json:"model"`
+	Model       string          `json:"model"`
 	Messages    []claudeMessage `json:"messages"`
-	System      string         `json:"system,omitempty"`
-	MaxTokens   int            `json:"max_tokens"`
-	Temperature float32        `json:"temperature"`
-	Tools       []claudeTool   `json:"tools,omitempty"`
+	System      string          `json:"system,omitempty"`
+	MaxTokens   int             `json:"max_tokens"`
+	Temperature float32         `json:"temperature"`
+	Tools       []claudeTool    `json:"tools,omitempty"`
 }
 
 type claudeResponse struct {
 	ID      string `json:"id"`
 	Content []struct {
-		Type string `json:"type"`
-		Text string `json:"text,omitempty"`
-		ID   string `json:"id,omitempty"`   // for tool_use
-		Name string `json:"name,omitempty"` // for tool_use
+		Type  string          `json:"type"`
+		Text  string          `json:"text,omitempty"`
+		ID    string          `json:"id,omitempty"`   // for tool_use
+		Name  string          `json:"name,omitempty"` // for tool_use
 		Input json.RawMessage `json:"input,omitempty"`
 	} `json:"content"`
 	Usage struct {
@@ -75,7 +75,7 @@ func (p *ClaudeProvider) Complete(ctx context.Context, req CompletionRequest) (C
 	if modelName == "" {
 		modelName = "claude-3-5-sonnet-20241022"
 	}
-	
+
 	// Map "4.6" aliases to real models
 	if strings.Contains(modelName, "4.6-sonnet") {
 		modelName = "claude-3-5-sonnet-20241022"

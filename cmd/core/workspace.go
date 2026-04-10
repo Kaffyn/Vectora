@@ -69,14 +69,14 @@ var workspaceRmCmd = &cobra.Command{
 		systemManager, _ := vecos.NewManager()
 		appDataDir, _ := systemManager.GetAppDataDir()
 		wsChromaDir := filepath.Join(appDataDir, "data", "chroma", id)
-		
+
 		fmt.Printf("Deleting workspace '%s'...\n", id)
 		err := os.RemoveAll(wsChromaDir)
 		if err != nil {
 			fmt.Println("Error removing workspace metrics:", err)
 			return
 		}
-		
+
 		fmt.Println("Workspace deleted successfully.")
 	},
 }

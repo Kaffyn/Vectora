@@ -14,8 +14,10 @@ type WriteFileTool struct {
 	Guardian    *policies.Guardian
 }
 
-func (t *WriteFileTool) Name() string        { return "write_file" }
-func (t *WriteFileTool) Description() string { return "Creates or overwrites a file within the Trust Folder." }
+func (t *WriteFileTool) Name() string { return "write_file" }
+func (t *WriteFileTool) Description() string {
+	return "Creates or overwrites a file within the Trust Folder."
+}
 func (t *WriteFileTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"path":{"type":"string"},"content":{"type":"string"}},"required":["path","content"]}`)
 }

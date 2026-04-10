@@ -9,8 +9,8 @@ import (
 
 // Guardian encapsula todas as regras de segurança
 type Guardian struct {
-	TrustFolder   string
-	BlockedExts   map[string]bool
+	TrustFolder            string
+	BlockedExts            map[string]bool
 	BlockedFiles           map[string]bool
 	ExcludedDirs           map[string]bool
 	SecretRegexes          []*regexp.Regexp
@@ -106,7 +106,7 @@ func (g *Guardian) IsModificationBlocked(path string) bool {
 	if rel, err := filepath.Rel(g.TrustFolder, path); err == nil {
 		relPath = rel
 	}
-	
+
 	// Normaliza separadores no Windows para barra normal para funcionar bem no filepath.Match e com nomes do repositório
 	relPath = filepath.ToSlash(relPath)
 	filename := filepath.Base(relPath)

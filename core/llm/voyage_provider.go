@@ -40,7 +40,7 @@ func (p *VoyageProvider) Complete(ctx context.Context, req CompletionRequest) (C
 
 func (p *VoyageProvider) Embed(ctx context.Context, input string) ([]float32, error) {
 	url := "https://api.voyageai.com/v1/embeddings"
-	
+
 	requestBody, err := json.Marshal(map[string]interface{}{
 		"input": []string{input},
 		"model": p.model,

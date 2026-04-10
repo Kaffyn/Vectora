@@ -61,16 +61,16 @@ type geminiContent struct {
 }
 
 type geminiRequest struct {
-	Contents         []geminiContent   `json:"contents"`
-	SystemInstruction *geminiContent    `json:"system_instruction,omitempty"`
-	GenerationConfig map[string]interface{} `json:"generationConfig,omitempty"`
-	Tools            []map[string]interface{} `json:"tools,omitempty"`
+	Contents          []geminiContent          `json:"contents"`
+	SystemInstruction *geminiContent           `json:"system_instruction,omitempty"`
+	GenerationConfig  map[string]interface{}   `json:"generationConfig,omitempty"`
+	Tools             []map[string]interface{} `json:"tools,omitempty"`
 }
 
 type geminiResponse struct {
 	Candidates []struct {
-		Content       geminiContent `json:"content"`
-		FinishReason  string        `json:"finishReason"`
+		Content      geminiContent `json:"content"`
+		FinishReason string        `json:"finishReason"`
 	} `json:"candidates"`
 	UsageMetadata struct {
 		PromptTokenCount     int `json:"promptTokenCount"`

@@ -31,7 +31,7 @@ func (m *StatefulMockEngine) Embed(ctx context.Context, text string) ([]float32,
 
 func (m *StatefulMockEngine) Query(ctx context.Context, query string, workspaceID string, model string, mode string, policy string) (string, error) {
 	time.Sleep(m.Delay)
-	
+
 	m.mu.Lock()
 	m.Sessions[workspaceID] = append(m.Sessions[workspaceID], query)
 	m.mu.Unlock()
@@ -40,7 +40,7 @@ func (m *StatefulMockEngine) Query(ctx context.Context, query string, workspaceI
 	if strings.Contains(strings.ToLower(query), "hello") {
 		return "Hello from Vectora Stateful Mock!", nil
 	}
-	
+
 	if strings.Contains(strings.ToLower(query), "list files") {
 		m.mu.RLock()
 		defer m.mu.RUnlock()

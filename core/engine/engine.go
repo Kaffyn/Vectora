@@ -64,13 +64,13 @@ func (e *Engine) ExecuteTool(ctx context.Context, name string, args map[string]a
 	if !ok {
 		return acp.ToolResult{Output: fmt.Sprintf("Tool %s not found", name), IsError: true}, nil
 	}
-	
+
 	argsJSON, _ := json.Marshal(args)
 	result, err := tool.Execute(ctx, argsJSON)
 	if err != nil {
 		return acp.ToolResult{Output: err.Error(), IsError: true}, nil
 	}
-	
+
 	return acp.ToolResult{Output: result.Output, IsError: result.IsError}, nil
 }
 
@@ -89,7 +89,7 @@ func (e *Engine) Query(ctx context.Context, query string, workspaceID string, mo
 	if err != nil {
 		return "", err
 	}
-	
+
 	var finalAnswer string
 	for chunk := range ch {
 		if chunk.IsFinal {
@@ -107,7 +107,7 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 		defer close(ch)
 
 		provider := e.LLM.GetDefault()
-		
+
 		// If a model is specified, try to find the provider for it
 		if model != "" {
 			if strings.HasPrefix(model, "claude") || strings.HasPrefix(model, "4.6") {
@@ -197,7 +197,7 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 			// Execute tools and add results to history
 			for _, tc := range resp.ToolCalls {
 				ch <- QueryChunk{Token: fmt.Sprintf("\n[Executing %s...]", tc.Name), IsFinal: false}
-				
+
 				result, err := e.Tools.ExecuteStringArgs(ctx, tc.Name, tc.Args)
 				output := ""
 				if err != nil {

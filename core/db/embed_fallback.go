@@ -7,7 +7,7 @@ func GenerateDummyEmbedding(text string, dimensions int) []float32 {
 	vec := make([]float32, dimensions)
 	hash := fnvHash(text)
 	for i := 0; i < dimensions; i++ {
-		val := float32(((hash >> uint(i%32)) & 0xFFFF)) / 32768.0 - 1.0
+		val := float32(((hash>>uint(i%32))&0xFFFF))/32768.0 - 1.0
 		vec[i] = val
 	}
 	// Normalize to unit vector

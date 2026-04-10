@@ -130,7 +130,9 @@ func (s *Server) handleEdit(ctx context.Context, params json.RawMessage) (any, s
 }
 
 func (s *Server) handleWebSearch(ctx context.Context, params json.RawMessage) (any, string) {
-	var req struct{ Query string `json:"query"` }
+	var req struct {
+		Query string `json:"query"`
+	}
 	if err := json.Unmarshal(params, &req); err != nil {
 		return nil, err.Error()
 	}
@@ -142,7 +144,9 @@ func (s *Server) handleWebSearch(ctx context.Context, params json.RawMessage) (a
 }
 
 func (s *Server) handleWebFetch(ctx context.Context, params json.RawMessage) (any, string) {
-	var req struct{ URL string `json:"url"` }
+	var req struct {
+		URL string `json:"url"`
+	}
 	if err := json.Unmarshal(params, &req); err != nil {
 		return nil, err.Error()
 	}

@@ -16,14 +16,18 @@ type ReadFolderTool struct {
 	Guardian    *policies.Guardian
 }
 
-func (t *ReadFolderTool) Name() string        { return "read_folder" }
-func (t *ReadFolderTool) Description() string { return "Lists files and directories within a base directory." }
+func (t *ReadFolderTool) Name() string { return "read_folder" }
+func (t *ReadFolderTool) Description() string {
+	return "Lists files and directories within a base directory."
+}
 func (t *ReadFolderTool) Schema() json.RawMessage {
 	return []byte(`{"type":"object","properties":{"path":{"type":"string"}},"required":["path"]}`)
 }
 
 func (t *ReadFolderTool) Execute(ctx context.Context, args json.RawMessage) (*ToolResult, error) {
-	var params struct{ Path string `json:"path"` }
+	var params struct {
+		Path string `json:"path"`
+	}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return &ToolResult{Output: "Invalid args", IsError: true}, nil
 	}

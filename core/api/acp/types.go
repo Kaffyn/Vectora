@@ -25,9 +25,9 @@ const ProtocolVersion = 1
 // ---- Initialization ----
 
 type InitializeRequest struct {
-	ProtocolVersion    int                `json:"protocolVersion"`
+	ProtocolVersion    int                 `json:"protocolVersion"`
 	ClientCapabilities *ClientCapabilities `json:"clientCapabilities,omitempty"`
-	ClientInfo         *Info              `json:"clientInfo,omitempty"`
+	ClientInfo         *Info               `json:"clientInfo,omitempty"`
 }
 
 type ClientCapabilities struct {
@@ -47,16 +47,16 @@ type Info struct {
 }
 
 type InitializeResponse struct {
-	ProtocolVersion    int                 `json:"protocolVersion"`
-	AgentCapabilities  *AgentCapabilities  `json:"agentCapabilities,omitempty"`
-	AgentInfo          *Info               `json:"agentInfo"`
-	AuthMethods        []string            `json:"authMethods,omitempty"`
+	ProtocolVersion   int                `json:"protocolVersion"`
+	AgentCapabilities *AgentCapabilities `json:"agentCapabilities,omitempty"`
+	AgentInfo         *Info              `json:"agentInfo"`
+	AuthMethods       []string           `json:"authMethods,omitempty"`
 }
 
 type AgentCapabilities struct {
-	LoadSession      bool                `json:"loadSession,omitempty"`
-	PromptCaps       *PromptCapabilities `json:"promptCapabilities,omitempty"`
-	MCPCaps          *MCPCapabilities    `json:"mcpCapabilities,omitempty"`
+	LoadSession bool                `json:"loadSession,omitempty"`
+	PromptCaps  *PromptCapabilities `json:"promptCapabilities,omitempty"`
+	MCPCaps     *MCPCapabilities    `json:"mcpCapabilities,omitempty"`
 }
 
 type PromptCapabilities struct {
@@ -114,11 +114,11 @@ type PromptResponse struct {
 
 // Stop reasons
 const (
-	StopEndTurn      = "end_turn"
-	StopMaxTokens    = "max_tokens"
-	StopMaxTurns     = "max_turn_requests"
-	StopRefusal      = "refusal"
-	StopCancelled    = "cancelled"
+	StopEndTurn   = "end_turn"
+	StopMaxTokens = "max_tokens"
+	StopMaxTurns  = "max_turn_requests"
+	StopRefusal   = "refusal"
+	StopCancelled = "cancelled"
 )
 
 // ---- Content Blocks ----
@@ -138,8 +138,8 @@ type Resource struct {
 // ---- Session Updates ----
 
 type SessionUpdate struct {
-	SessionID string      `json:"sessionId"`
-	Update    UpdateData  `json:"update"`
+	SessionID string     `json:"sessionId"`
+	Update    UpdateData `json:"update"`
 }
 
 type UpdateData struct {
@@ -166,13 +166,13 @@ type PlanEntry struct {
 }
 
 type ToolContent struct {
-	Type    string       `json:"type"`
+	Type    string        `json:"type"`
 	Content *ContentBlock `json:"content,omitempty"`
 }
 
 type ToolLocation struct {
-	Path string  `json:"path"`
-	Line *int    `json:"line,omitempty"`
+	Path string `json:"path"`
+	Line *int   `json:"line,omitempty"`
 }
 
 // Tool call statuses
@@ -199,7 +199,7 @@ const (
 // ---- Permission ----
 
 type RequestPermissionRequest struct {
-	SessionID string            `json:"sessionId"`
+	SessionID string             `json:"sessionId"`
 	ToolCall  PermissionToolCall `json:"toolCall"`
 	Options   []PermissionOption `json:"options"`
 }
@@ -216,9 +216,9 @@ type PermissionOption struct {
 
 // Permission kinds
 const (
-	PermAllowOnce  = "allow_once"
-	PermAllowAlways = "allow_always"
-	PermRejectOnce = "reject_once"
+	PermAllowOnce    = "allow_once"
+	PermAllowAlways  = "allow_always"
+	PermRejectOnce   = "reject_once"
 	PermRejectAlways = "reject_always"
 )
 
@@ -232,7 +232,7 @@ type PermissionOutcome struct {
 }
 
 const (
-	OutcomeSelected = "selected"
+	OutcomeSelected  = "selected"
 	OutcomeCancelled = "cancelled"
 )
 
@@ -348,14 +348,14 @@ type ToolResult struct {
 
 // Session represents an active ACP conversation session.
 type Session struct {
-	ID       string
-	CWD      string
-	Updates  chan SessionUpdate
+	ID           string
+	CWD          string
+	Updates      chan SessionUpdate
 	PermissionCh chan PermissionResponse
 }
 
 type PermissionResponse struct {
-	OptionID string
+	OptionID  string
 	Cancelled bool
 }
 

@@ -21,10 +21,10 @@ func TestGeminiParsing(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Inject our mock server URL into the provider logic 
-	// (Requires a small modification in gemini_provider to be fully testable without network, 
+	// Inject our mock server URL into the provider logic
+	// (Requires a small modification in gemini_provider to be fully testable without network,
 	// but for now we can mock the http.Client behavior or use a specific test helper)
-	
+
 	// Override URL for testing if possible, or just validate unmarshaling directly
 	var gResp geminiResponse
 	if err := json.Unmarshal(fixtureData, &gResp); err != nil {
@@ -34,7 +34,7 @@ func TestGeminiParsing(t *testing.T) {
 	if len(gResp.Candidates) == 0 {
 		t.Error("expected at least one candidate")
 	}
-	
+
 	text := gResp.Candidates[0].Content.Parts[0].Text
 	expected := "Olá! Eu sou o Vectora. Posso ajudar você a analisar este código Go."
 	if text != expected {
