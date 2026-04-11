@@ -18,6 +18,14 @@ $APP_NAME = "vectora"
 $CMD_PATH = "./cmd/core"
 $VERSION = "0.1.0"
 
+# Stop running instances to release file locks before cleaning
+Write-Host "${YELLOW}[PRE-CHECK] Stopping active Vectora processes...${NC}"
+$procNames = @("vectora", "vectora-windows-amd64", "vectora-windows-arm64")
+foreach ($name in $procNames) {
+    Get-Process $name -ErrorAction SilentlyContinue | Stop-Process -Force
+}
+Start-Sleep -Milliseconds 500
+
 # Cleanup bin/
 if (Test-Path "$BIN_DIR") {
     Write-Host "${YELLOW}[CLEAN] Cleaning bin/...${NC}"
@@ -222,12 +230,6 @@ $env:CGO_ENABLED = ""
 # PHASE 2: Package for distribution
 Write-Host ""
 Write-Host "${YELLOW}[PHASE 2] Packaging for distribution...${NC}"
-
-# Stop running instances to release file locks
-Write-Host "  Stopping any active Vectora processes..."
-Stop-Process -Name "vectora" -Force -ErrorAction SilentlyContinue
-Start-Sleep -Seconds 1
-Get-Process "${APP_NAME}" -ErrorAction SilentlyContinue | Stop-Process -Force
 
 # --- Windows: Install to user-local directory + PATH ---
 $InstallDir = Join-Path $env:USERPROFILE "AppData\Local\Vectora"
