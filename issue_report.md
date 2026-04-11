@@ -1,6 +1,6 @@
 # Vectora Issue Report - Bug Collection & Requests
 
-Este documento consolida as falhas, discussões e requisitos obrigatórios do ecossistema Vectora.
+Este documento consolida as falhas, discussões e requisitos do ecossistema Vectora.
 
 ---
 
@@ -15,7 +15,7 @@ Este documento consolida as falhas, discussões e requisitos obrigatórios do ec
 ### 2. Falha na Inicialização Automática do Core
 
 **Status**: Identificado
-**Descrição**: A extensão sinaliza prontidão, mas o processo de background (`vectora start`) não é iniciado.
+**Descrição**: A extensão sinaliza prontidão, mas o processo de background (`vectora start`) não foi iniciado.
 **Causa Provável**: Divergência entre o diretório de instalação do build e o `BinaryManager`.
 
 ### 3. Concorrência de Processos (Múltiplas Instâncias)
@@ -68,28 +68,27 @@ Este documento consolida as falhas, discussões e requisitos obrigatórios do ec
 
 ---
 
-## 🚀 Requests (Ordens de Migração e Requisitos)
+## 🚀 Requests (Modernização e Requisitos)
 
-### 12. Migração para SDKs Oficiais (OBRIGATÓRIO)
+### 12. Migração para SDKs Oficiais (Chat & Embeddings)
 
-**Status**: Requisito de Modernização
-**Descrição**: Migrar todos os provedores de LLM e Embeddings para seus SDKs oficiais de alta performance.
+Requisito de migrar todas as implementações HTTP manuais para os SDKs oficiais de cada provedor, abrangendo tanto as funcionalidades de Chat quanto as de Embeddings.
 
-**Links de Referência**:
+**Referências Oficiais**:
 
-- **Gemini SDK**: [google.golang.org/genai](https://pkg.go.dev/google.golang.org/genai)
-- **Claude SDK**: [github.com/anthropics/anthropic-sdk-go](https://github.com/anthropics/anthropic-sdk-go) (via [docs](https://platform.claude.com/docs/en/api/sdks/go))
-- **Voyage SDK**: [github.com/austinfhunter/voyageai](https://pkg.go.dev/github.com/austinfhunter/voyageai)
+- **Gemini (Chat & Embeddings)**: [google.golang.org/genai](https://pkg.go.dev/google.golang.org/genai)
+- **Claude (SDK)**: [github.com/anthropics/anthropic-sdk-go](https://github.com/anthropics/anthropic-sdk-go)
+- **Voyage AI (SDK & Embeddings)**: [github.com/austinfhunter/voyageai](https://pkg.go.dev/github.com/austinfhunter/voyageai)
 
-### 13. Normalização de Modelos (Gemini 2.0 / 1.5)
+### 13. Revisão e Normalização de Modelos e Funcionalidades
 
-**Status**: Requisito de Modernização
-**Descrição**: Revisar e alinhar os modelos com a [documentação oficial](https://ai.google.dev/gemini-api/docs/models?hl=pt-br), incluindo suporte nativo a `ThinkingConfig` para modelos experimentais.
+Revisar e alinhar os identificadores de modelos e configurações avançadas com base nas documentações oficiais dos 3 provedores.
 
-### 14. Embeddings via SDK
+**Documentação de Referência**:
 
-**Status**: Requisito de Modernização
-**Descrição**: Substituir as chamadas manuais de embedding pela implementação nativa do SDK (`client.Models.EmbedContent`).
+- **Gemini**: [Modelos e ThinkingConfig](https://ai.google.dev/gemini-api/docs/models?hl=pt-br)
+- **Claude**: [Modelos e Prompt Caching](https://platform.claude.com/docs/en/api/sdks/go)
+- **Voyage**: [Modelos de Embedding Profissional](https://pkg.go.dev/github.com/austinfhunter/voyageai)
 
 ---
 
