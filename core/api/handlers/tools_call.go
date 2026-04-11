@@ -163,7 +163,7 @@ func HandleSessionPrompt(eng *engine.Engine, params json.RawMessage) (interface{
 	}
 
 	// Execute query via engine using Query instead of ProcessQuery (which might be deprecated/renamed)
-	answer, err := eng.Query(context.Background(), queryText, "default", "gemini-3-flash", "fast", "ask")
+	answer, err := eng.Query(context.Background(), queryText, "default", "gemini-3-flash-preview", "fast", "ask")
 	if err != nil {
 		return nil, jsonrpc.NewError(-32000, err.Error())
 	}

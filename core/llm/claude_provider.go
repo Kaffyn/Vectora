@@ -109,18 +109,30 @@ func (p *ClaudeProvider) Embed(ctx context.Context, input string) ([]float32, er
 	return nil, errors.New("claude_no_native_embedding")
 }
 
-func (p *ClaudeProvider) prepareParams(req CompletionRequest) anthropic.MessageNewParams {
-	modelName := "claude-3-5-sonnet-20241022"
-	if req.Model != "" {
-		modelName = req.Model
-	}
+// claudeAliases maps shorthand model names to canonical Anthropic model IDs.
+// Uses SDK constants where available so typos are caught at compile time.
+var claudeAliases = map[string]anthropic.Model{
+	// Claude 4.6 series (latest)
+	"claude-sonnet-4-6": anthropic.ModelClaudeSonnet4_6,
+	"claude-opus-4-6":   anthropic.ModelClaudeOpus4_6,
+	// Claude 4.5 series
+	"claude-sonnet-4-5": anthropic.ModelClaudeSonnet4_5,
+	"claude-haiku-4-5":  anthropic.ModelClaudeHaiku4_5,
+	"claude-opus-4-5":   anthropic.ModelClaudeOpus4_5,
+	// Convenience shorthands
+	"sonnet":     anthropic.ModelClaudeSonnet4_6,
+	"opus":       anthropic.ModelClaudeOpus4_6,
+	"haiku":      anthropic.ModelClaudeHaiku4_5,
+	"sonnet-4-6": anthropic.ModelClaudeSonnet4_6,
+	"opus-4-6":   anthropic.ModelClaudeOpus4_6,
+}
 
-	if strings.Contains(modelName, "4.6-sonnet") {
-		modelName = "claude-3-5-sonnet-20241022"
-	} else if strings.Contains(modelName, "4.6-opus") {
-		modelName = "claude-3-opus-20240229"
-	} else if strings.Contains(modelName, "4.6-haiku") {
-		modelName = "claude-3-5-haiku-20241022"
+func (p *ClaudeProvider) prepareParams(req CompletionRequest) anthropic.MessageNewParams {
+	modelID := anthropic.Model(req.Model)
+	if modelID == "" {
+		modelID = anthropic.ModelClaudeSonnet4_6
+	} else if resolved, ok := claudeAliases[strings.ToLower(req.Model)]; ok {
+		modelID = resolved
 	}
 
 	var messages []anthropic.MessageParam
@@ -139,7 +151,7 @@ func (p *ClaudeProvider) prepareParams(req CompletionRequest) anthropic.MessageN
 	}
 
 	params := anthropic.MessageNewParams{
-		Model:     anthropic.Model(modelName),
+		Model:     modelID,
 		MaxTokens: int64(req.MaxTokens),
 		Messages:  messages,
 	}

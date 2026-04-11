@@ -576,7 +576,7 @@ func testEngineRAG(ctx context.Context, testDir string) {
 	result, err := eng.ExecuteTool(ctx, "run_shell_command", map[string]any{"command": "echo engine-test"})
 	assert("Engine ExecuteTool", err == nil && result.Output != "" && strings.Contains(result.Output, "engine-test"), fmt.Sprintf("err=%v out=%s", err, result.Output))
 
-	ch, err := eng.StreamQuery(ctx, "what is this?", "default", "gemini-3-flash", "fast", "ask")
+	ch, err := eng.StreamQuery(ctx, "what is this?", "default", "gemini-3-flash-preview", "fast", "ask")
 	if err == nil && ch != nil {
 		var output string
 		for chunk := range ch {
@@ -587,7 +587,7 @@ func testEngineRAG(ctx context.Context, testDir string) {
 		assert("StreamQuery handles no LLM", true, "")
 	}
 
-	answer, err := eng.Query(ctx, "test query", "default", "gemini-3-flash", "fast", "ask")
+	answer, err := eng.Query(ctx, "test query", "default", "gemini-3-flash-preview", "fast", "ask")
 	assert("Query sync version", answer != "" || err == nil, fmt.Sprintf("answer='%s' err=%v", answer, err))
 }
 

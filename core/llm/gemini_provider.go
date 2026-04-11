@@ -122,7 +122,7 @@ func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionReque
 }
 
 func (p *GeminiProvider) Embed(ctx context.Context, input string) ([]float32, error) {
-	resp, err := p.client.Models.EmbedContent(ctx, "text-embedding-004", []*genai.Content{{
+	resp, err := p.client.Models.EmbedContent(ctx, "gemini-embedding-2-preview", []*genai.Content{{
 		Parts: []*genai.Part{{Text: input}},
 	}}, nil)
 	if err != nil {
