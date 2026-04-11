@@ -131,10 +131,27 @@ Este documento consolida as falhas, decisões arquiteturais e requisitos estrat�
 **Status**: Requisito de Modernização
 **Descrição**: Unificar toda a comunicação em **IPC + JSON-RPC** entre Core e Extensões (ACP/MCP). O SDK de cada provedor deve ser um método interno e privado do Core. Extensões e chat consomem apenas a nossa API unificada.
 
-### 21. Revisão Geral de Security Patterns e Tools
+**SDKs Alvo (Chat & Embeddings)**:
+
+- **Gemini**: [google.golang.org/genai](https://pkg.go.dev/google.golang.org/genai)
+- **Claude**: [github.com/anthropics/anthropic-sdk-go](https://github.com/anthropics/anthropic-sdk-go)
+- **Voyage AI**: [github.com/austinfhunter/voyageai](https://pkg.go.dev/github.com/austinfhunter/voyageai)
+
+### 21. Revisão de Modelos e Funcionalidades via Docs Oficiais
 
 **Status**: Requisito de Modernização
-**Descrição**: Realizar uma auditoria completa nos padrões de segurança e ferramentas (tools) utilizadas, integrando as decisões tomadas nas Questions 10-19 antes de prosseguir com a implementação final.
+**Descrição**: Revisar e alinhar identificadores de modelos e configurações (Thinking, Caching) com base nas documentações oficiais.
+
+**Documentação de Referência**:
+
+- **Gemini (Models & Thinking)**: [ai.google.dev/gemini-api/docs/models](https://ai.google.dev/gemini-api/docs/models?hl=pt-br)
+- **Claude (Models & Caching)**: [platform.claude.com/docs/en/api/sdks/go](https://platform.claude.com/docs/en/api/sdks/go)
+- **Voyage (Embedding Docs)**: [pkg.go.dev/github.com/austinfhunter/voyageai](https://pkg.go.dev/github.com/austinfhunter/voyageai)
+
+### 22. Auditoria Geral de Security Patterns e Tools
+
+**Status**: Requisito de Modernização
+**Descrição**: Realizar uma auditoria completa nos padrões de segurança e ferramentas utilizadas, integrando as decisões tomadas nas Questions 10-19.
 
 ---
 
