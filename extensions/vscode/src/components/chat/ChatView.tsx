@@ -7,12 +7,10 @@ import useSound from "use-sound";
 import { LRUCache } from "lru-cache";
 import { useTranslation, Trans } from "@src/i18n/TranslationContext";
 
-/*
 import { useDebounceEffect } from "@src/utils/useDebounceEffect";
 import { appendImages } from "@src/utils/imageUtils";
 import { getCostBreakdownIfNeeded } from "@src/utils/costFormatting";
 import { batchConsecutive } from "@src/utils/batchConsecutive";
-*/
 
 import type { ClineAsk, ClineSayTool, ClineMessage, ExtensionMessage, AudioType } from "@roo-code/types";
 import { isRetiredProvider } from "@roo-code/types";
@@ -30,18 +28,11 @@ import { vscode } from "@src/utils/vscode";
 import { useAppTranslation } from "@src/i18n/TranslationContext";
 import { useExtensionState } from "@context/ExtensionStateContext";
 import { useSelectedModel } from "@src/components/ui/hooks/useSelectedModel";
-import RooHero from "@src/components/welcome/RooHero";
-import RooTips from "@src/components/welcome/RooTips";
-import { StandardTooltip, Button } from "@src/components/ui";
-import { CloudUpsellDialog } from "@src/components/cloud/CloudUpsellDialog";
-
-import TelemetryBanner from "../common/TelemetryBanner";
-import VersionIndicator from "../common/VersionIndicator";
-import HistoryPreview from "../history/HistoryPreview";
-import Announcement from "./Announcement";
 import ChatRow from "./ChatRow";
 import WarningRow from "./WarningRow";
 import { ChatTextArea } from "./ChatTextArea";
+import HistoryPreview from "../history/HistoryPreview";
+import { StandardTooltip, Button } from "@src/components/ui";
 import TaskHeader from "./TaskHeader";
 import ProfileViolationWarning from "./ProfileViolationWarning";
 import { CheckpointWarning } from "./CheckpointWarning";
@@ -239,33 +230,31 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
   const lastPlayedRef = useRef<Record<string, number>>({});
 
   const playSound = useCallback((audioType: AudioType) => {
-    /*
-      if (!soundEnabled) {
-        return;
-      }
+    if (!soundEnabled) {
+      return;
+    }
 
-      const now = Date.now();
-      const lastPlayed = lastPlayedRef.current[audioType] ?? 0;
-      if (now - lastPlayed < 100) {
-        return;
-      }
-      lastPlayedRef.current[audioType] = now;
+    const now = Date.now();
+    const lastPlayed = lastPlayedRef.current[audioType] ?? 0;
+    if (now - lastPlayed < 100) {
+      return;
+    }
+    lastPlayedRef.current[audioType] = now;
 
-      switch (audioType) {
-        case "notification":
-          playNotification();
-          break;
-        case "celebration":
-          playCelebration();
-          break;
-        case "progress_loop":
-          playProgressLoop();
-          break;
-        default:
-          console.warn(`Unknown audio type: ${audioType}`);
-      }
-      */
-  }, []);
+    switch (audioType) {
+      case "notification":
+        playNotification();
+        break;
+      case "celebration":
+        playCelebration();
+        break;
+      case "progress_loop":
+        playProgressLoop();
+        break;
+      default:
+        console.warn(`Unknown audio type: ${audioType}`);
+    }
+  }, [soundEnabled, playNotification, playCelebration, playProgressLoop]);
 
   function playTts(text: string) {
     // vscode.postMessage({ type: "playTts", text });
@@ -1059,7 +1048,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
     return () => clearInterval(cleanupInterval);
   }, [modifiedMessages, visibleMessages]);
 
-  /*
   useDebounceEffect(
     () => {
       if (!isHidden && !sendingDisabled && !enableButtons) {
@@ -1069,7 +1057,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
     50,
     [isHidden, sendingDisabled, enableButtons],
   );
-  */
 
   useEffect(() => {
     // This ensures the first message is not read, future user messages are
@@ -1521,19 +1508,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
       data-testid="chat-view"
       className={isHidden ? "hidden" : "fixed top-0 left-0 right-0 bottom-0 flex flex-col overflow-hidden"}
     >
-      {telemetrySetting === "unset" && <TelemetryBanner />}
-      {(showAnnouncement || showAnnouncementModal) && (
-        <Announcement
-          hideAnnouncement={() => {
-            if (showAnnouncementModal) {
-              setShowAnnouncementModal(false);
-            }
-            if (showAnnouncement) {
-              hideAnnouncement();
-            }
-          }}
-        />
-      )}
       {task ? (
         <>
           <TaskHeader
@@ -1579,36 +1553,18 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
       ) : (
         <div className="flex flex-col h-full justify-center p-6 min-h-0 overflow-y-auto gap-4 relative">
           <div className="flex flex-col items-start gap-2 justify-center h-full min-[400px]:px-6">
-            <VersionIndicator onClick={() => setShowAnnouncementModal(true)} className="absolute top-2 right-3 z-10" />
+            <div className="absolute top-2 right-3 z-10 text-xs opacity-50 px-2 py-1">Vectora v0.1.0</div>
             <div className="flex flex-col gap-4 w-full">
-              <RooHero />
-              {/* Show RooTips when authenticated or when user is new */}
-              {taskHistory.length < 6 && <RooTips />}
-              {/* Everyone should see their task history if any */}
+              <div className="flex flex-col items-center justify-center p-8 bg-vscode-sideBar-background border border-vscode-widget-border rounded-lg mb-4">
+                <h1 className="text-2xl font-bold mb-2">Vectora AI</h1>
+                <p className="text-sm opacity-70 text-center">Codificação Assistida por IA com RAG Local</p>
+              </div>
               {taskHistory.length > 0 && <HistoryPreview />}
             </div>
-            {/* Logged out users should see a one-time upsell, but not for brand new users */}
-            {!cloudIsAuthenticated && taskHistory.length >= 6 && (
-              <DismissibleUpsell
-                upsellId="taskList2"
-                icon={<Cloud className="size-5 shrink-0" />}
-                onClick={() => openUpsell()}
-                dismissOnClick={false}
-                className="bg-none mt-6 border-border rounded-xl p-3 !text-base"
-              >
-                <Trans
-                  i18nKey="cloud:upsell.taskList"
-                  components={{
-                    learnMoreLink: <VSCodeLink href="#" />,
-                  }}
-                />
-              </DismissibleUpsell>
-            )}
           </div>
         </div>
       )}
 
-      {!task && showWorktreesInHomeScreen && <WorktreeSelector />}
 
       {task && (
         <>
@@ -1761,7 +1717,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
       )}
 
       <div id="roo-portal" />
-      <CloudUpsellDialog open={isUpsellOpen} onOpenChange={closeUpsell} onConnect={handleConnect} />
     </div>
   );
 };

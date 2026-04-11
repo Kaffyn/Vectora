@@ -19,15 +19,12 @@ import { COMMAND_OUTPUT_STRING } from "@roo/combineCommandSequences";
 import { safeJsonParse } from "@roo/core";
 
 import { useExtensionState } from "@context/ExtensionStateContext";
-/*
-import { findMatchingResourceOrTemplate } from "@src/utils/mcp";
-import { vscode } from "@src/utils/vscode";
-import { formatPathTooltip } from "@src/utils/formatPathTooltip";
-import { appendImages } from "@src/utils/imageUtils";
-*/
+const vscode = (window as any).acquireVsCodeApi();
 
-const formatPathTooltip = (p?: string, r?: string) => p || "";
-const vscode = (window as any).acquireVsCodeApi?.() || { postMessage: () => {} };
+const formatPathTooltip = (path?: string, reason?: string) => {
+  if (!path) return "";
+  return reason ? `${path} (${reason})` : path;
+};
 
 import { ToolUseBlock, ToolUseBlockHeader } from "../common/ToolUseBlock";
 import UpdateTodoListToolBlock from "./UpdateTodoListToolBlock";
@@ -40,10 +37,12 @@ import ImageBlock from "../common/ImageBlock";
 import ErrorRow from "./ErrorRow";
 import WarningRow from "./WarningRow";
 
+/*
 import McpResourceRow from "../mcp/McpResourceRow";
+*/
 
 import { Mention } from "./Mention";
-import { CheckpointSaved } from "./checkpoints/CheckpointSaved";
+// import { CheckpointSaved } from "./checkpoints/CheckpointSaved";
 import { FollowUpSuggest } from "./FollowUpSuggest";
 import { BatchFilePermission } from "./BatchFilePermission";
 import { BatchDiffApproval } from "./BatchDiffApproval";
@@ -55,7 +54,7 @@ import { AutoApprovedRequestLimitWarning } from "./AutoApprovedRequestLimitWarni
 import { InProgressRow, CondensationResultRow, CondensationErrorRow, TruncationResultRow } from "./context-management";
 import CodebaseSearchResultsDisplay from "./CodebaseSearchResultsDisplay";
 import { appendImages } from "@src/utils/imageUtils";
-import { McpExecution } from "./McpExecution";
+// import { McpExecution } from "./McpExecution";
 import { ChatTextArea } from "./ChatTextArea";
 import { MAX_IMAGES_PER_MESSAGE } from "./ChatView";
 import { useSelectedModel } from "../ui/hooks/useSelectedModel";
@@ -1313,14 +1312,7 @@ export const ChatRowContent = ({
         case "shell_integration_warning":
           return <CommandExecutionError />;
         case "checkpoint_saved":
-          return (
-            <CheckpointSaved
-              ts={message.ts!}
-              commitHash={message.text!}
-              currentHash={currentCheckpoint}
-              checkpoint={message.checkpoint}
-            />
-          );
+          return null;
         case "condense_context":
           // In-progress state
           if (message.partial) {
@@ -1585,37 +1577,8 @@ export const ChatRowContent = ({
                 {icon}
                 {title}
               </div>
-              <div className="w-full bg-vscode-editor-background border border-vscode-border rounded-xs p-2 mt-2">
-                {useMcpServer.type === "access_mcp_resource" && (
-                  <McpResourceRow
-                    item={{
-                      // Use the matched resource/template details, with fallbacks
-                      ...(findMatchingResourceOrTemplate(
-                        useMcpServer.uri || "",
-                        server?.resources,
-                        server?.resourceTemplates,
-                      ) || {
-                        name: "",
-                        mimeType: "",
-                        description: "",
-                      }),
-                      // Always use the actual URI from the request
-                      uri: useMcpServer.uri || "",
-                    }}
-                  />
-                )}
-                {useMcpServer.type === "use_mcp_tool" && (
-                  <McpExecution
-                    executionId={message.ts.toString()}
-                    text={useMcpServer.arguments !== "{}" ? useMcpServer.arguments : undefined}
-                    serverName={useMcpServer.serverName}
-                    toolName={useMcpServer.toolName}
-                    isArguments={true}
-                    server={server}
-                    useMcpServer={useMcpServer}
-                    alwaysAllowMcp={alwaysAllowMcp}
-                  />
-                )}
+              <div className="w-full bg-vscode-editor-background border border-vscode-border rounded-xs p-2 mt-2 italic opacity-50">
+                MCP Server Request
               </div>
             </>
           );

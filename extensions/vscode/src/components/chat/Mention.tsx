@@ -1,36 +1,7 @@
-import { mentionRegexGlobal } from "@roo/context-mentions";
+import React from "react";
 
-import { vscode } from "@utils/vscode";
-
-interface MentionProps {
-  text?: string;
-  withShadow?: boolean;
-}
-
-export const Mention = ({ text, withShadow = false }: MentionProps) => {
-  if (!text) {
-    return <>{text}</>;
-  }
-
-  const parts = text.split(mentionRegexGlobal).map((part, index) => {
-    if (index % 2 === 0) {
-      // This is regular text.
-      return part;
-    } else {
-      // This is a mention.
-      return (
-        <span
-          key={index}
-          className={`${
-            withShadow ? "mention-context-highlight-with-shadow" : "mention-context-highlight"
-          } text-[0.9em] cursor-pointer`}
-          onClick={() => vscode.postMessage({ type: "openMention", text: part })}
-        >
-          @{part}
-        </span>
-      );
-    }
-  });
-
-  return <>{parts}</>;
-};
+export const Mention = ({ text }: { text: string }) => (
+  <span className="text-vscode-linkForeground cursor-pointer hover:underline">
+    {text}
+  </span>
+);

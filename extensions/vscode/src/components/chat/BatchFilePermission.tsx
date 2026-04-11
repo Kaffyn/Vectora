@@ -1,57 +1,21 @@
-import { memo } from "react";
+import React from "react";
+import { Check, X } from "lucide-react";
 
-import { ToolUseBlock, ToolUseBlockHeader } from "../common/ToolUseBlock";
-import { vscode } from "@src/utils/vscode";
-import { formatPathTooltip } from "@src/utils/formatPathTooltip";
-import { PathTooltip } from "../ui/PathTooltip";
-
-interface FilePermissionItem {
-  path: string;
-  lineSnippet?: string;
-  isOutsideWorkspace?: boolean;
-  key: string;
-  content?: string; // full path
-}
-
-interface BatchFilePermissionProps {
-  files: FilePermissionItem[];
-  onPermissionResponse?: (response: { [key: string]: boolean }) => void;
-  ts: number;
-}
-
-export const BatchFilePermission = memo(({ files = [], onPermissionResponse, ts }: BatchFilePermissionProps) => {
-  // Don't render if there are no files or no response handler
-  if (!files?.length || !onPermissionResponse) {
-    return null;
-  }
-
+export const BatchFilePermission = ({ files, onPermissionResponse, ts }: any) => {
   return (
-    <div className="pt-[5px]">
-      {/* Individual files */}
-      <div className="flex flex-col gap-0 border border-border rounded-md p-1">
-        {files.map((file, index) => {
-          return (
-            <div key={`${file.path}-${index}-${ts}`} className="flex items-center gap-2">
-              <ToolUseBlock className="flex-1">
-                <ToolUseBlockHeader onClick={() => vscode.postMessage({ type: "openFile", text: file.content })}>
-                  {file.path?.startsWith(".") && <span>.</span>}
-                  <PathTooltip
-                    content={formatPathTooltip(file.path, file.lineSnippet ? ` ${file.lineSnippet}` : undefined)}
-                  >
-                    <span className="whitespace-nowrap overflow-hidden text-ellipsis text-left mr-2 rtl">
-                      {formatPathTooltip(file.path, file.lineSnippet ? ` ${file.lineSnippet}` : undefined)}
-                    </span>
-                  </PathTooltip>
-                  <div className="flex-grow"></div>
-                  <span className="codicon codicon-link-external text-[13.5px] my-[1px]" />
-                </ToolUseBlockHeader>
-              </ToolUseBlock>
+    <div className="flex flex-col gap-1 p-2 bg-vscode-input-background border border-vscode-widget-border rounded-md mt-2">
+      <span className="text-xs font-bold opacity-80 uppercase">Permissões de Arquivo</span>
+      <div className="flex flex-col gap-1">
+        {files.map((file: string) => (
+          <div key={file} className="flex items-center justify-between text-sm py-1 border-b border-vscode-widget-border last:border-0">
+            <span className="truncate flex-1">{file}</span>
+            <div className="flex gap-2">
+              <Check className="w-4 h-4 text-vscode-charts-green cursor-pointer" />
+              <X className="w-4 h-4 text-vscode-errorForeground cursor-pointer" />
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     </div>
   );
-});
-
-BatchFilePermission.displayName = "BatchFilePermission";
+};

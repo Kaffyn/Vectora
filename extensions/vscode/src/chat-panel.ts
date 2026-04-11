@@ -50,16 +50,22 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       switch (msg.type) {
-        case "send":
+        case "newTask":
           await this.sendMessageInternal(msg.text);
           break;
-        case "cancel":
+        case "askResponse":
+          await this.sendMessageInternal(msg.text || msg.askResponse);
+          break;
+        case "cancelTask":
           if (this.client?.sessionId) {
             this.client.notify("session/cancel", { sessionId: this.client.sessionId });
             this._view?.webview.postMessage({ type: "stream_end", stopReason: "cancelled" });
           }
           break;
-        case "clear":
+        case "clearTask":
+          if (this.client) {
+            this.client.sessionId = undefined;
+          }
           await this.clearChat();
           break;
       }
