@@ -3,13 +3,13 @@ package llm
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/openai/openai-go"
 )
 
 // GatewayProvider is a flexible provider that uses the OpenAI SDK
 // to connect to arbitrary gateways (OpenRouter, Anannas, etc.)
+// It supports all 10 LLM families catalogued in AGENTS.md (Standard April 2026).
 type GatewayProvider struct {
 	*OpenAIProvider
 	providerName string
@@ -27,41 +27,34 @@ func (p *GatewayProvider) Name() string {
 }
 
 func (p *GatewayProvider) ListModels(ctx context.Context) ([]string, error) {
-	// Re-uses OpenAIProvider's ListModels
-	return p.OpenAIProvider.ListModels(ctx)
+	// Try the live /models endpoint first — OpenRouter and Anannas both support it,
+	// returning the full real-time catalog of available models.
+	models, err := p.OpenAIProvider.ListModels(ctx)
+	if err == nil && len(models) > 0 {
+		return models, nil
+	}
+	// Fallback: return the static catalog for all 10 LLM families (AGENTS.md April 2026).
+	return GatewayModelsForProvider(p.providerName), nil
 }
 
-// Embed overrides OpenAIProvider.Embed to add family-based embedding model detection
-// that understands the "provider/model" format used by OpenRouter and Anannas.
+// Embed overrides OpenAIProvider.Embed to detect the correct embedding model for all
+// 10 LLM families, supporting both "provider/model" (OpenRouter) and plain model names.
 //
-// Examples:
+// Family detection examples:
 //
-//	"anthropic/claude-4.6-sonnet" → text-embedding-3-large (Claude has no native embedding)
-//	"google/gemini-3.1-pro"       → text-embedding-3-large (Gemini embedding not via gateway)
-//	"qwen/qwen3.6-plus"           → qwen3-embedding-8b
+//	"anthropic/claude-4.6-sonnet" → text-embedding-3-large (no native gateway embedding)
+//	"google/gemini-3.1-pro"       → text-embedding-3-large (Gemini not accessible via gateway)
+//	"qwen/qwen3.6-plus"           → qwen3-embedding-8b     (native Qwen embedding)
 //	"openai/gpt-5.4-pro"          → text-embedding-3-large
-
+//	"meta-llama/llama-4-70b"      → text-embedding-3-large (no native embedding)
+//	"microsoft/phi-4-medium"      → text-embedding-3-large
+//	"deepseek/deepseek-v3.2"      → text-embedding-3-large
+//	"mistralai/mistral-large-3"   → text-embedding-3-large
+//	"x-ai/grok-4.20"              → text-embedding-3-large
+//	"zhipuai/glm-5.1"             → text-embedding-3-large
 func (p *GatewayProvider) Embed(ctx context.Context, input string, model string) ([]float32, error) {
-	lowerModel := strings.ToLower(model)
-
-	// Extract provider family from "provider/model" format (OpenRouter, Anannas style).
-	family := lowerModel
-	subModel := lowerModel
-	if idx := strings.Index(lowerModel, "/"); idx != -1 {
-		family = lowerModel[:idx]     // e.g. "anthropic", "google", "qwen", "openai"
-		subModel = lowerModel[idx+1:] // e.g. "claude-4.6-sonnet", "gemini-3.1-pro"
-	}
-
-	// Choose embedding model based on detected family.
-	// Qwen has its own embedding model; everything else uses OpenAI's.
-	// Note: Claude, Gemini, LLaMA, Phi, Mistral, etc. have no native embedding accessible
-	// via gateways, so we fall back to text-embedding-3-large.
-	var embeddingModel string
-	if strings.Contains(family, "qwen") || strings.Contains(subModel, "qwen") {
-		embeddingModel = "qwen3-embedding-8b"
-	} else {
-		embeddingModel = "text-embedding-3-large"
-	}
+	// EmbeddingModelForGateway uses the shared family-detection logic from gateway_models.go.
+	embeddingModel := EmbeddingModelForGateway(model)
 
 	params := openai.EmbeddingNewParams{
 		Model: openai.EmbeddingModel(embeddingModel),

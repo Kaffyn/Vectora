@@ -3,7 +3,6 @@ package llm
 import (
 	"context"
 	"fmt"
-	"strings"
 )
 
 type Router struct {
@@ -63,43 +62,51 @@ func (r *Router) Complete(ctx context.Context, req CompletionRequest) (Completio
 }
 
 func (r *Router) Embed(ctx context.Context, input string, model string) ([]float32, error) {
-	// 1. Try family-based routing
-	lowerModel := strings.ToLower(model)
+	// 1. Family-based routing — map the model to the best available native provider.
+	//    FamilyFromModel understands both "provider/model" (OpenRouter) and plain names.
+	//    All 10 LLM families from AGENTS.md are handled.
+	family := FamilyFromModel(model)
 
-	// Se o modelo for explicitamente de um provedor que conhecemos, tentamos o embedding dele primeiro
-	var targetProvider string
-	if strings.Contains(lowerModel, "gemini") {
-		targetProvider = "gemini"
-	} else if strings.Contains(lowerModel, "openai") || strings.Contains(lowerModel, "gpt") {
-		targetProvider = "openai"
-	} else if strings.Contains(lowerModel, "qwen") {
-		targetProvider = "qwen"
+	// Map family → provider name registered in the router.
+	familyToProvider := map[string]string{
+		"google":    "gemini",
+		"openai":    "openai",
+		"qwen":      "qwen",
+		"anthropic": "claude",
+		// The remaining families have no dedicated native provider in the router;
+		// they are accessed via gateway (openrouter/anannas) or the default provider.
+		"meta-llama": "openrouter",
+		"microsoft":  "openrouter",
+		"deepseek":   "openrouter",
+		"mistralai":  "openrouter",
+		"x-ai":       "openrouter",
+		"zhipuai":    "openrouter",
 	}
 
-	if targetProvider != "" {
-		if p, err := r.GetProvider(targetProvider); err == nil && p.IsConfigured() {
+	if providerName, ok := familyToProvider[family]; ok {
+		if p, err := r.GetProvider(providerName); err == nil && p.IsConfigured() {
 			vec, err := p.Embed(ctx, input, model)
 			if err == nil {
 				return vec, nil
 			}
+			// Provider found but embedding failed — continue to fallback chain.
 		}
 	}
 
-	// 2. Fallback: Use the default provider's embedding
-	p := r.GetDefault()
-	if p != nil {
+	// 2. Default provider embedding.
+	if p := r.GetDefault(); p != nil {
 		vec, err := p.Embed(ctx, input, model)
 		if err == nil {
 			return vec, nil
 		}
 	}
 
-	// 3. Global Fallback: Voyage (High quality)
+	// 3. Global fallback: Voyage AI (high-quality code embeddings, voyage-3-large).
 	if vp, err := r.GetProvider("voyage"); err == nil && vp.IsConfigured() {
 		return vp.Embed(ctx, input, model)
 	}
 
-	return nil, fmt.Errorf("no suitable embedding provider found for model %s (fallback failed)", model)
+	return nil, fmt.Errorf("no suitable embedding provider found for model %s (all fallbacks exhausted)", model)
 }
 
 func (r *Router) IsConfigured() bool {
