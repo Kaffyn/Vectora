@@ -1,6 +1,6 @@
 # Vectora Issue Report - Bug Collection & Requests
 
-Este documento consolida as falhas, discussões e requisitos do ecossistema Vectora.
+Este documento consolida as falhas, decisões arquiteturais e requisitos estratégicos do ecossistema Vectora.
 
 ---
 
@@ -56,40 +56,79 @@ Este documento consolida as falhas, discussões e requisitos do ecossistema Vect
 
 ---
 
-## ❓ Questions (Discussão)
+## ❓ Questions (Discussões Arquiteturais Críticas)
 
 ### 10. Método de Singleton no Core
 
-**Questão**: Para garantir instância única no Windows, prefere-se o uso de um arquivo de lock (`.vectora.lock`) ou uma tentativa de bind em porta TCP específica?
+**Decisão**: **Abordagem Híbrida (File Lock + PID Validation)**.
 
-### 11. Estratégia de Fallback
+- O Daemon tenta criar o arquivo `.vectora.lock`. Se existir, valida se o PID gravado ainda está ativo no SO.
+- Resolve problemas de _Race Condition_ do TCP e _Orphaned Locks_ de crashes.
 
-**Questão**: Devemos manter a implementação HTTP manual como fallback de segurança ou migrar 100% para os SDKs oficiais?
+### 11. Estratégia de Fallback LLM
+
+**Decisão**: **Migração 100% para SDKs oficiais**.
+
+- Eliminar fallbacks HTTP manuais para reduzir complexidade. Confiar nos SDKs e tratar erros de rede de forma genérica.
+
+### 12. Gerenciamento de Memória em Long-Running Daemons
+
+**Questão**: Como lidar com potencial vazamento de memória em sessões longas ao usar SDKs pesados?
+
+- **Opção A**: "Soft Restart" do worker de LLM a cada X tokens.
+- **Opção B**: Confiar no GC do Go e monitorar via pprof local.
+
+### 13. Estratégia de Atualização de Binários (Windows)
+
+**Questão**: Como o Daemon deve se atualizar (`vectora.exe`) visto que o Windows bloqueia a sobrescrita de arquivos em execução?
+
+- **Recomendação**: **Opção B (Processo Auxiliar Updater)**. Um updater mata o Daemon, substitui o binário e reinicia com rollback automático em caso de falha.
+
+### 14. Isolamento de Contexto (Workspaces Privados vs Públicos)
+
+**Questão**: Como garantir que workspaces "Privados" não vazem metadados/hashes estruturais durante sincronização?
+
+- **Decisão sugerida**: Uso de **Salting** nos hashes antes de enviar checksums para o servidor de Index.
+
+### 15. Tratamento de Erros em SDKs Assíncronos (Streaming)
+
+**Questão**: Como padronizar o tratamento de erros parciais em streams do Gemini/Claude?
+
+- **Opção A**: Reconnect automático transparente pelo SDK.
+- **Opção B**: Daemon intercepta o erro, fecha o stream e solicita "Retry" na UI.
+
+### 16. Segurança do Canal IPC (Named Pipes/Sockets)
+
+**Questão**: Como impedir que outros processos do mesmo usuário local interceptem o canal IPC?
+
+- **Decisão sugerida**: Implementar um **Handshake de Autenticação** (token gerado no startup e passado via env vars para os processos filhos).
+
+### 17. Versionamento de Schema do Banco Vetorial (Chromem-go)
+
+**Questão**: Como lidar com atualizações que mudam a dimensão do embedding ou formato do índice?
+
+- **Decisão sugerida**: Detecção automática de versão do schema e trigger de re-indexação automática (lenta).
+
+### 18. Observabilidade e Logs Sensíveis
+
+**Questão**: Como evitar que logs de debug capturem payloads sensíveis do usuário?
+
+- **Decisão sugerida**: Middleware de **sanitização de logs** que mascara conteúdos, mantendo apenas metadados estruturais.
 
 ---
 
 ## 🚀 Requests (Modernização e Requisitos)
 
-### 12. Migração para SDKs Oficiais (Chat & Embeddings)
+### 19. Consolidação da Comunicação (IPC + JSON-RPC + SDKs)
 
-Requisito de migrar todas as implementações HTTP manuais para os SDKs oficiais de cada provedor, abrangendo tanto as funcionalidades de Chat quanto as de Embeddings.
+**Status**: Requisito de Modernização
+**Descrição**: Unificar toda a comunicação em **IPC + JSON-RPC** entre Core e Extensões (ACP/MCP). O SDK de cada provedor deve ser um método interno e privado do Core. Extensões e chat consomem apenas a nossa API unificada.
 
-**Referências Oficiais**:
+### 20. Revisão Geral de Security Patterns e Tools
 
-- **Gemini (Chat & Embeddings)**: [google.golang.org/genai](https://pkg.go.dev/google.golang.org/genai)
-- **Claude (SDK)**: [github.com/anthropics/anthropic-sdk-go](https://github.com/anthropics/anthropic-sdk-go)
-- **Voyage AI (SDK & Embeddings)**: [github.com/austinfhunter/voyageai](https://pkg.go.dev/github.com/austinfhunter/voyageai)
-
-### 13. Revisão e Normalização de Modelos e Funcionalidades
-
-Revisar e alinhar os identificadores de modelos e configurações avançadas com base nas documentações oficiais dos 3 provedores.
-
-**Documentação de Referência**:
-
-- **Gemini**: [Modelos e ThinkingConfig](https://ai.google.dev/gemini-api/docs/models?hl=pt-br)
-- **Claude**: [Modelos e Prompt Caching](https://platform.claude.com/docs/en/api/sdks/go)
-- **Voyage**: [Modelos de Embedding Profissional](https://pkg.go.dev/github.com/austinfhunter/voyageai)
+**Status**: Requisito de Modernização
+**Descrição**: Realizar uma auditoria completa nos padrões de segurança e ferramentas (tools) utilizadas, integrando as decisões tomadas nas Questions 10-18 antes de prosseguir com a implementação final.
 
 ---
 
-_Este relatório será atualizado conforme novas interações._
+_Este relatório servirá como base para o planejamento detalhado da fase de execução._
