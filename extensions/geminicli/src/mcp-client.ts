@@ -1,4 +1,4 @@
-import * as cp from 'child_process';
+import * as cp from "child_process";
 import {
   InitializeRequest,
   InitializeResponse,
@@ -8,7 +8,7 @@ import {
   ToolCallResponse,
   JsonRpcRequest,
   JsonRpcResponse,
-} from './types/mcp';
+} from "./types/mcp";
 
 /**
  * McpClient manages the connection to a Vectora MCP server over stdio.
@@ -16,12 +16,12 @@ import {
  */
 export class McpClient {
   private process: cp.ChildProcess | null = null;
-  private buffer = '';
+  private buffer = "";
   private pendingRequests = new Map<number, { resolve: (value: any) => void; reject: (reason: any) => void }>();
   private nextId = 0;
   private _sessionId: string | undefined;
 
-  public serverInfo: { name: string; version: string } = { name: 'unknown', version: '0.0.0' };
+  public serverInfo: { name: string; version: string } = { name: "unknown", version: "0.0.0" };
 
   constructor(private corePath: string) {}
 
@@ -33,28 +33,28 @@ export class McpClient {
    * Starts the Vectora MCP server as a subprocess and performs initialization.
    */
   async start(workspacePath: string): Promise<InitializeResponse> {
-    this.process = cp.spawn(this.corePath, ['mcp', workspacePath], {
-      stdio: ['pipe', 'pipe', 'pipe'],
+    this.process = cp.spawn(this.corePath, ["mcp", workspacePath], {
+      stdio: ["pipe", "pipe", "pipe"],
       cwd: workspacePath,
     });
 
-    this.process.stdout!.on('data', (data: Buffer) => this.onStdoutData(data));
-    this.process.stderr!.on('data', (data: Buffer) => {
+    this.process.stdout!.on("data", (data: Buffer) => this.onStdoutData(data));
+    this.process.stderr!.on("data", (data: Buffer) => {
       process.stderr.write(`[Vectora MCP] ${data.toString()}`);
     });
-    this.process.on('error', (err) => {
+    this.process.on("error", (err) => {
       throw new Error(`Failed to start Vectora MCP: ${err.message}`);
     });
 
     // Perform initialization handshake
-    const result = await this.request<InitializeRequest, InitializeResponse>('initialize', {
-      protocolVersion: '2024-11-05',
+    const result = await this.request<InitializeRequest, InitializeResponse>("initialize", {
+      protocolVersion: "2024-11-05",
       capabilities: {
         roots: { listChanged: true },
       },
       clientInfo: {
-        name: 'vectora-geminicli',
-        version: '0.1.0',
+        name: "vectora-geminicli",
+        version: "0.1.0",
       },
     });
 
@@ -66,7 +66,7 @@ export class McpClient {
    * Creates a new session (ACP-specific, wrapped for MCP).
    */
   async newSession(cwd: string): Promise<string> {
-    const result = await this.request<{ cwd: string }, { sessionId: string }>('session/new', { cwd });
+    const result = await this.request<{ cwd: string }, { sessionId: string }>("session/new", { cwd });
     this._sessionId = result.sessionId;
     return result.sessionId;
   }
@@ -75,7 +75,7 @@ export class McpClient {
    * Lists all available MCP tools.
    */
   async listTools(): Promise<Tool[]> {
-    const result = await this.request<{}, ToolsListResponse>('tools/list', {});
+    const result = await this.request<{}, ToolsListResponse>("tools/list", {});
     return result.tools || [];
   }
 
@@ -83,7 +83,7 @@ export class McpClient {
    * Calls an MCP tool by name with the given arguments.
    */
   async callTool(name: string, args: Record<string, any>): Promise<ToolCallResponse> {
-    return this.request<ToolCallRequest, ToolCallResponse>('tools/call', {
+    return this.request<ToolCallRequest, ToolCallResponse>("tools/call", {
       name,
       arguments: args,
     });
@@ -93,9 +93,9 @@ export class McpClient {
    * Sends a prompt to the agent (ACP-specific, wrapped for MCP).
    */
   async prompt(sessionId: string, text: string): Promise<{ stopReason: string }> {
-    return this.request('session/prompt', {
+    return this.request("session/prompt", {
       sessionId,
-      prompt: [{ type: 'text', text }],
+      prompt: [{ type: "text", text }],
     });
   }
 
@@ -107,8 +107,8 @@ export class McpClient {
       const id = this.nextId++;
       this.pendingRequests.set(id, { resolve, reject });
 
-      const msg: JsonRpcRequest = { jsonrpc: '2.0', id, method, params };
-      this.write(JSON.stringify(msg) + '\n');
+      const msg: JsonRpcRequest = { jsonrpc: "2.0", id, method, params };
+      this.write(JSON.stringify(msg) + "\n");
     });
   }
 
@@ -128,7 +128,7 @@ export class McpClient {
     this.buffer += chunk.toString();
 
     while (true) {
-      const idx = this.buffer.indexOf('\n');
+      const idx = this.buffer.indexOf("\n");
       if (idx === -1) break;
 
       const line = this.buffer.substring(0, idx).trim();
@@ -157,7 +157,7 @@ export class McpClient {
    * Stops the MCP client and kills the subprocess.
    */
   stop(): void {
-    this.pendingRequests.forEach((p) => p.reject(new Error('Client stopped')));
+    this.pendingRequests.forEach((p) => p.reject(new Error("Client stopped")));
     this.pendingRequests.clear();
     this.process?.kill();
     this.process = null;

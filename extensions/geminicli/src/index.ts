@@ -24,35 +24,35 @@
  *   }
  */
 
-import * as readline from 'readline';
-import * as path from 'path';
-import * as fs from 'fs';
-import { McpClient } from './mcp-client';
+import * as readline from "readline";
+import * as path from "path";
+import * as fs from "fs";
+import { McpClient } from "./mcp-client";
 
-const VERSION = '0.1.0';
+const VERSION = "0.1.0";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const command = args[0];
 
   switch (command) {
-    case 'config':
+    case "config":
       await cmdConfig(args.slice(1));
       break;
-    case 'list-tools':
+    case "list-tools":
       await cmdListTools(args.slice(1));
       break;
-    case 'call-tool':
+    case "call-tool":
       await cmdCallTool(args.slice(1));
       break;
-    case 'help':
-    case '--help':
-    case '-h':
+    case "help":
+    case "--help":
+    case "-h":
       printHelp();
       break;
-    case 'version':
-    case '--version':
-    case '-v':
+    case "version":
+    case "--version":
+    case "-v":
       console.log(`vectora-geminicli v${VERSION}`);
       break;
     default:
@@ -67,9 +67,9 @@ async function main(): Promise<void> {
  */
 async function cmdRepl(): Promise<void> {
   console.log(`🚀 Vectora for Gemini CLI v${VERSION}`);
-  console.log('Connecting to Vectora MCP server...');
+  console.log("Connecting to Vectora MCP server...");
 
-  const corePath = process.env.VECTORA_CORE_PATH || 'vectora';
+  const corePath = process.env.VECTORA_CORE_PATH || "vectora";
   const workspace = process.env.VECTORA_WORKSPACE || process.cwd();
 
   const client = new McpClient(corePath);
@@ -77,7 +77,7 @@ async function cmdRepl(): Promise<void> {
 
   console.log(`✅ Connected to ${client.serverInfo.name} v${client.serverInfo.version}`);
   console.log(`📁 Workspace: ${workspace}`);
-  console.log('Type /help for available commands.\n');
+  console.log("Type /help for available commands.\n");
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -86,7 +86,7 @@ async function cmdRepl(): Promise<void> {
 
   const prompt = (): Promise<string> => {
     return new Promise((resolve) => {
-      rl.question(' vectora> ', resolve);
+      rl.question(" vectora> ", resolve);
     });
   };
 
@@ -94,18 +94,18 @@ async function cmdRepl(): Promise<void> {
     const input = await prompt();
     const trimmed = input.trim();
 
-    if (!trimmed || trimmed === '/exit' || trimmed === '/quit') {
+    if (!trimmed || trimmed === "/exit" || trimmed === "/quit") {
       break;
     }
 
-    if (trimmed.startsWith('/')) {
+    if (trimmed.startsWith("/")) {
       await handleCommand(trimmed, client, rl);
       continue;
     }
 
     // Send as prompt to Vectora
     if (client.sessionId) {
-      console.log('\n⏳ Processing...');
+      console.log("\n⏳ Processing...");
       try {
         const result = await client.prompt(client.sessionId, trimmed);
         console.log(`\n✅ Done: ${result.stopReason}`);
@@ -113,37 +113,33 @@ async function cmdRepl(): Promise<void> {
         console.log(`\n❌ Error: ${err.message}`);
       }
     } else {
-      console.log('No active session. Type /new to create one.');
+      console.log("No active session. Type /new to create one.");
     }
   }
 
   client.stop();
   rl.close();
-  console.log('\n👋 Goodbye!');
+  console.log("\n👋 Goodbye!");
 }
 
 /**
  * Handles slash commands in the REPL.
  */
-async function handleCommand(
-  cmd: string,
-  client: McpClient,
-  rl: readline.Interface
-): Promise<void> {
-  const parts = cmd.split(' ');
+async function handleCommand(cmd: string, client: McpClient, rl: readline.Interface): Promise<void> {
+  const parts = cmd.split(" ");
   const subcommand = parts[0];
 
   switch (subcommand) {
-    case '/new': {
+    case "/new": {
       const cwd = parts[1] || process.cwd();
       const sessionId = await client.newSession(cwd);
       console.log(`✅ New session: ${sessionId}`);
       break;
     }
 
-    case '/tools': {
+    case "/tools": {
       const tools = await client.listTools();
-      console.log('\n📦 Available tools:');
+      console.log("\n📦 Available tools:");
       tools.forEach((t) => {
         console.log(`  • ${t.name} — ${t.description}`);
       });
@@ -151,18 +147,18 @@ async function handleCommand(
       break;
     }
 
-    case '/call': {
+    case "/call": {
       if (parts.length < 2) {
-        console.log('Usage: /call <tool-name> [args...]');
+        console.log("Usage: /call <tool-name> [args...]");
         break;
       }
       const toolName = parts[1];
-      const toolArgs = parts.slice(2).join(' ');
+      const toolArgs = parts.slice(2).join(" ");
       try {
         const result = await client.callTool(toolName, toolArgs ? { query: toolArgs } : {});
-        console.log('\n📤 Result:');
+        console.log("\n📤 Result:");
         result.content.forEach((c) => {
-          if (c.type === 'text') console.log(c.text);
+          if (c.type === "text") console.log(c.text);
         });
         console.log();
       } catch (err: any) {
@@ -171,18 +167,18 @@ async function handleCommand(
       break;
     }
 
-    case '/embed': {
-      console.log('📦 Embedding workspace...');
+    case "/embed": {
+      console.log("📦 Embedding workspace...");
       // This would call the vectora embed command via subprocess
-      console.log('✅ Embed complete.');
+      console.log("✅ Embed complete.");
       break;
     }
 
-    case '/clear':
-      console.log('🧹 Session cleared.');
+    case "/clear":
+      console.log("🧹 Session cleared.");
       break;
 
-    case '/help':
+    case "/help":
       console.log(`
 Commands:
   /new [path]       Create a new session
@@ -204,14 +200,14 @@ Commands:
  * Generates Gemini CLI MCP configuration.
  */
 async function cmdConfig(args: string[]): Promise<void> {
-  const corePath = process.env.VECTORA_CORE_PATH || 'vectora';
+  const corePath = process.env.VECTORA_CORE_PATH || "vectora";
   const workspace = process.env.VECTORA_WORKSPACE || process.cwd();
 
   const config = {
     mcpServers: {
       vectora: {
         command: corePath,
-        args: ['mcp', workspace],
+        args: ["mcp", workspace],
       },
     },
   };
@@ -230,7 +226,7 @@ Or set environment variable:
  * Lists available Vectora MCP tools.
  */
 async function cmdListTools(args: string[]): Promise<void> {
-  const corePath = process.env.VECTORA_CORE_PATH || 'vectora';
+  const corePath = process.env.VECTORA_CORE_PATH || "vectora";
   const workspace = process.env.VECTORA_WORKSPACE || process.cwd();
 
   const client = new McpClient(corePath);
@@ -253,14 +249,14 @@ async function cmdListTools(args: string[]): Promise<void> {
  */
 async function cmdCallTool(args: string[]): Promise<void> {
   if (args.length < 1) {
-    console.error('Usage: vectora-mcp call-tool <tool-name> [args...]');
+    console.error("Usage: vectora-mcp call-tool <tool-name> [args...]");
     process.exit(1);
   }
 
-  const corePath = process.env.VECTORA_CORE_PATH || 'vectora';
+  const corePath = process.env.VECTORA_CORE_PATH || "vectora";
   const workspace = process.env.VECTORA_WORKSPACE || process.cwd();
   const toolName = args[0];
-  const toolArgs = args.slice(1).join(' ');
+  const toolArgs = args.slice(1).join(" ");
 
   const client = new McpClient(corePath);
   await client.start(workspace);
@@ -268,7 +264,7 @@ async function cmdCallTool(args: string[]): Promise<void> {
   try {
     const result = await client.callTool(toolName, toolArgs ? { query: toolArgs } : {});
     result.content.forEach((c) => {
-      if (c.type === 'text' && c.text) process.stdout.write(c.text);
+      if (c.type === "text" && c.text) process.stdout.write(c.text);
     });
   } catch (err: any) {
     console.error(`Error: ${err.message}`);
@@ -298,6 +294,6 @@ Environment Variables:
 }
 
 main().catch((err) => {
-  console.error('Fatal error:', err.message);
+  console.error("Fatal error:", err.message);
   process.exit(1);
 });

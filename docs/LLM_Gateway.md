@@ -1,7 +1,7 @@
 # Blueprint: LLM Gateway & Orquestração de Modelos
 
-**Status:** Implementado  
-**Módulo:** `core/llm/`  
+**Status:** Implementado
+**Módulo:** `core/llm/`
 **Modelos:** Gemini 1.5/3.1 Pro & Flash, Claude 3.5 Sonnet
 
 O `LLM Gateway` é a camada de inteligência do Vectora, responsável por abstrair as APIs de diferentes provedores e fornecer uma interface unificada para completar mensagens, gerar embeddings e estruturar chamadas de ferramentas.

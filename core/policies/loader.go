@@ -3,8 +3,10 @@ package policies
 import (
 	"embed"
 	"fmt"
+	"io"
 	"io/fs"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -45,14 +47,21 @@ func (l *Loader) LoadAll() error {
 			return fmt.Errorf("read file %s: %w", path, err)
 		}
 
-		// Note: Alguns YAMLs podem ter múltiplas regras se usarmos separadores ou lermos como slice.
-		// Para simplificar o blueprint, lemos como múltiplos documentos ou um único objeto.
-		// Aqui assumimos que cada arquivo pode ter múltiplas regras.
-
-		// Tentativa de ler como lista
-		var rule PolicyRule
-		if err := yaml.Unmarshal(data, &rule); err == nil && rule.PolicyID != "" {
-			l.Rules = append(l.Rules, rule)
+		// Use a NewDecoder to support multiple documents in the same file (separated by ---)
+		// This is required to satisfy yaml-lint while allowing multiple policies per file.
+		decoder := yaml.NewDecoder(strings.NewReader(string(data)))
+		for {
+			var rule PolicyRule
+			if err := decoder.Decode(&rule); err != nil {
+				if err == io.EOF {
+					break
+				}
+				// Skip empty documents or decoding errors for specific rules
+				continue
+			}
+			if rule.PolicyID != "" {
+				l.Rules = append(l.Rules, rule)
+			}
 		}
 
 		return nil

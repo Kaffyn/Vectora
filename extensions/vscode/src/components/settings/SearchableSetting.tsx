@@ -1,27 +1,27 @@
-import { HTMLAttributes, useEffect } from "react"
+import { HTMLAttributes, useEffect } from "react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
-import { SectionName } from "./SettingsView"
-import { useSearchIndexContext } from "./useSettingsSearch"
+import { SectionName } from "./SettingsView";
+import { useSearchIndexContext } from "./useSettingsSearch";
 
 interface SearchableSettingProps extends HTMLAttributes<HTMLDivElement> {
-	/**
-	 * Unique identifier for this setting.
-	 * Used for finding the element after tab navigation.
-	 */
-	settingId: string
-	/**
-	 * The section/tab this setting belongs to.
-	 * Used for navigation when the setting is selected from search results.
-	 */
-	section: SectionName
-	/**
-	 * The label text for this setting, used for search matching.
-	 * This should be the translated label text.
-	 */
-	label: string
-	children: React.ReactNode
+  /**
+   * Unique identifier for this setting.
+   * Used for finding the element after tab navigation.
+   */
+  settingId: string;
+  /**
+   * The section/tab this setting belongs to.
+   * Used for navigation when the setting is selected from search results.
+   */
+  section: SectionName;
+  /**
+   * The label text for this setting, used for search matching.
+   * This should be the translated label text.
+   */
+  label: string;
+  children: React.ReactNode;
 }
 
 /**
@@ -47,33 +47,34 @@ interface SearchableSettingProps extends HTMLAttributes<HTMLDivElement> {
  * ```
  */
 export function SearchableSetting({
-	settingId,
-	section,
-	label,
-	children,
-	className,
-	...props
+  settingId,
+  section,
+  label,
+  children,
+  className,
+  ...props
 }: SearchableSettingProps) {
-	const searchContext = useSearchIndexContext()
+  const searchContext = useSearchIndexContext();
 
-	// Register this setting with the search index on mount
-	// Note: We don't unregister on unmount because settings are indexed once
-	// during the initial tab cycling phase and remain in the index
-	useEffect(() => {
-		if (searchContext) {
-			searchContext.registerSetting({ settingId, section, label })
-		}
-	}, [searchContext, settingId, section, label])
+  // Register this setting with the search index on mount
+  // Note: We don't unregister on unmount because settings are indexed once
+  // during the initial tab cycling phase and remain in the index
+  useEffect(() => {
+    if (searchContext) {
+      searchContext.registerSetting({ settingId, section, label });
+    }
+  }, [searchContext, settingId, section, label]);
 
-	return (
-		<div
-			data-searchable
-			data-setting-id={settingId}
-			data-setting-section={section}
-			data-setting-label={label}
-			className={cn(className)}
-			{...props}>
-			{children}
-		</div>
-	)
+  return (
+    <div
+      data-searchable
+      data-setting-id={settingId}
+      data-setting-section={section}
+      data-setting-label={label}
+      className={cn(className)}
+      {...props}
+    >
+      {children}
+    </div>
+  );
 }

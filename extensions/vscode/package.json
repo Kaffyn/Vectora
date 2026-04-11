@@ -205,6 +205,8 @@
     "@vscode/vsce": "^2.24.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^8.0.0",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
     "glob": "^10.3.12",
     "mocha": "^10.4.0",
     "postcss": "^8.4.47",

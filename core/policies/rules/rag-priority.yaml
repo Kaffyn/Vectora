@@ -5,6 +5,7 @@ enforcement:
   block_if_no_retrieval: false
   fallback_action: "If null, the model requests via `google_search` instead of trying to guess the codebase"
 
+---
 policy_id: output_sanitization
 rule: "Tool outputs must be sanitized before returning to the LLM to prevent prompt injection or context pollution."
 enforcement:
@@ -13,12 +14,13 @@ enforcement:
   strip_control_chars: true
   on_violation: "truncate and append warning marker"
 
+---
 policy_id: privacy_shielding
 rule: "Detected patterns resembling API keys or secrets in tool output must be masked."
 enforcement:
   regex_patterns:
-    - "AKIA[0-9A-Z]{16}" # AWS Access Key
-    - "ghp_[a-zA-Z0-9]{36}" # GitHub PAT
-    - "sk-[a-zA-Z0-9]{48}" # OpenAI/Generic Secret Key
+    - "AKIA[0-9A-Z]{16}"
+    - "ghp_[a-zA-Z0-9]{36}"
+    - "sk-[a-zA-Z0-9]{48}"
   replacement_string: "[REDACTED_SECRET]"
   on_violation: "replace match with replacement string before returning to LLM"

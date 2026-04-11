@@ -50,7 +50,7 @@ Unlike generic AI assistants that only see your current editor window, Vectora *
 - **chromem-go** — local vector index (no external DB)
 - **BBolt** — local metadata persistence
 
-**Security principle:** All network traffic goes Core → Cloud API only.  
+**Security principle:** All network traffic goes Core → Cloud API only.
 The extension ↔ Core channel is 100% local via stdio pipes.
 
 Vectora uses **official SDKs** (`google-golang.org/genai`, `anthropic-sdk-go`, `voyageai`) to communicate with AI providers, ensuring maximum stability and security.

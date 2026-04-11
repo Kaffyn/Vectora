@@ -5,6 +5,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        args: ["--allow-multiple-documents"]
       - id: check-json
       - id: check-merge-conflict
       - id: check-added-large-files
@@ -15,19 +16,20 @@ repos:
       - id: golangci-lint
         files: ^(cmd|core)/.*
 
-  - repo: https://github.com/dnephin/pre-commit-golang
-    rev: v0.5.1
-    hooks:
-      - id: go-mod-tidy
-
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:
       - id: prettier
-        types_or: [javascript, jsx, ts, tsx, css, html, markdown, yaml]
+        types: [javascript, jsx, ts, tsx, css, html, markdown, yaml]
 
   - repo: local
     hooks:
+      - id: go-mod-tidy
+        name: go-mod-tidy
+        entry: powershell -Command "go mod tidy"
+        language: system
+        files: go.mod|go.sum
+        pass_filenames: false
       - id: vscode-lint
         name: VS Code Extension Lint
         entry: powershell.exe -Command "cd extensions/vscode; npm run lint"

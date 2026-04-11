@@ -1,14 +1,19 @@
 policy_id: resource_throttling
 rule: "Prevent single operations from exhausting system resources (DoS protection)."
 enforcement:
-  max_file_read_bytes: 5242880 # 5MB hard limit per file
+  max_file_read_bytes: 5242880
   max_grep_results: 100
   terminal_timeout_seconds: 30
   on_violation: "abort operation and return error 'Resource Limit Exceeded'"
 
+---
 policy_id: read_only_defaults
 rule: "By default, all tools are read-only unless explicitly granted write permissions by the user session."
 enforcement:
   default_mode: "read_only"
-  write_tools_require_auth: ["write_file", "edit", "terminal_run", "delete_file"]
+  write_tools_require_auth:
+    - "write_file"
+    - "edit"
+    - "terminal_run"
+    - "delete_file"
   on_violation: "blocked (Returns ErrPermissionDenied: Write access required)"

@@ -1,7 +1,7 @@
 # Blueprint: API & Protocolo ACP (Agent Client Protocol)
 
-**Status:** Implementado  
-**Módulo:** `core/api/acp/`  
+**Status:** Implementado
+**Módulo:** `core/api/acp/`
 **Transporte:** JSON-RPC 2.0 sobre Stdio (IPC)
 
 O Vectora utiliza o **Agent Client Protocol (ACP)** como sua espinha dorsal de comunicação. Este protocolo foi projetado para ser leve, assíncrono e compatível com os princípios do MCP (Model Context Protocol), otimizando a interação entre IDEs e o motor agêntico.

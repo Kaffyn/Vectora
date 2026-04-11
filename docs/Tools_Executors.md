@@ -1,7 +1,7 @@
 # Blueprint: Executores de Ferramentas (Tier 1 Tools)
 
-**Status:** Implementado  
-**Módulo:** `core/tools/`  
+**Status:** Implementado
+**Módulo:** `core/tools/`
 **Segurança:** Guardian-Mediated
 
 Este blueprint detalha a suite de ferramentas de sistema que o Vectora Core expõe para seus agentes e sub-agentes. Todas as ferramentas são escritas em Go nativo para máxima portabilidade e performance.

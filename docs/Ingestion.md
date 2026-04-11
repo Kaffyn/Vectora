@@ -1,7 +1,7 @@
 # Blueprint: Pipeline de Ingestão de Dados
 
-**Status:** Implementado  
-**Módulo:** `core/ingestion/`  
+**Status:** Implementado
+**Módulo:** `core/ingestion/`
 **Características:** Indexação On-Demand, Semantic Aware
 
 O motor de ingestão do Vectora é responsável por transformar código fonte bruto e documentação em vetores semânticos pesquisáveis. Diferente de busca por texto simples, a ingestão permite que o agente entenda a _intenção_ por trás do código.

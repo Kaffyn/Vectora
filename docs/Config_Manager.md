@@ -1,7 +1,7 @@
 # Blueprint: Gerenciador de Configuração & Segredos
 
-**Status:** Implementado  
-**Módulo:** `core/config/`  
+**Status:** Implementado
+**Módulo:** `core/config/`
 **Segurança:** AES-GCM Encryption para chaves de API
 
 O `ConfigManager` é o componente responsável pela persistência das preferências do usuário, chaves de API e configurações de provedores LLM. Ele garante que dados sensíveis sejam armazenados de forma segura no ambiente local.

@@ -1,7 +1,7 @@
 # Blueprint: Motor de Políticas & Guardian Engine
 
-**Status:** Implementado  
-**Módulo:** `core/policies/`  
+**Status:** Implementado
+**Módulo:** `core/policies/`
 **Objetivo:** Garantir a segurança do usuário através de regras imutáveis de acesso ao sistema de arquivos e proteção de dados sensíveis.
 
 No Vectora, a segurança não é baseada em "prompts" de sistema, que podem ser burlados via injeção. Ela é implementada como uma camada de software obrigatória entre o agente e o sistema operacional.

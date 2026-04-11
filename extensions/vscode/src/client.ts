@@ -1,16 +1,16 @@
-import * as cp from 'child_process';
-import * as vscode from 'vscode';
+import * as cp from "child_process";
+import * as vscode from "vscode";
 
 // JSON-RPC 2.0 Base Types
 export interface JsonRpcRequest {
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   id?: number | string;
   method: string;
   params?: any;
 }
 
 export interface JsonRpcResponse {
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   id: number | string;
   result?: any;
   error?: {
@@ -21,7 +21,7 @@ export interface JsonRpcResponse {
 }
 
 export interface JsonRpcNotification {
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   method: string;
   params?: any;
 }
@@ -34,13 +34,16 @@ const DEFAULT_TIMEOUT_MS = 60000;
  */
 export class Client {
   private process: cp.ChildProcess | null = null;
-  private buffer = '';
+  private buffer = "";
   private nextId = 0;
-  private pendingRequests = new Map<number | string, {
-    resolve: (value: any) => void;
-    reject: (reason: any) => void;
-    timeout: NodeJS.Timeout;
-  }>();
+  private pendingRequests = new Map<
+    number | string,
+    {
+      resolve: (value: any) => void;
+      reject: (reason: any) => void;
+      timeout: NodeJS.Timeout;
+    }
+  >();
   private _isDisposed = false;
 
   public readonly onNotification = new vscode.EventEmitter<JsonRpcNotification>();
@@ -54,7 +57,7 @@ export class Client {
     private readonly command: string,
     private readonly args: string[] = [],
     private readonly cwd?: string,
-    private readonly env?: Record<string, string>
+    private readonly env?: Record<string, string>,
   ) {}
 
   public get isRunning(): boolean {
@@ -71,25 +74,25 @@ export class Client {
     return new Promise((resolve, reject) => {
       try {
         this.process = cp.spawn(this.command, this.args, {
-          stdio: ['pipe', 'pipe', 'pipe'],
+          stdio: ["pipe", "pipe", "pipe"],
           cwd: this.cwd,
           env: { ...process.env, ...this.env },
         });
 
-        this.process.on('error', (err) => {
+        this.process.on("error", (err) => {
           const msg = `Failed to start ${this.name}: ${err.message}`;
           this.onError.fire(msg);
           reject(new Error(msg));
         });
 
-        this.process.on('exit', (code) => {
+        this.process.on("exit", (code) => {
           this._isDisposed = true;
           this.cleanupPendingRequests(`Process ${this.name} exited with code ${code}`);
           this.onExit.fire(code);
         });
 
-        this.process.stdout!.on('data', (data: Buffer) => this.onData(data));
-        this.process.stderr!.on('data', (data: Buffer) => {
+        this.process.stdout!.on("data", (data: Buffer) => this.onData(data));
+        this.process.stderr!.on("data", (data: Buffer) => {
           const stderr = data.toString().trim();
           if (stderr) console.error(`[${this.name} Stderr]: ${stderr}`);
         });
@@ -106,9 +109,9 @@ export class Client {
    * Sends a JSON-RPC request and waits for a response.
    */
   public async request<TParams = any, TResult = any>(
-    method: string, 
-    params: TParams, 
-    timeoutMs: number = DEFAULT_TIMEOUT_MS
+    method: string,
+    params: TParams,
+    timeoutMs: number = DEFAULT_TIMEOUT_MS,
   ): Promise<TResult> {
     if (!this.isRunning) throw new Error(`${this.name} is not running`);
 
@@ -122,7 +125,7 @@ export class Client {
       }, timeoutMs);
 
       this.pendingRequests.set(id, { resolve, reject, timeout });
-      const msg: JsonRpcRequest = { jsonrpc: '2.0', id, method, params };
+      const msg: JsonRpcRequest = { jsonrpc: "2.0", id, method, params };
       this.sendRaw(msg);
     });
   }
@@ -132,7 +135,7 @@ export class Client {
    */
   public notify<TParams = any>(method: string, params: TParams): void {
     if (!this.isRunning) return;
-    const msg: JsonRpcNotification = { jsonrpc: '2.0', method, params };
+    const msg: JsonRpcNotification = { jsonrpc: "2.0", method, params };
     this.sendRaw(msg);
   }
 
@@ -141,13 +144,13 @@ export class Client {
    */
   protected sendRaw(msg: any): void {
     if (this.process?.stdin?.writable) {
-      this.process.stdin.write(JSON.stringify(msg) + '\n');
+      this.process.stdin.write(JSON.stringify(msg) + "\n");
     }
   }
 
   private onData(chunk: Buffer): void {
     this.buffer += chunk.toString();
-    let idx = this.buffer.indexOf('\n');
+    let idx = this.buffer.indexOf("\n");
     while (idx !== -1) {
       const line = this.buffer.substring(0, idx).trim();
       this.buffer = this.buffer.substring(idx + 1);
@@ -159,24 +162,24 @@ export class Client {
       } catch (err) {
         console.warn(`[${this.name}] Failed to parse JSON-RPC line: ${line}`);
       }
-      idx = this.buffer.indexOf('\n');
+      idx = this.buffer.indexOf("\n");
     }
   }
 
   private handleMessage(msg: any): void {
-    if ('id' in msg && msg.id !== undefined && msg.id !== null) {
+    if ("id" in msg && msg.id !== undefined && msg.id !== null) {
       // Response handler
       const pending = this.pendingRequests.get(msg.id);
       if (pending) {
         clearTimeout(pending.timeout);
         this.pendingRequests.delete(msg.id);
         if (msg.error) {
-          pending.reject(new Error(msg.error.message || 'Unknown JSON-RPC error'));
+          pending.reject(new Error(msg.error.message || "Unknown JSON-RPC error"));
         } else {
           pending.resolve(msg.result);
         }
       }
-    } else if ('method' in msg) {
+    } else if ("method" in msg) {
       // Notification handler
       this.onNotification.fire(msg as JsonRpcNotification);
     }
@@ -192,7 +195,7 @@ export class Client {
 
   public stop(): void {
     this._isDisposed = true;
-    this.cleanupPendingRequests('Client stopped manually');
+    this.cleanupPendingRequests("Client stopped manually");
     if (this.process) {
       this.process.kill();
       this.process = null;

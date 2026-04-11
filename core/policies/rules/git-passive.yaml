@@ -5,6 +5,7 @@ enforcement:
   no_forced_install: "If `git` does not exist, silently disable snapshots"
   no_forced_init: "If not a git repository, NEVER execute `git init`"
 
+---
 policy_id: granular_snapshots
 rule: "Vectora only versions files it has modified itself, keeping the human history clean."
 enforcement:
@@ -12,6 +13,7 @@ enforcement:
   action_strategy: "Execute `git add <target_file>` only. NEVER run `git add .`"
   commit_messaging: "Intermediate commits must be traceable (e.g., 'Vectora Snapshot: Edit <file>')"
 
+---
 policy_id: user_authorization_gate
 rule: "Mutations require prior permission from the environment (IDE or CLI)."
 enforcement:

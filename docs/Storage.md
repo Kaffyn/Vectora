@@ -1,7 +1,7 @@
 # Blueprint: Arquitetura de Persistência Dual-Store
 
-**Status:** Implementado  
-**Módulo:** `core/storage/`  
+**Status:** Implementado
+**Módulo:** `core/storage/`
 **Tecnologias:** BBolt (Key-Value), Chromem-go (Vector Store)
 
 O sistema de armazenamento do Vectora foi projetado para ser 100% local, autocontido e otimizado para a performance de pesquisa semântica em máquinas de desenvolvimento.

@@ -276,10 +276,10 @@ if (Test-Path $linuxBin) {
     $tmpDir = Join-Path $BIN_DIR "linux-tmp"
     New-Item -ItemType Directory -Force "$tmpDir\usr\local\bin" | Out-Null
     Copy-Item $linuxBin "$tmpDir\usr\local\bin\${APP_NAME}" -Force
-    
+
     $outPath = Resolve-Path $BIN_DIR
     $tarOut = Join-Path $outPath "${APP_NAME}-linux-amd64.tar.gz"
-    
+
     if (Get-Command tar -ErrorAction SilentlyContinue) {
         Push-Location $tmpDir
         tar -czf $tarOut usr 2>$null
@@ -301,7 +301,7 @@ $macApp = "$BIN_DIR/${APP_NAME}-darwin-amd64.app"
 if (Test-Path $macApp) {
     $outPath = Resolve-Path $BIN_DIR
     $macTarOut = Join-Path $outPath "${APP_NAME}-darwin-amd64.app.tar.gz"
-    
+
     if (Get-Command tar -ErrorAction SilentlyContinue) {
         Push-Location $BIN_DIR
         tar -czf $macTarOut "${APP_NAME}-darwin-amd64.app" 2>$null

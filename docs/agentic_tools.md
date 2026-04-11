@@ -1,7 +1,7 @@
 # Blueprint: Ferramentas Agênticas & Sub-Agentes (ACP/MCP)
 
-**Status:** Implementado  
-**Módulo:** `core/tools/` & `core/engine/`  
+**Status:** Implementado
+**Módulo:** `core/tools/` & `core/engine/`
 **Protocolo:** JSON-RPC 2.0 (Stdio)
 
 Este blueprint descreve a arquitetura de execução de ferramentas e a dinâmica de delegação para sub-agentes especializados no ecossistema Vectora.

@@ -1,7 +1,7 @@
 # Blueprint: Observabilidade & Log Interno
 
-**Status:** Implementado  
-**Módulo:** `core/telemetry/`  
+**Status:** Implementado
+**Módulo:** `core/telemetry/`
 **Tecnologia:** Structured Logging (`slog`)
 
 A observabilidade no Vectora foca na depuração silenciosa ("Black Box") para garantir que o suporte técnico e a evolução do produto sejam baseados em dados reais, mantendo a privacidade total do código do usuário.

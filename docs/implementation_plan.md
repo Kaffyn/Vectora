@@ -1,6 +1,6 @@
 # Blueprint: Arquitetura Vectora Core (v1.5)
 
-**Status:** Implementado (Baseline Consolidada)  
+**Status:** Implementado (Baseline Consolidada)
 **Descrição:** Este documento define a arquitetura oficial do Vectora Core, servindo como a "Single Source of Truth" para o funcionamento do motor agêntico RAG.
 
 ---

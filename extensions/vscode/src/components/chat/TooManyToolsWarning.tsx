@@ -1,7 +1,7 @@
-import React, { useCallback } from "react"
-import { useAppTranslation } from "@/i18n/TranslationContext"
-import { useTooManyTools } from "@src/hooks/useTooManyTools"
-import WarningRow from "./WarningRow"
+import React, { useCallback } from "react";
+import { useAppTranslation } from "@/i18n/TranslationContext";
+import { useTooManyTools } from "@src/hooks/useTooManyTools";
+import WarningRow from "./WarningRow";
 
 /**
  * Displays a warning when the user has too many MCP tools enabled.
@@ -14,26 +14,26 @@ import WarningRow from "./WarningRow"
  * <TooManyToolsWarning />
  */
 export const TooManyToolsWarning: React.FC = () => {
-	const { t } = useAppTranslation()
-	const { isOverThreshold, title, message } = useTooManyTools()
+  const { t } = useAppTranslation();
+  const { isOverThreshold, title, message } = useTooManyTools();
 
-	const handleOpenMcpSettings = useCallback(() => {
-		window.postMessage({ type: "action", action: "settingsButtonClicked", values: { section: "mcp" } }, "*")
-	}, [])
+  const handleOpenMcpSettings = useCallback(() => {
+    window.postMessage({ type: "action", action: "settingsButtonClicked", values: { section: "mcp" } }, "*");
+  }, []);
 
-	// Don't show warning if under threshold
-	if (!isOverThreshold) {
-		return null
-	}
+  // Don't show warning if under threshold
+  if (!isOverThreshold) {
+    return null;
+  }
 
-	return (
-		<WarningRow
-			title={title}
-			message={message}
-			actionText={t("chat:tooManyTools.openMcpSettings")}
-			onAction={handleOpenMcpSettings}
-		/>
-	)
-}
+  return (
+    <WarningRow
+      title={title}
+      message={message}
+      actionText={t("chat:tooManyTools.openMcpSettings")}
+      onAction={handleOpenMcpSettings}
+    />
+  );
+};
 
-export default TooManyToolsWarning
+export default TooManyToolsWarning;

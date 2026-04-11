@@ -1,6 +1,6 @@
 /**
  * Sub-Agent Manifest for Vectora
- * 
+ *
  * This constant contains the instructions for external orchestrators
  * (like Antigravity, Cursor, or Copilot) on how to effectively delegate
  * tasks to the Vectora Core.
@@ -8,7 +8,7 @@
 export const VECTORA_SUB_AGENT_MANIFEST = `
 ## Tool: Vectora Core (Codebase Expert)
 
-You have access to a specialized sub-agent named **Vectora**. 
+You have access to a specialized sub-agent named **Vectora**.
 Delegate tasks requiring deep codebase understanding, global refactoring, or semantic navigation to Vectora.
 
 ### When to Call Vectora:

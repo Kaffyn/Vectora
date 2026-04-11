@@ -1,22 +1,22 @@
-const path = require('path');
+const path = require("path");
 
 /** @type {import('webpack').Configuration} */
 module.exports = {
-  target: 'node',
-  mode: 'none',
+  target: "node",
+  mode: "none",
   entry: {
-    extension: './src/extension.ts'
+    extension: "./src/extension.ts",
   },
   output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: '[name].js',
-    libraryTarget: 'commonjs2',
+    path: path.resolve(__dirname, "dist"),
+    filename: "[name].js",
+    libraryTarget: "commonjs2",
   },
   externals: {
-    vscode: 'commonjs vscode',
+    vscode: "commonjs vscode",
   },
   resolve: {
-    extensions: ['.ts', '.tsx', '.js'],
+    extensions: [".ts", ".tsx", ".js"],
   },
   module: {
     rules: [
@@ -25,7 +25,7 @@ module.exports = {
         exclude: /node_modules/,
         use: [
           {
-            loader: 'ts-loader',
+            loader: "ts-loader",
             options: {
               transpileOnly: true,
             },
@@ -34,8 +34,8 @@ module.exports = {
       },
     ],
   },
-  devtool: 'nosources-source-map',
+  devtool: "nosources-source-map",
   infrastructureLogging: {
-    level: 'log',
+    level: "log",
   },
 };

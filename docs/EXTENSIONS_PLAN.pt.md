@@ -1,7 +1,7 @@
 # Blueprint: Ecossistema de Extensões & Clientes
 
-**Status:** Extensão VS Code Implementada (v0.1.0)  
-**Mesa:** `extensions/vscode/`  
+**Status:** Extensão VS Code Implementada (v0.1.0)
+**Mesa:** `extensions/vscode/`
 **Tecnologia:** TypeScript, Webpack, JSON-RPC (ACP)
 
 Este documento descreve como o Vectora Core se integra às interfaces de usuário, com foco especial no cliente VS Code e na estratégia de expansão para outras plataformas.
