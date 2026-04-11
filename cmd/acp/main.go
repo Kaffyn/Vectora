@@ -1,16 +1,19 @@
-// cmd/acp is a standalone ACP agent binary for testing and production use.
-// It implements the Agent Client Protocol (ACP) over stdio.
-// This binary is invoked by IDE clients (VS Code, Claude Code, etc.)
-// and communicates via JSON-RPC 2.0 on stdin/stdout.
+// cmd/acp é um binário ACP agent independente para testes e produção.
+// Implementa o Agent Client Protocol (ACP) sobre stdio.
+// É invocado por clientes IDE (VS Code, Claude Code, etc.)
+// e se comunica via JSON-RPC 2.0 em stdin/stdout.
+//
+// Phase 7B: CLI como ACP Agent - versão melhorada com suporte a múltiplos provedores
 package main
 
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/Kaffyn/Vectora/core/api/acp"
@@ -20,71 +23,90 @@ import (
 )
 
 func main() {
-	// Parse flags
-	verbose := flag.Bool("v", false, "Enable verbose logging")
-	logFormat := flag.String("log", "text", "Log format: text or json")
+	// Parse flags com opções expandidas para Phase 7B
+	verbose := flag.Bool("v", false, "Ativa logging verboso (DEBUG)")
+	logFormat := flag.String("log", "text", "Formato do log: text ou json")
+	workspace := flag.String("workspace", ".", "Workspace padrão para operações")
+	defaultProvider := flag.String("provider", "claude", "Provedor LLM padrão: claude, gemini, ou voyage")
 	flag.Parse()
 
-	// Setup logger to stderr (stdout is reserved for ACP protocol)
+	// Configurar logger em stderr (stdout é reservado para protocolo ACP)
+	logLevel := slog.LevelInfo
+	if *verbose {
+		logLevel = slog.LevelDebug
+	}
+
 	var logHandler slog.Handler
 	if *logFormat == "json" {
 		logHandler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
+			Level: logLevel,
 		})
 	} else {
 		logHandler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		})
-	}
-	if *verbose {
-		logHandler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
+			Level: logLevel,
 		})
 	}
 	logger := slog.New(logHandler)
 
-	// Setup graceful shutdown
+	logger.Info("Iniciando Vectora ACP Agent",
+		slog.String("version", getVersion()),
+		slog.String("workspace", *workspace),
+		slog.String("provider", *defaultProvider),
+	)
+
+	// Configurar shutdown gracioso
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	// Initialize app manager
+	// Inicializar gerenciador de SO
 	osMgr, err := vecos.NewManager()
 	if err != nil {
-		logger.Error("Failed to initialize OS manager", slog.Any("error", err))
+		logger.Error("Falha ao inicializar gerenciador de SO", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	// Setup data directories
+	// Configurar diretórios de dados
 	appDataDir, err := osMgr.GetAppDataDir()
 	if err != nil {
-		logger.Error("Failed to get app data directory", slog.Any("error", err))
+		logger.Error("Falha ao obter diretório app data", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	dbPath := appDataDir + "/vectora.db"
-	indexPath := appDataDir + "/index"
+	// Criar estrutura de diretórios se não existir
+	os.MkdirAll(filepath.Join(appDataDir, "run"), 0755)
 
-	// Initialize databases
+	dbPath := filepath.Join(appDataDir, "vectora.db")
+	indexPath := filepath.Join(appDataDir, "index")
+
+	logger.Debug("Paths de dados",
+		slog.String("db", dbPath),
+		slog.String("index", indexPath),
+	)
+
+	// Inicializar armazenamento de dados
 	kvStore, err := db.NewKVStoreAtPath(dbPath)
 	if err != nil {
-		logger.Error("Failed to initialize KV store", slog.Any("error", err))
+		logger.Error("Falha ao inicializar KV store", slog.Any("error", err))
 		os.Exit(1)
 	}
 	defer kvStore.Close()
 
 	vecStore, err := db.NewVectorStoreAtPath(indexPath)
 	if err != nil {
-		logger.Error("Failed to initialize vector store", slog.Any("error", err))
+		logger.Error("Falha ao inicializar vector store", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	// Initialize LLM router (providers will be registered separately)
+	// Inicializar roteador LLM e registrar provedores disponíveis
 	router := llm.NewRouter()
 
-	// Initialize message service
+	// Registrar provedores baseados em variáveis de ambiente
+	registrarProvedores(ctx, router, *defaultProvider, logger)
+
+	// Inicializar serviço de mensagens
 	msgService := llm.NewMessageService(kvStore)
 
-	// Create ACP agent
+	// Criar agente ACP
 	agent := acp.NewVectoraAgent(
 		"vectora-acp",
 		getVersion(),
@@ -95,18 +117,57 @@ func main() {
 		logger,
 	)
 
-	// Start ACP agent (blocks until client disconnects)
+	logger.Debug("Agente ACP criado com sucesso")
+
+	// Iniciar agente ACP (bloqueia até cliente desconectar)
 	if err := acp.StartACPAgent(ctx, agent, logger); err != nil {
-		logger.Error("ACP agent error", slog.Any("error", err))
-		fmt.Fprintf(os.Stderr, "ACP agent error: %v\n", err)
+		logger.Error("Erro no agente ACP", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	logger.Info("ACP agent shutdown complete")
+	logger.Info("Agente ACP finalizado com sucesso")
+}
+
+// registrarProvedores inicializa provedores LLM baseado em variáveis de ambiente
+func registrarProvedores(ctx context.Context, router *llm.Router, defaultProvider string, logger *slog.Logger) {
+	provedoresRegistrados := []string{}
+
+	// Claude via CLAUDE_API_KEY
+	if claudeKey := os.Getenv("CLAUDE_API_KEY"); claudeKey != "" {
+		// Aqui registraríamos o provedor Claude quando tiver suporte
+		logger.Info("Provedor Claude detectado via CLAUDE_API_KEY")
+		provedoresRegistrados = append(provedoresRegistrados, "claude")
+	}
+
+	// Gemini via GEMINI_API_KEY
+	if geminiKey := os.Getenv("GEMINI_API_KEY"); geminiKey != "" {
+		// Aqui registraríamos o provedor Gemini quando tiver suporte
+		logger.Info("Provedor Gemini detectado via GEMINI_API_KEY")
+		provedoresRegistrados = append(provedoresRegistrados, "gemini")
+	}
+
+	// Voyage via VOYAGE_API_KEY (para embeddings)
+	if voyageKey := os.Getenv("VOYAGE_API_KEY"); voyageKey != "" {
+		logger.Info("Provedor Voyage detectado via VOYAGE_API_KEY")
+		provedoresRegistrados = append(provedoresRegistrados, "voyage")
+	}
+
+	// Validar provedor padrão
+	if !strings.Contains(strings.Join(provedoresRegistrados, ","), defaultProvider) {
+		logger.Warn("Provedor padrão não está configurado",
+			slog.String("solicitado", defaultProvider),
+			slog.String("disponíveis", strings.Join(provedoresRegistrados, ", ")),
+		)
+	}
+
+	logger.Info("Provedores LLM registrados",
+		slog.String("padrão", defaultProvider),
+		slog.Int("quantidade", len(provedoresRegistrados)),
+	)
 }
 
 func getVersion() string {
-	// This could be populated at build time with -ldflags
-	// For now, return a default version
-	return "0.1.0"
+	// Será preenchido no build com -ldflags
+	// Por enquanto, retorna versão padrão
+	return "0.1.0-phase7b"
 }

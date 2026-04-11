@@ -656,7 +656,7 @@ IDE (receives result)
 
 ---
 
-## Phase 9: Multi-Tenancy Protocol (MTP)
+## Multi-Tenancy Protocol (MTP)
 
 Este documento especifica a arquitetura e o protocolo para gerenciar **múltiplos projetos simultâneos (Multi-Tenancy)** em uma **única instância singleton** do Vectora Daemon.
 
@@ -664,7 +664,7 @@ O objetivo é manter o consumo de memória baixo (usando um único daemon rodand
 
 ---
 
-## 1. O Modelo de Tenant baseado em Conexão (Connection-Bound Tenancy)
+## Phase 9: O Modelo de Tenant baseado em Conexão (Connection-Bound Tenancy)
 
 No Vectora, um "Tenant" representa um Projeto ou Workspace aberto no editor (como uma janela do VS Code). Quando a extensão do VS Code se conecta ao Daemon via IPC (Named Pipes ou Unix Sockets), o protocolo MTP estabelece o escopo de atuação daquela conexão.
 
@@ -690,7 +690,7 @@ A partir desse momento, todas as trocas de mensagens na conexão daquele _socket
 
 ---
 
-## 2. Abstração de Armazenamento e Estado (Storage & State Isolation)
+## Phase 10: Abstração de Armazenamento e Estado (Storage & State Isolation)
 
 Para garantir que o Projeto A nunca sobrescreva os dados do Projeto B, toda persistência e gerenciamento em memória é dinamicamente enclausurado.
 
@@ -722,7 +722,7 @@ O Daemon manterá um registro Singleton de "Workspaces Ativos".
 
 ---
 
-## 3. Segurança e Limites Absolutos (Trust Folders & Guardian)
+## Phase 11: Segurança e Limites Absolutos (Trust Folders & Guardian)
 
 O conceito mais perigoso em um Singleton é um agente num Projeto A ser comprometido e tentar ler as variáveis `.env` do Projeto B do usuário. Para evitar isso:
 
@@ -731,7 +731,7 @@ O conceito mais perigoso em um Singleton é um agente num Projeto A ser comprome
 
 ---
 
-## 4. Paralelismo Seguro e Pool de Recursos (Resource Throttling)
+## Phase 12: Paralelismo Seguro e Pool de Recursos (Resource Throttling)
 
 Como usamos requisições externas para LLMs (ou locações de memória na GPU local), o Projeto A pode gerar bloqueios ou exceder os Rate Limits de uma Cloud (Anthropic/Voyage), afetando o Projeto B.
 
@@ -746,7 +746,7 @@ Como usamos requisições externas para LLMs (ou locações de memória na GPU l
 
 ---
 
-## 5. Fluxo da Arquitetura para Implementação
+## Phase 13: Fluxo da Arquitetura para Implementação
 
 **Passo 1: `core/manager/tenant.go`**
 Criar um construtor de tenants `GetOrCreateTenant(workspaceRoot)`. Este objeto encapsula suas próprias classes do DB, LLM Histories e Storage Engine (evitando passagem de parametros massiva nas rotinas).
@@ -777,7 +777,7 @@ Phase 4 ──┼── Phase 5 ── Phase 6
            │
 Phase 7 ──┼── Phase 8 (Depends on Phase 3 and Phase 4)
            │
-Phase 9 ────  Multi-Tenancy (Depends on Phase 2 Singleton context)
+Phase 9 ──┼── Phase 10 ── Phase 11 ── Phase 12 ── Phase 13 (MTP System)
 ```
 
 ## Verification
@@ -791,4 +791,4 @@ Phase 9 ────  Multi-Tenancy (Depends on Phase 2 Singleton context)
 - **Phase 5:** `curl localhost:<debug-port>/debug/pprof/` works; logs show no API keys
 - **Phase 6:** Binary update + rollback tested manually; workspace IDs differ across installations
 - **Phase 7/8:** `vectora-agent` CLI + Extension can be consumed natively from IDE engines conforming to SDK-ACP specs. Core exposed via Model Context Protocol (MCP).
-- **Phase 9:** Opening multiple IDE projects locally concurrently uses only a single background `vectora.exe` process that properly resolves paths per-project and securely compartmentalizes the vector search logic.
+- **Phase 9-13:** Opening multiple IDE projects locally concurrently uses only a single background `vectora.exe` process that properly resolves paths per-project and securely compartmentalizes the vector search logic.

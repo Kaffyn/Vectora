@@ -1,9 +1,11 @@
-// Package main implements the Vectora ACP Agent binary.
-// This binary is invoked by IDE clients (VS Code, Claude Code, Antigravity, etc.)
-// to provide agent-like functionality through the Agent Client Protocol (ACP).
+// Package main implementa o binário Vectora ACP Agent.
+// É invocado por clientes IDE (VS Code, Claude Code, Antigravity, etc.)
+// para fornecer funcionalidade de agente via Agent Client Protocol (ACP).
 //
-// Unlike `vectora` CLI which is interactive, `vectora-agent` runs as a subprocess
-// and communicates via JSON-RPC on stdin/stdout with the parent IDE client.
+// Diferente do CLI `vectora` interativo, `vectora-agent` roda como subprocess
+// e se comunica via JSON-RPC em stdin/stdout com o cliente IDE.
+//
+// Phase 7B: CLI como ACP Agent - versão principal
 package main
 
 import (
@@ -12,6 +14,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/Kaffyn/Vectora/core/api/acp"
@@ -22,66 +25,75 @@ import (
 
 func main() {
 	// Parse flags
-	verbose := flag.Bool("v", false, "Enable verbose logging")
-	logFormat := flag.String("log", "text", "Log format: text or json")
+	verbose := flag.Bool("v", false, "Ativa logging verboso (DEBUG)")
+	logFormat := flag.String("log", "text", "Formato do log: text ou json")
+	workspace := flag.String("workspace", ".", "Workspace padrão para operações")
 	flag.Parse()
 
-	// Setup logger
+	// Configurar logger
+	logLevel := slog.LevelInfo
+	if *verbose {
+		logLevel = slog.LevelDebug
+	}
+
 	var logHandler slog.Handler
 	if *logFormat == "json" {
 		logHandler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
+			Level: logLevel,
 		})
 	} else {
 		logHandler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		})
-	}
-	if *verbose {
-		logHandler = slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-			Level: slog.LevelDebug,
+			Level: logLevel,
 		})
 	}
 	logger := slog.New(logHandler)
 
-	// Initialize app manager
+	logger.Info("Iniciando Vectora Agent (ACP)",
+		slog.String("version", getVersion()),
+		slog.String("workspace", *workspace),
+	)
+
+	// Inicializar gerenciador de SO
 	osMgr, err := vecos.NewManager()
 	if err != nil {
-		logger.Error("Failed to initialize OS manager", slog.Any("error", err))
+		logger.Error("Falha ao inicializar gerenciador de SO", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	// Setup data directories
+	// Configurar diretórios de dados
 	appDataDir, err := osMgr.GetAppDataDir()
 	if err != nil {
-		logger.Error("Failed to get app data directory", slog.Any("error", err))
+		logger.Error("Falha ao obter diretório app data", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	dbPath := appDataDir + "/vectora.db"
-	indexPath := appDataDir + "/index"
+	// Criar estrutura de diretórios
+	os.MkdirAll(filepath.Join(appDataDir, "run"), 0755)
 
-	// Initialize databases
+	dbPath := filepath.Join(appDataDir, "vectora.db")
+	indexPath := filepath.Join(appDataDir, "index")
+
+	// Inicializar armazenamento de dados
 	kvStore, err := db.NewKVStoreAtPath(dbPath)
 	if err != nil {
-		logger.Error("Failed to initialize KV store", slog.Any("error", err))
+		logger.Error("Falha ao inicializar KV store", slog.Any("error", err))
 		os.Exit(1)
 	}
 	defer kvStore.Close()
 
 	vecStore, err := db.NewVectorStoreAtPath(indexPath)
 	if err != nil {
-		logger.Error("Failed to initialize vector store", slog.Any("error", err))
+		logger.Error("Falha ao inicializar vector store", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	// Initialize LLM router (providers will be registered separately)
+	// Inicializar roteador LLM
 	router := llm.NewRouter()
 
-	// Initialize message service
+	// Inicializar serviço de mensagens
 	msgService := llm.NewMessageService(kvStore)
 
-	// Create ACP agent
+	// Criar agente ACP
 	agent := acp.NewVectoraAgent(
 		"vectora-agent",
 		getVersion(),
@@ -92,7 +104,9 @@ func main() {
 		logger,
 	)
 
-	// Setup graceful shutdown
+	logger.Debug("Agente ACP criado com sucesso")
+
+	// Configurar shutdown gracioso
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -101,21 +115,20 @@ func main() {
 
 	go func() {
 		sig := <-sigChan
-		logger.Info("Received signal, shutting down", slog.String("signal", sig.String()))
+		logger.Info("Sinal recebido, encerrando", slog.String("signal", sig.String()))
 		cancel()
 	}()
 
-	// Start ACP agent (blocks until client disconnects)
+	// Iniciar agente ACP (bloqueia até cliente desconectar)
 	if err := acp.StartACPAgent(ctx, agent, logger); err != nil {
-		logger.Error("ACP agent error", slog.Any("error", err))
+		logger.Error("Erro no agente ACP", slog.Any("error", err))
 		os.Exit(1)
 	}
 
-	logger.Info("ACP agent shutdown complete")
+	logger.Info("Agente ACP finalizado com sucesso")
 }
 
 func getVersion() string {
-	// This could be populated at build time with -ldflags
-	// For now, return a default version
-	return "0.1.0"
+	// Será preenchido no build com -ldflags
+	return "0.1.0-phase7b"
 }
