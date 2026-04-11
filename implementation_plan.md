@@ -1,170 +1,170 @@
-# Vectora Issue Report - Implementation Plan
+# Relatório de Problemas do Vectora - Plano de Implementação
 
-## Context
+## Contexto
 
-The Vectora project has 9 bugs, 10 architectural decisions needing implementation, and 3 modernization requests. The core issues are: broken model identifiers causing 404s, webview registration problems, all LLM providers using raw HTTP instead of official SDKs, manual JSON-RPC implementation, and missing CLI polish. This plan addresses all 22 items from the issue report in dependency order.
-
----
-
-## Phase 0: Critical Bug Fixes (Immediate)
-
-### 0A. Fix Gemini Model Identifiers (Issue #9)
-
-- **File:** `core/llm/gemini_provider.go:31-37`
-- Current: `"gemini-3-flash"`, `"gemini-3.1-pro"`, `"gemini-embedding-2-preview"` - these don't exist
-- Fix: Update to real model IDs from Google docs (e.g., `"gemini-2.0-flash"`, `"gemini-2.5-pro"`, `"text-embedding-004"`)
-- Also fix Claude aliases at `core/llm/claude_provider.go:76-86` - "4.6" aliases map to outdated model IDs
-
-### 0B. Fix Webview Load Failure (Issue #1)
-
-- **File:** `extensions/vscode/src/extension.ts:25`
-- Problem: `new ChatViewProvider(undefined as any, context)` passes null client
-- Fix: ChatViewProvider must handle null client gracefully - show "Connecting..." state instead of crashing
-- **File:** `extensions/vscode/src/chat-panel.ts` - add null-client guard in message handlers
-
-### 0C. Fix Binary Naming Mismatch (Issues #2, #4)
-
-- **File:** `extensions/vscode/src/binary-manager.ts`
-- Problem: Looks for `vectora.exe` but build produces `vectora-windows-amd64.exe`
-- Fix: Standardize on `vectora.exe` in build output OR add both names to resolution chain
-- Also clean up `stop` command to kill processes matching both names
+O projeto Vectora possui 9 bugs, 10 decisões arquiteturais que precisam de implementação e 3 solicitações de modernização. Os principais problemas são: identificadores de modelos quebrados causando 404s, problemas no registro da webview, todos os provedores de LLM usando HTTP bruto em vez de SDKs oficiais, implementação manual de JSON-RPC e falta de polimento na CLI. Este plano aborda todos os 22 itens do relatório de problemas em ordem de dependência.
 
 ---
 
-## Phase 1: CLI UX (Quick Wins)
+## Fase 0: Correções de Bugs Críticos (Imediato)
 
-### 1A. Config Key Validation (Issue #5)
+### 0A. Corrigir Identificadores de Modelo do Gemini (Issue #9)
 
-- **File:** `cmd/core/config.go`
-- Add valid key whitelist + help text showing accepted keys
+- **Arquivo:** `core/llm/gemini_provider.go:31-37`
+- Atual: `"gemini-3-flash"`, `"gemini-3.1-pro"`, `"gemini-embedding-2-preview"` - estes modelos não existem.
+- Correção: Atualizar para IDs de modelos reais da documentação do Google (ex: `"gemini-2.0-flash"`, `"gemini-2.5-pro"`, `"text-embedding-004"`).
+- Também corrigir os aliases do Claude em `core/llm/claude_provider.go:76-86` - os aliases "4.6" apontam para IDs de modelos desatualizados.
 
-### 1B. Workspace Path Display (Issue #6)
+### 0B. Corrigir Falha no Carregamento da Webview (Issue #1)
 
-- **File:** `cmd/core/workspace.go`
-- Store path metadata alongside workspace collections, display `ID → /path` in `workspace ls`
+- **Arquivo:** `extensions/vscode/src/extension.ts:25`
+- Problema: `new ChatViewProvider(undefined as any, context)` passa um cliente nulo.
+- Correção: O `ChatViewProvider` deve lidar com o cliente nulo de forma graciosa - exibir estado de "Conectando..." em vez de travar.
+- **Arquivo:** `extensions/vscode/src/chat-panel.ts` - adicionar proteção contra cliente nulo nos manipuladores de mensagens.
 
-### 1C. Command Aliases (Issue #7)
+### 0C. Corrigir Inconsistência na Nomeação do Binário (Issues #2, #4)
 
-- **File:** `cmd/core/main.go` (command registration)
-- Add Cobra `Aliases`: `workspaceCmd.Aliases = []string{"workspaces", "ws"}`
-
-### 1D. Windows Defender Documentation (Issue #8)
-
-- Document code signing process in CONTRIBUTING.md or release docs (not a code fix)
-
----
-
-## Phase 2: Singleton & Process Management (Decisions #10, Issues #3, #4)
-
-### 2A. Hybrid File Lock + PID Validation
-
-- **Files:** `core/os/linux/linux.go`, `core/os/macos/macos.go` (replace TCP port binding)
-- New cross-platform: Write PID to `~/.vectora/vectora.pid` + `flock()` on Unix
-- Keep Windows mutex as-is (already works), add PID file as supplementary
-
-### 2B. Graceful Shutdown
-
-- **File:** `cmd/core/main.go` - signal handlers to clean up PID file on SIGTERM/SIGINT
+- **Arquivo:** `extensions/vscode/src/binary-manager.ts`
+- Problema: Procura por `vectora.exe`, mas o build produz `vectora-windows-amd64.exe`.
+- Correção: Padronizar para `vectora.exe` na saída do build OU adicionar ambos os nomes à cadeia de resolução.
+- Também limpar o comando `stop` para encerrar processos que correspondam a ambos os nomes.
 
 ---
 
-## Phase 3: JSON-RPC Library Migration (Decision #19)
+## Fase 1: UX da CLI (Ganhos Rápidos)
 
-### 3A. Go Core: Adopt `sourcegraph/jsonrpc2`
+### 1A. Validação de Chaves de Configuração (Issue #5)
 
-- **Files:** `core/api/jsonrpc/`, `core/api/ipc/server.go`, `core/api/ipc/router.go`
-- Add dependency, rewrite handler registration to use library's handler interface
-- Migrate method-by-method
+- **Arquivo:** `cmd/core/config.go`
+- Adicionar lista branca de chaves válidas + texto de ajuda mostrando as chaves aceitas.
 
-### 3B. VS Code Extension: Adopt `vscode-jsonrpc`
+### 1B. Exibição do Caminho do Workspace (Issue #6)
 
-- **File:** `extensions/vscode/src/client.ts`
-- Replace manual framing with `createMessageConnection`
+- **Arquivo:** `cmd/core/workspace.go`
+- Armazenar metadados do caminho junto com as coleções de workspace, exibir `ID → /caminho` em `workspace ls`.
 
-### 3C. IPC Security Handshake (Decision #16)
+### 1C. Aliases de Comandos (Issue #7)
 
-- Core: Generate token on startup → `~/.vectora/ipc.token`
-- Extension: Read token, send in `initialize` request
-- Core: Reject connections without valid token
+- **Arquivo:** `cmd/core/main.go` (registro de comandos)
+- Adicionar `Aliases` do Cobra: `workspaceCmd.Aliases = []string{"workspaces", "ws"}`.
+
+### 1D. Documentação do Windows Defender (Issue #8)
+
+- Documentar o processo de assinatura de código em `CONTRIBUTING.md` ou nos documentos de release (não é uma correção de código).
 
 ---
 
-## Phase 4: LLM SDK Migration (Decisions #11, #20, #21)
+## Fase 2: Singleton e Gerenciamento de Processos (Decisões #10, Issues #3, #4)
+
+### 2A. File Lock Híbrido + Validação de PID
+
+- **Arquivos:** `core/os/linux/linux.go`, `core/os/macos/macos.go` (substituir o bind de porta TCP).
+- Novo multi-plataforma: Gravar PID em `~/.vectora/vectora.pid` + `flock()` no Unix.
+- Manter o mutex do Windows como está (já funciona), adicionar arquivo de PID como suplementar.
+
+### 2B. Encerramento Gracioso (Graceful Shutdown)
+
+- **Arquivo:** `cmd/core/main.go` - manipuladores de sinais para limpar o arquivo de PID no SIGTERM/SIGINT.
+
+---
+
+## Fase 3: Migração da Biblioteca JSON-RPC (Decisão #19)
+
+### 3A. Core (Go): Adotar `sourcegraph/jsonrpc2`
+
+- **Arquivos:** `core/api/jsonrpc/`, `core/api/ipc/server.go`, `core/api/ipc/router.go`.
+- Adicionar dependência, reescrever o registro de handlers para usar a interface de handler da biblioteca.
+- Migrar método por método.
+
+### 3B. Extensão VS Code: Adotar `vscode-jsonrpc`
+
+- **Arquivo:** `extensions/vscode/src/client.ts`.
+- Substituir o enquadramento (framing) manual por `createMessageConnection`.
+
+### 3C. Handshake de Segurança do IPC (Decisão #16)
+
+- Core: Gerar token na inicialização → `~/.vectora/ipc.token`.
+- Extensão: Ler o token, enviá-lo na requisição `initialize`.
+- Core: Rejeitar conexões sem um token válido.
+
+---
+
+## Fase 4: Migração para SDKs de LLM (Decisões #11, #20, #21)
 
 ### 4A. Gemini → `google.golang.org/genai`
 
-- **File:** `core/llm/gemini_provider.go` - full rewrite using SDK
-- Fixes model validation, streaming, error handling in one step
+- **Arquivo:** `core/llm/gemini_provider.go` - reescrita completa usando o SDK.
+- Corrige validação de modelo, streaming e tratamento de erros em um único passo.
 
 ### 4B. Claude → `github.com/anthropics/anthropic-sdk-go`
 
-- **File:** `core/llm/claude_provider.go` - full rewrite using SDK
-- Update model identifiers to current values
+- **Arquivo:** `core/llm/claude_provider.go` - reescrita completa usando o SDK.
+- Atualizar identificadores de modelo para os valores atuais.
 
 ### 4C. Voyage → `github.com/austinfhunter/voyageai`
 
-- **File:** `core/llm/voyage_provider.go` - rewrite using SDK
+- **Arquivo:** `core/llm/voyage_provider.go` - reescrita usando o SDK.
 
-### 4D. Streaming Error Handling (Decision #15)
+### 4D. Tratamento de Erros em Streaming (Decisão #15)
 
-- Implement in each SDK provider: on stream error, send JSON-RPC error notification with partial content
-- Extension UI shows "Response interrupted" with retry button
-
----
-
-## Phase 5: Observability & Safety (Decisions #12, #17, #18)
-
-### 5A. pprof Integration (Decision #12)
-
-- **File:** `cmd/core/main.go` - add `net/http/pprof` on localhost debug port
-
-### 5B. Log Sanitization (Decision #18)
-
-- New middleware in `core/infra/` - redact API keys and PII from logs
-
-### 5C. Vector DB Schema Versioning (Decision #17)
-
-- Store schema version in bbolt. On mismatch → auto re-index with user notification
+- Implementar em cada provedor de SDK: em caso de erro no stream, enviar notificação de erro JSON-RPC com conteúdo parcial.
+- A UI da extensão mostra "Resposta interrompida" com botão de tentar novamente.
 
 ---
 
-## Phase 6: Update System & Security (Decisions #13, #14, #22)
+## Fase 5: Observabilidade e Segurança (Decisões #12, #17, #18)
 
-### 6A. Auto-Updater with Rollback (Decision #13)
+### 5A. Integração com pprof (Decisão #12)
 
-- New package: `core/updater/` - check GitHub releases, download, swap binary, health check, rollback
+- **Arquivo:** `cmd/core/main.go` - adicionar `net/http/pprof` na porta de debug do localhost.
 
-### 6B. Workspace Salted Hashes (Decision #14)
+### 5B. Sanitização de Logs (Decisão #18)
 
-- Per-installation salt in `~/.vectora/salt`, use `SHA256(salt + path)` for workspace IDs
+- Novo middleware em `core/infra/` - redigir (mascarar) chaves de API e informações de identificação pessoal (PII) dos logs.
 
-### 6C. Security Audit (Decision #22)
+### 5C. Versionamento de Schema do Vector DB (Decisão #17)
 
-- Review all changes: IPC auth, log sanitization, Guardian enforcement, path traversal checks
+- Armazenar versão do schema no bbolt. Em caso de incompatibilidade → re-indexação automática com notificação ao usuário.
 
 ---
 
-## Dependency Graph
+## Fase 6: Sistema de Atualização e Segurança (Decisões #13, #14, #22)
+
+### 6A. Auto-Atualizador com Rollback (Decisão #13)
+
+- Novo pacote: `core/updater/` - verificar releases no GitHub, baixar, trocar binário, realizar health check e rollback se necessário.
+
+### 6B. Hashes Salteados (Salted) de Workspace (Decision #14)
+
+- Sal (salt) por instalação em `~/.vectora/salt`, usar `SHA256(salt + path)` para IDs de workspace.
+
+### 6C. Auditoria de Segurança (Decisão #22)
+
+- Revisar todas as mudanças: autenticação IPC, sanitização de logs, aplicação do Guardian, verificações de travessia de caminho (path traversal).
+
+---
+
+## Gráfico de Dependências
 
 ```
-Phase 0 ──┐
-Phase 1 ──┼── (all parallel, no deps)
-Phase 2 ──┘
+Fase 0 ──┐
+Fase 1 ──┼── (todas paralelas, sem dependências)
+Fase 2 ──┘
            │
-Phase 3 ───── (gate for Phase 4: SDKs need proper error propagation)
+Fase 3 ───── (portão para a Fase 4: SDKs precisam de propagação de erro adequada)
            │
-Phase 4 ───── (depends on Phase 3)
+Fase 4 ───── (depende da Fase 3)
            │
-Phase 5 ───── (depends on Phase 2 for pprof port)
-Phase 6 ───── (depends on Phase 2 + Phase 5)
+Fase 5 ───── (depende da Fase 2 para a porta pprof)
+Fase 6 ───── (depende da Fase 2 + Fase 5)
 ```
 
-## Verification
+## Verificação
 
-- **Phase 0:** `go build ./...` succeeds; extension loads webview without error; `vectora ask "test"` doesn't 404
-- **Phase 1:** `vectora workspace ls` shows paths; `vectora workspaces` works; `vectora config set INVALID x` warns
-- **Phase 2:** Starting two instances shows "already running"; `vectora status` reports correct state
-- **Phase 3:** Extension connects via `vscode-jsonrpc`; IPC token auth rejects unauthorized clients
-- **Phase 4:** `go test ./core/llm/...` passes with each SDK; streaming works end-to-end
-- **Phase 5:** `curl localhost:<debug-port>/debug/pprof/` works; logs show no API keys
-- **Phase 6:** Binary update + rollback tested manually; workspace IDs differ across installations
+- **Fase 0:** `go build ./...` tem sucesso; a extensão carrega a webview sem erro; `vectora ask "test"` não retorna 404.
+- **Fase 1:** `vectora workspace ls` mostra os caminhos; `vectora workspaces` funciona; `vectora config set INVALID x` avisa sobre chave inválida.
+- **Fase 2:** Iniciar duas instâncias mostra "already running"; `vectora status` relata o estado correto.
+- **Fase 3:** A extensão se conecta via `vscode-jsonrpc`; a autenticação de token IPC rejeita clientes não autorizados.
+- **Fase 4:** `go test ./core/llm/...` passa com cada SDK; o streaming funciona de ponta a ponta.
+- **Fase 5:** `curl localhost:<debug-port>/debug/pprof/` funciona; os logs não mostram chaves de API.
+- **Fase 6:** Atualização de binário + rollback testados manualmente; os IDs de workspace diferem entre instalações.
