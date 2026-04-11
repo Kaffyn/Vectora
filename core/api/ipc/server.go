@@ -19,7 +19,6 @@ import (
 	"time"
 
 	vecos "github.com/Kaffyn/Vectora/core/os"
-	winio "github.com/Microsoft/go-winio"
 )
 
 const ipcScannerBufSize = 4 * 1024 * 1024 // 4 MiB per connection
@@ -67,29 +66,7 @@ func (s *Server) Register(method string, handler RouterFunc) {
 }
 
 func (s *Server) Start() error {
-	var l net.Listener
-	var err error
-
-	if runtime.GOOS == "windows" {
-		// Use go-winio for proper Windows named pipe support.
-		// Security: restrict access to current user only.
-		cfg := &winio.PipeConfig{SecurityDescriptor: "D:P(A;;GA;;;CU)"}
-		l, err = winio.ListenPipe(s.addr, cfg)
-		if err != nil {
-			// Fallback to TCP if named pipe fails (e.g. permissions).
-			log.Printf("IPC: named pipe unavailable (%v), falling back to TCP", err)
-			l, err = net.Listen("tcp", "127.0.0.1:42781")
-		}
-	} else {
-		_ = os.MkdirAll(filepath.Dir(s.addr), 0700)
-		_ = os.Remove(s.addr)
-		l, err = net.Listen("unix", s.addr)
-		if err == nil {
-			// Restrict socket to owner only
-			_ = os.Chmod(s.addr, 0600)
-		}
-	}
-
+	l, err := listenIPC(s.addr)
 	if err != nil {
 		return err
 	}

@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"sync"
 
-	winio "github.com/Microsoft/go-winio"
 	"github.com/google/uuid"
 	vecos "github.com/Kaffyn/Vectora/core/os"
 )
@@ -68,20 +67,7 @@ func readToken() string {
 }
 
 func (c *Client) Connect() error {
-	var conn net.Conn
-	var err error
-
-	if runtime.GOOS == "windows" {
-		// Use go-winio for proper named pipe dial.
-		conn, err = winio.DialPipe(c.addr, nil)
-		if err != nil {
-			// Fallback to TCP (matches server fallback).
-			conn, err = net.Dial("tcp", "127.0.0.1:42781")
-		}
-	} else {
-		conn, err = net.Dial("unix", c.addr)
-	}
-
+	conn, err := dialIPC(c.addr)
 	if err != nil {
 		return err
 	}
