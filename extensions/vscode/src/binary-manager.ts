@@ -58,12 +58,12 @@ export class BinaryManager {
       return releasePath;
     }
 
-    // 3. Check AppData\Local\Vectora on Windows (Standard install dir)
+    // 3. Check AppData\Local\Programs\Vectora on Windows (standard per-user install dir)
     if (os.platform() === "win32") {
       const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
       // Check both canonical and release binary names
       for (const name of [this.binaryName, this.releaseBinaryName]) {
-        const installPath = path.join(localAppData, "Vectora", name);
+        const installPath = path.join(localAppData, "Programs", "Vectora", name);
         if (await this.fileExists(installPath)) {
           return installPath;
         }

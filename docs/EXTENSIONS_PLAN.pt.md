@@ -10,14 +10,20 @@ Este documento descreve como o Vectora Core se integra às interfaces de usuári
 
 ## 1. Extensão VS Code (O Cliente Primário)
 
-A extensão VS Code atua como a interface principal de interação para desenvolvedores. Ela não contém lógica de inteligência artificial; em vez disso, ela é um cliente fino para o daemon local.
+A extensão VS Code atua como a interface principal de interação para desenvolvedores. Ela utiliza a interface visual do **Roo Code** como base estética premium, mas foi submetida a uma refatoração total para operar de forma nativa e enxuta no ecossistema Vectora.
+
+### A Abordagem "Vectora-Shell":
+
+- **Base de UI Premium:** Herdamos a estética rica de chat do Roo Code, garantindo uma experiência visual de estado da arte desde o primeiro dia.
+- **Refatoração Estrutural:** Todo o código de suporte foi reconstruído do zero. A extensão atua como um cliente "fino", delegando 100% da lógica de IA, RAG e execução de ferramentas para o Core Go via JSON-RPC.
+- **Purga de Código Legado:** Removemos mais de 200 arquivos e subpastas exclusivos do Roo (como Cloud, Marketplace, Worktrees e MCP proprietário), eliminando o "peso morto" e garantindo estabilidade técnica.
+- **Comunicação Unificada:** A interface foi remapeada para falar diretamente com o nosso protocolo IPC, garantindo que ações de UI (como criar novas tarefas ou aprovar permissões) fluam corretamente para o daemon local.
 
 ### Componentes Implementados:
 
-- **Unified Client:** Uma classe única que gerencia o ciclo de vida do processo `vectora.exe` e a comunicação via JSON-RPC.
-- **Chat Panel (Webview):** Interface rica (premium aesthetics) que suporta streaming de Markdown, blocos de código e feedback visual de execução de ferramentas.
-- **Inline Completion:** Assistente de escrita em tempo real integrado ao editor, utilizando modelos Flash para baixa latência (<300ms).
-- **Binary Manager:** Responsável por detectar, baixar e auto-iniciar o binário do Core se ele não estiver rodando.
+- **Chat Panel (Webview):** Interface rica (premium aesthetics) totalmente descomentada e funcional, suportando streaming de Markdown e feedback visual de ferramentas.
+- **Inline Completion:** Assistente de escrita em tempo real integrado ao editor.
+- **Binary Manager:** Responsável por detectar e auto-iniciar o binário do Core (Daemon) de forma transparente.
 
 ---
 

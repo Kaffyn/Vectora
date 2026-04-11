@@ -1,10 +1,4 @@
-//go:build windows
-
 package os
-
-import (
-	win "github.com/Kaffyn/Vectora/core/os/windows"
-)
 
 type EngineState string
 
@@ -25,9 +19,4 @@ type OSManager interface {
 	IsInstalled() string
 	RegisterApp(installDir string)
 	UnregisterApp(installDir string)
-	EnforceSingleInstance() error
-}
-
-func NewManager() (OSManager, error) {
-	return win.NewManager(), nil
 }

@@ -3,31 +3,89 @@
 package os
 
 import (
-	mac "github.com/Kaffyn/Vectora/core/os/macos"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 )
 
-type EngineState string
-
-const (
-	EngineStopped  EngineState = "STOPPED"
-	EngineStarting EngineState = "STARTING"
-	EngineRunning  EngineState = "RUNNING"
-	EngineError    EngineState = "ERROR"
-)
-
-type OSManager interface {
-	GetAppDataDir() (string, error)
-	GetInstallDir() (string, error)
-	IsRunningAsAdmin() bool
-	StartLlamaEngine(modelPath string, port int) error
-	StopLlamaEngine() error
-	GetEngineState() string
-	IsInstalled() string
-	RegisterApp(installDir string)
-	UnregisterApp(installDir string)
-	EnforceSingleInstance() error
+type MacosManager struct {
+	cmd   *exec.Cmd
+	state string
 }
 
 func NewManager() (OSManager, error) {
-	return mac.NewManager(), nil
+	return &MacosManager{state: string(EngineStopped)}, nil
+}
+
+func (m *MacosManager) GetAppDataDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".Vectora"), nil
+}
+
+func (m *MacosManager) GetInstallDir() (string, error) {
+	return "/Applications/Vectora.app", nil
+}
+
+func (m *MacosManager) IsRunningAsAdmin() bool {
+	return os.Geteuid() == 0
+}
+
+func (m *MacosManager) StartLlamaEngine(modelPath string, port int) error {
+	m.state = string(EngineStarting)
+	baseDir, err := m.GetAppDataDir()
+	if err != nil {
+		m.state = string(EngineError)
+		return err
+	}
+
+	binaryPath := filepath.Join(baseDir, "llama-server")
+	m.cmd = exec.Command(binaryPath, "-m", modelPath, "--port", fmt.Sprintf("%d", port), "-ngl", "99")
+
+	err = m.cmd.Start()
+	if err != nil {
+		m.state = string(EngineError)
+		return err
+	}
+
+	m.state = string(EngineRunning)
+	go func() {
+		m.cmd.Wait()
+		m.state = string(EngineStopped)
+	}()
+
+	return nil
+}
+
+func (m *MacosManager) StopLlamaEngine() error {
+	if m.cmd != nil && m.cmd.Process != nil {
+		err := m.cmd.Process.Kill()
+		m.state = string(EngineStopped)
+		m.cmd = nil
+		return err
+	}
+	return nil
+}
+
+func (m *MacosManager) GetEngineState() string {
+	return m.state
+}
+
+func (m *MacosManager) IsInstalled() string {
+	p, _ := m.GetAppDataDir()
+	if _, err := os.Stat(filepath.Join(p, "vectora")); err == nil {
+		return p
+	}
+	return ""
+}
+
+func (m *MacosManager) RegisterApp(installDir string) {
+	os.MkdirAll(installDir, 0755)
+}
+
+func (m *MacosManager) UnregisterApp(installDir string) {
+	_ = installDir
 }

@@ -10,9 +10,11 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/Kaffyn/Vectora/core/api/acp"
@@ -23,6 +25,7 @@ import (
 	"github.com/Kaffyn/Vectora/core/llm"
 	vecos "github.com/Kaffyn/Vectora/core/os"
 	"github.com/Kaffyn/Vectora/core/policies"
+	"github.com/Kaffyn/Vectora/core/service/singleton"
 	"github.com/Kaffyn/Vectora/core/tools"
 	"github.com/Kaffyn/Vectora/core/tray"
 	"github.com/inconshreveable/mousetrap"
@@ -334,14 +337,34 @@ func runEmbed(rootPath string) error {
 }
 
 func runCore() {
+	s := singleton.New("Vectora")
+	if err := s.TryLock(); err != nil {
+		_ = infra.NotifyOS("Vectora Running", "Another instance of Vectora is already active.")
+		fmt.Println("Error: Another instance is already running.")
+		os.Exit(0)
+	}
+	// Ensure lock is always released — covers panics and unexpected exits.
+	defer func() {
+		if r := recover(); r != nil {
+			infra.Logger().Error(fmt.Sprintf("Vectora Core panicked: %v", r))
+			_ = s.Unlock()
+			os.Exit(1)
+		}
+	}()
+
+	// Graceful shutdown on SIGINT/SIGTERM
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		infra.Logger().Info("Shutting down Vectora Core...")
+		_ = s.Unlock()
+		os.Exit(0)
+	}()
+
 	systemManager, err := vecos.NewManager()
 	if err != nil {
 		log.Fatalf("Critical Hardware OS Failure: %v", err)
-	}
-
-	if err := systemManager.EnforceSingleInstance(); err != nil {
-		infra.NotifyOS("Vectora Running", "Vectora is already running.")
-		os.Exit(0)
 	}
 
 	infra.SetupLogger()

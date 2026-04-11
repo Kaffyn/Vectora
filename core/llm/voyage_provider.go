@@ -1,18 +1,16 @@
 package llm
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
+
+	"github.com/austinfhunter/voyageai"
 )
 
 type VoyageProvider struct {
 	apiKey string
-	model  string
+	client *voyageai.VoyageClient
 }
 
 func NewVoyageProvider(ctx context.Context, apiKey string) (*VoyageProvider, error) {
@@ -20,9 +18,13 @@ func NewVoyageProvider(ctx context.Context, apiKey string) (*VoyageProvider, err
 		return nil, errors.New("voyage_api_key_required: Voyage API key was not provided")
 	}
 
+	client := voyageai.NewClient(&voyageai.VoyageClientOpts{
+		Key: apiKey,
+	})
+
 	return &VoyageProvider{
 		apiKey: apiKey,
-		model:  "voyage-code-3",
+		client: client,
 	}, nil
 }
 
@@ -35,53 +37,28 @@ func (p *VoyageProvider) IsConfigured() bool {
 }
 
 func (p *VoyageProvider) Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error) {
-	return CompletionResponse{}, errors.New("voyage_only_supports_embeddings: Use Gemini or Claude for reasoning")
+	return CompletionResponse{}, errors.New("voyage_only_supports_embeddings")
+}
+
+func (p *VoyageProvider) StreamComplete(ctx context.Context, req CompletionRequest) (<-chan CompletionResponse, <-chan error) {
+	errChan := make(chan error, 1)
+	errChan <- errors.New("voyage_only_supports_embeddings")
+	close(errChan)
+	return nil, errChan
 }
 
 func (p *VoyageProvider) Embed(ctx context.Context, input string) ([]float32, error) {
-	url := "https://api.voyageai.com/v1/embeddings"
-
-	requestBody, err := json.Marshal(map[string]interface{}{
-		"input": []string{input},
-		"model": p.model,
+	// Voyage SDK supports batch embedding.
+	resp, err := p.client.Embed([]string{input}, voyageai.ModelVoyageCode3, &voyageai.EmbeddingRequestOpts{
+		InputType: voyageai.Opt("document"),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("voyage_sdk_error: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(requestBody))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+p.apiKey)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("voyage API error (%d): %s", resp.StatusCode, string(body))
-	}
-
-	var result struct {
-		Data []struct {
-			Embedding []float32 `json:"embedding"`
-		} `json:"data"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-
-	if len(result.Data) == 0 {
+	if len(resp.Data) == 0 {
 		return nil, errors.New("voyage_no_embeddings_returned")
 	}
 
-	return result.Data[0].Embedding, nil
+	return resp.Data[0].Embedding, nil
 }

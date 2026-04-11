@@ -51,40 +51,70 @@ func NewLlamaProcess(ctx context.Context, binPath string, args ...string) (*Llam
 }
 
 func (p *LlamaProcess) SendPrompt(ctx context.Context, prompt string, opts CompletionRequest) (string, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	req := LlamaRequest{
-		Prompt:      prompt,
-		MaxTokens:   opts.MaxTokens,
-		Temperature: opts.Temperature,
-		Stop:        []string{"</s>", "[INST]", "[/INST]"},
-	}
-
-	if err := json.NewEncoder(p.stdin).Encode(req); err != nil {
-		return "", fmt.Errorf("stdin_write_failed: %v", err)
-	}
-
+	tokens, errs := p.StreamPrompt(ctx, prompt, opts)
 	var sb strings.Builder
-	for p.stdout.Scan() {
-		text := p.stdout.Text()
-
-		var token LlamaToken
-		if err := json.Unmarshal([]byte(text), &token); err != nil {
-			continue
-		}
-
-		if token.Error != "" {
-			return "", fmt.Errorf("llama_inference_error: %s", token.Error)
-		}
-
-		sb.WriteString(token.Token)
-		if token.Done {
-			break
+	for {
+		select {
+		case token, ok := <-tokens:
+			if !ok {
+				return sb.String(), nil
+			}
+			sb.WriteString(token)
+		case err := <-errs:
+			if err != nil {
+				return "", err
+			}
+			return sb.String(), nil
+		case <-ctx.Done():
+			return sb.String(), ctx.Err()
 		}
 	}
+}
 
-	return sb.String(), nil
+func (p *LlamaProcess) StreamPrompt(ctx context.Context, prompt string, opts CompletionRequest) (<-chan string, <-chan error) {
+	p.mu.Lock()
+
+	tokenChan := make(chan string, 100)
+	errChan := make(chan error, 1)
+
+	go func() {
+		defer p.mu.Unlock()
+		defer close(tokenChan)
+		defer close(errChan)
+
+		req := LlamaRequest{
+			Prompt:      prompt,
+			MaxTokens:   opts.MaxTokens,
+			Temperature: opts.Temperature,
+			Stop:        []string{"</s>", "[INST]", "[/INST]"},
+		}
+
+		if err := json.NewEncoder(p.stdin).Encode(req); err != nil {
+			errChan <- fmt.Errorf("stdin_write_failed: %v", err)
+			return
+		}
+
+		for p.stdout.Scan() {
+			text := p.stdout.Text()
+
+			var token LlamaToken
+			if err := json.Unmarshal([]byte(text), &token); err != nil {
+				continue
+			}
+
+			if token.Error != "" {
+				errChan <- fmt.Errorf("llama_inference_error: %s", token.Error)
+				return
+			}
+
+			tokenChan <- token.Token
+			if token.Done {
+				break
+			}
+		}
+	}()
+
+	return tokenChan, errChan
 }
 
 func (p *LlamaProcess) Close() error {

@@ -48,20 +48,10 @@ func (p *QwenProvider) IsConfigured() bool {
 
 func (p *QwenProvider) Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error) {
 	if p.process == nil {
-		return CompletionResponse{}, fmt.Errorf("qwen_offline: motor de inferência não iniciado")
+		return CompletionResponse{}, fmt.Errorf("qwen_offline: Motor de inferência não iniciado")
 	}
 
-	masterPrompt := req.SystemPrompt
-	if masterPrompt == "" {
-		masterPrompt = p.systemPrompt
-	}
-
-	var lastMsg string
-	if len(req.Messages) > 0 {
-		m := req.Messages[len(req.Messages)-1]
-		lastMsg = fmt.Sprintf("[%s]: %s\n", m.Role, m.Content)
-	}
-
+	lastMsg := p.prepareLastMsg(req)
 	content, err := p.process.SendPrompt(ctx, lastMsg, req)
 	if err != nil {
 		return CompletionResponse{}, err
@@ -70,6 +60,55 @@ func (p *QwenProvider) Complete(ctx context.Context, req CompletionRequest) (Com
 	return CompletionResponse{
 		Content: content,
 	}, nil
+}
+
+func (p *QwenProvider) StreamComplete(ctx context.Context, req CompletionRequest) (<-chan CompletionResponse, <-chan error) {
+	respChan := make(chan CompletionResponse, 1)
+	errChan := make(chan error, 1)
+
+	if p.process == nil {
+		errChan <- fmt.Errorf("qwen_offline")
+		close(respChan)
+		close(errChan)
+		return respChan, errChan
+	}
+
+	go func() {
+		defer close(respChan)
+		defer close(errChan)
+
+		lastMsg := p.prepareLastMsg(req)
+		tokens, errs := p.process.StreamPrompt(ctx, lastMsg, req)
+
+		for {
+			select {
+			case token, ok := <-tokens:
+				if !ok {
+					return
+				}
+				respChan <- CompletionResponse{
+					Content: token,
+				}
+			case err := <-errs:
+				if err != nil {
+					errChan <- err
+				}
+				return
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return respChan, errChan
+}
+
+func (p *QwenProvider) prepareLastMsg(req CompletionRequest) string {
+	if len(req.Messages) > 0 {
+		m := req.Messages[len(req.Messages)-1]
+		return fmt.Sprintf("[%s]: %s\n", m.Role, m.Content)
+	}
+	return ""
 }
 
 func (p *QwenProvider) Embed(ctx context.Context, input string) ([]float32, error) {

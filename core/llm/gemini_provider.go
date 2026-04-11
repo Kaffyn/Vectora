@@ -1,19 +1,17 @@
 package llm
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"strings"
+
+	"google.golang.org/genai"
 )
 
 type GeminiProvider struct {
 	apiKey string
-	client *http.Client
+	client *genai.Client
 }
 
 func NewGeminiProvider(ctx context.Context, apiKey string) (*GeminiProvider, error) {
@@ -21,21 +19,19 @@ func NewGeminiProvider(ctx context.Context, apiKey string) (*GeminiProvider, err
 		return nil, errors.New("gemini_api_key_required: Gemini API key was not provided")
 	}
 
+	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+		APIKey:  apiKey,
+		Backend: genai.BackendGeminiAPI,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("gemini_init_error: %w", err)
+	}
+
 	return &GeminiProvider{
 		apiKey: apiKey,
-		client: &http.Client{},
+		client: client,
 	}, nil
 }
-
-// Supported Gemini models.
-const (
-	// GeminiFlash is the default model: fast, low-cost, ideal for RAG queries.
-	GeminiFlash = "gemini-3-flash-preview"
-	// GeminiPro is the reasoning model: used for complex agentic tasks.
-	GeminiPro = "gemini-3.1-pro-preview"
-	// GeminiEmbedding is the current embedding model (3072 dims).
-	GeminiEmbedding = "gemini-embedding-2-preview"
-)
 
 func (p *GeminiProvider) Name() string {
 	return "gemini"
@@ -45,172 +41,138 @@ func (p *GeminiProvider) IsConfigured() bool {
 	return p.apiKey != ""
 }
 
-type geminiPart struct {
-	Text       string      `json:"text,omitempty"`
-	InlineData *inlineData `json:"inlineData,omitempty"`
-}
-
-type inlineData struct {
-	MimeType string `json:"mimeType"`
-	Data     string `json:"data"`
-}
-
-type geminiContent struct {
-	Role  string       `json:"role,omitempty"`
-	Parts []geminiPart `json:"parts"`
-}
-
-type geminiRequest struct {
-	Contents          []geminiContent          `json:"contents"`
-	SystemInstruction *geminiContent           `json:"system_instruction,omitempty"`
-	GenerationConfig  map[string]interface{}   `json:"generationConfig,omitempty"`
-	Tools             []map[string]interface{} `json:"tools,omitempty"`
-}
-
-type geminiResponse struct {
-	Candidates []struct {
-		Content      geminiContent `json:"content"`
-		FinishReason string        `json:"finishReason"`
-	} `json:"candidates"`
-	UsageMetadata struct {
-		PromptTokenCount     int `json:"promptTokenCount"`
-		CandidatesTokenCount int `json:"candidatesTokenCount"`
-		TotalTokenCount      int `json:"totalTokenCount"`
-	} `json:"usageMetadata"`
-}
-
 func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error) {
-	model := req.Model
-	if model == "" {
-		model = GeminiFlash
-	}
-	if !strings.HasPrefix(model, "models/") {
-		model = "models/" + strings.TrimPrefix(model, "google/")
-	}
+	config := p.prepareConfig(req)
 
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/%s:generateContent?key=%s", model, p.apiKey)
-
-	// Gemini separates system messages from the contents array
-	var systemText string
-	var contents []geminiContent
-	for _, msg := range req.Messages {
-		if msg.Role == RoleSystem {
-			systemText += msg.Content + "\n"
-			continue
-		}
+	var contents []*genai.Content
+	for _, m := range req.Messages {
 		role := "user"
-		if msg.Role == RoleAssistant {
+		if m.Role == RoleAssistant {
 			role = "model"
 		}
-		contents = append(contents, geminiContent{
-			Role:  role,
-			Parts: []geminiPart{{Text: msg.Content}},
+		contents = append(contents, &genai.Content{
+			Role: role,
+			Parts: []*genai.Part{
+				{Text: m.Content},
+			},
 		})
 	}
 
-	geminiReq := geminiRequest{
-		Contents: contents,
-		GenerationConfig: map[string]interface{}{
-			"temperature":     req.Temperature,
-			"maxOutputTokens": req.MaxTokens,
-		},
-	}
-
-	if systemText != "" {
-		geminiReq.SystemInstruction = &geminiContent{
-			Parts: []geminiPart{{Text: strings.TrimSpace(systemText)}},
-		}
-	}
-
-	// Tool mapping
-	if len(req.Tools) > 0 {
-		var functions []map[string]interface{}
-		for _, t := range req.Tools {
-			var params map[string]interface{}
-			json.Unmarshal(t.Schema, &params)
-			functions = append(functions, map[string]interface{}{
-				"name":        t.Name,
-				"description": t.Description,
-				"parameters":  params,
-			})
-		}
-		geminiReq.Tools = []map[string]interface{}{
-			{"function_declarations": functions},
-		}
-	}
-
-	body, _ := json.Marshal(geminiReq)
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
+	resp, err := p.client.Models.GenerateContent(ctx, req.Model, contents, config)
 	if err != nil {
-		return CompletionResponse{}, err
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-
-	resp, err := p.client.Do(httpReq)
-	if err != nil {
-		return CompletionResponse{}, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return CompletionResponse{}, fmt.Errorf("gemini API error (%d): %s", resp.StatusCode, string(respBody))
+		return CompletionResponse{}, p.wrapError(err)
 	}
 
-	var gResp geminiResponse
-	if err := json.NewDecoder(resp.Body).Decode(&gResp); err != nil {
-		return CompletionResponse{}, err
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return CompletionResponse{}, errors.New("gemini_no_content_returned")
 	}
 
-	if len(gResp.Candidates) == 0 {
-		return CompletionResponse{}, errors.New("llm_empty_response")
-	}
+	content := resp.Candidates[0].Content.Parts[0].Text
 
-	candidate := gResp.Candidates[0]
-	var content string
-
-	for _, part := range candidate.Content.Parts {
-		if part.Text != "" {
-			content += part.Text
-		}
-		// TODO: Implement native Tool Call parsing for Gemini here if needed in future
-	}
+	var tCalls []ToolCall
+	// Parse tools from Gemini parts in future phases
 
 	return CompletionResponse{
-		Content: content,
+		Content:   content,
+		ToolCalls: tCalls,
 		Usage: TokenUsage{
-			PromptTokens:     gResp.UsageMetadata.PromptTokenCount,
-			CompletionTokens: gResp.UsageMetadata.CandidatesTokenCount,
-			TotalTokens:      gResp.UsageMetadata.TotalTokenCount,
+			PromptTokens:     int(resp.UsageMetadata.PromptTokenCount),
+			CompletionTokens: int(resp.UsageMetadata.CandidatesTokenCount),
+			TotalTokens:      int(resp.UsageMetadata.TotalTokenCount),
 		},
 	}, nil
 }
 
+func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionRequest) (<-chan CompletionResponse, <-chan error) {
+	respChan := make(chan CompletionResponse, 20)
+	errChan := make(chan error, 1)
+
+	go func() {
+		defer close(respChan)
+		defer close(errChan)
+
+		config := p.prepareConfig(req)
+		var contents []*genai.Content
+		for _, m := range req.Messages {
+			role := "user"
+			if m.Role == RoleAssistant {
+				role = "model"
+			}
+			contents = append(contents, &genai.Content{
+				Role: role,
+				Parts: []*genai.Part{{Text: m.Content}},
+			})
+		}
+
+		iter := p.client.Models.GenerateContentStream(ctx, req.Model, contents, config)
+		for resp, err := range iter {
+			if err != nil {
+				errChan <- p.wrapError(err)
+				return
+			}
+			if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
+				respChan <- CompletionResponse{
+					Content: resp.Candidates[0].Content.Parts[0].Text,
+				}
+			}
+		}
+	}()
+
+	return respChan, errChan
+}
+
 func (p *GeminiProvider) Embed(ctx context.Context, input string) ([]float32, error) {
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:embedContent?key=%s", GeminiEmbedding, p.apiKey)
-
-	reqBody := map[string]interface{}{
-		"model": "models/" + GeminiEmbedding,
-		"content": map[string]interface{}{
-			"parts": []map[string]interface{}{{"text": input}},
-		},
-	}
-
-	body, _ := json.Marshal(reqBody)
-	resp, err := http.Post(url, "application/json", bytes.NewReader(body))
+	resp, err := p.client.Models.EmbedContent(ctx, "text-embedding-004", []*genai.Content{{
+		Parts: []*genai.Part{{Text: input}},
+	}}, nil)
 	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var result struct {
-		Embedding struct {
-			Values []float32 `json:"values"`
-		} `json:"embedding"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
+		return nil, p.wrapError(err)
 	}
 
-	return result.Embedding.Values, nil
+	if len(resp.Embeddings) == 0 {
+		return nil, errors.New("gemini_no_embeddings_returned")
+	}
+
+	return resp.Embeddings[0].Values, nil
+}
+
+func (p *GeminiProvider) prepareConfig(req CompletionRequest) *genai.GenerateContentConfig {
+	temp32 := float32(req.Temperature)
+	config := &genai.GenerateContentConfig{
+		Temperature:     &temp32,
+		MaxOutputTokens: int32(req.MaxTokens),
+	}
+
+	if req.SystemPrompt != "" {
+		config.SystemInstruction = &genai.Content{
+			Parts: []*genai.Part{{Text: req.SystemPrompt}},
+		}
+	}
+
+	if len(req.Tools) > 0 {
+		var tools []*genai.Tool
+		var functions []*genai.FunctionDeclaration
+		for _, t := range req.Tools {
+			var schema genai.Schema
+			_ = json.Unmarshal(t.Schema, &schema)
+			functions = append(functions, &genai.FunctionDeclaration{
+				Name:        t.Name,
+				Description: t.Description,
+				Parameters:  &schema,
+			})
+		}
+		tools = append(tools, &genai.Tool{
+			FunctionDeclarations: functions,
+		})
+		config.Tools = tools
+	}
+
+	return config
+}
+
+func (p *GeminiProvider) wrapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("gemini_sdk_error: %w", err)
 }

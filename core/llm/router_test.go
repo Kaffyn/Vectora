@@ -14,6 +14,10 @@ func (m *mockProvider) Complete(ctx context.Context, req CompletionRequest) (Com
 	return CompletionResponse{Content: "mock completion"}, nil
 }
 
+func (m *mockProvider) StreamComplete(ctx context.Context, req CompletionRequest) (<-chan CompletionResponse, <-chan error) {
+	return nil, nil
+}
+
 func (m *mockProvider) Embed(ctx context.Context, input string) ([]float32, error) {
 	return []float32{0.1}, nil
 }

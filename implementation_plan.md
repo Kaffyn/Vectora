@@ -2,7 +2,7 @@
 
 ## Context
 
-O projeto Vectora tem 9 bugs, 10 decisões arquiteturais pendentes de implementação e 3 requisitos de modernização. Os problemas centrais são: identificadores de modelo com sufixo `-preview` faltando (causando 404), falha no carregamento da webview, todos os providers LLM usando HTTP puro (`net/http`) em vez dos SDKs oficiais (google/genai, anthropic-sdk-go, voyageai), implementação manual de JSON-RPC, e falta de polimento na CLI. Este plano endereça todos os 22 itens do relatório em ordem de dependência.
+The Vectora project has 9 bugs, 10 architectural decisions pending implementation, and 3 modernization requirements. The core issues are: missing model identifiers with the `-preview` suffix (causing 404s), webview loading failure, all LLM providers using raw HTTP (`net/http`) instead of the official SDKs (google/genai, anthropic-sdk-go, voyageai), manual JSON-RPC implementation, and a lack of CLI polish. This plan addresses all 22 items in the report in order of dependency.
 
 ---
 
@@ -12,11 +12,11 @@ O projeto Vectora tem 9 bugs, 10 decisões arquiteturais pendentes de implementa
 
 - **File:** `core/llm/gemini_provider.go:31-37`
 - Current: `"gemini-3-flash"`, `"gemini-3.1-pro"`, `"gemini-embedding-2-preview"`
-- Os modelos existem mas os IDs corretos da API incluem o sufixo `-preview`:
+- The models exist but the correct API IDs include the `-preview` suffix:
   - `"gemini-3-flash"` → `"gemini-3-flash-preview"`
   - `"gemini-3.1-pro"` → `"gemini-3.1-pro-preview"`
-  - `"gemini-embedding-2-preview"` → **já está correto** (confirmado na doc oficial)
-- Claude aliases em `core/llm/claude_provider.go:76-86`: os modelos Claude 4.6 existem. O SDK Go usa constantes como `anthropic.ModelClaudeOpus4_6`, `anthropic.ModelClaude4_6Sonnet`. Alinhar aliases com as constantes do SDK na Phase 4.
+  - `"gemini-embedding-2-preview"` → **already correct** (confirmed in official docs)
+- Claude aliases in `core/llm/claude_provider.go:76-86`: Claude 4.6 models exist. The Go SDK uses constants like `anthropic.ModelClaudeOpus4_6`, `anthropic.ModelClaude4_6Sonnet`. Align aliases with SDK constants in Phase 4.
 
 ### 0B. Fix Webview Load Failure (Issue #1)
 
@@ -34,7 +34,7 @@ O projeto Vectora tem 9 bugs, 10 decisões arquiteturais pendentes de implementa
 
 ---
 
-## Phase 1: CLI UX (Quick Wins)
+## Phase 1: CLI UX (Quick Wins) [COMPLETED]
 
 ### 1A. Config Key Validation (Issue #5)
 
@@ -57,7 +57,7 @@ O projeto Vectora tem 9 bugs, 10 decisões arquiteturais pendentes de implementa
 
 ---
 
-## Phase 2: Singleton & Process Management (Decisions #10, Issues #3, #4)
+## Phase 2: Singleton & Process Management [COMPLETED]
 
 ### 2A. Hybrid File Lock + PID Validation
 
@@ -71,24 +71,56 @@ O projeto Vectora tem 9 bugs, 10 decisões arquiteturais pendentes de implementa
 
 ---
 
-## Phase 3: JSON-RPC Library Migration (Decision #19)
+## Phase 2.5: Windows AppData Directory Restructuring [COMPLETED]
 
-### 3A. Go Core: Adopt `sourcegraph/jsonrpc2`
+### 2.5A. Native Pathing Strategy
 
-- **Files:** `core/api/jsonrpc/`, `core/api/ipc/server.go`, `core/api/ipc/router.go`
-- Add dependency, rewrite handler registration to use library's handler interface
-- Migrate method-by-method
+- **Installation (%LOCALAPPDATA%\Programs\Vectora)**:
+  - `vectora.exe` (Main), `updater.exe` (Aux), `version.json` (Meta).
+  - Aligned with per-user installs that don't roam between machines.
+- **Data & Config (%APPDATA%\Vectora)**:
+  - `.env`, `.lock`, `trust_paths.txt`, `workspaces.json`.
+  - `data/` (BBolt, Chromem, Memory).
+  - `logs/` (Rotation: log + log.old).
+  - Aligned with user state that should follow them in corporate domains.
 
-### 3B. VS Code Extension: Adopt `vscode-jsonrpc`
+### 2.5B. Core Changes
 
-- **File:** `extensions/vscode/src/client.ts`
-- Replace manual framing with `createMessageConnection`
+- **File:** `core/os/manager_windows.go`
+  - `GetInstallDir()`: return `%LOCALAPPDATA%\Programs\Vectora`
+  - `GetAppDataDir()`: return `%APPDATA%\Vectora`
+- **File:** `core/service/singleton/singleton.go`
+  - `singleton.New()`: base lock on `%APPDATA%\Vectora\.lock`
+- **Unix/macOS:** Remains in `~/.Vectora/` (correct native standard).
 
-### 3C. IPC Security Handshake (Decision #16)
+### 2.5C. Extension Changes
 
-- Core: Generate token on startup → `~/.vectora/ipc.token`
-- Extension: Read token, send in `initialize` request
-- Core: Reject connections without valid token
+- **File:** `extensions/vscode/src/binary-manager.ts`
+  - `VECTORA_BIN_DIR`: update to `%LOCALAPPDATA%\Programs\Vectora\vectora.exe`
+
+---
+
+## Phase 3: IPC & JSON-RPC Modernization [COMPLETED]
+
+### 3A. Windows Named Pipes (`go-winio`)
+
+- **File:** `core/api/ipc/server.go`
+- Replaced Unix domain sockets with Named Pipes on Windows (`\\.\pipe\vectora`) for native stability.
+- Implemented `winio.PipeConfig` with ACLs restricted to the current user (`CU`).
+- Added TCP fallback mechanism (port 42781) for restricted environments.
+
+### 3B. Standardized JSON-RPC 2.0 Errors
+
+- **File:** `core/api/ipc/protocol.go`, `router.go`
+- Adopted strict numeric codes (`-32603` for internal, etc.) and `slug` identifiers.
+- Updated all IPC handlers to return structured `IPCError` objects.
+
+### 3C. IPC Security Handshake
+
+- **File:** `core/api/ipc/server.go`, `client.go`
+- Core generates a cryptographically secure token at `%APPDATA%\Vectora\ipc.token` on startup.
+- Clients must read this file and provide the token in the `initialize` handshake.
+- Server rejects any connection with a missing or invalid token (`CodeUnauthorized`).
 
 ---
 
@@ -96,39 +128,39 @@ O projeto Vectora tem 9 bugs, 10 decisões arquiteturais pendentes de implementa
 
 ### 4A. Gemini → `google.golang.org/genai`
 
-- **File:** `core/llm/gemini_provider.go` - full rewrite usando SDK oficial
-- Substituir `net/http` manual por `genai.NewClient()` + `client.Models.GenerateContent()`
-- Modelos confirmados (docs oficiais 2026-04):
+- **File:** `core/llm/gemini_provider.go` - full rewrite using official SDK
+- Replace manual `net/http` with `genai.NewClient()` + `client.Models.GenerateContent()`
+- Confirmed Models (official docs 2026-04):
   - Chat: `gemini-3-flash-preview`, `gemini-3.1-pro-preview`
   - Embedding: `gemini-embedding-2-preview` (3072 dims)
-  - Também disponíveis: `gemini-2.5-flash`, `gemini-2.5-pro`
-- Streaming via SDK nativo com callbacks
+  - Also available: `gemini-2.5-flash`, `gemini-2.5-pro`
+- Native streaming via SDK with callbacks
 
 ### 4B. Claude → `github.com/anthropics/anthropic-sdk-go` (v1.27.1+)
 
-- **File:** `core/llm/claude_provider.go` - full rewrite usando SDK oficial
-- Requer Go 1.23+
-- Usar constantes do SDK: `anthropic.ModelClaudeOpus4_6`, `anthropic.ModelClaude4_6Sonnet`, etc.
+- **File:** `core/llm/claude_provider.go` - full rewrite using official SDK
+- Requires Go 1.23+
+- Use SDK constants: `anthropic.ModelClaudeOpus4_6`, `anthropic.ModelClaude4_6Sonnet`, etc.
 - `client := anthropic.NewClient(option.WithAPIKey(apiKey))`
 - Chat: `client.Messages.New(ctx, anthropic.MessageNewParams{...})`
 - Streaming: `client.Messages.NewStreaming(ctx, params)` + loop `stream.Next()`/`stream.Current()`
-- Tool calling nativo via `anthropic.ToolParam` + `anthropic.ToolUnionParam`
-- Retries automáticos (2x default) para 429/5xx
-- Remover structs manuais `claudeRequest`, `claudeResponse`, `claudeMessage`, `claudeTool`
+- Native tool calling via `anthropic.ToolParam` + `anthropic.ToolUnionParam`
+- Automatic retries (2x default) for 429/5xx
+- Remove manual structs `claudeRequest`, `claudeResponse`, `claudeMessage`, `claudeTool`
 
 ### 4C. Voyage → `github.com/austinfhunter/voyageai`
 
-- **File:** `core/llm/voyage_provider.go` - rewrite usando SDK oficial
+- **File:** `core/llm/voyage_provider.go` - rewrite using official SDK
 - `vo := voyageai.NewClient(voyageai.VoyageClientOpts{Key: apiKey})`
 - Embedding: `vo.Embed(texts, voyageai.ModelVoyageCode3, &EmbeddingRequestOpts{InputType: "document"})`
-- Modelos confirmados: `ModelVoyageCode3`, `ModelVoyage3Large`, `ModelVoyage35`, etc.
-- Também suporta: Reranking (`vo.Rerank`) e Multimodal embedding
+- Confirmed Models: `ModelVoyageCode3`, `ModelVoyage3Large`, `ModelVoyage35`, etc.
+- Also supports: Reranking (`vo.Rerank`) and Multimodal embedding
 
 ### 4D. Streaming Error Handling (Decision #15)
 
-- Gemini: SDK gerencia reconexão; capturar erros do iterator
-- Claude: `stream.Err()` após loop; enviar partial content acumulado via `message.Accumulate(event)`
-- Em ambos: notificação JSON-RPC de erro com conteúdo parcial + botão "Retry" na UI
+- Gemini: SDK manages reconnection; capture iterator errors
+- Claude: `stream.Err()` after loop; send accumulated partial content via `message.Accumulate(event)`
+- In both: JSON-RPC error notification with partial content + "Retry" button in UI
 
 ---
 
@@ -169,14 +201,16 @@ O projeto Vectora tem 9 bugs, 10 decisões arquiteturais pendentes de implementa
 ```
 Phase 0 ──┐
 Phase 1 ──┼── (all parallel, no deps)
-Phase 2 ──┘
+Phase 2 ──┐
+           │── Phase 2.5 (Depends on Phase 2 for lock file logic)
+Phase 1 ──┘
            │
 Phase 3 ───── (gate for Phase 4: SDKs need proper error propagation)
            │
 Phase 4 ───── (depends on Phase 3)
            │
 Phase 5 ───── (depends on Phase 2 for pprof port)
-Phase 6 ───── (depends on Phase 2 + Phase 5)
+Phase 6 ───── (depends on Phase 2 + Phase 5 + Phase 2.5 for updater)
 ```
 
 ## Verification
@@ -184,7 +218,10 @@ Phase 6 ───── (depends on Phase 2 + Phase 5)
 - **Phase 0:** `go build ./...` succeeds; extension loads webview without error; `vectora ask "test"` doesn't 404
 - **Phase 1:** `vectora workspace ls` shows paths; `vectora workspaces` works; `vectora config set INVALID x` warns
 - **Phase 2:** Starting two instances shows "already running"; `vectora status` reports correct state
+- **Phase 2.5:** `vectora.exe` exists in `LocalAppData\Programs`; `.env` and `data/` exist in `Roaming\Vectora`
 - **Phase 3:** Extension connects via `vscode-jsonrpc`; IPC token auth rejects unauthorized clients
 - **Phase 4:** `go test ./core/llm/...` passes with each SDK; streaming works end-to-end
 - **Phase 5:** `curl localhost:<debug-port>/debug/pprof/` works; logs show no API keys
+- **Phase 6:** Binary update + rollback tested manually; workspace IDs differ across installations
+  logs show no API keys
 - **Phase 6:** Binary update + rollback tested manually; workspace IDs differ across installations

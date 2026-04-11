@@ -48,6 +48,7 @@ type CompletionResponse struct {
 // Provider abstracts any LLM Backend (Qwen/Gemini/OpenAI) under Vectora's unified interface.
 type Provider interface {
 	Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error)
+	StreamComplete(ctx context.Context, req CompletionRequest) (<-chan CompletionResponse, <-chan error)
 	Embed(ctx context.Context, input string) ([]float32, error)
 	Name() string
 	IsConfigured() bool

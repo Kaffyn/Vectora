@@ -41,7 +41,7 @@ func RegisterRoutes(
 
 		vector, err := provider.Embed(ctx, req.Query)
 		if err != nil {
-			return nil, &IPCError{Code: "embed_failed", Message: err.Error()}
+			return nil, errServer("embed_failed", err.Error())
 		}
 
 		chunks, err := vecStore.Query(ctx, "ws_"+req.WorkspaceID, vector, 5)
@@ -95,7 +95,7 @@ func RegisterRoutes(
 			Temperature: 0.1,
 		})
 		if err != nil {
-			return nil, &IPCError{Code: "llm_failed", Message: err.Error()}
+			return nil, errServer("llm_failed", err.Error())
 		}
 
 		if req.ConversationID != "" {
@@ -116,7 +116,7 @@ func RegisterRoutes(
 
 		conv, err := msgService.GetConversation(ctx, req.ID)
 		if err != nil {
-			return nil, &IPCError{Code: "chat_not_found", Message: err.Error()}
+			return nil, errServer("chat_not_found", err.Error())
 		}
 		return conv, nil
 	})
@@ -125,7 +125,7 @@ func RegisterRoutes(
 	server.Register("chat.list", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
 		list, err := msgService.ListConversations(ctx)
 		if err != nil {
-			return nil, &IPCError{Code: "db_error", Message: err.Error()}
+			return nil, errServer("db_error", err.Error())
 		}
 		return list, nil
 	})
@@ -151,7 +151,7 @@ func RegisterRoutes(
 
 		results, err := memService.SearchInsight(ctx, req.Query, nil, req.TopK)
 		if err != nil {
-			return nil, &IPCError{Code: "memory_error", Message: err.Error()}
+			return nil, errServer("memory_error", err.Error())
 		}
 		return results, nil
 	})
@@ -186,7 +186,7 @@ func RegisterRoutes(
 		}
 		conv, err := msgService.CreateConversation(ctx, req.ID, req.Title)
 		if err != nil {
-			return nil, &IPCError{Code: "db_error", Message: err.Error()}
+			return nil, errServer("db_error", err.Error())
 		}
 		return conv, nil
 	})
@@ -200,7 +200,7 @@ func RegisterRoutes(
 			return nil, ErrIPCPayloadInvalid
 		}
 		if err := msgService.DeleteConversation(ctx, req.ID); err != nil {
-			return nil, &IPCError{Code: "db_error", Message: err.Error()}
+			return nil, errServer("db_error", err.Error())
 		}
 		return map[string]bool{"success": true}, nil
 	})
@@ -215,7 +215,7 @@ func RegisterRoutes(
 			return nil, ErrIPCPayloadInvalid
 		}
 		if err := msgService.RenameConversation(ctx, req.ID, req.Title); err != nil {
-			return nil, &IPCError{Code: "db_error", Message: err.Error()}
+			return nil, errServer("db_error", err.Error())
 		}
 		return map[string]bool{"success": true}, nil
 	})
@@ -232,7 +232,7 @@ func RegisterRoutes(
 		}
 		err := msgService.AddMessage(ctx, req.ConversationID, req.Role, req.Content)
 		if err != nil {
-			return nil, &IPCError{Code: "db_error", Message: err.Error()}
+			return nil, errServer("db_error", err.Error())
 		}
 		return map[string]bool{"success": true}, nil
 	})
@@ -240,7 +240,7 @@ func RegisterRoutes(
 	// [11] Set Provider
 	server.Register("provider.set", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
 		if err := kvStore.Set(ctx, "settings", "provider", payload); err != nil {
-			return nil, &IPCError{Code: "db_error", Message: err.Error()}
+			return nil, errServer("db_error", err.Error())
 		}
 		return map[string]bool{"success": true}, nil
 	})
@@ -250,7 +250,7 @@ func RegisterRoutes(
 		csvPath := filepath.Join("core", "i18n", "translations.csv")
 		content, err := os.ReadFile(csvPath)
 		if err != nil {
-			return nil, &IPCError{Code: "i18n_not_found", Message: "Locale file not found"}
+			return nil, errServer("i18n_not_found", "Locale file not found")
 		}
 
 		lines := strings.Split(string(content), "\n")

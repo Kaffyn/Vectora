@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"os"
 	"path/filepath"
 	"runtime"
 	"sync"
 
-	vecos "github.com/Kaffyn/Vectora/core/os"
+	winio "github.com/Microsoft/go-winio"
 	"github.com/google/uuid"
+	vecos "github.com/Kaffyn/Vectora/core/os"
 )
 
 type Client struct {
@@ -48,13 +50,32 @@ func NewClient() (*Client, error) {
 	}, nil
 }
 
+// readToken reads the IPC auth token from the token file written by the server.
+func readToken() string {
+	osMgr, err := vecos.NewManager()
+	if err != nil {
+		return ""
+	}
+	baseDir, err := osMgr.GetAppDataDir()
+	if err != nil {
+		return ""
+	}
+	data, err := os.ReadFile(filepath.Join(baseDir, "ipc.token"))
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
 func (c *Client) Connect() error {
 	var conn net.Conn
 	var err error
 
 	if runtime.GOOS == "windows" {
-		conn, err = net.Dial("unix", c.addr)
+		// Use go-winio for proper named pipe dial.
+		conn, err = winio.DialPipe(c.addr, nil)
 		if err != nil {
+			// Fallback to TCP (matches server fallback).
 			conn, err = net.Dial("tcp", "127.0.0.1:42781")
 		}
 	} else {
@@ -67,6 +88,17 @@ func (c *Client) Connect() error {
 
 	c.conn = conn
 	go c.listenForResponses()
+
+	// Perform auth handshake if a token exists.
+	if token := readToken(); token != "" {
+		var result map[string]bool
+		if authErr := c.Send(c.ctx, "ipc.auth", map[string]string{"token": token}, &result); authErr != nil {
+			c.conn.Close()
+			c.conn = nil
+			return errors.New("ipc auth failed: " + authErr.Error())
+		}
+	}
+
 	return nil
 }
 

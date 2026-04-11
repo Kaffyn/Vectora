@@ -121,9 +121,6 @@ func testOSManager() {
 
 	installDir, err := mgr.GetInstallDir()
 	assert("GetInstallDir", err == nil && installDir != "", fmt.Sprintf("err=%v dir=%s", err, installDir))
-
-	_ = mgr.EnforceSingleInstance()
-	assert("EnforceSingleInstance", true, "")
 }
 
 // ---- 2. i18n ----
@@ -423,7 +420,7 @@ func testIPC(ctx context.Context, testDir string, kv *db.BBoltStore) {
 		json.Unmarshal(payload, &req)
 		conv, err := msgService.CreateConversation(ctx, req.ID, req.Title)
 		if err != nil {
-			return nil, &ipc.IPCError{Code: "db_error", Message: err.Error()}
+			return nil, &ipc.IPCError{Code: ipc.CodeInternalError, Slug: "db_error", Message: err.Error()}
 		}
 		return conv, nil
 	})
@@ -435,7 +432,7 @@ func testIPC(ctx context.Context, testDir string, kv *db.BBoltStore) {
 		json.Unmarshal(payload, &req)
 		conv, err := msgService.GetConversation(ctx, req.ID)
 		if err != nil {
-			return nil, &ipc.IPCError{Code: "chat_not_found", Message: err.Error()}
+			return nil, &ipc.IPCError{Code: ipc.CodeInternalError, Slug: "chat_not_found", Message: err.Error()}
 		}
 		return conv, nil
 	})
@@ -443,7 +440,7 @@ func testIPC(ctx context.Context, testDir string, kv *db.BBoltStore) {
 	server.Register("chat.list", func(ctx context.Context, payload json.RawMessage) (any, *ipc.IPCError) {
 		list, err := msgService.ListConversations(ctx)
 		if err != nil {
-			return nil, &ipc.IPCError{Code: "db_error", Message: err.Error()}
+			return nil, &ipc.IPCError{Code: ipc.CodeInternalError, Slug: "db_error", Message: err.Error()}
 		}
 		return list, nil
 	})
@@ -454,7 +451,7 @@ func testIPC(ctx context.Context, testDir string, kv *db.BBoltStore) {
 
 	server.Register("provider.set", func(ctx context.Context, payload json.RawMessage) (any, *ipc.IPCError) {
 		if err := kv.Set(ctx, "settings", "provider", payload); err != nil {
-			return nil, &ipc.IPCError{Code: "db_error", Message: err.Error()}
+			return nil, &ipc.IPCError{Code: ipc.CodeInternalError, Slug: "db_error", Message: err.Error()}
 		}
 		return map[string]bool{"success": true}, nil
 	})

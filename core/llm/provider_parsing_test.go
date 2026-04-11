@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"github.com/anthropics/anthropic-sdk-go"
+	"google.golang.org/genai"
 )
 
 func TestGeminiParsing(t *testing.T) {
@@ -26,7 +28,7 @@ func TestGeminiParsing(t *testing.T) {
 	// but for now we can mock the http.Client behavior or use a specific test helper)
 
 	// Override URL for testing if possible, or just validate unmarshaling directly
-	var gResp geminiResponse
+	var gResp genai.GenerateContentResponse
 	if err := json.Unmarshal(fixtureData, &gResp); err != nil {
 		t.Fatalf("failed to unmarshal gemini fixture: %v", err)
 	}
@@ -48,7 +50,7 @@ func TestClaudeParsing(t *testing.T) {
 		t.Fatalf("failed to read fixture: %v", err)
 	}
 
-	var cResp claudeResponse
+	var cResp anthropic.Message
 	if err := json.Unmarshal(fixtureData, &cResp); err != nil {
 		t.Fatalf("failed to unmarshal claude fixture: %v", err)
 	}

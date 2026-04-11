@@ -1,19 +1,19 @@
 package llm
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
+
+	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/option"
 )
 
 type ClaudeProvider struct {
 	apiKey string
-	client *http.Client
+	client anthropic.Client
 }
 
 func NewClaudeProvider(ctx context.Context, apiKey string) (*ClaudeProvider, error) {
@@ -21,9 +21,14 @@ func NewClaudeProvider(ctx context.Context, apiKey string) (*ClaudeProvider, err
 		return nil, errors.New("claude_api_key_required: Claude API key was not provided")
 	}
 
+	client := anthropic.NewClient(
+		option.WithAPIKey(apiKey),
+	)
+
+	// NewClient returns Client (value), not pointer
 	return &ClaudeProvider{
 		apiKey: apiKey,
-		client: &http.Client{},
+		client: client,
 	}, nil
 }
 
@@ -35,125 +40,25 @@ func (p *ClaudeProvider) IsConfigured() bool {
 	return p.apiKey != ""
 }
 
-type claudeMessage struct {
-	Role    string      `json:"role"`
-	Content interface{} `json:"content"` // can be string or []interface{}
-}
-
-type claudeTool struct {
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	InputSchema interface{} `json:"input_schema"`
-}
-
-type claudeRequest struct {
-	Model       string          `json:"model"`
-	Messages    []claudeMessage `json:"messages"`
-	System      string          `json:"system,omitempty"`
-	MaxTokens   int             `json:"max_tokens"`
-	Temperature float32         `json:"temperature"`
-	Tools       []claudeTool    `json:"tools,omitempty"`
-}
-
-type claudeResponse struct {
-	ID      string `json:"id"`
-	Content []struct {
-		Type  string          `json:"type"`
-		Text  string          `json:"text,omitempty"`
-		ID    string          `json:"id,omitempty"`   // for tool_use
-		Name  string          `json:"name,omitempty"` // for tool_use
-		Input json.RawMessage `json:"input,omitempty"`
-	} `json:"content"`
-	Usage struct {
-		InputTokens  int `json:"input_tokens"`
-		OutputTokens int `json:"output_tokens"`
-	} `json:"usage"`
-}
-
 func (p *ClaudeProvider) Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error) {
-	modelName := req.Model
-	if modelName == "" {
-		modelName = "claude-3-5-sonnet-20241022"
-	}
+	params := p.prepareParams(req)
 
-	// Map "4.6" aliases to real models
-	if strings.Contains(modelName, "4.6-sonnet") {
-		modelName = "claude-3-5-sonnet-20241022"
-	} else if strings.Contains(modelName, "4.6-opus") {
-		modelName = "claude-3-opus-20240229"
-	} else if strings.Contains(modelName, "4.6-haiku") {
-		modelName = "claude-3-5-haiku-20241022"
-	}
-
-	url := "https://api.anthropic.com/v1/messages"
-
-	var messages []claudeMessage
-	for _, msg := range req.Messages {
-		if msg.Role == RoleSystem {
-			continue
-		}
-		messages = append(messages, claudeMessage{
-			Role:    string(msg.Role),
-			Content: msg.Content,
-		})
-	}
-
-	claudeReq := claudeRequest{
-		Model:       modelName,
-		Messages:    messages,
-		System:      req.SystemPrompt,
-		MaxTokens:   req.MaxTokens,
-		Temperature: req.Temperature,
-	}
-
-	if len(req.Tools) > 0 {
-		for _, t := range req.Tools {
-			var schema interface{}
-			json.Unmarshal(t.Schema, &schema)
-			claudeReq.Tools = append(claudeReq.Tools, claudeTool{
-				Name:        t.Name,
-				Description: t.Description,
-				InputSchema: schema,
-			})
-		}
-	}
-
-	body, _ := json.Marshal(claudeReq)
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
+	msg, err := p.client.Messages.New(ctx, params)
 	if err != nil {
-		return CompletionResponse{}, err
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("x-api-key", p.apiKey)
-	httpReq.Header.Set("anthropic-version", "2023-06-01")
-
-	resp, err := p.client.Do(httpReq)
-	if err != nil {
-		return CompletionResponse{}, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return CompletionResponse{}, fmt.Errorf("claude API error (%d): %s", resp.StatusCode, string(respBody))
-	}
-
-	var cResp claudeResponse
-	if err := json.NewDecoder(resp.Body).Decode(&cResp); err != nil {
-		return CompletionResponse{}, err
+		return CompletionResponse{}, p.wrapError(err)
 	}
 
 	var content string
 	var tCalls []ToolCall
-	for _, item := range cResp.Content {
-		if item.Type == "text" {
-			content += item.Text
-		} else if item.Type == "tool_use" {
+	for _, union := range msg.Content {
+		switch block := union.AsAny().(type) {
+		case anthropic.TextBlock:
+			content += block.Text
+		case anthropic.ToolUseBlock:
 			tCalls = append(tCalls, ToolCall{
-				ID:   item.ID,
-				Name: item.Name,
-				Args: string(item.Input),
+				ID:   block.ID,
+				Name: block.Name,
+				Args: string(block.Input),
 			})
 		}
 	}
@@ -162,13 +67,130 @@ func (p *ClaudeProvider) Complete(ctx context.Context, req CompletionRequest) (C
 		Content:   content,
 		ToolCalls: tCalls,
 		Usage: TokenUsage{
-			PromptTokens:     cResp.Usage.InputTokens,
-			CompletionTokens: cResp.Usage.OutputTokens,
-			TotalTokens:      cResp.Usage.InputTokens + cResp.Usage.OutputTokens,
+			PromptTokens:     int(msg.Usage.InputTokens),
+			CompletionTokens: int(msg.Usage.OutputTokens),
+			TotalTokens:      int(msg.Usage.InputTokens + msg.Usage.OutputTokens),
 		},
 	}, nil
 }
 
+func (p *ClaudeProvider) StreamComplete(ctx context.Context, req CompletionRequest) (<-chan CompletionResponse, <-chan error) {
+	respChan := make(chan CompletionResponse, 20)
+	errChan := make(chan error, 1)
+
+	go func() {
+		defer close(respChan)
+		defer close(errChan)
+
+		params := p.prepareParams(req)
+		stream := p.client.Messages.NewStreaming(ctx, params)
+
+		for stream.Next() {
+			event := stream.Current()
+			switch ev := event.AsAny().(type) {
+			case anthropic.ContentBlockDeltaEvent:
+				if txt, ok := ev.Delta.AsAny().(anthropic.TextDelta); ok {
+					respChan <- CompletionResponse{
+						Content: txt.Text,
+					}
+				}
+			}
+		}
+
+		if err := stream.Err(); err != nil {
+			errChan <- p.wrapError(err)
+		}
+	}()
+
+	return respChan, errChan
+}
+
 func (p *ClaudeProvider) Embed(ctx context.Context, input string) ([]float32, error) {
 	return nil, errors.New("claude_no_native_embedding")
+}
+
+func (p *ClaudeProvider) prepareParams(req CompletionRequest) anthropic.MessageNewParams {
+	modelName := "claude-3-5-sonnet-20241022"
+	if req.Model != "" {
+		modelName = req.Model
+	}
+
+	if strings.Contains(modelName, "4.6-sonnet") {
+		modelName = "claude-3-5-sonnet-20241022"
+	} else if strings.Contains(modelName, "4.6-opus") {
+		modelName = "claude-3-opus-20240229"
+	} else if strings.Contains(modelName, "4.6-haiku") {
+		modelName = "claude-3-5-haiku-20241022"
+	}
+
+	var messages []anthropic.MessageParam
+	for _, msg := range req.Messages {
+		if msg.Role == RoleSystem {
+			continue
+		}
+
+		var m anthropic.MessageParam
+		if msg.Role == RoleAssistant {
+			m = anthropic.NewAssistantMessage(anthropic.NewTextBlock(msg.Content))
+		} else {
+			m = anthropic.NewUserMessage(anthropic.NewTextBlock(msg.Content))
+		}
+		messages = append(messages, m)
+	}
+
+	params := anthropic.MessageNewParams{
+		Model:     anthropic.Model(modelName),
+		MaxTokens: int64(req.MaxTokens),
+		Messages:  messages,
+	}
+
+	if req.SystemPrompt != "" {
+		params.System = []anthropic.TextBlockParam{{
+			Text: req.SystemPrompt,
+		}}
+	}
+
+	if len(req.Tools) > 0 {
+		var tools []anthropic.ToolUnionParam
+		for _, t := range req.Tools {
+			var rawSchema map[string]interface{}
+			_ = json.Unmarshal(t.Schema, &rawSchema)
+
+			schema := anthropic.ToolInputSchemaParam{}
+			if props, ok := rawSchema["properties"]; ok {
+				schema.Properties = props
+			}
+			if reqs, ok := rawSchema["required"].([]interface{}); ok {
+				var rStrings []string
+				for _, r := range reqs {
+					if s, ok := r.(string); ok {
+						rStrings = append(rStrings, s)
+					}
+				}
+				schema.Required = rStrings
+			}
+
+			tools = append(tools, anthropic.ToolUnionParam{
+				OfTool: &anthropic.ToolParam{
+					Name:        t.Name,
+					Description: anthropic.String(t.Description),
+					InputSchema: schema,
+				},
+			})
+		}
+		params.Tools = tools
+	}
+
+	if req.Temperature > 0 {
+		params.Temperature = anthropic.Float(float64(req.Temperature))
+	}
+
+	return params
+}
+
+func (p *ClaudeProvider) wrapError(err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("claude_sdk_error: %w", err)
 }

@@ -63,6 +63,9 @@ func (m *mockEmbedProvider) Embed(ctx context.Context, text string) ([]float32, 
 func (m *mockEmbedProvider) Complete(ctx context.Context, req llm.CompletionRequest) (llm.CompletionResponse, error) {
 	return llm.CompletionResponse{}, nil
 }
+func (m *mockEmbedProvider) StreamComplete(ctx context.Context, req llm.CompletionRequest) (<-chan llm.CompletionResponse, <-chan error) {
+	return nil, nil
+}
 
 func TestRunEmbedJob(t *testing.T) {
 	// Create a temp directory for testing
