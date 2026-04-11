@@ -8,8 +8,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -451,13 +449,6 @@ func runCore() {
 
 	// Dev HTTP bridge for debugging
 	go ipcServer.StartDevHTTP(startPort)
-
-	// Debug server with pprof (profiling, goroutine traces, etc)
-	go func() {
-		addr := "localhost:6060"
-		infra.Logger().Info(fmt.Sprintf("pprof debug server listening on http://%s/debug/pprof/", addr))
-		_ = http.ListenAndServe(addr, nil)
-	}()
 
 	infra.NotifyOS("Vectora", "Operational Assistant.")
 	tray.Setup()
