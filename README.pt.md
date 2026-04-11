@@ -116,7 +116,7 @@ O Vectora se fundamenta em três pilares de integração para máxima escalabili
 
 ### 2. Provider Models SDKs
 
-O Vectora abandonou payloads REST crus. O Core implementa nativamente parsers complexos (streaming, chamadas de tools) em Go através da adoção estrita de SDKs oficiais:
+O Core implementa nativamente parsers complexos (streaming, chamadas de tools) em Go através da adoção estrita de SDKs oficiais, garantindo máxima confiabilidade:
 
 - **google/genai** (Gemini 3.1, Flash e Embedding 2.0)
 - **anthropic-sdk-go** (Claude 4.6+ interoperability)

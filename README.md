@@ -116,7 +116,7 @@ Vectora relies on three foundational integration pillars for maximum scalability
 
 ### 2. Provider Models SDKs
 
-Vectora abandoned raw REST payloads. The Core natively implements complex parsers (streaming, tool calls) in Go through the strict adoption of official SDKs:
+The Core natively implements complex parsers (streaming, tool calls) in Go through the strict adoption of official SDKs, ensuring maximum reliability:
 
 - **google/genai** (Gemini 3.1, Flash, and Embedding 2.0)
 - **anthropic-sdk-go** (Claude 4.6+ interoperability)
