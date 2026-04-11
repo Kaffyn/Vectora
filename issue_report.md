@@ -150,6 +150,16 @@ Este documento consolida as falhas, decisões arquiteturais e requisitos estrat�
 **Status**: Requisito de Modernização
 **Descrição**: Auditoria completa nos padrões de segurança e ferramentas, integrando as decisões 10-19.
 
+### 23. Padronização de Protocolos e Integração de SDKs
+
+**Status**: Requisito de Implementação
+**Descrição**: Efetivar a migração integral das rotinas de inferência e comunicação para os SDKs oficiais (Anthropic, Gemini, Voyage), utilizando as definições de `vectora-protocol-sdks.md`.
+
+### 24. Multi-Tenancy Protocol (MTP)
+
+**Status**: Requisito de Arquitetura
+**Descrição**: Implementar isolamento lógico rigoroso no nível do Core (Singleton Daemon). Cada conexão IPC deve atrelar seu respectivo *Tenant* a instâncias isoladas de banco vetorial (Chromem-go), históricos locais, fila de requisições restritas (Semaphores) e limites rígidos de sistema de arquivos via Guardian (Trust Folders), protegendo totalmente o contexto ativo de operações externas cruzadas de outros projetos em andamento na máquina. Detalhes em `multi-tenant.md`.
+
 ---
 
 _Este relatório é a especificação técnica final e aprovada para a fase de implementação._
