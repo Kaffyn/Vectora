@@ -31,24 +31,35 @@ func (p *GatewayProvider) ListModels(ctx context.Context) ([]string, error) {
 	return p.OpenAIProvider.ListModels(ctx)
 }
 
-// Embed is overridden if we want to add family-based embedding logic here,
-// but the plan says the ROUTER handles this logic.
-// However, the GatewayProvider can provide hints.
-func (p *GatewayProvider) Embed(ctx context.Context, input string, model string) ([]float32, error) {
-	// If the model name hints at a specific family, we can choose the embedding model accordingly.
-	embeddingModel := "text-embedding-3-small" // Default fallback
+// Embed overrides OpenAIProvider.Embed to add family-based embedding model detection
+// that understands the "provider/model" format used by OpenRouter and Anannas.
+//
+// Examples:
+//
+//	"anthropic/claude-4.6-sonnet" → text-embedding-3-large (Claude has no native embedding)
+//	"google/gemini-3.1-pro"       → text-embedding-3-large (Gemini embedding not via gateway)
+//	"qwen/qwen3.6-plus"           → qwen3-embedding-8b
+//	"openai/gpt-5.4-pro"          → text-embedding-3-large
 
+func (p *GatewayProvider) Embed(ctx context.Context, input string, model string) ([]float32, error) {
 	lowerModel := strings.ToLower(model)
-	if strings.Contains(lowerModel, "qwen") {
+
+	// Extract provider family from "provider/model" format (OpenRouter, Anannas style).
+	family := lowerModel
+	subModel := lowerModel
+	if idx := strings.Index(lowerModel, "/"); idx != -1 {
+		family = lowerModel[:idx]     // e.g. "anthropic", "google", "qwen", "openai"
+		subModel = lowerModel[idx+1:] // e.g. "claude-4.6-sonnet", "gemini-3.1-pro"
+	}
+
+	// Choose embedding model based on detected family.
+	// Qwen has its own embedding model; everything else uses OpenAI's.
+	// Note: Claude, Gemini, LLaMA, Phi, Mistral, etc. have no native embedding accessible
+	// via gateways, so we fall back to text-embedding-3-large.
+	var embeddingModel string
+	if strings.Contains(family, "qwen") || strings.Contains(subModel, "qwen") {
 		embeddingModel = "qwen3-embedding-8b"
-	} else if strings.Contains(lowerModel, "gemini") || strings.Contains(lowerModel, "gemma") {
-		embeddingModel = "gemini-embedding-2-preview"
-	} else if strings.Contains(lowerModel, "gpt") || strings.Contains(lowerModel, "openai") {
-		embeddingModel = "text-embedding-3-large"
-	} else if strings.Contains(lowerModel, "llama") || strings.Contains(lowerModel, "phi") ||
-		strings.Contains(lowerModel, "mistral") || strings.Contains(lowerModel, "deepseek") ||
-		strings.Contains(lowerModel, "grok") || strings.Contains(lowerModel, "glm") ||
-		strings.Contains(lowerModel, "muse") {
+	} else {
 		embeddingModel = "text-embedding-3-large"
 	}
 

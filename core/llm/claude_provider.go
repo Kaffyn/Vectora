@@ -123,13 +123,20 @@ func (p *ClaudeProvider) ListModels(ctx context.Context) ([]string, error) {
 // claudeAliases maps shorthand model names to canonical Anthropic model IDs.
 // Uses SDK constants where available so typos are caught at compile time.
 var claudeAliases = map[string]anthropic.Model{
-	// Claude 4.6 series (latest)
+	// Claude 4.6 series (latest) — hyphen format (internal style)
 	"claude-sonnet-4-6": anthropic.ModelClaudeSonnet4_6,
 	"claude-opus-4-6":   anthropic.ModelClaudeOpus4_6,
-	// Claude 4.5 series
+	// Claude 4.6 series — dot format (AGENTS.md / OpenRouter style)
+	"claude-4.6-sonnet": anthropic.ModelClaudeSonnet4_6,
+	"claude-4.6-opus":   anthropic.ModelClaudeOpus4_6,
+	// Claude 4.5 series — hyphen format
 	"claude-sonnet-4-5": anthropic.ModelClaudeSonnet4_5,
 	"claude-haiku-4-5":  anthropic.ModelClaudeHaiku4_5,
 	"claude-opus-4-5":   anthropic.ModelClaudeOpus4_5,
+	// Claude 4.5 series — dot format
+	"claude-4.5-sonnet": anthropic.ModelClaudeSonnet4_5,
+	"claude-4.5-haiku":  anthropic.ModelClaudeHaiku4_5,
+	"claude-4.5-opus":   anthropic.ModelClaudeOpus4_5,
 	// Convenience shorthands
 	"sonnet":     anthropic.ModelClaudeSonnet4_6,
 	"opus":       anthropic.ModelClaudeOpus4_6,
