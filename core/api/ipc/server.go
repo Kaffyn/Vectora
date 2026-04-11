@@ -27,16 +27,16 @@ const ipcScannerBufSize = 4 * 1024 * 1024 // 4 MiB per connection
 type RouterFunc func(ctx context.Context, payload json.RawMessage) (any, *IPCError)
 
 type Server struct {
-	addr           string
-	listener       net.Listener
-	handlers       map[string]RouterFunc
-	clients        map[net.Conn]bool
-	clientsLock    sync.RWMutex
-	ctx            context.Context
-	cancel         context.CancelFunc
-	token          string // IPC auth token; empty = no auth
-	tenantManager  *manager.TenantManager
-	resourcePool   *manager.ResourcePool
+	addr          string
+	listener      net.Listener
+	handlers      map[string]RouterFunc
+	clients       map[net.Conn]bool
+	clientsLock   sync.RWMutex
+	ctx           context.Context
+	cancel        context.CancelFunc
+	token         string // IPC auth token; empty = no auth
+	tenantManager *manager.TenantManager
+	resourcePool  *manager.ResourcePool
 }
 
 func NewServer(tm *manager.TenantManager, rp *manager.ResourcePool) (*Server, error) {

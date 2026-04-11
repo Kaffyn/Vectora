@@ -31,18 +31,18 @@ import (
 
 // Config holds the runtime configuration for Vectora.
 type Config struct {
-	GeminiAPIKey           string
-	ClaudeAPIKey           string
-	VoyageAPIKey           string
-	OpenAIAPIKey           string
-	OpenAIBaseURL          string
-	QwenAPIKey             string
-	QwenBaseURL            string
-	OpenRouterAPIKey       string
-	AnannasAPIKey          string
-	DefaultEmbeddingModel  string
-	DefaultModel           string
-	DefaultProvider        string
+	GeminiAPIKey          string
+	ClaudeAPIKey          string
+	VoyageAPIKey          string
+	OpenAIAPIKey          string
+	OpenAIBaseURL         string
+	QwenAPIKey            string
+	QwenBaseURL           string
+	OpenRouterAPIKey      string
+	AnannasAPIKey         string
+	DefaultEmbeddingModel string
+	DefaultModel          string
+	DefaultProvider       string
 }
 
 // LoadConfig loads configuration from %USERPROFILE%\.Vectora\.env.
@@ -65,15 +65,15 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		GeminiAPIKey:           os.Getenv("GEMINI_API_KEY"),
-		ClaudeAPIKey:           os.Getenv("CLAUDE_API_KEY"),
-		VoyageAPIKey:           os.Getenv("VOYAGE_API_KEY"),
-		OpenAIAPIKey:           os.Getenv("OPENAI_API_KEY"),
-		OpenAIBaseURL:          os.Getenv("OPENAI_BASE_URL"),
-		QwenAPIKey:             os.Getenv("QWEN_API_KEY"),
-		QwenBaseURL:            os.Getenv("QWEN_BASE_URL"),
-		OpenRouterAPIKey:       os.Getenv("OPENROUTER_API_KEY"),
-		AnannasAPIKey:          os.Getenv("ANANNAS_API_KEY"),
+		GeminiAPIKey:          os.Getenv("GEMINI_API_KEY"),
+		ClaudeAPIKey:          os.Getenv("CLAUDE_API_KEY"),
+		VoyageAPIKey:          os.Getenv("VOYAGE_API_KEY"),
+		OpenAIAPIKey:          os.Getenv("OPENAI_API_KEY"),
+		OpenAIBaseURL:         os.Getenv("OPENAI_BASE_URL"),
+		QwenAPIKey:            os.Getenv("QWEN_API_KEY"),
+		QwenBaseURL:           os.Getenv("QWEN_BASE_URL"),
+		OpenRouterAPIKey:      os.Getenv("OPENROUTER_API_KEY"),
+		AnannasAPIKey:         os.Getenv("ANANNAS_API_KEY"),
 		DefaultEmbeddingModel: os.Getenv("DEFAULT_EMBEDDING_MODEL"),
 		DefaultModel:          os.Getenv("DEFAULT_MODEL"),
 		DefaultProvider:       os.Getenv("DEFAULT_PROVIDER"),

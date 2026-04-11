@@ -17,19 +17,19 @@ var configCmd = &cobra.Command{
 
 // validConfigKeys lists all recognized configuration keys.
 var validConfigKeys = map[string]string{
-	"GEMINI_API_KEY":           "Google Gemini API key",
-	"ANTHROPIC_API_KEY":        "Anthropic Claude API key",
-	"VOYAGE_API_KEY":           "Voyage AI API key for embeddings",
-	"OPENAI_API_KEY":           "OpenAI API key",
-	"OPENAI_BASE_URL":          "OpenAI Custom API Base URL",
-	"QWEN_API_KEY":             "Qwen API key",
-	"QWEN_BASE_URL":            "Qwen Custom API Base URL",
-	"OPENROUTER_API_KEY":       "OpenRouter API key",
-	"ANANNAS_API_KEY":          "Anannas API key",
-	"DEFAULT_PROVIDER":         "Default LLM provider (gemini, claude, openai, qwen, openrouter, anannas)",
-	"DEFAULT_MODEL":            "Default model identifier",
-	"DEFAULT_EMBEDDING_MODEL":  "Default embedding model",
-	"LOG_LEVEL":                "Log verbosity (debug, info, warn, error)",
+	"GEMINI_API_KEY":          "Google Gemini API key",
+	"ANTHROPIC_API_KEY":       "Anthropic Claude API key",
+	"VOYAGE_API_KEY":          "Voyage AI API key for embeddings",
+	"OPENAI_API_KEY":          "OpenAI API key",
+	"OPENAI_BASE_URL":         "OpenAI Custom API Base URL",
+	"QWEN_API_KEY":            "Qwen API key",
+	"QWEN_BASE_URL":           "Qwen Custom API Base URL",
+	"OPENROUTER_API_KEY":      "OpenRouter API key",
+	"ANANNAS_API_KEY":         "Anannas API key",
+	"DEFAULT_PROVIDER":        "Default LLM provider (gemini, claude, openai, qwen, openrouter, anannas)",
+	"DEFAULT_MODEL":           "Default model identifier",
+	"DEFAULT_EMBEDDING_MODEL": "Default embedding model",
+	"LOG_LEVEL":               "Log verbosity (debug, info, warn, error)",
 }
 
 var configSetCmd = &cobra.Command{
