@@ -31,9 +31,13 @@ import (
 
 // Config holds the runtime configuration for Vectora.
 type Config struct {
-	GeminiAPIKey string
-	ClaudeAPIKey string
-	VoyageAPIKey string
+	GeminiAPIKey  string
+	ClaudeAPIKey  string
+	VoyageAPIKey  string
+	OpenAIAPIKey  string
+	OpenAIBaseURL string
+	QwenAPIKey    string
+	QwenBaseURL   string
 }
 
 // LoadConfig loads configuration from %USERPROFILE%\.Vectora\.env.
@@ -56,9 +60,13 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		GeminiAPIKey: os.Getenv("GEMINI_API_KEY"),
-		ClaudeAPIKey: os.Getenv("CLAUDE_API_KEY"),
-		VoyageAPIKey: os.Getenv("VOYAGE_API_KEY"),
+		GeminiAPIKey:  os.Getenv("GEMINI_API_KEY"),
+		ClaudeAPIKey:  os.Getenv("CLAUDE_API_KEY"),
+		VoyageAPIKey:  os.Getenv("VOYAGE_API_KEY"),
+		OpenAIAPIKey:  os.Getenv("OPENAI_API_KEY"),
+		OpenAIBaseURL: os.Getenv("OPENAI_BASE_URL"),
+		QwenAPIKey:    os.Getenv("QWEN_API_KEY"),
+		QwenBaseURL:   os.Getenv("QWEN_BASE_URL"),
 	}
 }
 
@@ -81,6 +89,18 @@ func SaveConfig(cfg *Config) error {
 	}
 	if cfg.VoyageAPIKey != "" {
 		content += fmt.Sprintf("VOYAGE_API_KEY=%s\n", cfg.VoyageAPIKey)
+	}
+	if cfg.OpenAIAPIKey != "" {
+		content += fmt.Sprintf("OPENAI_API_KEY=%s\n", cfg.OpenAIAPIKey)
+	}
+	if cfg.OpenAIBaseURL != "" {
+		content += fmt.Sprintf("OPENAI_BASE_URL=%s\n", cfg.OpenAIBaseURL)
+	}
+	if cfg.QwenAPIKey != "" {
+		content += fmt.Sprintf("QWEN_API_KEY=%s\n", cfg.QwenAPIKey)
+	}
+	if cfg.QwenBaseURL != "" {
+		content += fmt.Sprintf("QWEN_BASE_URL=%s\n", cfg.QwenBaseURL)
 	}
 
 	return os.WriteFile(envPath, []byte(content), 0600)

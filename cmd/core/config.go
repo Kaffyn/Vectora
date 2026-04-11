@@ -20,7 +20,11 @@ var validConfigKeys = map[string]string{
 	"GEMINI_API_KEY":    "Google Gemini API key",
 	"ANTHROPIC_API_KEY": "Anthropic Claude API key",
 	"VOYAGE_API_KEY":    "Voyage AI API key for embeddings",
-	"DEFAULT_PROVIDER":  "Default LLM provider (gemini, claude)",
+	"OPENAI_API_KEY":    "OpenAI API key",
+	"OPENAI_BASE_URL":   "OpenAI Custom API Base URL",
+	"QWEN_API_KEY":      "Qwen API key",
+	"QWEN_BASE_URL":     "Qwen Custom API Base URL",
+	"DEFAULT_PROVIDER":  "Default LLM provider (gemini, claude, openai, qwen)",
 	"DEFAULT_MODEL":     "Default model identifier",
 	"LOG_LEVEL":         "Log verbosity (debug, info, warn, error)",
 }
@@ -34,7 +38,11 @@ Valid keys:
   GEMINI_API_KEY     Google Gemini API key
   ANTHROPIC_API_KEY  Anthropic Claude API key
   VOYAGE_API_KEY     Voyage AI API key for embeddings
-  DEFAULT_PROVIDER   Default LLM provider (gemini, claude)
+  OPENAI_API_KEY     OpenAI API key
+  OPENAI_BASE_URL    OpenAI Custom API Base URL
+  QWEN_API_KEY       Qwen API key
+  QWEN_BASE_URL      Qwen Custom API Base URL
+  DEFAULT_PROVIDER   Default LLM provider (gemini, claude, openai, qwen)
   DEFAULT_MODEL      Default model identifier
   LOG_LEVEL          Log verbosity (debug, info, warn, error)
 

@@ -457,6 +457,14 @@ func initCoreClientEngine(ctx context.Context, workspace string, vecStore *db.Ch
 		p, _ := llm.NewClaudeProvider(ctx, cfg.ClaudeAPIKey)
 		llmRouter.RegisterProvider("claude", p, false)
 	}
+	if cfg.OpenAIAPIKey != "" {
+		p := llm.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.OpenAIBaseURL, "openai")
+		llmRouter.RegisterProvider("openai", p, false)
+	}
+	if cfg.QwenAPIKey != "" {
+		p := llm.NewOpenAIProvider(cfg.QwenAPIKey, cfg.QwenBaseURL, "qwen")
+		llmRouter.RegisterProvider("qwen", p, false)
+	}
 
 	guardian := policies.NewGuardian(absPath)
 	toolRegistry := tools.NewRegistry(absPath, guardian, kvStore)
@@ -645,6 +653,14 @@ func initEngine(ctx context.Context, workspace string) (*engine.Engine, func(), 
 	if cfg.ClaudeAPIKey != "" {
 		p, _ := llm.NewClaudeProvider(ctx, cfg.ClaudeAPIKey)
 		llmRouter.RegisterProvider("claude", p, false)
+	}
+	if cfg.OpenAIAPIKey != "" {
+		p := llm.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.OpenAIBaseURL, "openai")
+		llmRouter.RegisterProvider("openai", p, false)
+	}
+	if cfg.QwenAPIKey != "" {
+		p := llm.NewOpenAIProvider(cfg.QwenAPIKey, cfg.QwenBaseURL, "qwen")
+		llmRouter.RegisterProvider("qwen", p, false)
 	}
 
 	guardian := policies.NewGuardian(absPath)

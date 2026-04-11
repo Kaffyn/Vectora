@@ -12,6 +12,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/inconshreveable/mousetrap v1.1.0
 	github.com/joho/godotenv v1.5.1
+	github.com/openai/openai-go v1.12.0
 	github.com/philippgille/chromem-go v0.7.0
 	github.com/pkoukk/tiktoken-go v0.1.6
 	github.com/spf13/cobra v1.10.2
