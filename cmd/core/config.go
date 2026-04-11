@@ -17,12 +17,12 @@ var configCmd = &cobra.Command{
 
 // validConfigKeys lists all recognized configuration keys.
 var validConfigKeys = map[string]string{
-	"GEMINI_API_KEY":   "Google Gemini API key",
+	"GEMINI_API_KEY":    "Google Gemini API key",
 	"ANTHROPIC_API_KEY": "Anthropic Claude API key",
-	"VOYAGE_API_KEY":   "Voyage AI API key for embeddings",
-	"DEFAULT_PROVIDER": "Default LLM provider (gemini, claude)",
-	"DEFAULT_MODEL":    "Default model identifier",
-	"LOG_LEVEL":        "Log verbosity (debug, info, warn, error)",
+	"VOYAGE_API_KEY":    "Voyage AI API key for embeddings",
+	"DEFAULT_PROVIDER":  "Default LLM provider (gemini, claude)",
+	"DEFAULT_MODEL":     "Default model identifier",
+	"LOG_LEVEL":         "Log verbosity (debug, info, warn, error)",
 }
 
 var configSetCmd = &cobra.Command{
