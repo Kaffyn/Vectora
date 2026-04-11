@@ -120,6 +120,7 @@ O Core implementa nativamente parsers complexos (streaming, chamadas de tools) e
 
 - **google/genai** (Gemini 3.1, Flash e Embedding 2.0)
 - **anthropic-sdk-go** (Claude 4.6+ interoperability)
+- **openai-go** (ChatGPT & Qwen API interoperability, Text/Code Embeddings 3)
 - **voyageai** (Advanced Code 3 Embeddings)
 
 ### 3. Multi-Tenancy Protocol (MTP)

@@ -156,10 +156,18 @@ The Vectora project has 9 bugs, 10 architectural decisions pending implementatio
 - Confirmed Models: `ModelVoyageCode3`, `ModelVoyage3Large`, `ModelVoyage35`, etc.
 - Also supports: Reranking (`vo.Rerank`) and Multimodal embedding
 
-### 4D. Streaming Error Handling (Decision #15)
+### 4D. OpenAI / Qwen → `github.com/openai/openai-go`
+
+- **File:** `core/llm/openai_provider.go` - implement using official SDK
+- Support API base URL overrides for Qwen compatibility (`https://dashscope.aliyuncs.com/compatible-mode/v1`)
+- Chat models: `gpt-4o`, `qwen-max`, `qwen-plus`, `qwen-turbo`
+- Embeddings: `text-embedding-3-small`, `text-embedding-3-large`
+- Full compatibility with OpenAI's format for structured responses and Tool Calling.
+
+### 4E. Streaming Error Handling (Decision #15)
 
 - Gemini: SDK manages reconnection; capture iterator errors
-- Claude: `stream.Err()` after loop; send accumulated partial content via `message.Accumulate(event)`
+- Claude & OpenAI: `stream.Err()` after loop; send accumulated partial content via `message.Accumulate(event)`
 - In both: JSON-RPC error notification with partial content + "Retry" button in UI
 
 ---
