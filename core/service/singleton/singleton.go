@@ -15,9 +15,13 @@ var (
 // a hybrid strategy: PID file + OS-level file lock (flock on Unix,
 // CreateFile exclusive on Windows). This handles stale locks from
 // crashes and prevents race conditions on simultaneous startup.
+//
+// platformState is an embedded struct defined per-platform that holds
+// the OS-specific lock handle (lockFd on Unix, lockHandle on Windows).
 type Instance struct {
 	name     string
 	lockFile string
+	platformState
 }
 
 // New creates a new singleton manager.
@@ -27,8 +31,9 @@ func New(appName string) *Instance {
 	appDir := appDataDir()
 	_ = os.MkdirAll(appDir, 0755)
 	return &Instance{
-		name:     appName,
-		lockFile: filepath.Join(appDir, ".lock"),
+		name:          appName,
+		lockFile:      filepath.Join(appDir, ".lock"),
+		platformState: newPlatformState(),
 	}
 }
 

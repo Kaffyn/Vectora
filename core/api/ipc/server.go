@@ -22,6 +22,8 @@ import (
 	winio "github.com/Microsoft/go-winio"
 )
 
+const ipcScannerBufSize = 4 * 1024 * 1024 // 4 MiB per connection
+
 type RouterFunc func(ctx context.Context, payload json.RawMessage) (any, *IPCError)
 
 type Server struct {
@@ -60,19 +62,11 @@ func NewServer() (*Server, error) {
 	}, nil
 }
 
-// Token returns the IPC auth token (for writing to the token file).
-func (s *Server) Token() string { return s.token }
-
 func (s *Server) Register(method string, handler RouterFunc) {
 	s.handlers[method] = handler
 }
 
 func (s *Server) Start() error {
-	// Generate a random auth token and persist it for clients to read.
-	if err := s.generateToken(); err != nil {
-		log.Printf("IPC: failed to generate token (auth disabled): %v", err)
-	}
-
 	var l net.Listener
 	var err error
 
@@ -101,6 +95,14 @@ func (s *Server) Start() error {
 	}
 
 	s.listener = l
+
+	// Generate token after the listener is open so we only write a token
+	// that corresponds to a live server. Hard-fail if token generation fails
+	// — running without auth is a security risk.
+	if err := s.generateToken(); err != nil {
+		s.listener.Close()
+		return fmt.Errorf("IPC: cannot generate auth token: %w", err)
+	}
 
 	go func() {
 		for {
@@ -204,7 +206,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 	authorized := s.token == ""
 
 	scanner := bufio.NewScanner(conn)
-	buf := make([]byte, 4*1024*1024)
+	buf := make([]byte, ipcScannerBufSize)
 	scanner.Buffer(buf, len(buf))
 
 	for scanner.Scan() {
@@ -304,9 +306,15 @@ func (s *Server) Broadcast(method string, payloadData any) {
 	raw, _ := json.Marshal(eventMsg)
 	raw = append(raw, FrameDelimiter)
 
+	// Snapshot the connection set under read-lock so writes don't hold the lock.
 	s.clientsLock.RLock()
-	defer s.clientsLock.RUnlock()
+	conns := make([]net.Conn, 0, len(s.clients))
 	for conn := range s.clients {
+		conns = append(conns, conn)
+	}
+	s.clientsLock.RUnlock()
+
+	for _, conn := range conns {
 		conn.Write(raw)
 	}
 }

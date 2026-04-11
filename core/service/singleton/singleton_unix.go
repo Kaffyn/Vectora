@@ -8,8 +8,6 @@ import (
 	"syscall"
 )
 
-var lockFd *os.File
-
 // TryLock acquires the singleton lock using a two-layer strategy:
 //  1. syscall.Flock (LOCK_EX | LOCK_NB) — atomic, kernel-enforced.
 //     Automatically released if the process dies. No stale lock risk.
@@ -25,25 +23,16 @@ func (i *Instance) TryLock() error {
 	// Returns EWOULDBLOCK immediately if another process holds the lock.
 	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
 		f.Close()
-		if err == syscall.EWOULDBLOCK {
-			// Validate the PID in the file as a diagnostic fallback
-			if pid, readErr := readPID(i.lockFile); readErr == nil && isProcessAlive(pid) {
-				return ErrAlreadyRunning
-			}
-			// flock failed but PID is dead — another process crashed while holding flock.
-			// This can happen if the OS releases flock but we still see EWOULDBLOCK briefly.
-			return ErrAlreadyRunning
-		}
-		return err
+		return ErrAlreadyRunning
 	}
 
 	// Lock acquired — keep the file descriptor open (releasing fd releases flock).
-	lockFd = f
+	i.platformState.lockFd = f
 
 	// Write PID for diagnostics (e.g. `vectora status`)
 	if err := f.Truncate(0); err == nil {
 		f.Seek(0, 0)
-		f.WriteString(intToStr(os.Getpid()))
+		f.WriteString(strconv.Itoa(os.Getpid()))
 	}
 
 	return nil
@@ -51,10 +40,10 @@ func (i *Instance) TryLock() error {
 
 // Unlock releases the flock and removes the lock file.
 func (i *Instance) Unlock() error {
-	if lockFd != nil {
-		syscall.Flock(int(lockFd.Fd()), syscall.LOCK_UN)
-		lockFd.Close()
-		lockFd = nil
+	if i.platformState.lockFd != nil {
+		syscall.Flock(int(i.platformState.lockFd.Fd()), syscall.LOCK_UN)
+		i.platformState.lockFd.Close()
+		i.platformState.lockFd = nil
 	}
 	return os.Remove(i.lockFile)
 }
@@ -69,8 +58,4 @@ func isProcessAlive(pid int) bool {
 	}
 	// Signal(0) on Unix: no signal sent, just checks if process exists.
 	return process.Signal(syscall.Signal(0)) == nil
-}
-
-func intToStr(n int) string {
-	return strconv.Itoa(n)
 }

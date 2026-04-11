@@ -24,6 +24,7 @@ const (
 	CodeWorkspaceNotFound     = -32001
 	CodeToolNotFound          = -32002
 	CodeUnauthorized          = -32003
+	CodeServerError           = -32099 // generic server-defined error
 )
 
 type IPCMessage struct {
@@ -45,9 +46,11 @@ type IPCError struct {
 
 func (e *IPCError) Error() string { return e.Message }
 
-// errServer constructs a server-defined error (-32000 range) with a slug and message.
+// errServer constructs a server-defined error in the -32000 range with a slug and message.
+// Use this for application-level errors (provider not configured, workspace not found, etc.).
+// For protocol-level errors use the pre-defined Err* vars directly.
 func errServer(slug, message string) *IPCError {
-	return &IPCError{Code: CodeInternalError, Slug: slug, Message: message}
+	return &IPCError{Code: CodeServerError, Slug: slug, Message: message}
 }
 
 var (
