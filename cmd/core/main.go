@@ -21,6 +21,7 @@ import (
 
 	"github.com/Kaffyn/Vectora/core/api/acp"
 	"github.com/Kaffyn/Vectora/core/api/ipc"
+	"github.com/Kaffyn/Vectora/core/crypto"
 	"github.com/Kaffyn/Vectora/core/db"
 	"github.com/Kaffyn/Vectora/core/engine"
 	"github.com/Kaffyn/Vectora/core/infra"
@@ -396,12 +397,19 @@ func runCore() {
 
 	ipcServer, _ := ipc.NewServer()
 
+	// Initialize workspace salter for per-installation workspace ID hashing
+	salter, err := crypto.NewWorkspaceSalter(appDataDir)
+	if err != nil {
+		infra.Logger().Warn(fmt.Sprintf("Failed to initialize workspace salter: %v", err))
+		salter, _ = crypto.NewWorkspaceSalter(filepath.Join(appDataDir, "tmp"))
+	}
+
 	// Provider fetcher for IPC routes
 	getProvider := func() llm.Provider {
 		return tray.ActiveProvider
 	}
 
-	ipc.RegisterRoutes(ipcServer, kvStore, vecStore, getProvider, msgService, memService)
+	ipc.RegisterRoutes(ipcServer, kvStore, vecStore, getProvider, msgService, memService, salter)
 	go ipcServer.Start()
 
 	// ---- Core-hosted ACP Server ----

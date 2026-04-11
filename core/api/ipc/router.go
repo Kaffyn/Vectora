@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Kaffyn/Vectora/core/crypto"
 	"github.com/Kaffyn/Vectora/core/db"
 	"github.com/Kaffyn/Vectora/core/engine"
 	"github.com/Kaffyn/Vectora/core/i18n"
@@ -22,6 +23,7 @@ func RegisterRoutes(
 	getProvider ProviderFetcher,
 	msgService *llm.MessageService,
 	memService *db.MemoryService,
+	salter *crypto.WorkspaceSalter,
 ) {
 	// [1] Main RAG Query
 	server.Register("workspace.query", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
@@ -44,7 +46,9 @@ func RegisterRoutes(
 			return nil, errServer("embed_failed", err.Error())
 		}
 
-		chunks, err := vecStore.Query(ctx, "ws_"+req.WorkspaceID, vector, 5)
+		// Hash workspace ID with installation salt for per-machine uniqueness
+		collectionID := "ws_" + salter.HashPath(req.WorkspaceID)
+		chunks, err := vecStore.Query(ctx, collectionID, vector, 5)
 		if err != nil {
 			chunks = []db.ScoredChunk{}
 		}
@@ -307,7 +311,7 @@ func RegisterRoutes(
 					Exclude:        req.Exclude,
 					Workspace:      req.Workspace,
 					Force:          req.Force,
-					CollectionName: "ws_" + req.Workspace,
+					CollectionName: "ws_" + salter.HashPath(req.Workspace),
 				},
 				kvStore,
 				vecStore,
