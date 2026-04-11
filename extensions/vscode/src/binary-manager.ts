@@ -40,13 +40,22 @@ export class BinaryManager {
       return this.binaryPath;
     }
 
-    // 3. Check system PATH
-    const systemPath = await this.findInPath();
-    if (systemPath) {
-      return systemPath;
+     // 3. Check AppData\Local\Vectora on Windows (Standard install dir)
+     if (os.platform() === 'win32') {
+       const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+       const installPath = path.join(localAppData, 'Vectora', this.binaryName);
+       if (await this.fileExists(installPath)) {
+         return installPath;
+       }
+     }
+
+    // 4. Check system PATH
+    const pathBinary = await this.findInPath();
+    if (pathBinary) {
+      return pathBinary;
     }
 
-    // 4. Not found anywhere — offer to download
+    // 5. Not found anywhere — offer to download
     const action = await vscode.window.showErrorMessage(
       'Vectora Core binary not found. Download it automatically?',
       'Download',
