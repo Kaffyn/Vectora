@@ -1,70 +1,86 @@
-# Vectora Issue Report - Bug Collection
+# Vectora Issue Report - Bug Collection & Requests
 
-Este documento consolida os bugs identificados durante a migração e teste da interface Antigravity no Vectora.
-
----
-
-## 1. Falha no Carregamento da Webview (vectora.chatView)
-
-**Status**: Identificado
-**Componente**: Extension Host / `ChatViewProvider`
-
-### Descrição
-
-Ao abrir o VS Code, a barra lateral do Vectora exibe a mensagem de erro: _"Ocorreu um erro ao carregar o modo de exibição: vectora.chatView"_.
-
-### Causa Provável
-
-O registro do provedor de view (`registerWebviewViewProvider`) está ocorrendo dentro da função assíncrona `startVectora` no `extension.ts`. Se o VS Code tentar renderizar a UI antes que a inicialização do Core termine, o provedor ainda não está registrado, resultando em falha de resolução da view.
-
-### Sugestão de Correção
-
-- Mover o registro do provedor para o início da função `activate`.
-- Implementar um estado "Loading" ou "Offline" na Webview enquanto o Core inicializa.
+Este documento consolidada as falhas e solicitações de melhoria do ecossistema Vectora, organizado por categoria.
 
 ---
 
-## 2. Falha na Inicialização Automática do Core
+## 🐞 Reports (Bugs)
 
-**Status**: Identificado
-**Componente**: `BinaryManager` / Build Script
+### 1. Falha no Carregamento da Webview (vectora.chatView)
 
-### Descrição
+**Status**: Pendente
+**Descrição**: Erro "Ocorreu um erro ao carregar o modo de exibição". Independente do estado do Core.
+**Causa**: Registro tardio do provedor no `activate`.
 
-A extensão indica "Vectora: Ready" na barra de status, mas o processo de background (`vectora start`) não é iniciado automaticamente. O ícone do Tray não aparece conforme esperado.
+### 2. Falha na Inicialização Automática do Core
 
-### Causa Provável
+**Status**: Pendente
+**Descrição**: Status mostra "Ready" mas o processo de background (`vectora start`) não foi iniciado (Tray ausente).
+**Causa**: Inconsistência de caminhos entre `build.ps1` e `BinaryManager.ts`.
 
-**Inconsistência de caminhos**:
+### 3. Múltiplas Instâncias do Core
 
-- O script `build.ps1` instala o binário em `%LOCALAPPDATA%\Vectora\vectora.exe`.
-- O `BinaryManager.ts` procura o binário em `~/.vectora/bin/vectora.exe`.
-  Como o binário não é encontrado no local esperado pela extensão, o `spawn` do comando `start` falha ou não ocorre.
+**Status**: Pendente
+**Descrição**: Possibilidade de iniciar vários processos principais simultaneamente.
+**Causa**: Falta de check de instância única (lock) no Core.
 
-### Sugestão de Correção
+### 4. Proliferação de Processos e Discrepância de Binários
 
-- Sincronizar os caminhos de busca entre o script de build e o `BinaryManager`.
-- Adicionar verificação de erro explícita no `spawn` do processo de background.
+**Status**: Pendente
+**Descrição**: Rodar o VS Code com Core manual gera processos redundantes com nomes diferentes (`vectora.exe` e `vectora-windows-amd64.exe`).
+
+### 5. Ambiguidade na Configuração via CLI
+
+**Status**: Pendente
+**Descrição**: `config set` não indica as chaves válidas. Falta de esquema/lista de LLMs.
+
+### 6. Opacidade no Comando `workspace ls`
+
+**Status**: Pendente
+**Descrição**: O comando exibe apenas o ID (hash) e não o caminho da pasta associada.
+
+### 7. Falta de Alias para `workspaces`
+
+**Status**: Pendente
+**Descrição**: O comando no plural não funciona.
+
+### 8. Falso Positivo de Antivírus
+
+**Status**: Contornado (Recompilação)
+**Descrição**: Windows Defender sinaliza o binário como `Trojan:Win32/Bearfoos.A!ml`.
+
+### 9. Erro 404 Gemini (Nome do Modelo)
+
+**Status**: Pendente
+**Descrição**: O sistema tenta usar `gemini-3-flash`, que é inválido/inexistente na API v1beta.
 
 ---
 
-## 3. Múltiplas Instâncias do Core (Core Bug)
+## ❓ Questions (Arquitetural)
 
-**Status**: Identificado
-**Componente**: Vectora Core (Binary)
+### 10. Uso do SDK Oficial do Gemini
 
-### Descrição
+**Status**: Aprovado para Migração
+**Questão**: Por que não usamos `google.golang.org/genai` diretamente para simplificar o suporte a modelos de raciocínio (Thinking) e evitar erros de montagem de URL?
 
-É possível iniciar múltiplos processos principais do Vectora simultaneamente (ex: ao abrir o VS Code após já ter iniciado o Vectora manualmente). Isso resulta em múltiplos ícones no Tray e potencial conflito de recursos.
+---
 
-### Causa Provável
+## 🚀 Requests (Melhorias)
 
-O executável do Core não possui um mecanismo de trava (pidfile ou socket lick) que impeça a execução de uma segunda instância principal.
+### 11. Revisão e Normalização de Modelos (Docs)
 
-### Sugestão de Correção
+**Status**: Atribuído
+**Descrição**: Revisar os identificadores baseados na [documentação oficial](https://ai.google.dev/gemini-api/docs/models?hl=pt-br) (ex: `gemini-2.0-flash`, `gemini-1.5-pro`).
 
-- Implementar um check de instância única no Core (ex: tentar escutar em uma porta fixa ou criar um arquivo de trava em uma pasta global temporária).
-- Se uma instância já estiver rodando, o novo processo deve apenas focar a instância existente ou sair silenciosamente.
+### 12. Migração para o SDK de Embeddings
+
+**Status**: Atribuído
+**Descrição**: Migrar a lógica de embeddings em `core/llm/gemini_provider.go` para o SDK oficial utilizando `client.Models.EmbedContent` conforme a [documentação de Go](https://ai.google.dev/gemini-api/docs/embeddings?hl=pt-br#go).
+
+### 13. Suporte a ThinkingConfig
+
+**Status**: Atribuído
+**Descrição**: Adicionar suporte nativo à configuração de raciocínio (Thinking) para os modelos Gemini 2.0 que a suportam.
 
 ---
 
