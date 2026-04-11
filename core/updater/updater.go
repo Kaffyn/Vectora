@@ -15,7 +15,7 @@ import (
 
 // Release represents a GitHub release with download assets.
 type Release struct {
-	TagName string `json:"tag_name"`
+	TagName string  `json:"tag_name"`
 	Assets  []Asset `json:"assets"`
 }
 

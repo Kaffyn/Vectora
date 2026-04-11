@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/google/uuid"
 	vecos "github.com/Kaffyn/Vectora/core/os"
+	"github.com/google/uuid"
 )
 
 type Client struct {

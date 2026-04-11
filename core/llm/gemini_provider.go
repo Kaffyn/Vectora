@@ -99,7 +99,7 @@ func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionReque
 				role = "model"
 			}
 			contents = append(contents, &genai.Content{
-				Role: role,
+				Role:  role,
 				Parts: []*genai.Part{{Text: m.Content}},
 			})
 		}

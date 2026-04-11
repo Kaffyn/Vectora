@@ -1,6 +1,6 @@
 # Vectora Models SDK Implementation Plan
 
-Esse documento outline as fases referentes a integração de SDKs oficiais de modelos (Anthropic, Gemini, Voyage).
+Esse documento outline as fases referentes a integração de SDKs oficiais de modelos (Anthropic, Gemini, Voyage, OpenAI).
 
 ---
 
@@ -50,10 +50,23 @@ Esse documento outline as fases referentes a integração de SDKs oficiais de mo
 - Confirmed Models: `ModelVoyageCode3`, `ModelVoyage3Large`, `ModelVoyage35`, etc.
 - Also supports: Reranking (`vo.Rerank`) and Multimodal embedding
 
-### 4D. Streaming Error Handling (Decision #15)
+### 4D. OpenAI / Qwen → `github.com/openai/openai-go`
+
+- **File:** `core/llm/openai_provider.go` - implement using official SDK
+- Support API base URL overrides for Qwen compatibility (`https://dashscope.aliyuncs.com/compatible-mode/v1`)
+- **OpenAI Models (April 2026):**
+  - Flagship: `gpt-5.4`, `gpt-5.4-pro`
+  - Efficient/Agentic: `gpt-5.4-mini`, `gpt-5.4-nano`
+  - *Note: GPT-4o was retired April 3, 2026.*
+- **Qwen Models (April 2026):**
+  - Frontier: `qwen3.6-plus` (1M context), `qwen-max`
+  - Stable: `qwen-plus`, `qwen-turbo`, `qwen-flash`
+- **Embeddings:** `text-embedding-3-small`, `text-embedding-3-large`
+
+### 4E. Streaming Error Handling (Decision #15)
 
 - Gemini: SDK manages reconnection; capture iterator errors
-- Claude: `stream.Err()` after loop; send accumulated partial content via `message.Accumulate(event)`
+- Claude & OpenAI: `stream.Err()` after loop; send accumulated partial content via `message.Accumulate(event)`
 - In both: JSON-RPC error notification with partial content + "Retry" button in UI
 
 ---

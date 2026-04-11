@@ -43,10 +43,10 @@ func StartACPAgent(ctx context.Context, agent *VectoraAgent, logger *slog.Logger
 type TransportMode string
 
 const (
-	TransportModeIPC    TransportMode = "ipc"    // IPC mode for local clients
-	TransportModeACP    TransportMode = "acp"    // ACP mode for IDE agents
-	TransportModeMCP    TransportMode = "mcp"    // MCP mode for sub-agents
-	TransportModeStdio  TransportMode = "stdio"  // Generic stdio mode (detect later)
+	TransportModeIPC     TransportMode = "ipc"   // IPC mode for local clients
+	TransportModeACP     TransportMode = "acp"   // ACP mode for IDE agents
+	TransportModeMCP     TransportMode = "mcp"   // MCP mode for sub-agents
+	TransportModeStdio   TransportMode = "stdio" // Generic stdio mode (detect later)
 	TransportModeUnknown TransportMode = "unknown"
 )
 

@@ -15,9 +15,9 @@ import (
 type ProtocolMode string
 
 const (
-	ModeACP ProtocolMode = "acp"    // Agent Client Protocol (IDE agent)
-	ModeMCP ProtocolMode = "mcp"    // Model Context Protocol (sub-agent)
-	ModeIPC ProtocolMode = "ipc"    // Inter-Process Communication (local)
+	ModeACP ProtocolMode = "acp" // Agent Client Protocol (IDE agent)
+	ModeMCP ProtocolMode = "mcp" // Model Context Protocol (sub-agent)
+	ModeIPC ProtocolMode = "ipc" // Inter-Process Communication (local)
 )
 
 // InitializeProtocol detecta e inicializa o protocolo apropriado.

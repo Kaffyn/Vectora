@@ -2,12 +2,12 @@ package llm
 
 import (
 	"encoding/json"
+	"github.com/anthropics/anthropic-sdk-go"
+	"google.golang.org/genai"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
-	"github.com/anthropics/anthropic-sdk-go"
-	"google.golang.org/genai"
 )
 
 func TestGeminiParsing(t *testing.T) {

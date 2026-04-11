@@ -9,7 +9,7 @@ import (
 // SanitizingHandler wraps an slog.Handler and redacts sensitive data
 // (API keys, tokens, passwords, PII) from all log records.
 type SanitizingHandler struct {
-	handler slog.Handler
+	handler  slog.Handler
 	patterns []*regexp.Regexp
 }
 
@@ -52,7 +52,7 @@ func (h *SanitizingHandler) Handle(ctx context.Context, record slog.Record) erro
 // WithAttrs returns a new handler with additional attributes.
 func (h *SanitizingHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	return &SanitizingHandler{
-		handler: h.handler.WithAttrs(attrs),
+		handler:  h.handler.WithAttrs(attrs),
 		patterns: h.patterns,
 	}
 }
@@ -60,7 +60,7 @@ func (h *SanitizingHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 // WithGroup returns a new handler with the group name set.
 func (h *SanitizingHandler) WithGroup(name string) slog.Handler {
 	return &SanitizingHandler{
-		handler: h.handler.WithGroup(name),
+		handler:  h.handler.WithGroup(name),
 		patterns: h.patterns,
 	}
 }

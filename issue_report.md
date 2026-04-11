@@ -153,7 +153,7 @@ Este documento consolida as falhas, decisões arquiteturais e requisitos estrat�
 ### 23. Padronização de Protocolos e Integração de SDKs
 
 **Status**: Requisito de Implementação
-**Descrição**: Efetivar a migração integral das rotinas de inferência e comunicação para os SDKs oficiais (Anthropic, Gemini, Voyage), utilizando as definições de `vectora-protocol-sdks.md`.
+**Descrição**: Efetivar a migração integral das rotinas de inferência e comunicação para os SDKs oficiais (Anthropic, Gemini, Voyage, OpenAI), utilizando as definições de `vectora-protocol-sdks.md`.
 
 ### 24. Multi-Tenancy Protocol (MTP)
 
