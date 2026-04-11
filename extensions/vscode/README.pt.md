@@ -47,6 +47,8 @@ Ao contrário de assistentes genéricos que enxergam apenas a janela atual do ed
 
 **Princípio de segurança:** Todo o tráfego de rede ocorre apenas entre o Core e as APIs de IA. O canal extensão ↔ Core é 100% local via pipes stdio.
 
+O Vectora utiliza **SDKs oficiais** (`google.golang.org/genai`, `anthropic-sdk-go`, `voyageai`) para se comunicar com os provedores de IA, garantindo máxima estabilidade e segurança.
+
 ---
 
 ## Funcionalidades
@@ -133,6 +135,8 @@ O Vectora usa APIs de LLM e embeddings na nuvem. Configure sua chave:
 GEMINI_API_KEY=sua_chave_gemini_aqui
 # ou
 CLAUDE_API_KEY=sua_chave_claude_aqui
+# ou
+VOYAGE_API_KEY=sua_chave_voyage_aqui
 ```
 
 **Provedores suportados:**
@@ -141,6 +145,7 @@ CLAUDE_API_KEY=sua_chave_claude_aqui
 | ------------------ | ---- | ---------------------- |
 | Gemini (Google)    | ✅   | ✅ Nativo              |
 | Claude (Anthropic) | ✅   | ⚠️ Embeddings fallback |
+| Voyage AI          | ❌   | ✅ Alta Fidelidade     |
 
 ### 3. Pasta de Workspace Aberta
 

@@ -53,6 +53,8 @@ Unlike generic AI assistants that only see your current editor window, Vectora *
 **Security principle:** All network traffic goes Core → Cloud API only.  
 The extension ↔ Core channel is 100% local via stdio pipes.
 
+Vectora uses **official SDKs** (`google-golang.org/genai`, `anthropic-sdk-go`, `voyageai`) to communicate with AI providers, ensuring maximum stability and security.
+
 ---
 
 ## Features
@@ -143,6 +145,8 @@ Vectora uses cloud LLM/embedding APIs. Configure your key:
 GEMINI_API_KEY=your_gemini_api_key_here
 # or
 CLAUDE_API_KEY=your_claude_api_key_here
+# or
+VOYAGE_API_KEY=your_voyage_api_key_here
 ```
 
 **Supported providers:**
@@ -151,6 +155,7 @@ CLAUDE_API_KEY=your_claude_api_key_here
 | ------------------ | ---- | ---------------------- |
 | Gemini (Google)    | ✅   | ✅ Native              |
 | Claude (Anthropic) | ✅   | ⚠️ Fallback embeddings |
+| Voyage AI          | ❌   | ✅ High-Fidelity       |
 
 ### 3. Open Workspace
 
