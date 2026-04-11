@@ -15,7 +15,7 @@ Este documento consolida as falhas, decisões arquiteturais e requisitos estrat�
 ### 2. Falha na Inicialização Automática do Core
 
 **Status**: Identificado
-**Descrição**: A extensão sinaliza prontidão, mas o processo de background (`vectora start`) não foi iniciado.
+**Descrição**: A extensão sinaliza prontidão, mas o processo de background (`vectora start`) não é iniciado.
 **Causa Provável**: Divergência entre o diretório de instalação do build e o `BinaryManager`.
 
 ### 3. Concorrência de Processos (Múltiplas Instâncias)
@@ -115,19 +115,26 @@ Este documento consolida as falhas, decisões arquiteturais e requisitos estrat�
 
 - **Decisão sugerida**: Middleware de **sanitização de logs** que mascara conteúdos, mantendo apenas metadados estruturais.
 
+### 19. Seleção de Bibliotecas JSON-RPC
+
+**Decisão**: Padronização das libs para garantir conformidade JSON-RPC 2.0 e suporte a streaming.
+
+- **Core (Go)**: `sourcegraph/jsonrpc2` (Padrão LSP, robusto para streams bidirecionais).
+- **Extensions (TS)**: `vscode-jsonrpc` (Nativo Microsoft, integração perfeita com VS Code API).
+
 ---
 
 ## 🚀 Requests (Modernização e Requisitos)
 
-### 19. Consolidação da Comunicação (IPC + JSON-RPC + SDKs)
+### 20. Consolidação da Comunicação (IPC + JSON-RPC + SDKs)
 
 **Status**: Requisito de Modernização
 **Descrição**: Unificar toda a comunicação em **IPC + JSON-RPC** entre Core e Extensões (ACP/MCP). O SDK de cada provedor deve ser um método interno e privado do Core. Extensões e chat consomem apenas a nossa API unificada.
 
-### 20. Revisão Geral de Security Patterns e Tools
+### 21. Revisão Geral de Security Patterns e Tools
 
 **Status**: Requisito de Modernização
-**Descrição**: Realizar uma auditoria completa nos padrões de segurança e ferramentas (tools) utilizadas, integrando as decisões tomadas nas Questions 10-18 antes de prosseguir com a implementação final.
+**Descrição**: Realizar uma auditoria completa nos padrões de segurança e ferramentas (tools) utilizadas, integrando as decisões tomadas nas Questions 10-19 antes de prosseguir com a implementação final.
 
 ---
 
