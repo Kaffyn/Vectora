@@ -118,11 +118,32 @@ O Vectora se fundamenta em três pilares de integração para máxima escalabili
 O Core implementa nativamente parsers complexos (streaming, chamadas de tools) em Go através da adoção estrita de SDKs oficiais, garantindo máxima confiabilidade:
 
 - **google/genai** (Gemini 3.1 Pro, Flash e Embedding 2.0)
-- **anthropic-sdk-go** (Claude 4.6 Sonnet/Opus, Claude 4.5 Haiku)
+- **anthropic-sdk-go** (Claude 4.6
+-  Sonnet/Opus, Claude 4.5 Haiku)
 - **openai-go** (GPT-5.4 Pro/Mini, interoperabilidade com Qwen 3.6 API, Text Embeddings 3)
 - **voyageai** (Advanced Voyage-3 Large/Code Embeddings)
 
-### 3. Multi-Tenancy Protocol (MTP)
+### 3. Famílias de IA Suportadas (Padrão Abril 2026)
+
+O Vectora foi projetado para operar com as 10 famílias de IA mais potentes do mercado:
+
+| Família        | Modelos de Fronteira (2026)              |
+| :------------- | :--------------------------------------- |
+| **OpenAI**     | GPT-5.4 Pro, GPT-5-o1                    |
+| **Anthropic**  | Claude 4.6 Sonnet/Opus, Claude 4.5 Haiku |
+| **Google**     | Gemini 3.1 Pro, Gemini 3 Flash, Gemma 4  |
+| **Meta**       | Muse Spark, Llama 4 (Scout/Maverick)     |
+| **Alibaba**    | Qwen 3.6-Plus, Qwen 3.6-Turbo, Qwen-Max  |
+| **Microsoft**  | Phi-4-Reasoning-Vision, Phi-4-Medium     |
+| **DeepSeek**   | DeepSeek-V3.2, V3.2-Speciale             |
+| **Mistral AI** | Mistral Small 4, Mistral Large 3         |
+| **xAI**        | Grok 4.20, Grok 4.1                      |
+| **Zhipu AI**   | GLM-5.1, GLM-5-Flash                     |
+
+> [!TIP]
+> Para uma validação técnica detalhada, links de documentação oficial e termos de busca para cada modelo, consulte o arquivo **[AGENTS.md](file:///c:/Users/bruno/Desktop/Vectora/AGENTS.md)**.
+
+### 4. Multi-Tenancy Protocol (MTP)
 
 O Core roda como um **Daemon Singleton** no background, consumindo o mínimo de RAM. Abrir mais IDs no editor não cria vários processos do Vectora; em vez disso, a arquitetura utiliza o _Multi-Tenancy Protocol_, estabelecendo Namespaces blindados por conexão IPC, balanceando as filas de requisições de AI de forma isolada por projeto e mitigando vazamento de Trust Folders.
 

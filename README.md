@@ -122,7 +122,27 @@ The Core natively implements complex parsers (streaming, tool calls) in Go throu
 - **openai-go** (GPT-5.4 Pro/Mini, Qwen 3.6 API interoperability, Text Embeddings 3)
 - **voyageai** (Advanced Voyage-3 Large/Code Embeddings)
 
-### 3. Multi-Tenancy Protocol (MTP)
+### 3. Supported AI Families (Standard April 2026)
+
+Vectora is designed to work with the 10 most powerful AI families on the market:
+
+| Family | Frontier Models (2026) |
+| :--- | :--- |
+| **OpenAI** | GPT-5.4 Pro, GPT-5-o1 |
+| **Anthropic** | Claude 4.6 Sonnet/Opus, Claude 4.5 Haiku |
+| **Google** | Gemini 3.1 Pro, Gemini 3 Flash, Gemma 4 |
+| **Meta** | Muse Spark, Llama 4 (Scout/Maverick) |
+| **Alibaba** | Qwen 3.6-Plus, Qwen 3.6-Turbo, Qwen-Max |
+| **Microsoft** | Phi-4-Reasoning-Vision, Phi-4-Medium |
+| **DeepSeek** | DeepSeek-V3.2, V3.2-Speciale |
+| **Mistral AI** | Mistral Small 4, Mistral Large 3 |
+| **xAI** | Grok 4.20, Grok 4.1 |
+| **Zhipu AI** | GLM-5.1, GLM-5-Flash |
+
+> [!TIP]
+> For deep technical verification, official documentation links, and search terms for each model, see **[AGENTS.md](file:///c:/Users/bruno/Desktop/Vectora/AGENTS.md)**.
+
+### 4. Multi-Tenancy Protocol (MTP)
 
 The Core runs as a **Singleton Daemon** in the background, consuming minimal RAM. Opening multiple IDEs does not spawn multiple Vectora processes; instead, the architecture handles concurrent environments through the _Multi-Tenancy Protocol_, establishing shielded Namespaces bound per IPC connection, balancing AI request queues in isolated scopes, and protecting Trust Folder boundaries.
 
