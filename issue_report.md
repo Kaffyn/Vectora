@@ -52,7 +52,7 @@ Este documento consolida as falhas, decisões arquiteturais e requisitos estrat�
 ### 9. Erro 404 Gemini (Modelo Inválido)
 
 **Status**: Identificado
-**Descrição**: Uso de identificadores inexistentes como `gemini-3-flash`.
+**Descrição**: Uso de identificadores inexistentes ou obsoletos como `gemini-3-flash`. Devem ser usados os identificadores de 2026 como `gemini-3.1-pro-preview`.
 
 ---
 
@@ -145,7 +145,7 @@ Este documento consolida as falhas, decisões arquiteturais e requisitos estrat�
 - **Gemini (Models & Thinking)**: [ai.google.dev/gemini-api/docs/models](https://ai.google.dev/gemini-api/docs/models?hl=pt-br)
 - **Claude (Models & Caching)**: [platform.claude.com/docs/en/api/sdks/go](https://platform.claude.com/docs/en/api/sdks/go)
 - **OpenAI (GPT-5.4 family)**: [platform.openai.com/docs/models](https://platform.openai.com/docs/models)
-- **Qwen / Alibaba (Qwen3 & Embeddings v4)**: [alibabacloud.com/help/en/model-studio](https://www.alibabacloud.com/help/en/model-studio/)
+- **Qwen / Alibaba (Qwen 3.6 & Embeddings v4)**: [alibabacloud.com/help/en/model-studio](https://www.alibabacloud.com/help/en/model-studio/)
 - **Voyage (Embedding Docs)**: [pkg.go.dev/github.com/austinfhunter/voyageai](https://pkg.go.dev/github.com/austinfhunter/voyageai)
 
 ### 22. Auditoria Geral de Security Patterns e Tools

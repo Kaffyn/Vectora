@@ -95,7 +95,6 @@ Ideal para controle total ou uso fora de IDEs.
 **2. Extensões de IDE & Clientes CLI:**
 
 - **Extensão VS Code (Modos Agent & Sub-Agent):**
-
   - **Modo Agent:** Experiência interativa completa com painel de chat dedicado, ferramentas e feedback visual direto na sua IDE.
   - **Modo Sub-Agent:** Integra-se nativamente como um motor especialista em raciocínio de código que pode ser invocado pelo chat principal ou outros agentes (como o **Antigravity**) para lidar com tarefas complexas em toda a codebase.
   - **Bundled:** A extensão já inclui o binário do Vectora Core; não é necessário download separado.
@@ -118,10 +117,10 @@ O Vectora se fundamenta em três pilares de integração para máxima escalabili
 
 O Core implementa nativamente parsers complexos (streaming, chamadas de tools) em Go através da adoção estrita de SDKs oficiais, garantindo máxima confiabilidade:
 
-- **google/genai** (Gemini 3.1, Flash e Embedding 2.0)
-- **anthropic-sdk-go** (Claude 4.6+ interoperability)
-- **openai-go** (ChatGPT & Qwen API interoperability, Text/Code Embeddings 3)
-- **voyageai** (Advanced Code 3 Embeddings)
+- **google/genai** (Gemini 3.1 Pro, Flash e Embedding 2.0)
+- **anthropic-sdk-go** (Claude 4.6 Sonnet/Opus, Claude 4.5 Haiku)
+- **openai-go** (GPT-5.4 Pro/Mini, interoperabilidade com Qwen 3.6 API, Text Embeddings 3)
+- **voyageai** (Advanced Voyage-3 Large/Code Embeddings)
 
 ### 3. Multi-Tenancy Protocol (MTP)
 
@@ -222,7 +221,7 @@ Todas as ferramentas operam exclusivamente dentro do **Trust Folder** definido p
 
 **Cérebro Híbrido (Inteligência na Nuvem + Dados Locais):**
 
-O Vectora utiliza a potência do Gemini 3 Flash para raciocínio lógico e o Gemini Embedding 2 para criar vetores de alta precisão. Enquanto a inteligência reside na nuvem, os dados de conhecimento e o armazenamento vetorial permanecem locais, garantindo recuperação rápida sob demanda.
+O Vectora utiliza a potência do Gemini 3.1 Pro para raciocínio lógico e o Gemini Embedding 2.0 para criar vetores de alta precisão. Enquanto a inteligência reside na nuvem, os dados de conhecimento e o armazenamento vetorial permanecem locais, garantindo recuperação rápida sob demanda.
 
 **Arsenal Agêntico (Industrial Grade):**
 
@@ -240,7 +239,7 @@ Ao contrário de modelos puramente de chat, o Vectora possui ferramentas reais p
 | **Vector DB**        | **chromem-go**         | Busca semântica e embeddings                                                        |
 | **Key-Value DB**     | **bbolt**              | Histórico de chat, logs, configuração                                               |
 | **Motor de IA**      | **Direct Calls**       | Chamadas HTTP/STDIO otimizadas para APIs e `llama.cpp`. Sem overhead de frameworks. |
-| **Inferência Local** | **llama.cpp (native)** | Execução de modelos offline (Qwen3) via integração nativa do sistema                |
+| **Inferência Local** | **llama.cpp (native)** | Execução de modelos offline (Qwen 3.6) via integração nativa do sistema             |
 | **Vectora Core**     | **Cobra + Systray**    | CLI, Systray, IPC (local), API HTTP (remoto)                                        |
 
 ---
@@ -262,7 +261,7 @@ O Vectora Core é o alicerce de um ecossistema maior focado em RAG híbrido e de
 
 - Integração nativa com **llama.cpp**
 - Execução offline completa (incluindo embeddings)
-- Suporte a modelos **Qwen3** e **Qwen3.5**
+- Suporte a modelos **Qwen 3.5** e **Qwen 3.6**
 
 ---
 

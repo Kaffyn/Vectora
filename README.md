@@ -95,7 +95,6 @@ Ideal for full control or usage outside of IDEs.
 **2. IDE Extensions & CLI Clients:**
 
 - **VS Code Extension (Agent & Sub-Agent Mode):**
-
   - **Agent Mode:** Full interactive experience with a dedicated chat panel, tools, and visual feedback directly in your IDE.
   - **Sub-Agent Mode:** Integrates natively as a specialized code-reasoning engine that can be invoked by the main chat or other agents (like **Antigravity**) to handle complex, repo-wide tasks.
   - **Bundled:** The extension includes the Vectora Core binary; no separate download required.
@@ -118,10 +117,10 @@ Vectora relies on three foundational integration pillars for maximum scalability
 
 The Core natively implements complex parsers (streaming, tool calls) in Go through the strict adoption of official SDKs, ensuring maximum reliability:
 
-- **google/genai** (Gemini 3.1, Flash, and Embedding 2.0)
-- **anthropic-sdk-go** (Claude 4.6+ interoperability)
-- **openai-go** (ChatGPT & Qwen API interoperability, Text/Code Embeddings 3)
-- **voyageai** (Advanced Code 3 Embeddings)
+- **google/genai** (Gemini 3.1 Pro, Flash, and Embedding 2.0)
+- **anthropic-sdk-go** (Claude 4.6 Sonnet/Opus, Claude 4.5 Haiku)
+- **openai-go** (GPT-5.4 Pro/Mini, Qwen 3.6 API interoperability, Text Embeddings 3)
+- **voyageai** (Advanced Voyage-3 Large/Code Embeddings)
 
 ### 3. Multi-Tenancy Protocol (MTP)
 
@@ -254,7 +253,7 @@ All tools operate exclusively within the user-defined **Trust Folder**. The **Ha
 
 **Hybrid Brain (Cloud Intelligence + Local Data):**
 
-Vectora uses the power of Gemini 3 Flash for logical reasoning and Gemini Embedding 2 to create high-precision vectors. While intelligence resides in the cloud, knowledge data and vector storage remain local, ensuring fast on-demand retrieval.
+Vectora uses the power of Gemini 3.1 Pro for logical reasoning and Gemini Embedding 2.0 to create high-precision vectors. While intelligence resides in the cloud, knowledge data and vector storage remain local, ensuring fast on-demand retrieval.
 
 **Agentic Arsenal (Industrial Grade):**
 
@@ -294,7 +293,7 @@ Vectora Core is the foundation of a larger ecosystem focused on hybrid RAG and A
 
 - Native integration with **llama.cpp**
 - Complete offline execution (including embeddings)
-- Support for **Qwen3** and **Qwen3.5** models
+- Support for **Qwen 3.5** and **Qwen 3.6** models
 
 ---
 

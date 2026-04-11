@@ -25,16 +25,16 @@ Esse documento outline as fases referentes a integração de SDKs oficiais de mo
 - **File:** `core/llm/gemini_provider.go` - full rewrite using official SDK
 - Replace manual `net/http` with `genai.NewClient()` + `client.Models.GenerateContent()`
 - Confirmed Models (official docs 2026-04):
-  - Chat: `gemini-3-flash-preview`, `gemini-3.1-pro-preview`
-  - Embedding: `gemini-embedding-2-preview` (3072 dims)
-  - Also available: `gemini-2.5-flash`, `gemini-2.5-pro`
+  - Chat: `gemini-3.1-pro-preview`, `gemini-3-flash-preview`
+  - Embedding: `gemini-embedding-2.0` (3072 dims)
+  - Also available: `gemini-3-pro`, `gemini-2.5-pro`
 - Native streaming via SDK with callbacks
 
 ### 4B. Claude → `github.com/anthropics/anthropic-sdk-go` (v1.27.1+)
 
 - **File:** `core/llm/claude_provider.go` - full rewrite using official SDK
 - Requires Go 1.23+
-- Use SDK constants: `anthropic.ModelClaudeOpus4_6`, `anthropic.ModelClaude4_6Sonnet`, etc.
+- Use SDK constants: `anthropic.ModelClaudeOpus4_6`, `anthropic.ModelClaude4_6Sonnet`, `anthropic.ModelClaude4_5Haiku`.
 - `client := anthropic.NewClient(option.WithAPIKey(apiKey))`
 - Chat: `client.Messages.New(ctx, anthropic.MessageNewParams{...})`
 - Streaming: `client.Messages.NewStreaming(ctx, params)` + loop `stream.Next()`/`stream.Current()`
@@ -46,8 +46,8 @@ Esse documento outline as fases referentes a integração de SDKs oficiais de mo
 
 - **File:** `core/llm/voyage_provider.go` - rewrite using official SDK
 - `vo := voyageai.NewClient(voyageai.VoyageClientOpts{Key: apiKey})`
-- Embedding: `vo.Embed(texts, voyageai.ModelVoyageCode3, &EmbeddingRequestOpts{InputType: "document"})`
-- Confirmed Models: `ModelVoyageCode3`, `ModelVoyage3Large`, `ModelVoyage35`, etc.
+- Embedding: `vo.Embed(texts, voyageai.ModelVoyage3Large, &EmbeddingRequestOpts{InputType: "document"})`
+- Confirmed Models: `ModelVoyage3Large`, `ModelVoyage3Code`, `ModelVoyage35`, etc.
 - Also supports: Reranking (`vo.Rerank`) and Multimodal embedding
 
 ### 4D. OpenAI / Qwen → `github.com/openai/openai-go`
@@ -55,13 +55,12 @@ Esse documento outline as fases referentes a integração de SDKs oficiais de mo
 - **File:** `core/llm/openai_provider.go` - implement using official SDK
 - Support API base URL overrides for Qwen compatibility (`https://dashscope.aliyuncs.com/compatible-mode/v1`)
 - **OpenAI Models (April 2026):**
-  - Flagship: `gpt-5.4`, `gpt-5.4-pro`
+  - Flagship: `gpt-5.4-pro`, `gpt-5-o1`
   - Efficient/Agentic: `gpt-5.4-mini`, `gpt-5.4-nano`
-  - *Note: GPT-4o was retired April 3, 2026.*
 - **Qwen Models (April 2026):**
-  - Frontier: `qwen3.6-plus` (1M context), `qwen-max`
-  - Stable: `qwen-plus`, `qwen-turbo`, `qwen-flash`
-  - **Embeddings:** `qwen-text-embedding-v4`, `qwen3-embedding-8b`, `qwen3-vl-embedding`
+  - Frontier: `qwen3.6-plus` (1M context), `qwen3.6-turbo`
+  - Stable: `qwen3.5-omni`, `qwen-max`
+  - **Embeddings:** `qwen3-embedding-8b`, `qwen3-vl-embedding`
 - **OpenAI Embeddings:** `text-embedding-3-small`, `text-embedding-3-large`
 
 ### 4E. Streaming Error Handling (Decision #15)
