@@ -1,6 +1,6 @@
 # Vectora Issue Report - Bug Collection & Requests
 
-Este documento consolidada as falhas e solicitações de melhoria do ecossistema Vectora, organizado por categoria.
+Este documento consolida as falhas, discussões e requisitos obrigatórios do ecossistema Vectora.
 
 ---
 
@@ -8,80 +8,89 @@ Este documento consolidada as falhas e solicitações de melhoria do ecossistema
 
 ### 1. Falha no Carregamento da Webview (vectora.chatView)
 
-**Status**: Pendente
+**Status**: Identificado
 **Descrição**: Erro "Ocorreu um erro ao carregar o modo de exibição". Independente do estado do Core.
-**Causa**: Registro tardio do provedor no `activate`.
+**Causa Provável**: Registro tardio do provedor no ciclo de vida da extensão.
 
 ### 2. Falha na Inicialização Automática do Core
 
-**Status**: Pendente
-**Descrição**: Status mostra "Ready" mas o processo de background (`vectora start`) não foi iniciado (Tray ausente).
-**Causa**: Inconsistência de caminhos entre `build.ps1` e `BinaryManager.ts`.
+**Status**: Identificado
+**Descrição**: A extensão sinaliza prontidão, mas o processo de background (`vectora start`) não é iniciado.
+**Causa Provável**: Divergência entre o diretório de instalação do build e o `BinaryManager`.
 
-### 3. Múltiplas Instâncias do Core
+### 3. Concorrência de Processos (Múltiplas Instâncias)
 
-**Status**: Pendente
-**Descrição**: Possibilidade de iniciar vários processos principais simultaneamente.
-**Causa**: Falta de check de instância única (lock) no Core.
+**Status**: Identificado
+**Descrição**: O Core permite a execução de múltiplas instâncias simultâneas, causando conflitos de porta e UI.
+**Causa Provável**: Ausência de controle de Singleton (Lock/Socket).
 
-### 4. Proliferação de Processos e Discrepância de Binários
+### 4. Resíduos de Processos e Binários Duplicados
 
-**Status**: Pendente
-**Descrição**: Rodar o VS Code com Core manual gera processos redundantes com nomes diferentes (`vectora.exe` e `vectora-windows-amd64.exe`).
+**Status**: Identificado
+**Descrição**: Convivência de processos manuais e automáticos com nomes distintos (`vectora.exe` vs `vectora-windows-amd64.exe`).
 
-### 5. Ambiguidade na Configuração via CLI
+### 5. Lacunas na CLI (`config set`)
 
-**Status**: Pendente
-**Descrição**: `config set` não indica as chaves válidas. Falta de esquema/lista de LLMs.
+**Status**: Identificado
+**Descrição**: Falta de clareza sobre chaves válidas e formatos de configuração.
 
 ### 6. Opacidade no Comando `workspace ls`
 
-**Status**: Pendente
-**Descrição**: O comando exibe apenas o ID (hash) e não o caminho da pasta associada.
+**Status**: Identificado
+**Descrição**: Exibição apenas de hashes (IDs) sem o caminho físico (`path`) correspondente.
 
-### 7. Falta de Alias para `workspaces`
+### 7. Comandos no Plural
 
-**Status**: Pendente
-**Descrição**: O comando no plural não funciona.
+**Status**: Identificado
+**Descrição**: Comandos comuns como `workspaces` não possuem aliases.
 
-### 8. Falso Positivo de Antivírus
+### 8. Bloqueio por Antivírus (Windows Defender)
 
-**Status**: Contornado (Recompilação)
-**Descrição**: Windows Defender sinaliza o binário como `Trojan:Win32/Bearfoos.A!ml`.
+**Status**: Identificado/Contornado
+**Descrição**: O binário é falsamente detectado como Trojan após operações de `start`.
 
-### 9. Erro 404 Gemini (Nome do Modelo)
+### 9. Erro 404 Gemini (Modelo Inválido)
 
-**Status**: Pendente
-**Descrição**: O sistema tenta usar `gemini-3-flash`, que é inválido/inexistente na API v1beta.
-
----
-
-## ❓ Questions (Arquitetural)
-
-### 10. Uso do SDK Oficial do Gemini
-
-**Status**: Aprovado para Migração
-**Questão**: Por que não usamos `google.golang.org/genai` diretamente para simplificar o suporte a modelos de raciocínio (Thinking) e evitar erros de montagem de URL?
+**Status**: Identificado
+**Descrição**: Uso de identificadores inexistentes como `gemini-3-flash`.
 
 ---
 
-## 🚀 Requests (Melhorias)
+## ❓ Questions (Discussão)
 
-### 11. Revisão e Normalização de Modelos (Docs)
+### 10. Método de Singleton no Core
 
-**Status**: Atribuído
-**Descrição**: Revisar os identificadores baseados na [documentação oficial](https://ai.google.dev/gemini-api/docs/models?hl=pt-br) (ex: `gemini-2.0-flash`, `gemini-1.5-pro`).
+**Questão**: Para garantir instância única no Windows, prefere-se o uso de um arquivo de lock (`.vectora.lock`) ou uma tentativa de bind em porta TCP específica?
 
-### 12. Migração para o SDK de Embeddings
+### 11. Estratégia de Fallback
 
-**Status**: Atribuído
-**Descrição**: Migrar a lógica de embeddings em `core/llm/gemini_provider.go` para o SDK oficial utilizando `client.Models.EmbedContent` conforme a [documentação de Go](https://ai.google.dev/gemini-api/docs/embeddings?hl=pt-br#go).
-
-### 13. Suporte a ThinkingConfig
-
-**Status**: Atribuído
-**Descrição**: Adicionar suporte nativo à configuração de raciocínio (Thinking) para os modelos Gemini 2.0 que a suportam.
+**Questão**: Devemos manter a implementação HTTP manual como fallback de segurança ou migrar 100% para os SDKs oficiais?
 
 ---
 
-_Este relatório será atualizado conforme novos bugs forem reportados._
+## 🚀 Requests (Ordens de Migração e Requisitos)
+
+### 12. Migração para SDKs Oficiais (OBRIGATÓRIO)
+
+**Status**: Requisito de Modernização
+**Descrição**: Migrar todos os provedores de LLM e Embeddings para seus SDKs oficiais de alta performance.
+
+**Links de Referência**:
+
+- **Gemini SDK**: [google.golang.org/genai](https://pkg.go.dev/google.golang.org/genai)
+- **Claude SDK**: [github.com/anthropics/anthropic-sdk-go](https://github.com/anthropics/anthropic-sdk-go) (via [docs](https://platform.claude.com/docs/en/api/sdks/go))
+- **Voyage SDK**: [github.com/austinfhunter/voyageai](https://pkg.go.dev/github.com/austinfhunter/voyageai)
+
+### 13. Normalização de Modelos (Gemini 2.0 / 1.5)
+
+**Status**: Requisito de Modernização
+**Descrição**: Revisar e alinhar os modelos com a [documentação oficial](https://ai.google.dev/gemini-api/docs/models?hl=pt-br), incluindo suporte nativo a `ThinkingConfig` para modelos experimentais.
+
+### 14. Embeddings via SDK
+
+**Status**: Requisito de Modernização
+**Descrição**: Substituir as chamadas manuais de embedding pela implementação nativa do SDK (`client.Models.EmbedContent`).
+
+---
+
+_Este relatório será atualizado conforme novas interações._
