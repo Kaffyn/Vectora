@@ -52,6 +52,9 @@ func (kv *testKV) List(_ context.Context, bucket, prefix string) ([]string, erro
 	}
 	return keys, nil
 }
+func (kv *testKV) Close() error {
+	return nil
+}
 
 func TestReadFile(t *testing.T) {
 	reg, dir := setupTestTools(t)

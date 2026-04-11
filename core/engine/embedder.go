@@ -344,7 +344,7 @@ func RunEmbedJob(ctx context.Context, cfg EmbedJobConfig, kvStore db.KVStore, st
 		embedErr := false
 		var lastEmbedError string
 		for j, chunk := range chunks {
-			vec, err := provider.Embed(ctx, chunk)
+			vec, err := provider.Embed(ctx, chunk, "")
 			if err != nil {
 				totalErrors++
 				embedErr = true

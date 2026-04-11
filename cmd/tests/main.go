@@ -17,6 +17,7 @@ import (
 	"github.com/Kaffyn/Vectora/core/i18n"
 	"github.com/Kaffyn/Vectora/core/ingestion"
 	"github.com/Kaffyn/Vectora/core/llm"
+	"github.com/Kaffyn/Vectora/core/manager"
 	vecos "github.com/Kaffyn/Vectora/core/os"
 	"github.com/Kaffyn/Vectora/core/policies"
 	"github.com/Kaffyn/Vectora/core/tools"
@@ -394,7 +395,9 @@ func testIPC(ctx context.Context, testDir string, kv *db.BBoltStore) {
 	vec, _ := db.NewVectorStoreAtPath(filepath.Join(testDir, "ipc-vectors"))
 	_ = vec
 
-	server, err := ipc.NewServer()
+	tm, _ := manager.NewTenantManager(manager.EvictionPolicy{IdleTimeout: 1 * time.Minute, MaxTenants: 5})
+	rp := manager.NewResourcePool(manager.ResourceConfig{MaxParallelLLMPerTenant: 2})
+	server, err := ipc.NewServer(tm, rp)
 	assert("NewServer", err == nil && server != nil, fmt.Sprintf("err=%v", err))
 	if server == nil {
 		return
@@ -506,6 +509,15 @@ func testIPC(ctx context.Context, testDir string, kv *db.BBoltStore) {
 		return
 	}
 	defer client.Close()
+
+	// MTP Handshake: Initialize workspace
+	var initResp map[string]string
+	initReq := map[string]string{
+		"workspace_root": testDir,
+		"project_name":   "TestProject",
+	}
+	err = client.Send(ctx, "workspace.init", initReq, &initResp)
+	assert("MTP workspace.init handshake", err == nil && initResp["status"] == "initialized", fmt.Sprintf("err=%v resp=%v", err, initResp))
 
 	// Test ping
 	var pingResp map[string]string

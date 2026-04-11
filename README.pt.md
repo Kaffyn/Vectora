@@ -117,7 +117,7 @@ O Vectora se fundamenta em três pilares de integração para máxima escalabili
 
 O Core implementa nativamente parsers complexos (streaming, chamadas de tools) em Go através da adoção estrita de SDKs oficiais, garantindo máxima confiabilidade:
 
-- **google/genai** (Gemini 3.1 Pro, Flash e Embedding 2.0)
+- **google/genai** (Gemini 3.1 Pro,3.0  Flash e Embedding 2.0)
 - **anthropic-sdk-go** (Claude 4.6
 -  Sonnet/Opus, Claude 4.5 Haiku)
 - **openai-go** (GPT-5.4 Pro/Mini, interoperabilidade com Qwen 3.6 API, Text Embeddings 3)

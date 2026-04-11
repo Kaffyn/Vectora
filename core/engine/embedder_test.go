@@ -32,6 +32,10 @@ func (m *mockKVStore) List(ctx context.Context, bucket, prefix string) ([]string
 	return nil, nil
 }
 
+func (m *mockKVStore) Close() error {
+	return nil
+}
+
 type mockVectorStore struct {
 	chunks []db.Chunk
 }
@@ -53,12 +57,19 @@ func (m *mockVectorStore) CollectionExists(ctx context.Context, collection strin
 	return true
 }
 
+func (m *mockVectorStore) Close() error {
+	return nil
+}
+
 type mockEmbedProvider struct{}
 
 func (m *mockEmbedProvider) Name() string       { return "mock" }
 func (m *mockEmbedProvider) IsConfigured() bool { return true }
-func (m *mockEmbedProvider) Embed(ctx context.Context, text string) ([]float32, error) {
+func (m *mockEmbedProvider) Embed(ctx context.Context, text string, taskType string) ([]float32, error) {
 	return []float32{1.0, 2.0, 3.0}, nil
+}
+func (m *mockEmbedProvider) ListModels(ctx context.Context) ([]string, error) {
+	return []string{"model1"}, nil
 }
 func (m *mockEmbedProvider) Complete(ctx context.Context, req llm.CompletionRequest) (llm.CompletionResponse, error) {
 	return llm.CompletionResponse{}, nil

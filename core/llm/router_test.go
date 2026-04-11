@@ -18,8 +18,12 @@ func (m *mockProvider) StreamComplete(ctx context.Context, req CompletionRequest
 	return nil, nil
 }
 
-func (m *mockProvider) Embed(ctx context.Context, input string) ([]float32, error) {
+func (m *mockProvider) Embed(ctx context.Context, input string, taskType string) ([]float32, error) {
 	return []float32{0.1}, nil
+}
+
+func (m *mockProvider) ListModels(ctx context.Context) ([]string, error) {
+	return []string{"model1"}, nil
 }
 
 func (m *mockProvider) Name() string {

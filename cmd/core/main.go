@@ -23,6 +23,7 @@ import (
 	"github.com/Kaffyn/Vectora/core/engine"
 	"github.com/Kaffyn/Vectora/core/infra"
 	"github.com/Kaffyn/Vectora/core/llm"
+	"github.com/Kaffyn/Vectora/core/manager"
 	vecos "github.com/Kaffyn/Vectora/core/os"
 	"github.com/Kaffyn/Vectora/core/policies"
 	"github.com/Kaffyn/Vectora/core/service/singleton"
@@ -191,6 +192,19 @@ var askCmd = &cobra.Command{
 	},
 }
 
+var modelsCmd = &cobra.Command{
+	Use:   "models",
+	Short: "Manage LLM models",
+}
+
+var modelsListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List available models for the current provider",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runModelsList()
+	},
+}
+
 func init() {
 	cobra.MousetrapHelpText = ""
 
@@ -214,6 +228,8 @@ func init() {
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(workspaceCmd)
 	rootCmd.AddCommand(chatCmd)
+	rootCmd.AddCommand(modelsCmd)
+	modelsCmd.AddCommand(modelsListCmd)
 
 	resetCmd.Flags().BoolVar(&resetHard, "hard", false, "Confirm irreversible deletion")
 
@@ -376,25 +392,37 @@ func runCore() {
 	}
 
 	infra.Logger().Info("Starting Vectora Core...")
-
-	kvStore, _ := db.NewKVStore()
-	vecStore, _ := db.NewVectorStore()
 	appCtx := context.Background()
 
-	// Check vector DB schema version and warn if mismatch
+	// Initialize Multi-Tenancy Managers (MTP Phase 13)
+	tenantMgr, err := manager.NewTenantManager(manager.EvictionPolicy{
+		IdleTimeout: 30 * time.Minute,
+		MaxTenants:  10,
+	})
+	if err != nil {
+		log.Fatalf("Critical MTP Failure: %v", err)
+	}
+	tenantMgr.StartEvictionRoutine(appCtx)
+
+	resourcePool := manager.NewResourcePool(manager.ResourceConfig{
+		MaxParallelLLMPerTenant: 2,
+		MaxConcurrentIndexing:   4,
+	})
+
+	ipcServer, _ := ipc.NewServer(tenantMgr, resourcePool)
+
+	// Global/Daemon-level stores (legacy/global config)
+	kvStore, _ := db.NewKVStore()
+	vecStore, _ := db.NewVectorStore()
+
+	// Check global vector DB schema version
 	if !vecStore.CheckAndUpdateSchema(appCtx) {
-		infra.Logger().Warn("Vector DB schema mismatch detected",
+		infra.Logger().Warn("Global Vector DB schema mismatch detected",
 			"expected_version", db.SchemaVersion,
 			"recommendation", "Consider running 'vectora reset --hard' to re-index all workspaces")
-		_ = infra.NotifyOS("Vectora", "Vector DB schema version mismatch. Performance may be affected.")
 	}
 
-	msgService := llm.NewMessageService(kvStore)
-	memService, _ := db.NewMemoryService(appCtx, filepath.Join(appDataDir, "data", "memory"))
-
-	ipcServer, _ := ipc.NewServer()
-
-	// Initialize workspace salter for per-installation workspace ID hashing
+	// Initialize global workspace salter for per-installation workspace ID hashing
 	salter, err := crypto.NewWorkspaceSalter(appDataDir)
 	if err != nil {
 		infra.Logger().Warn(fmt.Sprintf("Failed to initialize workspace salter: %v", err))
@@ -406,7 +434,7 @@ func runCore() {
 		return tray.ActiveProvider
 	}
 
-	ipc.RegisterRoutes(ipcServer, kvStore, vecStore, getProvider, msgService, memService, salter)
+	ipc.RegisterRoutes(ipcServer, kvStore, getProvider, salter)
 	go ipcServer.Start()
 
 	// ---- Note: ACP Server ----
@@ -420,6 +448,35 @@ func runCore() {
 
 	infra.NotifyOS("Vectora", "Operational Assistant.")
 	tray.Setup()
+}
+
+func runModelsList() error {
+	ctx := context.Background()
+	client, err := ensureCoreConnected()
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+
+	var resp struct {
+		Models []string `json:"models"`
+	}
+
+	err = client.Send(ctx, "models.list", map[string]any{}, &resp)
+	if err != nil {
+		return fmt.Errorf("failed to list models: %v", err)
+	}
+
+	fmt.Println("\n--- Available Models ---")
+	if len(resp.Models) == 0 {
+		fmt.Println("No models returned by provider.")
+	} else {
+		for _, m := range resp.Models {
+			fmt.Printf("- %s\n", m)
+		}
+	}
+	fmt.Println()
+	return nil
 }
 
 func initCoreClientEngine(ctx context.Context, workspace string, vecStore *db.ChromemStore, kvStore *db.BBoltStore) *engine.Engine {
@@ -449,21 +506,33 @@ func initCoreClientEngine(ctx context.Context, workspace string, vecStore *db.Ch
 
 	cfg := infra.LoadConfig()
 	llmRouter := llm.NewRouter()
+
+	// Register Native Providers
 	if cfg.GeminiAPIKey != "" {
 		p, _ := llm.NewGeminiProvider(ctx, cfg.GeminiAPIKey)
-		llmRouter.RegisterProvider("gemini", p, true)
+		llmRouter.RegisterProvider("gemini", p, cfg.DefaultProvider == "gemini")
 	}
 	if cfg.ClaudeAPIKey != "" {
 		p, _ := llm.NewClaudeProvider(ctx, cfg.ClaudeAPIKey)
-		llmRouter.RegisterProvider("claude", p, false)
+		llmRouter.RegisterProvider("claude", p, cfg.DefaultProvider == "claude")
 	}
 	if cfg.OpenAIAPIKey != "" {
 		p := llm.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.OpenAIBaseURL, "openai")
-		llmRouter.RegisterProvider("openai", p, false)
+		llmRouter.RegisterProvider("openai", p, cfg.DefaultProvider == "openai")
 	}
 	if cfg.QwenAPIKey != "" {
 		p := llm.NewOpenAIProvider(cfg.QwenAPIKey, cfg.QwenBaseURL, "qwen")
-		llmRouter.RegisterProvider("qwen", p, false)
+		llmRouter.RegisterProvider("qwen", p, cfg.DefaultProvider == "qwen")
+	}
+
+	// Register Gateway Providers
+	if cfg.OpenRouterAPIKey != "" {
+		p := llm.NewGatewayProvider(cfg.OpenRouterAPIKey, "https://openrouter.ai/api/v1", "openrouter")
+		llmRouter.RegisterProvider("openrouter", p, cfg.DefaultProvider == "openrouter")
+	}
+	if cfg.AnannasAPIKey != "" {
+		p := llm.NewGatewayProvider(cfg.AnannasAPIKey, "https://api.anannas.ai/v1", "anannas")
+		llmRouter.RegisterProvider("anannas", p, cfg.DefaultProvider == "anannas")
 	}
 
 	guardian := policies.NewGuardian(absPath)
@@ -646,21 +715,33 @@ func initEngine(ctx context.Context, workspace string) (*engine.Engine, func(), 
 	}
 
 	llmRouter := llm.NewRouter()
+
+	// Register Native Providers
 	if cfg.GeminiAPIKey != "" {
 		p, _ := llm.NewGeminiProvider(ctx, cfg.GeminiAPIKey)
-		llmRouter.RegisterProvider("gemini", p, true)
+		llmRouter.RegisterProvider("gemini", p, cfg.DefaultProvider == "gemini")
 	}
 	if cfg.ClaudeAPIKey != "" {
 		p, _ := llm.NewClaudeProvider(ctx, cfg.ClaudeAPIKey)
-		llmRouter.RegisterProvider("claude", p, false)
+		llmRouter.RegisterProvider("claude", p, cfg.DefaultProvider == "claude")
 	}
 	if cfg.OpenAIAPIKey != "" {
 		p := llm.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.OpenAIBaseURL, "openai")
-		llmRouter.RegisterProvider("openai", p, false)
+		llmRouter.RegisterProvider("openai", p, cfg.DefaultProvider == "openai")
 	}
 	if cfg.QwenAPIKey != "" {
 		p := llm.NewOpenAIProvider(cfg.QwenAPIKey, cfg.QwenBaseURL, "qwen")
-		llmRouter.RegisterProvider("qwen", p, false)
+		llmRouter.RegisterProvider("qwen", p, cfg.DefaultProvider == "qwen")
+	}
+
+	// Register Gateway Providers
+	if cfg.OpenRouterAPIKey != "" {
+		p := llm.NewGatewayProvider(cfg.OpenRouterAPIKey, "https://openrouter.ai/api/v1", "openrouter")
+		llmRouter.RegisterProvider("openrouter", p, cfg.DefaultProvider == "openrouter")
+	}
+	if cfg.AnannasAPIKey != "" {
+		p := llm.NewGatewayProvider(cfg.AnannasAPIKey, "https://api.anannas.ai/v1", "anannas")
+		llmRouter.RegisterProvider("anannas", p, cfg.DefaultProvider == "anannas")
 	}
 
 	guardian := policies.NewGuardian(absPath)

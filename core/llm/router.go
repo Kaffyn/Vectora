@@ -3,6 +3,7 @@ package llm
 import (
 	"context"
 	"fmt"
+	"strings"
 )
 
 type Router struct {
@@ -21,6 +22,22 @@ func (r *Router) RegisterProvider(name string, p Provider, asDefault bool) {
 	if asDefault || r.defaultProvider == "" {
 		r.defaultProvider = name
 	}
+}
+
+func (r *Router) ListModels(ctx context.Context, providerName string) ([]string, error) {
+	if providerName == "" {
+		p := r.GetDefault()
+		if p == nil {
+			return nil, fmt.Errorf("no default provider configured")
+		}
+		return p.ListModels(ctx)
+	}
+
+	p, err := r.GetProvider(providerName)
+	if err != nil {
+		return nil, err
+	}
+	return p.ListModels(ctx)
 }
 
 func (r *Router) GetProvider(name string) (Provider, error) {
@@ -45,28 +62,44 @@ func (r *Router) Complete(ctx context.Context, req CompletionRequest) (Completio
 	return p.Complete(ctx, req)
 }
 
-func (r *Router) Embed(ctx context.Context, input string) ([]float32, error) {
-	// 1. Try default provider first
+func (r *Router) Embed(ctx context.Context, input string, model string) ([]float32, error) {
+	// 1. Try family-based routing
+	lowerModel := strings.ToLower(model)
+
+	// Se o modelo for explicitamente de um provedor que conhecemos, tentamos o embedding dele primeiro
+	var targetProvider string
+	if strings.Contains(lowerModel, "gemini") {
+		targetProvider = "gemini"
+	} else if strings.Contains(lowerModel, "openai") || strings.Contains(lowerModel, "gpt") {
+		targetProvider = "openai"
+	} else if strings.Contains(lowerModel, "qwen") {
+		targetProvider = "qwen"
+	}
+
+	if targetProvider != "" {
+		if p, err := r.GetProvider(targetProvider); err == nil && p.IsConfigured() {
+			vec, err := p.Embed(ctx, input, model)
+			if err == nil {
+				return vec, nil
+			}
+		}
+	}
+
+	// 2. Fallback: Use the default provider's embedding
 	p := r.GetDefault()
 	if p != nil {
-		vec, err := p.Embed(ctx, input)
+		vec, err := p.Embed(ctx, input, model)
 		if err == nil {
 			return vec, nil
 		}
 	}
 
-	// 2. Smart Fallback: Look for dedicated embedding providers
-	// Priority 1: Voyage (High quality)
+	// 3. Global Fallback: Voyage (High quality)
 	if vp, err := r.GetProvider("voyage"); err == nil && vp.IsConfigured() {
-		return vp.Embed(ctx, input)
+		return vp.Embed(ctx, input, model)
 	}
 
-	// Priority 2: Gemini
-	if gp, err := r.GetProvider("gemini"); err == nil && gp.IsConfigured() {
-		return gp.Embed(ctx, input)
-	}
-
-	return nil, fmt.Errorf("no suitable embedding provider found (default failed, no Voyage/Gemini fallback)")
+	return nil, fmt.Errorf("no suitable embedding provider found for model %s (fallback failed)", model)
 }
 
 func (r *Router) IsConfigured() bool {

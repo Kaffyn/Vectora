@@ -47,7 +47,7 @@ func (p *VoyageProvider) StreamComplete(ctx context.Context, req CompletionReque
 	return nil, errChan
 }
 
-func (p *VoyageProvider) Embed(ctx context.Context, input string) ([]float32, error) {
+func (p *VoyageProvider) Embed(ctx context.Context, input string, model string) ([]float32, error) {
 	// Voyage SDK supports batch embedding.
 	resp, err := p.client.Embed([]string{input}, voyageai.ModelVoyageCode3, &voyageai.EmbeddingRequestOpts{
 		InputType: voyageai.Opt("document"),

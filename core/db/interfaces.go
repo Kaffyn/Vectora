@@ -41,6 +41,7 @@ type VectorStore interface {
 	Query(ctx context.Context, collection string, queryVector []float32, topK int) ([]ScoredChunk, error)
 	DeleteCollection(ctx context.Context, collection string) error
 	CollectionExists(ctx context.Context, collection string) bool
+	Close() error
 }
 
 // KVStore provides an abstraction for the Analytical Database (BBolt).
@@ -49,4 +50,5 @@ type KVStore interface {
 	Get(ctx context.Context, bucket string, key string) ([]byte, error)
 	Delete(ctx context.Context, bucket string, key string) error
 	List(ctx context.Context, bucket string, prefix string) ([]string, error)
+	Close() error
 }

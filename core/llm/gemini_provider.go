@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"google.golang.org/genai"
 )
@@ -121,8 +122,15 @@ func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionReque
 	return respChan, errChan
 }
 
-func (p *GeminiProvider) Embed(ctx context.Context, input string) ([]float32, error) {
-	resp, err := p.client.Models.EmbedContent(ctx, "gemini-embedding-2-preview", []*genai.Content{{
+func (p *GeminiProvider) Embed(ctx context.Context, input string, model string) ([]float32, error) {
+	embeddingModel := "gemini-embedding-2-preview" // Correct ID from models-sdk.md
+
+	// Family detection
+	if strings.Contains(strings.ToLower(model), "gemini") {
+		embeddingModel = "gemini-embedding-2-preview"
+	}
+
+	resp, err := p.client.Models.EmbedContent(ctx, embeddingModel, []*genai.Content{{
 		Parts: []*genai.Part{{Text: input}},
 	}}, nil)
 	if err != nil {
@@ -134,6 +142,19 @@ func (p *GeminiProvider) Embed(ctx context.Context, input string) ([]float32, er
 	}
 
 	return resp.Embeddings[0].Values, nil
+}
+
+func (p *GeminiProvider) ListModels(ctx context.Context) ([]string, error) {
+	iter, _ := p.client.Models.List(ctx, nil)
+	var models []string
+	for {
+		resp, err := iter.Next(ctx)
+		if err != nil {
+			break
+		}
+		models = append(models, resp.Name)
+	}
+	return models, nil
 }
 
 func (p *GeminiProvider) prepareConfig(req CompletionRequest) *genai.GenerateContentConfig {

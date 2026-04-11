@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Kaffyn/Vectora/core/manager" // Novo import
 	vecos "github.com/Kaffyn/Vectora/core/os"
 )
 
@@ -26,17 +27,19 @@ const ipcScannerBufSize = 4 * 1024 * 1024 // 4 MiB per connection
 type RouterFunc func(ctx context.Context, payload json.RawMessage) (any, *IPCError)
 
 type Server struct {
-	addr        string
-	listener    net.Listener
-	handlers    map[string]RouterFunc
-	clients     map[net.Conn]bool
-	clientsLock sync.RWMutex
-	ctx         context.Context
-	cancel      context.CancelFunc
-	token       string // IPC auth token; empty = no auth
+	addr           string
+	listener       net.Listener
+	handlers       map[string]RouterFunc
+	clients        map[net.Conn]bool
+	clientsLock    sync.RWMutex
+	ctx            context.Context
+	cancel         context.CancelFunc
+	token          string // IPC auth token; empty = no auth
+	tenantManager  *manager.TenantManager
+	resourcePool   *manager.ResourcePool
 }
 
-func NewServer() (*Server, error) {
+func NewServer(tm *manager.TenantManager, rp *manager.ResourcePool) (*Server, error) {
 	osMgr, err := vecos.NewManager()
 	if err != nil {
 		return nil, err
@@ -53,11 +56,13 @@ func NewServer() (*Server, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &Server{
-		addr:     addr,
-		handlers: make(map[string]RouterFunc),
-		clients:  make(map[net.Conn]bool),
-		ctx:      ctx,
-		cancel:   cancel,
+		addr:          addr,
+		handlers:      make(map[string]RouterFunc),
+		clients:       make(map[net.Conn]bool),
+		ctx:           ctx,
+		cancel:        cancel,
+		tenantManager: tm,
+		resourcePool:  rp,
 	}, nil
 }
 
@@ -178,9 +183,9 @@ func (s *Server) handleConnection(conn net.Conn) {
 		conn.Close()
 	}()
 
-	// Per-connection auth state: authorized if token is empty (dev) or after
-	// a successful "ipc.auth" handshake.
+	// Per-connection state
 	authorized := s.token == ""
+	var activeTenant *manager.Tenant
 
 	scanner := bufio.NewScanner(conn)
 	buf := make([]byte, ipcScannerBufSize)
@@ -202,7 +207,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 			continue
 		}
 
-		// Auth handshake: client sends {"type":"request","method":"ipc.auth","payload":{"token":"<tok>"}}
+		// 1. Auth handshake
 		if msg.Method == "ipc.auth" {
 			var req struct {
 				Token string `json:"token"`
@@ -223,6 +228,44 @@ func (s *Server) handleConnection(conn net.Conn) {
 			return
 		}
 
+		// 2. Multi-Tenancy Handshake: workspace.init
+		// This must happen before any other data method is called.
+		if msg.Method == "workspace.init" {
+			var req WorkspaceInitRequest
+			if err := json.Unmarshal(msg.Payload, &req); err != nil {
+				s.sendError(conn, msg.ID, ErrIPCPayloadInvalid)
+				continue
+			}
+
+			wsID := GenerateWorkspaceID(req.WorkspaceRoot)
+
+			// Load or create the tenant via manager
+			tenant, err := s.tenantManager.GetOrCreateTenant(wsID, req.WorkspaceRoot, req.ProjectName)
+			if err != nil {
+				s.sendError(conn, msg.ID, errServer("mtp_load_failed", err.Error()))
+				continue
+			}
+
+			activeTenant = tenant
+
+			res, _ := json.Marshal(map[string]string{
+				"workspace_id": wsID,
+				"status":       "initialized",
+			})
+			s.writeMessage(conn, IPCMessage{ID: msg.ID, Type: MsgTypeResponse, Payload: res})
+			continue
+		}
+
+		// 3. Command Routing (requires initialized workspace)
+		if activeTenant == nil {
+			s.sendError(conn, msg.ID, &IPCError{
+				Code:    -32001,
+				Slug:    "workspace_not_initialized",
+				Message: "You must call 'workspace.init' before any other command.",
+			})
+			continue
+		}
+
 		handler, exists := s.handlers[msg.Method]
 		if !exists {
 			s.sendError(conn, msg.ID, &IPCError{
@@ -233,8 +276,11 @@ func (s *Server) handleConnection(conn net.Conn) {
 			continue
 		}
 
-		go func(m IPCMessage) {
-			resData, ipcErr := handler(s.ctx, m.Payload)
+		go func(m IPCMessage, t *manager.Tenant) {
+			// Create a per-request context that carries the tenant info
+			ctx := manager.ContextWithTenant(s.ctx, t)
+
+			resData, ipcErr := handler(ctx, m.Payload)
 
 			resp := IPCMessage{
 				ID:   m.ID,
@@ -249,7 +295,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 			}
 
 			s.writeMessage(conn, resp)
-		}(msg)
+		}(msg, activeTenant)
 	}
 }
 

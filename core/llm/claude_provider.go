@@ -105,8 +105,19 @@ func (p *ClaudeProvider) StreamComplete(ctx context.Context, req CompletionReque
 	return respChan, errChan
 }
 
-func (p *ClaudeProvider) Embed(ctx context.Context, input string) ([]float32, error) {
+func (p *ClaudeProvider) Embed(ctx context.Context, input string, model string) ([]float32, error) {
 	return nil, errors.New("claude_no_native_embedding")
+}
+
+func (p *ClaudeProvider) ListModels(ctx context.Context) ([]string, error) {
+	var models []string
+	for k := range claudeAliases {
+		if !strings.Contains(k, "-") || k == "sonnet" || k == "opus" || k == "haiku" {
+			models = append(models, k)
+		}
+	}
+	// Return a balanced list
+	return models, nil
 }
 
 // claudeAliases maps shorthand model names to canonical Anthropic model IDs.

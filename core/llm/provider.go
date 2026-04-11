@@ -49,7 +49,8 @@ type CompletionResponse struct {
 type Provider interface {
 	Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error)
 	StreamComplete(ctx context.Context, req CompletionRequest) (<-chan CompletionResponse, <-chan error)
-	Embed(ctx context.Context, input string) ([]float32, error)
+	Embed(ctx context.Context, input string, model string) ([]float32, error)
+	ListModels(ctx context.Context) ([]string, error)
 	Name() string
 	IsConfigured() bool
 }

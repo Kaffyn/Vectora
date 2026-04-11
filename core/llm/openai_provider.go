@@ -3,6 +3,7 @@ package llm
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
@@ -129,9 +130,25 @@ func (p *OpenAIProvider) StreamComplete(ctx context.Context, req CompletionReque
 	return respChan, errChan
 }
 
-func (p *OpenAIProvider) Embed(ctx context.Context, input string) ([]float32, error) {
+func (p *OpenAIProvider) Embed(ctx context.Context, input string, model string) ([]float32, error) {
+	embeddingModel := "text-embedding-3-small" // Default
+
+	// Family detection for gateways or custom endpoints
+	lowerModel := strings.ToLower(model)
+	if strings.Contains(lowerModel, "qwen") {
+		embeddingModel = "qwen3-embedding-8b"
+	} else if strings.Contains(lowerModel, "gpt") || strings.Contains(lowerModel, "openai") {
+		embeddingModel = "text-embedding-3-large"
+	} else if strings.Contains(lowerModel, "llama") || strings.Contains(lowerModel, "phi") ||
+		strings.Contains(lowerModel, "mistral") || strings.Contains(lowerModel, "deepseek") ||
+		strings.Contains(lowerModel, "grok") || strings.Contains(lowerModel, "glm") ||
+		strings.Contains(lowerModel, "muse") {
+		embeddingModel = "text-embedding-3-large"
+	}
+	// Fallback natural da OpenAI já é text-embedding-3-large se nada for detectado
+
 	params := openai.EmbeddingNewParams{
-		Model: openai.EmbeddingModelTextEmbedding3Small,
+		Model: openai.EmbeddingModel(embeddingModel),
 		Input: openai.EmbeddingNewParamsInputUnion{
 			OfString: openai.String(input),
 		},
@@ -151,4 +168,16 @@ func (p *OpenAIProvider) Embed(ctx context.Context, input string) ([]float32, er
 	}
 
 	return nil, fmt.Errorf("no embedding returned")
+}
+
+func (p *OpenAIProvider) ListModels(ctx context.Context) ([]string, error) {
+	resp, err := p.client.Models.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var models []string
+	for _, m := range resp.Data {
+		models = append(models, m.ID)
+	}
+	return models, nil
 }

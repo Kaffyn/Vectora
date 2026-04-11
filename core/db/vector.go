@@ -163,3 +163,10 @@ func (s *ChromemStore) setSchemaMetadata(meta SchemaMetadata) error {
 	data, _ := json.MarshalIndent(meta, "", "  ")
 	return os.WriteFile(metaPath, data, 0644)
 }
+
+func (s *ChromemStore) Close() error {
+	// Chromem-go does not require a formal close for persistence,
+	// as it flushes on cada operation in persistent mode.
+	s.db = nil
+	return nil
+}

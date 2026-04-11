@@ -75,12 +75,12 @@ func (e *Engine) ExecuteTool(ctx context.Context, name string, args map[string]a
 }
 
 // Embed generates an embedding vector using the default provider.
-func (e *Engine) Embed(ctx context.Context, text string) ([]float32, error) {
+func (e *Engine) Embed(ctx context.Context, text string, model string) ([]float32, error) {
 	provider := e.LLM.GetDefault()
 	if provider == nil {
 		return nil, fmt.Errorf("no LLM provider configured")
 	}
-	return provider.Embed(ctx, text)
+	return provider.Embed(ctx, text, model)
 }
 
 // Query is the entry point for the ACP server. It uses the agentic StreamQuery loop.
@@ -127,7 +127,7 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 		}
 
 		// 1. Embed query for RAG
-		vector, err := provider.Embed(ctx, query)
+		vector, err := provider.Embed(ctx, query, model)
 		if err != nil {
 			ch <- QueryChunk{Token: fmt.Sprintf("Embed error: %v", err), IsFinal: true}
 			return
@@ -325,6 +325,18 @@ func (e *Engine) StartIndexation(ctx context.Context, rootPath string) error {
 // GetStatus returns the current engine status.
 func (e *Engine) GetStatus() string {
 	return e.Status
+}
+
+// ListModels returns all available models for a given provider or the default one.
+func (e *Engine) ListModels(ctx context.Context, providerName string) ([]string, error) {
+	if providerName == "" {
+		p := e.LLM.GetDefault()
+		if p == nil {
+			return nil, fmt.Errorf("no default provider configured")
+		}
+		providerName = p.Name()
+	}
+	return e.LLM.ListModels(ctx, providerName)
 }
 
 // CompleteCode suggests code based on prefix and suffix.

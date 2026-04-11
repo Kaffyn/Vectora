@@ -1,6 +1,7 @@
 package policies
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -63,9 +64,15 @@ func NewGuardian(trustFolder string) *Guardian {
 
 // IsPathSafe verifica escopo e symlinks
 func (g *Guardian) IsPathSafe(targetPath string) bool {
+	_, err := g.ValidatePath(targetPath)
+	return err == nil
+}
+
+// ValidatePath verifica se o caminho está dentro do trust folder e retorna o caminho absoluto limpo.
+func (g *Guardian) ValidatePath(targetPath string) (string, error) {
 	absTarget, err := filepath.Abs(targetPath)
 	if err != nil {
-		return false
+		return "", err
 	}
 
 	// Resolve symlinks para evitar bypass
@@ -78,7 +85,11 @@ func (g *Guardian) IsPathSafe(targetPath string) bool {
 	absTrust, _ := filepath.Abs(g.TrustFolder)
 
 	// Verifica se o path real está dentro do trust folder
-	return strings.HasPrefix(realPath, absTrust+string(filepath.Separator)) || realPath == absTrust
+	if !strings.HasPrefix(realPath, absTrust+string(filepath.Separator)) && realPath != absTrust {
+		return "", fmt.Errorf("path_security_breach: path '%s' is outside the trust folder '%s'", realPath, absTrust)
+	}
+
+	return realPath, nil
 }
 
 // IsProtected verifica extensões e nomes de arquivo bloqueados
