@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 )
 
 var GlobalLogger *slog.Logger
@@ -20,11 +21,14 @@ func InitLogger(logDir string) error {
 	}
 
 	// Handler JSON para facilitar parsing por ferramentas externas ou grep
-	handler := slog.NewJSONHandler(writer, &slog.HandlerOptions{
+	jsonHandler := slog.NewJSONHandler(writer, &slog.HandlerOptions{
 		Level: slog.LevelDebug, // Captura tudo, filtramos via output se necessário
 	})
 
-	GlobalLogger = slog.New(handler)
+	// Wrap with sanitizing handler to redact API keys, tokens, and PII
+	sanitizingHandler := newSanitizingHandler(jsonHandler)
+
+	GlobalLogger = slog.New(sanitizingHandler)
 
 	// Log de inicialização para confirmar que o sistema de logs está vivo
 	GlobalLogger.Info("Telemetry initialized", "path", logPath, "max_size_mb", DefaultMaxSize/1024/1024)
@@ -74,4 +78,59 @@ func LogLLMInteraction(provider string, tokensIn int, tokensOut int, costUsd flo
 		"tokens_in", tokensIn,
 		"tokens_out", tokensOut,
 		"estimated_cost_usd", costUsd)
+}
+
+// sanitizingHandler wraps slog.Handler to redact sensitive data from logs.
+type sanitizingHandler struct {
+	handler  slog.Handler
+	patterns []*regexp.Regexp
+}
+
+// newSanitizingHandler creates a handler that redacts API keys, tokens, and PII.
+func newSanitizingHandler(handler slog.Handler) slog.Handler {
+	return &sanitizingHandler{
+		handler: handler,
+		patterns: []*regexp.Regexp{
+			// API key patterns
+			regexp.MustCompile(`(?i)(sk[_-][a-zA-Z0-9]{20,}|sk[_-][a-zA-Z0-9]{48,})`),
+			// Bearer tokens
+			regexp.MustCompile(`(?i)bearer\s+[a-zA-Z0-9_.-]+`),
+			// Generic secrets
+			regexp.MustCompile(`(?i)(api[_-]?key|secret|password|token|auth)\s*[:=]\s*[^\s"']+`),
+		},
+	}
+}
+
+func (h *sanitizingHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return h.handler.Enabled(ctx, level)
+}
+
+func (h *sanitizingHandler) Handle(ctx context.Context, record slog.Record) error {
+	record.Message = h.sanitize(record.Message)
+	record.Attrs(func(attr slog.Attr) bool {
+		attr.Value = slog.StringValue(h.sanitize(attr.Value.String()))
+		return true
+	})
+	return h.handler.Handle(ctx, record)
+}
+
+func (h *sanitizingHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &sanitizingHandler{
+		handler:  h.handler.WithAttrs(attrs),
+		patterns: h.patterns,
+	}
+}
+
+func (h *sanitizingHandler) WithGroup(name string) slog.Handler {
+	return &sanitizingHandler{
+		handler:  h.handler.WithGroup(name),
+		patterns: h.patterns,
+	}
+}
+
+func (h *sanitizingHandler) sanitize(s string) string {
+	for _, pattern := range h.patterns {
+		s = pattern.ReplaceAllString(s, "[REDACTED]")
+	}
+	return s
 }
