@@ -105,14 +105,26 @@ Ideal for full control or usage outside of IDEs.
 
 ---
 
-## Protocols: MCP vs ACP
+## SDKs & Protocols
 
-Vectora integrates into the modern agent and IDE ecosystem through standard protocols:
+Vectora relies on three foundational integration pillars for maximum scalability and enterprise stability:
 
-- **MCP (Model Context Protocol):** Exposing tools and local context.
-- **ACP (Agent Client Protocol):** Direct communication between editor and agent.
+### 1. Orchestration Protocols (ACP & MCP)
 
-You write the knowledge once — and it becomes accessible in any compatible client.
+- **MCP (Model Context Protocol):** Context-focused operation. Enables Parent Agents (like Claude Code or Antigravity) to use Vectora as a deep-search and RAG Sub-Agent.
+- **ACP (Agent Client Protocol):** Action-focused operation (JSON-RPC over stdio). Vectora directly connects VS Code extensions (Agent) or CLI to the Core with zero overhead.
+
+### 2. Provider Models SDKs
+
+Vectora abandoned raw REST payloads. The Core natively implements complex parsers (streaming, tool calls) in Go through the strict adoption of official SDKs:
+
+- **google/genai** (Gemini 3.1, Flash, and Embedding 2.0)
+- **anthropic-sdk-go** (Claude 4.6+ interoperability)
+- **voyageai** (Advanced Code 3 Embeddings)
+
+### 3. Multi-Tenancy Protocol (MTP)
+
+The Core runs as a **Singleton Daemon** in the background, consuming minimal RAM. Opening multiple IDEs does not spawn multiple Vectora processes; instead, the architecture handles concurrent environments through the _Multi-Tenancy Protocol_, establishing shielded Namespaces bound per IPC connection, balancing AI request queues in isolated scopes, and protecting Trust Folder boundaries.
 
 ---
 

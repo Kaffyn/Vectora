@@ -105,14 +105,26 @@ Ideal para controle total ou uso fora de IDEs.
 
 ---
 
-## Protocolos: MCP vs ACP
+## SDKs & Protocolos
 
-O Vectora se integra ao ecossistema moderno de agentes e IDEs através de protocolos padrão:
+O Vectora se fundamenta em três pilares de integração para máxima escalabilidade e estabilidade corporativa:
 
-- **MCP (Model Context Protocol):** Exposição de ferramentas e contexto local
-- **ACP (Agent Client Protocol):** Comunicação direta entre editor e agente
+### 1. Protocolos de Orquestração (ACP & MCP)
 
-Você escreve o conhecimento uma vez — e ele se torna acessível em qualquer cliente compatível.
+- **MCP (Model Context Protocol):** Operando focado em Contexto. Permite que agentes "Pai" (como Claude Code ou Antigravity) usem o Vectora como um Sub-Agent focado em busca e RAG profundo.
+- **ACP (Agent Client Protocol):** Operando focado em Ação (JSON-RPC via stdio). O Vectora atua conectando de forma estrita extensões do VS Code (Agent) ou CLI ao Core sem overhead.
+
+### 2. Provider Models SDKs
+
+O Vectora abandonou payloads REST crus. O Core implementa nativamente parsers complexos (streaming, chamadas de tools) em Go através da adoção estrita de SDKs oficiais:
+
+- **google/genai** (Gemini 3.1, Flash e Embedding 2.0)
+- **anthropic-sdk-go** (Claude 4.6+ interoperability)
+- **voyageai** (Advanced Code 3 Embeddings)
+
+### 3. Multi-Tenancy Protocol (MTP)
+
+O Core roda como um **Daemon Singleton** no background, consumindo o mínimo de RAM. Abrir mais IDs no editor não cria vários processos do Vectora; em vez disso, a arquitetura utiliza o _Multi-Tenancy Protocol_, estabelecendo Namespaces blindados por conexão IPC, balanceando as filas de requisições de AI de forma isolada por projeto e mitigando vazamento de Trust Folders.
 
 ---
 
