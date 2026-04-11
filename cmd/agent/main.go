@@ -1,13 +1,14 @@
-// cmd/acp is a standalone ACP agent binary for testing and production use.
-// It implements the Agent Client Protocol (ACP) over stdio.
-// This binary is invoked by IDE clients (VS Code, Claude Code, etc.)
-// and communicates via JSON-RPC 2.0 on stdin/stdout.
+// Package main implements the Vectora ACP Agent binary.
+// This binary is invoked by IDE clients (VS Code, Claude Code, Antigravity, etc.)
+// to provide agent-like functionality through the Agent Client Protocol (ACP).
+//
+// Unlike `vectora` CLI which is interactive, `vectora-agent` runs as a subprocess
+// and communicates via JSON-RPC on stdin/stdout with the parent IDE client.
 package main
 
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -25,7 +26,7 @@ func main() {
 	logFormat := flag.String("log", "text", "Log format: text or json")
 	flag.Parse()
 
-	// Setup logger to stderr (stdout is reserved for ACP protocol)
+	// Setup logger
 	var logHandler slog.Handler
 	if *logFormat == "json" {
 		logHandler = slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
@@ -42,10 +43,6 @@ func main() {
 		})
 	}
 	logger := slog.New(logHandler)
-
-	// Setup graceful shutdown
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
 
 	// Initialize app manager
 	osMgr, err := vecos.NewManager()
@@ -86,7 +83,7 @@ func main() {
 
 	// Create ACP agent
 	agent := acp.NewVectoraAgent(
-		"vectora-acp",
+		"vectora-agent",
 		getVersion(),
 		kvStore,
 		vecStore,
@@ -95,10 +92,22 @@ func main() {
 		logger,
 	)
 
+	// Setup graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigChan
+		logger.Info("Received signal, shutting down", slog.String("signal", sig.String()))
+		cancel()
+	}()
+
 	// Start ACP agent (blocks until client disconnects)
 	if err := acp.StartACPAgent(ctx, agent, logger); err != nil {
 		logger.Error("ACP agent error", slog.Any("error", err))
-		fmt.Fprintf(os.Stderr, "ACP agent error: %v\n", err)
 		os.Exit(1)
 	}
 

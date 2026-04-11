@@ -15,6 +15,7 @@ package acp
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 )
@@ -368,8 +369,16 @@ func NewServer(engine Engine) *Server {
 	}
 }
 
+// NOTE: The Server.Run method has been replaced by StartACPAgent which uses
+// the Coder ACP SDK. The custom Server implementation is kept for reference
+// but is no longer used in Phase 7+.
+// To use the new Coder SDK-based ACP, use StartACPAgent(ctx, agent, logger)
+// instead of Server.Run(ctx).
+
 // Run starts the ACP server reading from stdin and writing to stdout.
 // This blocks until the connection is closed.
+// DEPRECATED: Use StartACPAgent instead.
 func (s *Server) Run(ctx context.Context) error {
-	return s.RunStream(ctx, os.Stdin, os.Stdout)
+	// RunStream is no longer implemented. Use StartACPAgent(ctx, agent, logger) instead.
+	return fmt.Errorf("deprecated: use StartACPAgent instead")
 }

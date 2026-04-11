@@ -17,7 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Kaffyn/Vectora/core/api/acp"
 	"github.com/Kaffyn/Vectora/core/api/ipc"
 	"github.com/Kaffyn/Vectora/core/crypto"
 	"github.com/Kaffyn/Vectora/core/db"
@@ -410,42 +409,11 @@ func runCore() {
 	ipc.RegisterRoutes(ipcServer, kvStore, vecStore, getProvider, msgService, memService, salter)
 	go ipcServer.Start()
 
-	// ---- Core-hosted ACP Server ----
-	go func() {
-		var l net.Listener
-		var err error
-		if runtime.GOOS == "windows" {
-			l, err = net.Listen("tcp", "127.0.0.1:42782")
-		} else {
-			sockPath := filepath.Join(appDataDir, "run", "vectora_acp.sock")
-			os.Remove(sockPath)
-			l, err = net.Listen("unix", sockPath)
-		}
-		if err == nil {
-			infra.Logger().Info("✅ ACP Server listening on background socket/pipe")
-			for {
-				conn, err := l.Accept()
-				if err != nil {
-					continue
-				}
-				go func(c net.Conn) {
-					defer c.Close()
-					reader := bufio.NewReader(c)
-					workspaceLine, err := reader.ReadString('\n')
-					if err != nil {
-						return
-					}
-					workspace := strings.TrimSpace(workspaceLine)
-					eng := initCoreClientEngine(appCtx, workspace, vecStore, kvStore)
-					if eng == nil {
-						return
-					}
-					acpSrv := acp.NewServer(eng)
-					_ = acpSrv.RunStream(appCtx, reader, c)
-				}(conn)
-			}
-		}
-	}()
+	// ---- Note: ACP Server ----
+	// In Phase 7+, ACP is handled by cmd/acp or cmd/agent which are invoked
+	// as separate processes by IDE clients (VS Code, Claude Code, etc.)
+	// These use the Coder SDK and communicate via stdio.
+	// The legacy socket-based ACP server has been removed.
 
 	// Dev HTTP bridge for debugging
 	go ipcServer.StartDevHTTP(startPort)

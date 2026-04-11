@@ -194,46 +194,6 @@ The Vectora project has 9 bugs, 10 architectural decisions pending implementatio
 
 - Review all changes: IPC auth, log sanitization, Guardian enforcement, path traversal checks
 
----
-
-## Dependency Graph
-
-```
-Phase 0 ──┐
-Phase 1 ──┼── (all parallel, no deps)
-Phase 2 ──┐
-           │── Phase 2.5 (Depends on Phase 2 for lock file logic)
-Phase 1 ──┘
-           │
-Phase 3 ───── (gate for Phase 4: SDKs need proper error propagation)
-           │
-Phase 4 ───── (depends on Phase 3)
-           │
-Phase 5 ───── (depends on Phase 2 for pprof port)
-Phase 6 ───── (depends on Phase 2 + Phase 5 + Phase 2.5 for updater)
-```
-
-## Verification
-
-- **Phase 0:** `go build ./...` succeeds; extension loads webview without error; `vectora ask "test"` doesn't 404
-- **Phase 1:** `vectora workspace ls` shows paths; `vectora workspaces` works; `vectora config set INVALID x` warns
-- **Phase 2:** Starting two instances shows "already running"; `vectora status` reports correct state
-- **Phase 2.5:** `vectora.exe` exists in `LocalAppData\Programs`; `.env` and `data/` exist in `Roaming\Vectora`
-- **Phase 3:** Extension connects via `vscode-jsonrpc`; IPC token auth rejects unauthorized clients
-- **Phase 4:** `go test ./core/llm/...` passes with each SDK; streaming works end-to-end
-- **Phase 5:** `curl localhost:<debug-port>/debug/pprof/` works; logs show no API keys
-- **Phase 6:** Binary update + rollback tested manually; workspace IDs differ across installations
-  logs show no API keys
-- **Phase 6:** Binary update + rollback tested manually; workspace IDs differ across installations
-
-# Vectora Protocol SDKs Implementation Plan
-
-**Data:** 2026-04-11
-**Objetivo:** Integrar ACP (Agent Client Protocol) e MCP (Model Context Protocol) no Vectora
-**Status:** Planning Phase
-
----
-
 ## Contexto Arquitetural
 
 Vectora opera em **dois modos distintos**:
@@ -693,9 +653,10 @@ IDE (receives result)
 - **MCP also uses JSON-RPC 2.0** over stdio (standard for sub-agents)
 - **stdin/stdout transport** is standard for both (no additional network binaries needed)
 - **Backwards compatibility:** Old IPC mode still works for CLI users
-- **Protocol auto-detection** at startup based on first message shape
 
-# 🏗️ Vectora Multi-Tenancy Protocol (MTP)
+---
+
+## Phase 9: Multi-Tenancy Protocol (MTP)
 
 Este documento especifica a arquitetura e o protocolo para gerenciar **múltiplos projetos simultâneos (Multi-Tenancy)** em uma **única instância singleton** do Vectora Daemon.
 
@@ -798,3 +759,36 @@ Separar os diretórios de forma limpa. A inicialização do Chromem-Go deixará 
 
 **Passo 4: Monitor de Auto-Desligamento (Eviction)**
 Rotina em background (Ticker de x mins) que fecha e consolida/salva estados de um Tenant persistido cujo socket de interface (Janela do editor) não deu sinais de vida ou bateu em um timeout de socket.
+
+---
+
+## Dependency Graph
+
+```
+Phase 0 ──┐
+Phase 1 ──┼── (all parallel, no deps)
+Phase 2 ──┐
+           │── Phase 2.5 (Depends on Phase 2 for lock file logic)
+Phase 1 ──┘
+           │
+Phase 3 ───── (gate for Phase 4 & Phase 7)
+           │
+Phase 4 ──┼── Phase 5 ── Phase 6
+           │
+Phase 7 ──┼── Phase 8 (Depends on Phase 3 and Phase 4)
+           │
+Phase 9 ────  Multi-Tenancy (Depends on Phase 2 Singleton context)
+```
+
+## Verification
+
+- **Phase 0:** `go build ./...` succeeds; extension loads webview without error; `vectora ask "test"` doesn't 404
+- **Phase 1:** `vectora workspace ls` shows paths; `vectora workspaces` works; `vectora config set INVALID x` warns
+- **Phase 2:** Starting two instances shows "already running"; `vectora status` reports correct state
+- **Phase 2.5:** `vectora.exe` exists in `LocalAppData\Programs`; `.env` and `data/` exist in `Roaming\Vectora`
+- **Phase 3:** Extension connects via `vscode-jsonrpc`; IPC token auth rejects unauthorized clients
+- **Phase 4:** `go test ./core/llm/...` passes with each SDK; streaming works end-to-end
+- **Phase 5:** `curl localhost:<debug-port>/debug/pprof/` works; logs show no API keys
+- **Phase 6:** Binary update + rollback tested manually; workspace IDs differ across installations
+- **Phase 7/8:** `vectora-agent` CLI + Extension can be consumed natively from IDE engines conforming to SDK-ACP specs. Core exposed via Model Context Protocol (MCP).
+- **Phase 9:** Opening multiple IDE projects locally concurrently uses only a single background `vectora.exe` process that properly resolves paths per-project and securely compartmentalizes the vector search logic.
