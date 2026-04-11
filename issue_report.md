@@ -134,6 +134,7 @@ Este documento consolida as falhas, decis√µes arquiteturais e requisitos estrat√
 
 - **Gemini:** [google.golang.org/genai](https://pkg.go.dev/google.golang.org/genai)
 - **Claude:** [github.com/anthropics/anthropic-sdk-go](https://github.com/anthropics/anthropic-sdk-go)
+- **OpenAI:** [github.com/openai/openai-go](https://github.com/openai/openai-go)
 - **Voyage AI:** [github.com/austinfhunter/voyageai](https://pkg.go.dev/github.com/austinfhunter/voyageai)
 
 ### 21. Revis√£o de Modelos e Funcionalidades via Docs Oficiais
@@ -143,6 +144,8 @@ Este documento consolida as falhas, decis√µes arquiteturais e requisitos estrat√
 
 - **Gemini (Models & Thinking)**: [ai.google.dev/gemini-api/docs/models](https://ai.google.dev/gemini-api/docs/models?hl=pt-br)
 - **Claude (Models & Caching)**: [platform.claude.com/docs/en/api/sdks/go](https://platform.claude.com/docs/en/api/sdks/go)
+- **OpenAI (GPT-5.4 family)**: [platform.openai.com/docs/models](https://platform.openai.com/docs/models)
+- **Qwen / Alibaba (Qwen3 & Embeddings v4)**: [alibabacloud.com/help/en/model-studio](https://www.alibabacloud.com/help/en/model-studio/)
 - **Voyage (Embedding Docs)**: [pkg.go.dev/github.com/austinfhunter/voyageai](https://pkg.go.dev/github.com/austinfhunter/voyageai)
 
 ### 22. Auditoria Geral de Security Patterns e Tools

@@ -162,7 +162,8 @@ The Vectora project has 9 bugs, 10 architectural decisions pending implementatio
 - Support API base URL overrides for Qwen compatibility (`https://dashscope.aliyuncs.com/compatible-mode/v1`)
 - **OpenAI Models (April 2026):** `gpt-5.4`, `gpt-5.4-pro`, `gpt-5.4-mini`, `gpt-5.4-nano`
 - **Qwen Models (April 2026):** `qwen3.6-plus` (1M context), `qwen-max`, `qwen-plus`, `qwen-turbo`, `qwen-flash`
-- **Embeddings:** `text-embedding-3-small`, `text-embedding-3-large`
+- **Qwen Embeddings:** `qwen-text-embedding-v4`, `qwen3-embedding-8b`, `qwen3-vl-embedding`
+- **OpenAI Embeddings:** `text-embedding-3-small`, `text-embedding-3-large`
 - Full compatibility with OpenAI's format for structured responses and Tool Calling.
 
 ### 4E. Streaming Error Handling (Decision #15)

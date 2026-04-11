@@ -61,7 +61,8 @@ Esse documento outline as fases referentes a integração de SDKs oficiais de mo
 - **Qwen Models (April 2026):**
   - Frontier: `qwen3.6-plus` (1M context), `qwen-max`
   - Stable: `qwen-plus`, `qwen-turbo`, `qwen-flash`
-- **Embeddings:** `text-embedding-3-small`, `text-embedding-3-large`
+  - **Embeddings:** `qwen-text-embedding-v4`, `qwen3-embedding-8b`, `qwen3-vl-embedding`
+- **OpenAI Embeddings:** `text-embedding-3-small`, `text-embedding-3-large`
 
 ### 4E. Streaming Error Handling (Decision #15)
 
