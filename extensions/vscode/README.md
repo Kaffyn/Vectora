@@ -1,6 +1,11 @@
 # Vectora AI — VS Code Extension
 
-> **Local AI coding assistant** — RAG-powered chat + agentic tools via ACP (Agent Client Protocol)
+> **Local AI coding assistant** — RAG-powered chat + agentic tools via ACP (Agent Client Protocol).
+
+Vectora operates in two distinct modes tailored for different development needs:
+
+- **Agent Mode:** A high-fidelity, interactive chat panel for direct developer interaction.
+- **Sub-Agent Mode:** Integrated background Specialist that can be invoked by other agents (like **Antigravity**) to perform repo-wide research and execution.
 
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/Kaffyn/Vectora)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)

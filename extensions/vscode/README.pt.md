@@ -1,6 +1,11 @@
 # Vectora AI — Extensão VS Code
 
-> **Assistente de codificação com IA local** — Chat com RAG + ferramentas agentivas via ACP (Agent Client Protocol)
+> **Assistente de codificação com IA local** — Chat com RAG + ferramentas agentivas via ACP (Agent Client Protocol).
+
+O Vectora opera em dois modos distintos, adaptados para diferentes necessidades de desenvolvimento:
+
+- **Modo Agente (Agent Mode):** Painel de chat interativo de alta fidelidade para interação direta do desenvolvedor.
+- **Modo Sub-Agente (Sub-Agent Mode):** Motor especialista integrado em background que pode ser invocado por outros agentes (como o **Antigravity**) para realizar pesquisas e execuções em todo o repositório.
 
 [![Versão](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/Kaffyn/Vectora)
 [![Licença](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)

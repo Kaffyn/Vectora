@@ -92,12 +92,16 @@ Ideal para controle total ou uso fora de IDEs.
 - **Modo CLI:** Interface interativa para indexação e buscas semânticas rápidas via terminal.
 - **Modo MCP Server:** Configure o caminho do binário como um servidor MCP para ferramentas como **Claude Desktop**, **Claude Code (CLI)** e **Gemini CLI**. O core se comunica via **stdio**, expondo seu arsenal agêntico para qualquer cliente compatível.
 
-**2. Extensões de IDE (Modo ACP):**
+**2. Extensões de IDE & Clientes CLI:**
 
-Para experiência agêntica completa.
+- **Extensão VS Code (Modos Agent & Sub-Agent):**
 
-- **Bundled:** A extensão já inclui o Vectora Core; você não precisa baixar o binário separadamente.
-- **Integração:** O core é iniciado como um processo invisível pela IDE, permitindo que agentes como **Antigravity**, **Cursor**, **Zed** e **JetBrains** acessem seu código de forma nativa e segura.
+  - **Modo Agent:** Experiência interativa completa com painel de chat dedicado, ferramentas e feedback visual direto na sua IDE.
+  - **Modo Sub-Agent:** Integra-se nativamente como um motor especialista em raciocínio de código que pode ser invocado pelo chat principal ou outros agentes (como o **Antigravity**) para lidar com tarefas complexas em toda a codebase.
+  - **Bundled:** A extensão já inclui o binário do Vectora Core; não é necessário download separado.
+
+- **Gemini CLI (Modo Sub-Agent):**
+  - **Integração:** Opera exclusivamente como um **Sub-Agent** para o Gemini CLI. Ao expor seu RAG e arsenal agêntico via MCP, o Vectora permite que o Gemini CLI entenda e atue sobre bases de código complexas de forma nativa.
 
 ---
 

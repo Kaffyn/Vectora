@@ -21,6 +21,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   updateStatusStopped();
   statusBarItem.show();
 
+  // Register Chat View early to avoid "view not found" errors
+  chatProvider = new ChatViewProvider(undefined as any, context);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(ChatViewProvider.viewType, chatProvider)
+  );
+
   // Register Commands
   context.subscriptions.push(
     vscode.commands.registerCommand('vectora.toggleStatus', async () => {
@@ -121,12 +127,7 @@ async function startVectora(context: vscode.ExtensionContext) {
       },
     });
 
-    if (!chatProvider) {
-      chatProvider = new ChatViewProvider(coreClient, context);
-      context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider(ChatViewProvider.viewType, chatProvider)
-      );
-    } else {
+    if (chatProvider) {
       chatProvider.setClient(coreClient);
     }
 
