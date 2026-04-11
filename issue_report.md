@@ -163,6 +163,11 @@ Este documento consolida as falhas, decisões arquiteturais e requisitos estrat�
 **Status**: Requisito de Arquitetura
 **Descrição**: Implementar isolamento lógico rigoroso no nível do Core (Singleton Daemon). Cada conexão IPC deve atrelar seu respectivo *Tenant* a instâncias isoladas de banco vetorial (Chromem-go), históricos locais, fila de requisições restritas (Semaphores) e limites rígidos de sistema de arquivos via Guardian (Trust Folders), protegendo totalmente o contexto ativo de operações externas cruzadas de outros projetos em andamento na máquina. Detalhes em `multi-tenant.md`.
 
+### 25. Gateway & Aggregator Support (OpenRouter/Anannas)
+
+**Status**: Requisito de Implementação
+**Descrição**: Integrar suporte nativo para gateways como OpenRouter e Anannas via SDK oficial da OpenAI, permitindo testar múltiplos provedores (Claude, Gemini, Qwen) com uma única arquitetura unificada e chaves de teste.
+
 ---
 
 _Este relatório é a especificação técnica final e aprovada para a fase de implementação._

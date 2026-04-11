@@ -29,6 +29,11 @@ Vectora opera em **dois modos distintos**:
 - **VS Code Extension** ↔ **Vectora Core** → **IPC (JSON-RPC over named pipes/Unix socket)**
 - **CLI** ↔ **Vectora Core** → **IPC (JSON-RPC)**
 
+### 4. Gateway Integration (Cross-Protocol)
+
+- **Official OpenAI SDK** is utilized as the primary engine for OpenRouter/Anannas.
+- Both ACP and MCP modes can leverage these gateways to access a broad catalog of models (Claude, Gemini, Qwen) using a unified OpenAI-compatible protocol.
+
 ---
 
 ## Phase 7: Protocol Integration

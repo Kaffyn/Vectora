@@ -86,6 +86,9 @@ Como usamos requisições externas para LLMs (ou locações de memória na GPU l
 
 - O daemon terá Semáforos por **Workspace**. O limite padrão pode ser 2 requisições paralelas ativas _por projeto_. Se houver pico num arquivo, o projeto enfileira suas próprias chamadas, enchendo a própria cota, enquanto o _Projeto B_ no painel ao lado tem a própria cota intocável e fluida.
 
+### C. Gateway & Tenant Isolation
+Gateways como OpenRouter permitem que inquilinos (tenants) testem múltiplos modelos sem setups complexos. O sistema de configuração garante que chaves de Gateways sejam carregadas e isoladas por contexto de conexão, evitando vazamento de limites de uso entre projetos distintos.
+
 ---
 
 ## 5. Fluxo da Arquitetura para Implementação

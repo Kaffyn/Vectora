@@ -70,6 +70,14 @@ Esse documento outline as fases referentes a integração de SDKs oficiais de mo
 - Claude & OpenAI: `stream.Err()` after loop; send accumulated partial content via `message.Accumulate(event)`
 - In both: JSON-RPC error notification with partial content + "Retry" button in UI
 
+### 4F. Gateway Support (OpenRouter & Anannas)
+
+- **File:** `core/llm/openai_provider.go` - reuse for gateways
+- **OpenRouter:** `https://openrouter.ai/api/v1`
+- **Anannas:** `https://api.anannas.ai/v1`
+- **Rationale:** Allows testing GPT-5.4, Claude 4.6, and Qwen 3.6 using a single unified SDK (OpenAI) and test keys.
+- **Provider IDs:** `openrouter`, `anannas`, `openai`.
+
 ---
 
 ## Verification
