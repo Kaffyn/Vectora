@@ -395,7 +395,7 @@ func testIPC(ctx context.Context, testDir string, kv *db.BBoltStore) {
 	vec, _ := db.NewVectorStoreAtPath(filepath.Join(testDir, "ipc-vectors"))
 	_ = vec
 
-	tm, _ := manager.NewTenantManager(manager.EvictionPolicy{IdleTimeout: 1 * time.Minute, MaxTenants: 5})
+	tm := manager.NewTenantManager(manager.EvictionPolicy{IdleTimeout: 1 * time.Minute, MaxTenants: 5})
 	rp := manager.NewResourcePool(manager.ResourceConfig{MaxParallelLLMPerTenant: 2})
 	server, err := ipc.NewServer(tm, rp)
 	assert("NewServer", err == nil && server != nil, fmt.Sprintf("err=%v", err))

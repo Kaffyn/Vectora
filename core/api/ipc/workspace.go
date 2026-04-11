@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 )
 
 // WorkspaceContext define o contexto de um tenant conectado.
@@ -28,5 +29,22 @@ func GenerateWorkspaceID(workspaceRoot string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-// Nota: HandleWorkspaceInit será invocado diretamente no loop de conexão do servidor
-// para garantir que o estado do tenant seja capturado antes de outros handlers.
+// WorkspaceInitResponse - resposta da inicialização do workspace
+type WorkspaceInitResponse struct {
+	WorkspaceID string `json:"workspace_id"`
+	ProjectName string `json:"project_name"`
+	Status      string `json:"status"`
+}
+
+// ValidateWorkspaceInit valida os campos da requisição de inicialização
+func ValidateWorkspaceInit(req WorkspaceInitRequest) error {
+	if req.WorkspaceRoot == "" {
+		return fmt.Errorf("workspace_root não pode estar vazio")
+	}
+
+	if req.ProjectName == "" {
+		return fmt.Errorf("project_name não pode estar vazio")
+	}
+
+	return nil
+}

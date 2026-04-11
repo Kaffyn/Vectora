@@ -395,14 +395,11 @@ func runCore() {
 	appCtx := context.Background()
 
 	// Initialize Multi-Tenancy Managers (MTP Phase 13)
-	tenantMgr, err := manager.NewTenantManager(manager.EvictionPolicy{
+	tenantMgr := manager.NewTenantManager(manager.EvictionPolicy{
 		IdleTimeout: 30 * time.Minute,
 		MaxTenants:  10,
 	})
-	if err != nil {
-		log.Fatalf("Critical MTP Failure: %v", err)
-	}
-	tenantMgr.StartEvictionRoutine(appCtx)
+	tenantMgr.StartEvictionRoutine()
 
 	resourcePool := manager.NewResourcePool(manager.ResourceConfig{
 		MaxParallelLLMPerTenant: 2,
