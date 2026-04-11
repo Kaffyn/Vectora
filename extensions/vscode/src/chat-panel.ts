@@ -12,10 +12,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   private isStreaming = false;
 
   constructor(
-    private client: Client,
+    private client: Client | undefined,
     private context: vscode.ExtensionContext
   ) {
-    this.client.onNotification.event(this.handleNotification, this);
+    if (this.client) {
+      this.client.onNotification.event(this.handleNotification, this);
+    }
   }
 
   public setClient(client: Client) {
@@ -44,7 +46,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
           await this.sendMessageInternal(msg.text);
           break;
         case 'cancel':
-          if (this.client.sessionId) {
+          if (this.client?.sessionId) {
             this.client.notify('session/cancel', { sessionId: this.client.sessionId });
             this._view?.webview.postMessage({ type: 'stream_end', stopReason: 'cancelled' });
           }
@@ -72,16 +74,16 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   private async sendMessageInternal(text: string): Promise<void> {
     if (!text.trim()) return;
 
-    if (!this.client.isRunning) {
+    if (!this.client || !this.client.isRunning) {
         await vscode.commands.executeCommand('vectora.start');
         // Wait a few seconds for initialization to complete
         for (let i = 0; i < 20; i++) {
-            if (this.client.isRunning) break;
+            if (this.client?.isRunning) break;
             await new Promise(r => setTimeout(r, 500));
         }
     }
 
-    if (!this.client.isRunning) {
+    if (!this.client || !this.client.isRunning) {
         this._view?.webview.postMessage({ type: 'error', message: 'Vectora Core is not running. Failed to auto-start.' });
         return;
     }

@@ -30,9 +30,9 @@ func NewGeminiProvider(ctx context.Context, apiKey string) (*GeminiProvider, err
 // Supported Gemini models.
 const (
 	// GeminiFlash is the default model: fast, low-cost, ideal for RAG queries.
-	GeminiFlash = "gemini-3-flash"
+	GeminiFlash = "gemini-3-flash-preview"
 	// GeminiPro is the reasoning model: used for complex agentic tasks.
-	GeminiPro = "gemini-3.1-pro"
+	GeminiPro = "gemini-3.1-pro-preview"
 	// GeminiEmbedding is the current embedding model (3072 dims).
 	GeminiEmbedding = "gemini-embedding-2-preview"
 )

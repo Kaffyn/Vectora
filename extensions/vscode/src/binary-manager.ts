@@ -11,14 +11,28 @@ export class BinaryManager {
   private readonly installDir: string;
   private readonly binaryName: string;
   private readonly binaryPath: string;
+  /** Alternative binary name from GitHub releases (e.g. vectora-windows-amd64.exe) */
+  private readonly releaseBinaryName: string;
 
   constructor() {
     this.installDir = VECTORA_BIN_DIR;
 
     // Detect binary name based on OS
-    const isWin = os.platform() === 'win32';
+    const platform = os.platform();
+    const goArch = os.arch() === 'x64' ? 'amd64' : os.arch() === 'arm64' ? 'arm64' : os.arch();
+    const isWin = platform === 'win32';
+
     this.binaryName = isWin ? 'vectora.exe' : 'vectora';
     this.binaryPath = path.join(this.installDir, this.binaryName);
+
+    // Release binaries use platform-arch naming convention
+    if (isWin) {
+      this.releaseBinaryName = `vectora-windows-${goArch}.exe`;
+    } else if (platform === 'darwin') {
+      this.releaseBinaryName = `vectora-darwin-${goArch}`;
+    } else {
+      this.releaseBinaryName = `vectora-linux-${goArch}`;
+    }
   }
 
   /**
@@ -35,17 +49,24 @@ export class BinaryManager {
       throw new Error(`Vectora binary not found at configured path: ${configPath}`);
     }
 
-    // 2. Check our managed directory (~/.vectora/bin)
+    // 2. Check our managed directory (~/.vectora/bin) — canonical name first, then release name
     if (await this.fileExists(this.binaryPath)) {
       return this.binaryPath;
+    }
+    const releasePath = path.join(this.installDir, this.releaseBinaryName);
+    if (await this.fileExists(releasePath)) {
+      return releasePath;
     }
 
      // 3. Check AppData\Local\Vectora on Windows (Standard install dir)
      if (os.platform() === 'win32') {
        const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
-       const installPath = path.join(localAppData, 'Vectora', this.binaryName);
-       if (await this.fileExists(installPath)) {
-         return installPath;
+       // Check both canonical and release binary names
+       for (const name of [this.binaryName, this.releaseBinaryName]) {
+         const installPath = path.join(localAppData, 'Vectora', name);
+         if (await this.fileExists(installPath)) {
+           return installPath;
+         }
        }
      }
 

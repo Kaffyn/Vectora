@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,10 +10,27 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// loadWorkspaceRegistry reads the workspace registry (workspaces.json) from disk.
+// This file is written by the engine during embed jobs.
+func loadWorkspaceRegistry() map[string]string {
+	userProfile, _ := os.UserHomeDir()
+	regPath := filepath.Join(userProfile, ".Vectora", "workspaces.json")
+	data, err := os.ReadFile(regPath)
+	if err != nil {
+		return make(map[string]string)
+	}
+	var reg map[string]string
+	if json.Unmarshal(data, &reg) != nil {
+		return make(map[string]string)
+	}
+	return reg
+}
+
 var workspaceCmd = &cobra.Command{
-	Use:   "workspace",
-	Short: "Manage local indexing namespaces",
-	Long:  "View and manage Vectora memory collections and vector shards.",
+	Use:     "workspace",
+	Aliases: []string{"workspaces", "ws"},
+	Short:   "Manage local indexing namespaces",
+	Long:    "View and manage Vectora memory collections and vector shards.",
 }
 
 var workspaceLsCmd = &cobra.Command{
@@ -33,16 +51,24 @@ var workspaceLsCmd = &cobra.Command{
 			return
 		}
 
+		registry := loadWorkspaceRegistry()
+
 		fmt.Println("Indexed Workspaces:")
 		count := 0
 		for _, e := range entries {
 			if e.IsDir() {
 				info, _ := e.Info()
-				sizeStr := ""
+				modTime := ""
 				if info != nil {
-					sizeStr = fmt.Sprintf("\t(Last modified: %s)", info.ModTime().Format("2006-01-02 15:04:05"))
+					modTime = info.ModTime().Format("2006-01-02 15:04:05")
 				}
-				fmt.Printf(" - %s%s\n", e.Name(), sizeStr)
+
+				sourcePath := registry[e.Name()]
+				if sourcePath != "" {
+					fmt.Printf(" - %s → %s\t(%s)\n", e.Name(), sourcePath, modTime)
+				} else {
+					fmt.Printf(" - %s\t(%s)\n", e.Name(), modTime)
+				}
 				count++
 			}
 		}

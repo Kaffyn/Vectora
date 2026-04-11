@@ -15,14 +15,44 @@ var configCmd = &cobra.Command{
 	Long:  "Read or modify global configuration keys stored in ~/.Vectora/.env",
 }
 
+// validConfigKeys lists all recognized configuration keys.
+var validConfigKeys = map[string]string{
+	"GEMINI_API_KEY":   "Google Gemini API key",
+	"ANTHROPIC_API_KEY": "Anthropic Claude API key",
+	"VOYAGE_API_KEY":   "Voyage AI API key for embeddings",
+	"DEFAULT_PROVIDER": "Default LLM provider (gemini, claude)",
+	"DEFAULT_MODEL":    "Default model identifier",
+	"LOG_LEVEL":        "Log verbosity (debug, info, warn, error)",
+}
+
 var configSetCmd = &cobra.Command{
 	Use:   "set [KEY] [VALUE]",
 	Short: "Set a configuration key",
-	Long:  "Example: vectora config set GEMINI_API_KEY AIzaSy...",
-	Args:  cobra.ExactArgs(2),
+	Long: `Set a configuration key in ~/.Vectora/.env
+
+Valid keys:
+  GEMINI_API_KEY     Google Gemini API key
+  ANTHROPIC_API_KEY  Anthropic Claude API key
+  VOYAGE_API_KEY     Voyage AI API key for embeddings
+  DEFAULT_PROVIDER   Default LLM provider (gemini, claude)
+  DEFAULT_MODEL      Default model identifier
+  LOG_LEVEL          Log verbosity (debug, info, warn, error)
+
+Example: vectora config set GEMINI_API_KEY AIzaSy...`,
+	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		key := args[0]
 		value := args[1]
+
+		// Warn on unrecognized keys
+		if _, ok := validConfigKeys[key]; !ok {
+			fmt.Printf("Warning: '%s' is not a recognized key.\nValid keys: ", key)
+			for k := range validConfigKeys {
+				fmt.Printf("%s ", k)
+			}
+			fmt.Println()
+			fmt.Println("Proceeding anyway...")
+		}
 
 		envPath := getConfigPath()
 		envMap, err := godotenv.Read(envPath)

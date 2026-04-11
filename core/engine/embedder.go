@@ -70,6 +70,9 @@ func RunEmbedJob(ctx context.Context, cfg EmbedJobConfig, kvStore db.KVStore, st
 		return
 	}
 
+	// Register workspace path mapping for `workspace ls` display
+	registerWorkspacePath(cfg.CollectionName, absPath)
+
 	guardian := policies.NewGuardian(absPath)
 	if provider == nil || !provider.IsConfigured() {
 		onProgress(EmbedProgress{IsComplete: true, HasError: true, ErrorMsg: "No LLM provider configured. Set it in .env or via API."})

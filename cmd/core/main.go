@@ -497,7 +497,15 @@ func ensureCoreConnected() (*ipc.Client, error) {
 
 func runStop() {
 	if os.Getenv("OS") == "Windows_NT" {
-		exec.Command("taskkill", "/F", "/IM", "vectora.exe", "/FI", fmt.Sprintf("PID ne %d", os.Getpid())).Run()
+		myPid := fmt.Sprintf("PID ne %d", os.Getpid())
+		// Kill both canonical and release-named binaries to avoid residual processes
+		exec.Command("taskkill", "/F", "/IM", "vectora.exe", "/FI", myPid).Run()
+		exec.Command("taskkill", "/F", "/IM", "vectora-windows-amd64.exe", "/FI", myPid).Run()
+		exec.Command("taskkill", "/F", "/IM", "vectora-windows-arm64.exe", "/FI", myPid).Run()
+		fmt.Println("Vectora terminated.")
+	} else {
+		// Unix: kill any vectora processes except self
+		exec.Command("pkill", "-f", "vectora").Run()
 		fmt.Println("Vectora terminated.")
 	}
 }

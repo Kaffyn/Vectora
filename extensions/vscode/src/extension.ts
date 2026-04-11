@@ -21,8 +21,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   updateStatusStopped();
   statusBarItem.show();
 
-  // Register Chat View early to avoid "view not found" errors
-  chatProvider = new ChatViewProvider(undefined as any, context);
+  // Register Chat View early to avoid "view not found" errors.
+  // Client starts undefined and is set later via setClient() after core connects.
+  chatProvider = new ChatViewProvider(undefined, context);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(ChatViewProvider.viewType, chatProvider)
   );
