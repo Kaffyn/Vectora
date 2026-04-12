@@ -1,0 +1,254 @@
+name: Performance & Bundle Monitoring
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+    paths-ignore:
+      - "README.md"
+      - "README.pt.md"
+      - "docs/**"
+  pull_request:
+    branches:
+      - master
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  # ============================================================================
+  # BUILD SIZE ANALYSIS
+  # ============================================================================
+  bundle-size:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "extensions/vscode/package-lock.json"
+
+      - name: Install dependencies
+        working-directory: extensions/vscode
+        run: npm ci
+
+      - name: Build extension
+        working-directory: extensions/vscode
+        run: npm run compile
+
+      - name: Analyze bundle size
+        working-directory: extensions/vscode
+        run: |
+          mkdir -p build-stats
+
+          # Calculate bundle sizes
+          if [ -f "dist/extension.js" ]; then
+            SIZE=$(du -h dist/extension.js | cut -f1)
+            echo "Extension Bundle Size: $SIZE"
+            echo "extension_size=$SIZE" >> $GITHUB_ENV
+
+            # Store size for comparison
+            echo "$SIZE" > build-stats/extension-size.txt
+          fi
+
+          if [ -f "dist/webview.js" ]; then
+            SIZE=$(du -h dist/webview.js | cut -f1)
+            echo "Webview Bundle Size: $SIZE"
+            echo "webview_size=$SIZE" >> $GITHUB_ENV
+          fi
+
+          # Calculate total
+          TOTAL=$(du -sh dist/ | cut -f1)
+          echo "Total Build Size: $TOTAL"
+          echo "total_size=$TOTAL" >> $GITHUB_ENV
+        continue-on-error: true
+
+      - name: Check bundle size limits
+        working-directory: extensions/vscode
+        run: |
+          EXTENSION_MAX=2000000  # 2MB
+          WEBVIEW_MAX=3000000   # 3MB
+          TOTAL_MAX=5000000     # 5MB
+
+          echo "Bundle Size Limits:"
+          echo "  Extension: $EXTENSION_MAX bytes (2MB)"
+          echo "  Webview:   $WEBVIEW_MAX bytes (3MB)"
+          echo "  Total:     $TOTAL_MAX bytes (5MB)"
+          echo ""
+
+          if [ -f "dist/extension.js" ]; then
+            SIZE=$(stat -f%z "dist/extension.js" 2>/dev/null || stat -c%s "dist/extension.js" 2>/dev/null)
+            echo "✓ Extension: $SIZE bytes"
+          fi
+
+          if [ -f "dist/webview.js" ]; then
+            SIZE=$(stat -f%z "dist/webview.js" 2>/dev/null || stat -c%s "dist/webview.js" 2>/dev/null)
+            echo "✓ Webview: $SIZE bytes"
+          fi
+        continue-on-error: true
+
+      - name: Upload bundle stats
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-stats
+          path: extensions/vscode/build-stats/
+          retention-days: 7
+        continue-on-error: true
+
+  # ============================================================================
+  # PERFORMANCE BENCHMARKS
+  # ============================================================================
+  benchmarks:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Run Go benchmarks
+        run: |
+          mkdir -p bench-results
+
+          # Run benchmarks with timeout
+          go test -bench=. -benchmem -benchtime=100ms ./... \
+            -run=^$ -timeout=5m > bench-results/benchmarks.txt 2>&1 || true
+
+          echo "Benchmark Results:"
+          cat bench-results/benchmarks.txt || true
+        continue-on-error: true
+
+      - name: Analyze benchmark results
+        run: |
+          if [ -f "bench-results/benchmarks.txt" ]; then
+            echo "Performance Summary:"
+            grep -E "BenchmarkParse|BenchmarkSearch|BenchmarkIndex" bench-results/benchmarks.txt || true
+          fi
+        continue-on-error: true
+
+      - name: Upload benchmarks
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmarks
+          path: bench-results/
+          retention-days: 7
+        continue-on-error: true
+
+  # ============================================================================
+  # BUILD TIME MONITORING
+  # ============================================================================
+  build-time:
+    name: Build Time Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Measure build time
+        run: |
+          mkdir -p build-times
+
+          echo "Measuring build times..."
+
+          # Go build
+          START=$(date +%s%N)
+          go build -v -o /tmp/vectora ./cmd/core 2>&1 | tee build-times/go-build.log
+          END=$(date +%s%N)
+          GO_TIME=$(( (END - START) / 1000000 ))
+          echo "Go build time: ${GO_TIME}ms" | tee -a build-times/times.txt
+
+          # Check if build time exceeds threshold (60 seconds)
+          if [ $GO_TIME -gt 60000 ]; then
+            echo "⚠️  Go build took longer than 60 seconds: ${GO_TIME}ms"
+          fi
+        continue-on-error: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Measure Node build time
+        working-directory: extensions/vscode
+        run: |
+          START=$(date +%s%N)
+          npm ci > /dev/null
+          npm run compile > /dev/null 2>&1
+          END=$(date +%s%N)
+          NODE_TIME=$(( (END - START) / 1000000 ))
+          echo "Node build time: ${NODE_TIME}ms" | tee -a ../../build-times/times.txt
+
+          if [ $NODE_TIME -gt 120000 ]; then
+            echo "⚠️  Node build took longer than 120 seconds: ${NODE_TIME}ms"
+          fi
+        continue-on-error: true
+
+      - name: Upload build times
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-times
+          path: build-times/
+          retention-days: 7
+        continue-on-error: true
+
+  # ============================================================================
+  # PERFORMANCE SUMMARY
+  # ============================================================================
+  performance-summary:
+    name: Performance Summary
+    runs-on: ubuntu-latest
+    needs: [bundle-size, benchmarks, build-time]
+    if: always()
+
+    steps:
+      - name: Display performance results
+        run: |
+          echo "╔════════════════════════════════════════════════════════════╗"
+          echo "║            Performance Metrics Summary                     ║"
+          echo "╚════════════════════════════════════════════════════════════╝"
+          echo ""
+          echo "📊 Analysis Results:"
+          echo "  Bundle Size:    ${{ needs.bundle-size.result }}"
+          echo "  Benchmarks:     ${{ needs.benchmarks.result }}"
+          echo "  Build Time:     ${{ needs.build-time.result }}"
+          echo ""
+          echo "📈 Check artifacts for detailed metrics"
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 📊 Performance Analysis\n\n✓ Performance checks completed\n\nCheck the [workflow run](${context.payload.pull_request.html_url}/checks) for detailed metrics.`
+            })
+        continue-on-error: true

@@ -103,6 +103,11 @@ jobs:
           go-version: "1.22"
           cache: true
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Run unit tests
         run: go test -v -race -coverprofile=coverage.out ./...
 
@@ -130,6 +135,26 @@ jobs:
 
       - name: Run go vet
         run: go vet ./...
+
+      - name: Lint TypeScript (VS Code Extension)
+        working-directory: extensions/vscode
+        run: npm ci && npm run lint
+        continue-on-error: true
+
+      - name: Type check TypeScript
+        working-directory: extensions/vscode
+        run: npx tsc --noEmit
+        continue-on-error: true
+
+      - name: Build VS Code Extension
+        working-directory: extensions/vscode
+        run: npm run compile
+        continue-on-error: true
+
+      - name: Build Gemini CLI Extension
+        working-directory: extensions/geminicli
+        run: npm ci && npm run build
+        continue-on-error: true
 
       - name: Test Summary
         if: always()
