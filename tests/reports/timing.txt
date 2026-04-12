@@ -1,0 +1,137 @@
+Test Execution Times
+====================
+
+ 1. Recovery: Missing Core [PASS] 6.48s
+ 2. Ask Without Core [PASS] 1.13s
+ 3. Ask Command Too Many Args [PASS] 1.08s
+ 4. Command: Ask Execution [PASS] 981ms
+ 5. Core: Stop Command [PASS] 799ms
+ 6. Sequential Commands [PASS] 731ms
+ 7. Exit Codes [PASS] 576ms
+ 8. Command: Embed Validation [PASS] 405ms
+ 9. Model: List Available [PASS] 387ms
+10. Help Command [PASS] 266ms
+11. Process: Concurrent Execution [PASS] 220ms
+12. Help for Embed [PASS] 215ms
+13. Help for Start [PASS] 202ms
+14. Integration: File Structure [PASS] 187ms
+15. Help for Stop [PASS] 186ms
+16. Status Without Core [PASS] 174ms
+17. Command Output Format [PASS] 165ms
+18. Help Output Consistency [PASS] 164ms
+19. Help for Ask [PASS] 150ms
+20. Invalid Command [PASS] 125ms
+21. Version Command [PASS] 119ms
+22. Command: Chat Execution [PASS] 117ms
+23. Command: Models List [PASS] 105ms
+24. Command Not Found [PASS] 104ms
+25. Stream: Stream Timeout [PASS] 100ms
+26. Empty Arguments [PASS] 96ms
+27. Embed Without Core [PASS] 94ms
+28. Core: Status Check [PASS] 93ms
+29. Integration: Create Test Files [PASS] 93ms
+30. Config Invalid Path [PASS] 91ms
+31. Core: Startup Check [PASS] 89ms
+32. Process: Command Execution [PASS] 89ms
+33. Workspace: Creation [PASS] 88ms
+34. Command: Config Execution [PASS] 88ms
+35. Invalid Flag [PASS] 83ms
+36. Version Format [PASS] 81ms
+37. Timeout Handling [PASS] 80ms
+38. Feature: Error Recovery [PASS] 78ms
+39. Process: Context Timeout [PASS] 78ms
+40. Missing Required Argument [PASS] 76ms
+41. Process: Error Handling [PASS] 76ms
+42. Recovery: Invalid Command [PASS] 71ms
+43. Core: Restart Command [PASS] 69ms
+44. Integration: Large Project Simulation [PASS] 66ms
+45. Process: Input/Output Handling [PASS] 35ms
+46. Recovery: Context Cancellation [PASS] 27ms
+47. Integration: Sequential Operations [PASS] 21ms
+48. Feature: Read Test Files [PASS] 14ms
+49. E2E: Multi-Step Process [PASS] 13ms
+50. Workspace: Subdirectory Support [PASS] 13ms
+51. E2E: Cleanup Verification [PASS] 11ms
+52. Advanced: File Preview [PASS] 10ms
+53. E2E: Basic Workflow [PASS] 10ms
+54. Workspace: File Management [PASS] 7ms
+55. E2E: Project Analysis Simulation [PASS] 7ms
+56. Integration: Config File Creation [PASS] 5ms
+57. Feature: Create Test Project [PASS] 5ms
+58. Advanced: Batch Processing [PASS] 4ms
+59. Integration: Workspace Directory Exists [PASS] 3ms
+60. Workspace: Directory Validation [PASS] 2ms
+61. Token: Large Text [PASS] 1ms
+62. Recovery: File System Error [PASS] 1ms
+63. Feature: Document Processing [PASS] 1ms
+64. ACP: JSON-RPC Request Format [PASS] 551μs
+65. ACP: Large Payload [PASS] 541μs
+66. Core: Binary Exists [PASS] 521μs
+67. ACP: Message ID Generation [PASS] 0μs
+68. ACP: Method Name Parsing [PASS] 0μs
+69. ACP: Message with Object Params [PASS] 0μs
+70. ACP: Nested Objects [PASS] 0μs
+71. ACP: Special Characters in Method [PASS] 0μs
+72. ACP: Empty Params [PASS] 0μs
+73. ACP: Error Codes [PASS] 0μs
+74. ACP: Error Response Validation [PASS] 0μs
+75. ACP: Error Data Field [PASS] 0μs
+76. ACP: Multiple Errors [PASS] 0μs
+77. ACP: Mutual Exclusion of Result and Error [PASS] 0μs
+78. ACP: Missing Required Fields [PASS] 0μs
+79. Stream: Initialize Stream [PASS] 0μs
+80. Stream: Token Streaming [PASS] 0μs
+81. Stream: Stream Completion [PASS] 0μs
+82. Stream: Cancel Stream [PASS] 0μs
+83. ACP: Notification Format [PASS] 0μs
+84. Tool: Tool Definition Format [PASS] 0μs
+85. Tool: Tool Call Format [PASS] 0μs
+86. Tool: Multiple Tools [PASS] 0μs
+87. Protocol: Version Compliance [PASS] 0μs
+88. Protocol: Request/Response Pairing [PASS] 0μs
+89. Protocol: Method Routing [PASS] 0μs
+90. Protocol: Capability Advertisement [PASS] 0μs
+91. ACP: Batch Requests [PASS] 0μs
+92. Feature: Verify Files Created [PASS] 0μs
+93. ACP: Request With Array Params [PASS] 0μs
+94. Feature: Token Counting [PASS] 0μs
+95. Feature: Workspace Init [PASS] 0μs
+96. ACP: Request Without Params [PASS] 0μs
+97. ACP: Invalid Response Detection [PASS] 0μs
+98. Token: Simple String [PASS] 0μs
+99. Token: Empty String [PASS] 0μs
+100. ACP: Response Validation [PASS] 0μs
+101. Token: Special Characters [PASS] 0μs
+102. Token: Unicode [PASS] 0μs
+103. Cost: Initialize Tracker [PASS] 0μs
+104. Cost: Track Request [PASS] 0μs
+105. Cost: Accumulate Costs [PASS] 0μs
+106. Cost: Cost Reporting [PASS] 0μs
+107. ACP: JSON-RPC Error Response [PASS] 0μs
+108. Model: Get Default [PASS] 0μs
+109. Model: Switch Provider [PASS] 0μs
+110. Model: Validate Model [PASS] 0μs
+111. Chat: Session Creation [PASS] 0μs
+112. Chat: Message Format [PASS] 0μs
+113. Chat: Session Persistence [PASS] 0μs
+114. Chat: Context Management [PASS] 0μs
+115. Chat: Error in Chat [PASS] 0μs
+116. RAG: Index Creation [PASS] 0μs
+117. RAG: Document Addition [PASS] 0μs
+118. RAG: Search [PASS] 0μs
+119. RAG: Relevance Ranking [PASS] 0μs
+120. RAG: Semantic Search [PASS] 0μs
+121. RAG: Result Filtering [PASS] 0μs
+122. RAG: Pagination [PASS] 0μs
+123. Stream: Enable Streaming [PASS] 0μs
+124. Stream: Receive Tokens [PASS] 0μs
+125. Stream: Stream Completion [PASS] 0μs
+126. Stream: Cancel Stream [PASS] 0μs
+127. Stream: Error Handling [PASS] 0μs
+128. ACP: JSON-RPC Response Format [PASS] 0μs
+129. Advanced: File Chunking [PASS] 0μs
+130. ACP: JSON-RPC 2.0 Structure [PASS] 0μs
+131. Advanced: Metadata Extraction [PASS] 0μs
+132. Advanced: Context Window [PASS] 0μs
+
+Total: 16.97s

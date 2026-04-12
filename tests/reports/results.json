@@ -1,0 +1,935 @@
+{
+  "Total": 132,
+  "Passed": 132,
+  "Failed": 0,
+  "Skipped": 0,
+  "Duration": 16966587500,
+  "Tests": [
+    {
+      "Name": "Help Command",
+      "Duration": 266249000,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Version Command",
+      "Duration": 119506100,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Invalid Command",
+      "Duration": 125496600,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Help for Start",
+      "Duration": 202796100,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Help for Ask",
+      "Duration": 150364000,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Help for Embed",
+      "Duration": 215960700,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Help for Stop",
+      "Duration": 186198900,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Status Without Core",
+      "Duration": 174044200,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Ask Without Core",
+      "Duration": 1129206100,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Embed Without Core",
+      "Duration": 94977000,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Config Invalid Path",
+      "Duration": 91736800,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Help Output Consistency",
+      "Duration": 164490700,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Version Format",
+      "Duration": 81559300,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Command Not Found",
+      "Duration": 104100100,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Empty Arguments",
+      "Duration": 96581500,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Ask Command Too Many Args",
+      "Duration": 1078129400,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Missing Required Argument",
+      "Duration": 76844500,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Invalid Flag",
+      "Duration": 83362000,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Timeout Handling",
+      "Duration": 80929100,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Sequential Commands",
+      "Duration": 731475000,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Command Output Format",
+      "Duration": 165897100,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Exit Codes",
+      "Duration": 576230600,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Integration: Workspace Directory Exists",
+      "Duration": 3405400,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Integration: Create Test Files",
+      "Duration": 93197900,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Integration: File Structure",
+      "Duration": 187750100,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Integration: Config File Creation",
+      "Duration": 5235500,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Integration: Sequential Operations",
+      "Duration": 21594900,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Integration: Large Project Simulation",
+      "Duration": 66447400,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Core: Binary Exists",
+      "Duration": 521400,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Core: Startup Check",
+      "Duration": 89614300,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Core: Status Check",
+      "Duration": 93717600,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Core: Stop Command",
+      "Duration": 799969300,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Core: Restart Command",
+      "Duration": 69529500,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Command: Ask Execution",
+      "Duration": 981967700,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Command: Embed Validation",
+      "Duration": 405560200,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Command: Chat Execution",
+      "Duration": 117263800,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Command: Config Execution",
+      "Duration": 88144400,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Command: Models List",
+      "Duration": 105429400,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Workspace: Creation",
+      "Duration": 88159900,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Workspace: Directory Validation",
+      "Duration": 2202700,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Workspace: File Management",
+      "Duration": 7383600,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Workspace: Subdirectory Support",
+      "Duration": 13059200,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "E2E: Basic Workflow",
+      "Duration": 10585100,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "E2E: Project Analysis Simulation",
+      "Duration": 7322400,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "E2E: Multi-Step Process",
+      "Duration": 13664600,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "E2E: Cleanup Verification",
+      "Duration": 11864500,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Process: Command Execution",
+      "Duration": 89549000,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Process: Context Timeout",
+      "Duration": 78026200,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Process: Error Handling",
+      "Duration": 76753000,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Process: Concurrent Execution",
+      "Duration": 220511500,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Process: Input/Output Handling",
+      "Duration": 35107800,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Recovery: Invalid Command",
+      "Duration": 71156300,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Recovery: Missing Core",
+      "Duration": 6475192100,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Recovery: File System Error",
+      "Duration": 1085500,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Recovery: Context Cancellation",
+      "Duration": 27485500,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: JSON-RPC 2.0 Structure",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: JSON-RPC Request Format",
+      "Duration": 551800,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: JSON-RPC Response Format",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: JSON-RPC Error Response",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Response Validation",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Invalid Response Detection",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Request Without Params",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Request With Array Params",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Batch Requests",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Notification Format",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Message with Object Params",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Message ID Generation",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Method Name Parsing",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Large Payload",
+      "Duration": 541100,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Nested Objects",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Special Characters in Method",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Empty Params",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Error Codes",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Error Response Validation",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Error Data Field",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Multiple Errors",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Mutual Exclusion of Result and Error",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "ACP: Missing Required Fields",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Stream: Initialize Stream",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Stream: Token Streaming",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Stream: Stream Completion",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Stream: Cancel Stream",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Stream: Stream Timeout",
+      "Duration": 100080800,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Tool: Tool Definition Format",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Tool: Tool Call Format",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Tool: Multiple Tools",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Protocol: Version Compliance",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Protocol: Request/Response Pairing",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Protocol: Method Routing",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Protocol: Capability Advertisement",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Feature: Create Test Project",
+      "Duration": 5132500,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Feature: Verify Files Created",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Feature: Read Test Files",
+      "Duration": 14435700,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Feature: Token Counting",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Feature: Workspace Init",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Feature: Document Processing",
+      "Duration": 1068800,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Feature: Error Recovery",
+      "Duration": 78351700,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Token: Simple String",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Token: Empty String",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Token: Large Text",
+      "Duration": 1137500,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Token: Special Characters",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Token: Unicode",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Cost: Initialize Tracker",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Cost: Track Request",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Cost: Accumulate Costs",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Cost: Cost Reporting",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Model: List Available",
+      "Duration": 387843400,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Model: Get Default",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Model: Switch Provider",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Model: Validate Model",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Chat: Session Creation",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Chat: Message Format",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Chat: Session Persistence",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Chat: Context Management",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Chat: Error in Chat",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "RAG: Index Creation",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "RAG: Document Addition",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "RAG: Search",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "RAG: Relevance Ranking",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "RAG: Semantic Search",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "RAG: Result Filtering",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "RAG: Pagination",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Stream: Enable Streaming",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Stream: Receive Tokens",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Stream: Stream Completion",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Stream: Cancel Stream",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Stream: Error Handling",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Advanced: File Preview",
+      "Duration": 10990700,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Advanced: File Chunking",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Advanced: Batch Processing",
+      "Duration": 4961400,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Advanced: Metadata Extraction",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    },
+    {
+      "Name": "Advanced: Context Window",
+      "Duration": 0,
+      "Error": null,
+      "Passed": true,
+      "ErrorMsg": ""
+    }
+  ],
+  "StartedAt": "2026-04-12T10:40:48.3712081-03:00",
+  "FinishedAt": "2026-04-12T10:41:05.3377956-03:00"
+}

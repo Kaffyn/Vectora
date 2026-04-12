@@ -1,0 +1,34 @@
+# Vectora Local Test Suite Configuration
+# ===========================================
+
+# Path to the Vectora Core binary
+VECTORA_CORE_BIN=./bin/core
+
+# Gemini API Key for testing (optional, uses environment if not set)
+GEMINI_API_KEY=
+
+# Test workspace directory
+TEST_WORKSPACE=/tmp/vectora-test-workspace
+
+# Log level for tests: debug, info, warn, error
+TEST_LOG_LEVEL=info
+
+# Core timeout in seconds
+TEST_CORE_TIMEOUT=30
+
+# Test port for HTTP bridge
+TEST_PORT=42780
+
+# Enable verbose output
+TEST_VERBOSE=false
+
+# Number of parallel test workers
+TEST_WORKERS=1
+
+# Skip certain test categories (comma-separated)
+# Example: TEST_SKIP=acp,features
+TEST_SKIP=
+
+# Run only specific test category
+# Example: TEST_ONLY=cli
+TEST_ONLY=
