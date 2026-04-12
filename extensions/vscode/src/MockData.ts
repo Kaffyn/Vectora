@@ -1,17 +1,20 @@
 import type { Message } from "./types";
 
 export const MOCK_MESSAGES: Message[] = [
+  {
     id: "1",
     role: "agent",
     content:
       "# Welcome to Vectora\n\nI am your professional AI coding assistant. I can help you with:\n\n- **RAG**: Answering questions based on your codebase.\n- **Agentic Tools**: Running shell commands, editing files, and more.\n- **Modern UI**: Rendered with React and Tailwind CSS.\n\nTry asking me something!",
     timestamp: Date.now() - 1000 * 60 * 5,
   },
+  {
     id: "2",
     role: "user",
     content: "Show me how you handle code snippets and tool calls.",
     timestamp: Date.now() - 1000 * 60 * 2,
   },
+  {
     id: "3",
     role: "agent",
     content:

@@ -142,6 +142,7 @@ export class VectoraACPClient extends EventEmitter {
       const response = await this.sendRequest('session/prompt', {
         sessionId: this.sessionId,
         prompt: [
+          {
             type: 'text',
             text: prompt
           }
