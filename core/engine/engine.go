@@ -16,6 +16,24 @@ import (
 	"github.com/Kaffyn/Vectora/core/tools"
 )
 
+// getLanguageName converts language code to full name
+func getLanguageName(code string) string {
+	names := map[string]string{
+		"pt": "Portuguese",
+		"en": "English",
+		"es": "Spanish",
+		"fr": "French",
+		"de": "German",
+		"it": "Italian",
+		"ja": "Japanese",
+		"zh": "Chinese",
+	}
+	if name, ok := names[code]; ok {
+		return name
+	}
+	return "English" // default fallback
+}
+
 // Engine is the central orchestrator for Vectora.
 type Engine struct {
 	Storage  *db.ChromemStore
@@ -116,10 +134,16 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 	go func() {
 		defer close(ch)
 
-		// Use preferences for model if not specified
+		// Load preferences for model and language
+		prefs := infra.LoadPreferences()
 		if model == "" {
-			prefs := infra.LoadPreferences()
 			model = prefs.ActiveModel
+		}
+
+		// Use language from preferences (default: "en")
+		language := prefs.Language
+		if language == "" {
+			language = "en"
 		}
 
 		provider := e.LLM.GetDefault()
@@ -176,9 +200,15 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 			})
 		}
 
+		// 4. Prepare system prompt with language
+		systemPrompt := "You are Vectora, a state-of-the-art AI engineering assistant. Your primary goal is to help the user with code analysis, file modifications, and complex software tasks.\n\n"
+		systemPrompt += "[USER_LANGUAGE]\nLanguage: " + language + "\nALWAYS respond in the user's language (" + getLanguageName(language) + "). If the user switches languages, adapt immediately.\n\n"
+		systemPrompt += "CRITICAL: Use your NATIVE tool-calling abilities to interact with the system. Do NOT output raw JSON blocks. Call the appropriate functions directly.\n\n"
+		systemPrompt += "Trust Folder: " + e.Tools.TrustFolder + "\n\nContext:\n" + contextText
+
 		// 4. Agent Loop (Multi-turn)
 		messages := []llm.Message{
-			{Role: llm.RoleSystem, Content: "You are Vectora, a state-of-the-art AI engineering assistant. Your primary goal is to help the user with code analysis, file modifications, and complex software tasks.\n\nCRITICAL: Use your NATIVE tool-calling abilities to interact with the system. Do NOT output raw JSON blocks. Call the appropriate functions directly.\n\nTrust Folder: " + e.Tools.TrustFolder + "\n\nContext:\n" + contextText},
+			{Role: llm.RoleSystem, Content: systemPrompt},
 			{Role: llm.RoleUser, Content: query},
 		}
 

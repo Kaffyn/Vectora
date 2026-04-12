@@ -1,0 +1,281 @@
+{
+  "version": "1.0",
+  "description": "Real conversation examples showing tool usage patterns and when tools should be called",
+  "language_aware": true,
+  "note": "Language is passed from systray to LLM - ensure response language matches user language",
+  "examples": [
+    {
+      "category": "trivial",
+      "user": "oi",
+      "user_language": "Portuguese",
+      "assistant": "Olá! 👋 Como posso ajudar você hoje?",
+      "assistant_language": "Portuguese",
+      "tool_calls": [],
+      "reasoning": "Greeting - respond directly from history/knowledge, no tools needed",
+      "response_time": "2-5 seconds"
+    },
+    {
+      "category": "trivial",
+      "user": "hello",
+      "user_language": "English",
+      "assistant": "Hi there! 👋 How can I help you today?",
+      "assistant_language": "English",
+      "tool_calls": [],
+      "reasoning": "Greeting - respond directly, no tools",
+      "response_time": "2-5 seconds"
+    },
+    {
+      "category": "trivial",
+      "user": "qual é o seu nome?",
+      "user_language": "Portuguese",
+      "assistant": "Sou o Vectora, um assistente de IA focado em entender seu código através de busca semântica e análise local.",
+      "assistant_language": "Portuguese",
+      "tool_calls": [],
+      "reasoning": "Self-identification - answer from knowledge, no tools needed",
+      "response_time": "2-5 seconds"
+    },
+    {
+      "category": "trivial",
+      "user": "obrigado",
+      "user_language": "Portuguese",
+      "assistant": "De nada! 😊 Estou aqui para ajudar sempre que precisar.",
+      "assistant_language": "Portuguese",
+      "tool_calls": [],
+      "reasoning": "Thank you - polite response, no tools",
+      "response_time": "2-5 seconds"
+    },
+    {
+      "category": "code_reading",
+      "user": "leia o arquivo main.go",
+      "user_language": "Portuguese",
+      "assistant": "Vou ler o arquivo main.go para você.",
+      "assistant_language": "Portuguese",
+      "tool_calls": [
+        {
+          "name": "read_file",
+          "arguments": {"path": "main.go"}
+        }
+      ],
+      "expected_output": "[File contents with explanation in Portuguese]",
+      "reasoning": "Direct file read request - use read_file tool",
+      "response_time": "5-10 seconds"
+    },
+    {
+      "category": "code_reading",
+      "user": "read the main.go file",
+      "user_language": "English",
+      "assistant": "I'll read the main.go file for you.",
+      "assistant_language": "English",
+      "tool_calls": [
+        {
+          "name": "read_file",
+          "arguments": {"path": "main.go"}
+        }
+      ],
+      "expected_output": "[File contents with explanation in English]",
+      "reasoning": "Direct file read - use read_file tool",
+      "response_time": "5-10 seconds"
+    },
+    {
+      "category": "code_search",
+      "user": "encontre todas as funções async",
+      "user_language": "Portuguese",
+      "assistant": "Vou buscar todas as funções async para você.",
+      "assistant_language": "Portuguese",
+      "tool_calls": [
+        {
+          "name": "grep_search",
+          "arguments": {"pattern": "async.*function", "path": "."}
+        },
+        {
+          "name": "find_files",
+          "arguments": {"pattern": "**/*.ts"}
+        }
+      ],
+      "expected_output": "[List of matching functions with file locations in Portuguese]",
+      "reasoning": "Code pattern search - use grep_search and find_files tools",
+      "response_time": "10-15 seconds"
+    },
+    {
+      "category": "code_search",
+      "user": "find all Query functions",
+      "user_language": "English",
+      "assistant": "I'll search for all Query functions in your codebase.",
+      "assistant_language": "English",
+      "tool_calls": [
+        {
+          "name": "grep_search",
+          "arguments": {"pattern": "func.*Query", "path": "."}
+        }
+      ],
+      "expected_output": "[Matching functions with locations in English]",
+      "reasoning": "Function search - use grep_search tool",
+      "response_time": "5-10 seconds"
+    },
+    {
+      "category": "code_analysis",
+      "user": "analise o arquivo events.ts e explique a estrutura",
+      "user_language": "Portuguese",
+      "assistant": "Vou analisar o arquivo events.ts para você.",
+      "assistant_language": "Portuguese",
+      "tool_calls": [
+        {
+          "name": "read_file",
+          "arguments": {"path": "src/events/events.ts"}
+        },
+        {
+          "name": "grep_search",
+          "arguments": {"pattern": "^(export|class|interface|type)", "path": "src/events/"}
+        }
+      ],
+      "expected_output": "[Architecture explanation and type definitions in Portuguese]",
+      "reasoning": "Code analysis - requires file content and structure search",
+      "response_time": "10-20 seconds"
+    },
+    {
+      "category": "web_research",
+      "user": "pesquise sobre padrões de Go concurrency",
+      "user_language": "Portuguese",
+      "assistant": "Vou pesquisar padrões de concorrência em Go para você.",
+      "assistant_language": "Portuguese",
+      "tool_calls": [
+        {
+          "name": "google_search",
+          "arguments": {"query": "Go concurrency patterns 2026 best practices"}
+        }
+      ],
+      "expected_output": "[Research results with links and summary in Portuguese]",
+      "reasoning": "External research - use google_search and possibly web_fetch",
+      "response_time": "15-30 seconds"
+    },
+    {
+      "category": "web_research",
+      "user": "research REST API best practices",
+      "user_language": "English",
+      "assistant": "I'll search for REST API best practices for you.",
+      "assistant_language": "English",
+      "tool_calls": [
+        {
+          "name": "google_search",
+          "arguments": {"query": "REST API best practices 2026"}
+        }
+      ],
+      "expected_output": "[Search results with recommendations in English]",
+      "reasoning": "Web research - use google_search",
+      "response_time": "15-30 seconds"
+    },
+    {
+      "category": "code_modification",
+      "user": "adicione logging no início da função Process",
+      "user_language": "Portuguese",
+      "assistant": "Vou adicionar logging na função Process.",
+      "assistant_language": "Portuguese",
+      "tool_calls": [
+        {
+          "name": "read_file",
+          "arguments": {"path": "src/processor.go"}
+        },
+        {
+          "name": "grep_search",
+          "arguments": {"pattern": "func.*Process", "path": "src/"}
+        },
+        {
+          "name": "edit",
+          "arguments": {
+            "path": "src/processor.go",
+            "instruction": "Add logging at the beginning of the Process function",
+            "content": "log.Printf(\"[Process] Starting with input: %v\", input)"
+          }
+        }
+      ],
+      "expected_output": "[File modified with logging added in Portuguese]",
+      "reasoning": "Code modification - requires context reading then semantic edit",
+      "response_time": "15-25 seconds"
+    },
+    {
+      "category": "shell_execution",
+      "user": "execute os testes do projeto",
+      "user_language": "Portuguese",
+      "assistant": "Vou executar os testes do projeto.",
+      "assistant_language": "Portuguese",
+      "tool_calls": [
+        {
+          "name": "run_shell_command",
+          "arguments": {"command": "go test ./..."}
+        }
+      ],
+      "expected_output": "[Test results in Portuguese]",
+      "reasoning": "Command execution - use run_shell_command",
+      "response_time": "10-30 seconds"
+    },
+    {
+      "category": "shell_execution",
+      "user": "run the build command",
+      "user_language": "English",
+      "assistant": "I'll run the build command for you.",
+      "assistant_language": "English",
+      "tool_calls": [
+        {
+          "name": "run_shell_command",
+          "arguments": {"command": "go build -o bin/app ./..."}
+        }
+      ],
+      "expected_output": "[Build output in English]",
+      "reasoning": "Build execution - use run_shell_command",
+      "response_time": "10-30 seconds"
+    },
+    {
+      "category": "memory_persistence",
+      "user": "salve os padrões encontrados para uso futuro",
+      "user_language": "Portuguese",
+      "assistant": "Vou salvar os padrões na memória para referência futura.",
+      "assistant_language": "Portuguese",
+      "tool_calls": [
+        {
+          "name": "save_memory",
+          "arguments": {
+            "key": "design_patterns_discovered",
+            "value": "{\"patterns\": [\"observer\", \"factory\", \"singleton\"], \"domain\": \"events\", \"date\": \"2026-04-12\"}"
+          }
+        }
+      ],
+      "expected_output": "[Confirmation in Portuguese]",
+      "reasoning": "Memory storage - use save_memory for persistence",
+      "response_time": "2-5 seconds"
+    }
+  ],
+  "language_support": [
+    {
+      "code": "pt",
+      "name": "Portuguese",
+      "examples_count": 7,
+      "priority": "HIGH"
+    },
+    {
+      "code": "en",
+      "name": "English",
+      "examples_count": 7,
+      "priority": "HIGH"
+    },
+    {
+      "code": "es",
+      "name": "Spanish",
+      "examples_count": 0,
+      "priority": "MEDIUM"
+    },
+    {
+      "code": "fr",
+      "name": "French",
+      "examples_count": 0,
+      "priority": "LOW"
+    }
+  ],
+  "critical_notes": [
+    "ALWAYS respond in the user's language, not English",
+    "Language is determined by the systray setting or user query language",
+    "Pass language code to LLM in system prompt",
+    "Tool names are always English, but explanations match user language",
+    "Error messages should also match user language"
+  ],
+  "system_prompt_template": "User language: {language_code} ({language_name})\nAlways respond in {language_name}. If user switches language mid-conversation, adapt immediately."
+}
