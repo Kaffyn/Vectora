@@ -194,12 +194,7 @@ var askCmd = &cobra.Command{
 
 var modelsCmd = &cobra.Command{
 	Use:   "models",
-	Short: "Manage LLM models",
-}
-
-var modelsListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List available models for the current provider",
+	Short: "List available LLM models",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runModelsList()
 	},
@@ -229,7 +224,6 @@ func init() {
 	rootCmd.AddCommand(workspaceCmd)
 	rootCmd.AddCommand(chatCmd)
 	rootCmd.AddCommand(modelsCmd)
-	modelsCmd.AddCommand(modelsListCmd)
 
 	resetCmd.Flags().BoolVar(&resetHard, "hard", false, "Confirm irreversible deletion")
 
@@ -452,28 +446,32 @@ func runModelsList() error {
 	}
 	defer client.Close()
 
-	// Initialize workspace (Required for activeTenant check in Phase 13)
+	// Initialize workspace context
 	cwd, _ := os.Getwd()
-	_, err = initWorkspace(client, cwd)
-	if err != nil {
-		return err
-	}
+	_, _ = initWorkspace(client, cwd)
 
 	var resp struct {
 		Models []string `json:"models"`
 	}
 
-	err = client.Send(ctx, "models.list", map[string]any{}, &resp)
-	if err != nil {
-		return fmt.Errorf("failed to list models: %v", err)
-	}
+	fmt.Println("\n--- Vectora: Configured Models ---")
 
-	fmt.Println("\n--- Available Models ---")
-	if len(resp.Models) == 0 {
-		fmt.Println("No models returned by provider.")
+	err = client.Send(ctx, "models.list", map[string]any{}, &resp)
+	if err != nil || len(resp.Models) == 0 {
+		// If Core returned error or empty, it means ActiveProvider is not configured
+		// Show fallbacks based on AGENTS.md
+		fmt.Println("Status: [!] API Key not configured / Provider offline")
+		fmt.Println("\nRecommended Models (from AGENTS.md):")
+		fmt.Println("  Google Gemini (Default):")
+		fmt.Println("    - gemini-3.1-pro-preview")
+		fmt.Println("    - gemini-3-flash-preview")
+		fmt.Println("  Anthropic Claude:")
+		fmt.Println("    - claude-4.6-sonnet")
+		fmt.Println("    - claude-4.6-opus")
+		fmt.Println("\nRun 'vectora config' to set your API keys.")
 	} else {
 		for _, m := range resp.Models {
-			fmt.Printf("- %s\n", m)
+			fmt.Printf("- %-30s [Active]\n", m)
 		}
 	}
 	fmt.Println()
