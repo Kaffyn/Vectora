@@ -1,6 +1,38 @@
 import * as cp from "child_process";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 import { EventEmitter } from "events";
 import { MCPRequest, MCPResponse, MCPTool, ToolCallResult } from "./types";
+
+/** Resolve o caminho do binário vectora em ordem de prioridade */
+function resolveBinary(configPath?: string): string {
+  // 1. Config explícita (settings.json do VS Code)
+  if (configPath && fs.existsSync(configPath)) return configPath;
+
+  // 2. Env var (para CI/custom installs)
+  const envPath = process.env["VECTORA_BINARY_PATH"];
+  if (envPath && fs.existsSync(envPath)) return envPath;
+
+  // 3. Instalação automática (~/.vectora/bin/vectora)
+  const suffix = os.platform() === "win32" ? ".exe" : "";
+  const autoInstall = path.join(os.homedir(), ".vectora", "bin", `vectora${suffix}`);
+  if (fs.existsSync(autoInstall)) return autoInstall;
+
+  // 4. AppData (Windows — instalador oficial)
+  if (os.platform() === "win32") {
+    const appData = path.join(
+      process.env["LOCALAPPDATA"] ?? "",
+      "Programs",
+      "Vectora",
+      "vectora.exe"
+    );
+    if (fs.existsSync(appData)) return appData;
+  }
+
+  // 5. Fallback: assume no PATH
+  return "vectora";
+}
 
 export class MCPClient extends EventEmitter {
   private process: cp.ChildProcess | null = null;
@@ -12,16 +44,29 @@ export class MCPClient extends EventEmitter {
   private nextId = 1;
   private initialized = false;
   private tools: MCPTool[] = [];
+  private readonly binary: string;
 
-  constructor(private readonly workspacePath: string) {
+  constructor(
+    private readonly workspacePath: string,
+    configBinaryPath?: string
+  ) {
     super();
+    this.binary = resolveBinary(configBinaryPath);
   }
 
   async connect(): Promise<void> {
     if (this.process) return;
 
-    this.process = cp.spawn("vectora", ["mcp", this.workspacePath], {
+    this.process = cp.spawn(this.binary, ["mcp", this.workspacePath], {
       stdio: ["pipe", "pipe", "pipe"],
+    });
+
+    this.process.on("error", (err) => {
+      const hint =
+        err.message.includes("ENOENT")
+          ? `Binário não encontrado: "${this.binary}". Instale o Vectora ou configure "vectora.binaryPath" nas settings.`
+          : err.message;
+      this.emit("error", new Error(hint));
     });
 
     this.process.stdout!.setEncoding("utf8");
@@ -37,14 +82,11 @@ export class MCPClient extends EventEmitter {
           const pending = this.pendingRequests.get(msg.id);
           if (pending) {
             this.pendingRequests.delete(msg.id);
-            if (msg.error) {
-              pending.reject(new Error(msg.error.message));
-            } else {
-              pending.resolve(msg.result);
-            }
+            if (msg.error) pending.reject(new Error(msg.error.message));
+            else pending.resolve(msg.result);
           }
         } catch {
-          // ignore non-JSON lines (debug output)
+          // linha de debug do servidor — ignorar
         }
       }
     });
@@ -53,10 +95,10 @@ export class MCPClient extends EventEmitter {
       this.emit("debug", d.toString());
     });
 
-    this.process.on("exit", () => {
+    this.process.on("exit", (code) => {
       this.initialized = false;
       this.process = null;
-      this.emit("disconnected");
+      this.emit("disconnected", code);
     });
 
     await this.initialize();
@@ -73,6 +115,10 @@ export class MCPClient extends EventEmitter {
 
   isConnected(): boolean {
     return this.initialized && this.process !== null;
+  }
+
+  getBinaryPath(): string {
+    return this.binary;
   }
 
   getTools(): MCPTool[] {
@@ -92,7 +138,7 @@ export class MCPClient extends EventEmitter {
       setTimeout(() => {
         if (this.pendingRequests.has(id)) {
           this.pendingRequests.delete(id);
-          reject(new Error(`Timeout waiting for response to ${method}`));
+          reject(new Error(`Timeout (30s) aguardando resposta de "${method}"`));
         }
       }, 30_000);
     });
@@ -111,10 +157,6 @@ export class MCPClient extends EventEmitter {
   }
 
   async callTool(name: string, args: Record<string, unknown>): Promise<ToolCallResult> {
-    const result = await this.send<ToolCallResult>("tools/call", {
-      name,
-      arguments: args,
-    });
-    return result;
+    return this.send<ToolCallResult>("tools/call", { name, arguments: args });
   }
 }

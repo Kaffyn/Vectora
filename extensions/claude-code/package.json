@@ -4,12 +4,39 @@
   "description": "Integração Vectora para VS Code — busca semântica, análise e refatoração via MCP",
   "version": "0.1.0",
   "publisher": "kaffyn",
+  "license": "MIT",
+  "homepage": "https://github.com/Kaffyn/Vectora",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kaffyn/Vectora.git",
+    "directory": "extensions/claude-code"
+  },
+  "bugs": {
+    "url": "https://github.com/Kaffyn/Vectora/issues"
+  },
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.90.0",
+    "node": ">=18.0.0"
   },
   "categories": ["AI", "Programming Languages", "Other"],
+  "keywords": ["vectora", "mcp", "rag", "ai", "semantic-search", "code-analysis"],
   "activationEvents": ["onStartupFinished"],
   "main": "./dist/extension.js",
+  "files": [
+    "dist/",
+    "scripts/",
+    "package.json",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "package": "npm run build && vsce package --no-dependencies",
+    "publish:vsce": "npm run package && vsce publish",
+    "publish:npm": "npm publish --access public"
+  },
   "contributes": {
     "commands": [
       {
@@ -44,31 +71,11 @@
       }
     ],
     "keybindings": [
-      {
-        "command": "vectora.search",
-        "key": "ctrl+shift+v s",
-        "mac": "cmd+shift+v s"
-      },
-      {
-        "command": "vectora.analyze",
-        "key": "ctrl+shift+v a",
-        "mac": "cmd+shift+v a"
-      },
-      {
-        "command": "vectora.refactor",
-        "key": "ctrl+shift+v r",
-        "mac": "cmd+shift+v r"
-      },
-      {
-        "command": "vectora.docs",
-        "key": "ctrl+shift+v d",
-        "mac": "cmd+shift+v d"
-      },
-      {
-        "command": "vectora.selectTool",
-        "key": "ctrl+shift+v t",
-        "mac": "cmd+shift+v t"
-      }
+      { "command": "vectora.search",     "key": "ctrl+shift+v s", "mac": "cmd+shift+v s" },
+      { "command": "vectora.analyze",    "key": "ctrl+shift+v a", "mac": "cmd+shift+v a" },
+      { "command": "vectora.refactor",   "key": "ctrl+shift+v r", "mac": "cmd+shift+v r" },
+      { "command": "vectora.docs",       "key": "ctrl+shift+v d", "mac": "cmd+shift+v d" },
+      { "command": "vectora.selectTool", "key": "ctrl+shift+v t", "mac": "cmd+shift+v t" }
     ],
     "views": {
       "explorer": [
@@ -84,42 +91,30 @@
     "configuration": {
       "title": "Vectora",
       "properties": {
-        "vectora.debug": {
-          "type": "boolean",
-          "default": false,
-          "description": "Habilitar logs de debug do Vectora"
+        "vectora.binaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Caminho para o binário vectora (padrão: detecta automaticamente)"
         },
         "vectora.workspacePath": {
           "type": "string",
           "default": "",
-          "description": "Caminho do workspace Vectora (padrão: workspace atual)"
+          "description": "Workspace para o Vectora analisar (padrão: workspace atual do VS Code)"
+        },
+        "vectora.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Habilitar logs de debug do Vectora"
         }
       }
     },
     "menus": {
       "editor/context": [
-        {
-          "command": "vectora.search",
-          "group": "vectora@1",
-          "when": "editorHasSelection"
-        },
-        {
-          "command": "vectora.refactor",
-          "group": "vectora@2",
-          "when": "editorHasSelection"
-        },
-        {
-          "command": "vectora.analyze",
-          "group": "vectora@3"
-        }
+        { "command": "vectora.search",  "group": "vectora@1", "when": "editorHasSelection" },
+        { "command": "vectora.refactor","group": "vectora@2", "when": "editorHasSelection" },
+        { "command": "vectora.analyze", "group": "vectora@3" }
       ]
     }
-  },
-  "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
-    "package": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
