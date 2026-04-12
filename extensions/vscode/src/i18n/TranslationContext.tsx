@@ -168,6 +168,8 @@ export const useAppTranslation = () => {
   return context;
 };
 
+export const useTranslation = useAppTranslation;
+
 // Global i18n object for non-React usage
 export const i18n = {
   get language() {

@@ -1,4 +1,4 @@
-import { useTranslation } from "@src/i18n/TranslationContext";
+import { useTranslation } from "@src/hooks/useTranslation";
 import { ArrowRight, Check, ListChecks, SquareDashed } from "lucide-react";
 
 type TodoStatus = "completed" | "in_progress" | "pending";
