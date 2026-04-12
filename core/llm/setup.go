@@ -54,6 +54,14 @@ func SetupRouter(ctx context.Context, cfg *infra.Config, prefs *infra.UserPrefer
 		router.RegisterProvider("qwen", p, defaultProv == "qwen")
 	}
 
+	// Register Embedding-Specialized Providers
+	if cfg.VoyageAPIKey != "" {
+		p, err := NewVoyageProvider(ctx, cfg.VoyageAPIKey)
+		if err == nil {
+			router.RegisterProvider("voyage", p, defaultProv == "voyage")
+		}
+	}
+
 	// Register Gateway Providers
 	if cfg.OpenRouterAPIKey != "" {
 		p := NewGatewayProvider(cfg.OpenRouterAPIKey, "https://openrouter.ai/api/v1", "openrouter")

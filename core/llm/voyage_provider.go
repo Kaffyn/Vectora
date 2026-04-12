@@ -28,6 +28,16 @@ func NewVoyageProvider(ctx context.Context, apiKey string) (*VoyageProvider, err
 	}, nil
 }
 
+func (p *VoyageProvider) ListModels(ctx context.Context) ([]string, error) {
+	// Voyage é especializado em embeddings — modelos fixos
+	return []string{
+		"voyage-3",
+		"voyage-3-lite",
+		"voyage-code-3",
+		"voyage-3-large",
+	}, nil
+}
+
 func (p *VoyageProvider) Name() string {
 	return "voyage"
 }

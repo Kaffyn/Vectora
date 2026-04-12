@@ -215,15 +215,15 @@ func runConfigInteractive() {
 		promptKeyAndSave("ZHIPU_API_KEY", "Zhipu AI / GLM API Key:", true)
 		promptKeyAndSave("ZHIPU_BASE_URL", "Zhipu Base URL (optional):", false)
 	case "Voyage AI":
-		promptKeyAndSave("VOYAGE_API_KEY", "Voyage AI API Key:", true)
+		promptKeyAndSave("VOYAGE_API_KEY", "Voyage AI API Key (voyage-3, voyage-code-3 — embeddings only):", true)
 	case "OpenRouter":
 		promptKeyAndSave("OPENROUTER_API_KEY", "OpenRouter API Key:", true)
 	case "Set Default Provider":
-		selectAndSave("DEFAULT_PROVIDER", "Default provider:", []string{"gemini", "claude", "openai", "deepseek", "mistral", "grok", "qwen"})
+		selectAndSave("DEFAULT_PROVIDER", "Default provider:", []string{"gemini", "claude", "openai", "deepseek", "mistral", "grok", "qwen", "voyage"})
 	case "Set Default Model":
 		promptKeyAndSave("DEFAULT_MODEL", "Default model ID:", false)
 	case "Set Fallback Provider":
-		selectAndSave("DEFAULT_FALLBACK_PROVIDER", "Fallback provider:", []string{"gemini", "claude", "openai"})
+		selectAndSave("DEFAULT_FALLBACK_PROVIDER", "Fallback provider:", []string{"gemini", "claude", "openai", "voyage"})
 	case "Set Fallback Model":
 		promptKeyAndSave("GEMINI_FALLBACK_MODEL", "Gemini fallback model (e.g. gemini-3-flash-preview):", false)
 	}
