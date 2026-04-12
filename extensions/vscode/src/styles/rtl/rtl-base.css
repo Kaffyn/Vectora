@@ -1,0 +1,369 @@
+/**
+ * RTL Base Styles
+ * Phase 11: RTL Languages Support & i18n Enhancement
+ * Core RTL styling and CSS logical properties
+ */
+
+/* ============================================================================
+   Base RTL Setup
+   ============================================================================ */
+
+:root {
+  --text-direction: ltr;
+  --start: left;
+  --end: right;
+  --flex-direction: row;
+  --text-align-start: left;
+  --text-align-end: right;
+}
+
+:root[dir="rtl"] {
+  --text-direction: rtl;
+  --start: right;
+  --end: left;
+  --flex-direction: row-reverse;
+  --text-align-start: right;
+  --text-align-end: left;
+}
+
+/* ============================================================================
+   HTML Root Element
+   ============================================================================ */
+
+html.rtl {
+  direction: rtl;
+  text-align: right;
+  unicode-bidi: embed;
+}
+
+html.ltr {
+  direction: ltr;
+  text-align: left;
+}
+
+/* ============================================================================
+   Body Element
+   ============================================================================ */
+
+body.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+body.ltr {
+  direction: ltr;
+  text-align: left;
+}
+
+/* ============================================================================
+   Flex Direction for RTL
+   ============================================================================ */
+
+.flex-row {
+  flex-direction: var(--flex-direction);
+}
+
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+[dir="ltr"] .flex-row {
+  flex-direction: row;
+}
+
+/* ============================================================================
+   Text Alignment for RTL
+   ============================================================================ */
+
+.text-start {
+  text-align: var(--text-align-start);
+}
+
+.text-end {
+  text-align: var(--text-align-end);
+}
+
+[dir="rtl"] .text-start {
+  text-align: right;
+}
+
+[dir="ltr"] .text-start {
+  text-align: left;
+}
+
+[dir="rtl"] .text-end {
+  text-align: left;
+}
+
+[dir="ltr"] .text-end {
+  text-align: right;
+}
+
+/* ============================================================================
+   Positioning for RTL
+   ============================================================================ */
+
+.position-start {
+  inset-inline-start: var(--start);
+}
+
+.position-end {
+  inset-inline-end: var(--end);
+}
+
+[dir="rtl"] .position-start {
+  right: 0;
+  left: auto;
+}
+
+[dir="ltr"] .position-start {
+  left: 0;
+  right: auto;
+}
+
+[dir="rtl"] .position-end {
+  left: 0;
+  right: auto;
+}
+
+[dir="ltr"] .position-end {
+  right: 0;
+  left: auto;
+}
+
+/* ============================================================================
+   Margin for RTL
+   ============================================================================ */
+
+.margin-start {
+  margin-inline-start: var(--start);
+}
+
+.margin-end {
+  margin-inline-end: var(--end);
+}
+
+[dir="rtl"] .margin-start {
+  margin-right: auto;
+  margin-left: 0;
+}
+
+[dir="ltr"] .margin-start {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+[dir="rtl"] .margin-end {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+[dir="ltr"] .margin-end {
+  margin-right: auto;
+  margin-left: 0;
+}
+
+/* ============================================================================
+   Padding for RTL
+   ============================================================================ */
+
+.padding-start {
+  padding-inline-start: var(--start);
+}
+
+.padding-end {
+  padding-inline-end: var(--end);
+}
+
+[dir="rtl"] .padding-start {
+  padding-right: var(--spacing-unit, 1rem);
+  padding-left: 0;
+}
+
+[dir="ltr"] .padding-start {
+  padding-left: var(--spacing-unit, 1rem);
+  padding-right: 0;
+}
+
+[dir="rtl"] .padding-end {
+  padding-left: var(--spacing-unit, 1rem);
+  padding-right: 0;
+}
+
+[dir="ltr"] .padding-end {
+  padding-right: var(--spacing-unit, 1rem);
+  padding-left: 0;
+}
+
+/* ============================================================================
+   Border for RTL
+   ============================================================================ */
+
+.border-start {
+  border-inline-start: 1px solid currentColor;
+}
+
+.border-end {
+  border-inline-end: 1px solid currentColor;
+}
+
+[dir="rtl"] .border-start {
+  border-right: 1px solid currentColor;
+  border-left: none;
+}
+
+[dir="ltr"] .border-start {
+  border-left: 1px solid currentColor;
+  border-right: none;
+}
+
+[dir="rtl"] .border-end {
+  border-left: 1px solid currentColor;
+  border-right: none;
+}
+
+[dir="ltr"] .border-end {
+  border-right: 1px solid currentColor;
+  border-left: none;
+}
+
+/* ============================================================================
+   Float for RTL
+   ============================================================================ */
+
+.float-start {
+  float: var(--text-align-start);
+}
+
+.float-end {
+  float: var(--text-align-end);
+}
+
+[dir="rtl"] .float-start {
+  float: right;
+}
+
+[dir="ltr"] .float-start {
+  float: left;
+}
+
+[dir="rtl"] .float-end {
+  float: left;
+}
+
+[dir="ltr"] .float-end {
+  float: right;
+}
+
+/* ============================================================================
+   Clear for RTL
+   ============================================================================ */
+
+.clear-start {
+  clear: var(--text-align-start);
+}
+
+.clear-end {
+  clear: var(--text-align-end);
+}
+
+[dir="rtl"] .clear-start {
+  clear: right;
+}
+
+[dir="ltr"] .clear-start {
+  clear: left;
+}
+
+[dir="rtl"] .clear-end {
+  clear: left;
+}
+
+[dir="ltr"] .clear-end {
+  clear: right;
+}
+
+/* ============================================================================
+   Transform for RTL Icon Flipping
+   ============================================================================ */
+
+.flip-icon-rtl[dir="rtl"] {
+  transform: scaleX(-1);
+}
+
+.flip-icon-rtl[dir="ltr"] {
+  transform: scaleX(1);
+}
+
+/* ============================================================================
+   Intrinsic Direction Detection
+   ============================================================================ */
+
+bdi,
+[dir="auto"] {
+  unicode-bidi: isolate;
+}
+
+/* ============================================================================
+   List Styles for RTL
+   ============================================================================ */
+
+[dir="rtl"] ul,
+[dir="rtl"] ol {
+  margin-right: 0;
+  margin-left: 2em;
+  padding-right: 2em;
+  padding-left: 0;
+}
+
+[dir="ltr"] ul,
+[dir="ltr"] ol {
+  margin-left: 0;
+  margin-right: 2em;
+  padding-left: 2em;
+  padding-right: 0;
+}
+
+[dir="rtl"] li {
+  text-align: right;
+}
+
+[dir="ltr"] li {
+  text-align: left;
+}
+
+/* ============================================================================
+   Miscellaneous RTL Utilities
+   ============================================================================ */
+
+.clearfix::after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ============================================================================
+   Print Styles for RTL
+   ============================================================================ */
+
+@media print {
+  [dir="rtl"] {
+    direction: rtl;
+  }
+
+  [dir="ltr"] {
+    direction: ltr;
+  }
+}
