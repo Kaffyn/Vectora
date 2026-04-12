@@ -390,7 +390,7 @@ func updateLabels() {
 	for id, item := range providerItems {
 		if id == ActiveProviderID {
 			item.Check()
-			item.SetTitle("[✓] " + id)
+			item.SetTitle(id)
 		} else {
 			item.Uncheck()
 			item.SetTitle(id)
@@ -412,7 +412,7 @@ func updateLabels() {
 			item.Show()
 			if m == ActiveModel {
 				item.Check()
-				item.SetTitle("[✓] " + m)
+				item.SetTitle(m)
 			} else {
 				item.Uncheck()
 				item.SetTitle(m)
