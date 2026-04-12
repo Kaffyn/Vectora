@@ -128,11 +128,12 @@ O Vectora foi projetado para operar com as 10 famílias de IA mais potentes do m
 
 | Família        | Modelos de Fronteira (2026)              |
 | :------------- | :--------------------------------------- |
-| **OpenAI**     | GPT-5.4 Pro, GPT-5-o1                    |
-| **Anthropic**  | Claude 4.6 Sonnet/Opus, Claude 4.5 Haiku |
 | **Google**     | Gemini 3.1 Pro, Gemini 3 Flash, Gemma 4  |
-| **Meta**       | Muse Spark, Llama 4 (Scout/Maverick)     |
+| **Anthropic**  | Claude 4.6 Sonnet/Opus, Claude 4.5 Haiku |
+| **OpenAI**     | GPT-5.4 Pro, GPT-5.4 Mini, GPT-5-o1      |
 | **Alibaba**    | Qwen 3.6-Plus, Qwen 3.6-Turbo, Qwen-Max  |
+| **Voyage AI**  | Voyage-3 Large, Voyage-3 Code            |
+| **Meta**       | Muse Spark, Llama 4 (Scout/Maverick)     |
 | **Microsoft**  | Phi-4-Reasoning-Vision, Phi-4-Medium     |
 | **DeepSeek**   | DeepSeek-V3.2, V3.2-Speciale             |
 | **Mistral AI** | Mistral Small 4, Mistral Large 3         |
@@ -184,14 +185,15 @@ vectora ask "Como funciona a autenticação?"
 
 ## Stack Tecnológica
 
-- **Linguagem:** Go 1.23+
-- **CLI/Core:** Cobra CLI + Systray
-- **Vector DB:** chromem-go (leve, local-first)
-- **Metadata DB:** bbolt (ACID)
-- **Motor de IA:** Chamadas diretas (HTTP/STDIO) — sem overhead de frameworks
-- **Inferência Local:** llama.cpp (Qwen3)
-- **Protocolo:** ACP (JSON-RPC 2.0)
-- **Transporte:** Named Pipes (Windows)
+- **Linguagem:** Go 1.23+ (Golang)
+- **Arquitetura:** Daemon Singleton com Multi-Tenancy Protocol (MTP)
+- **Vector DB:** **chromem-go** (Motor RAG local-first)
+- **Metadata Store:** **BBolt** (Persistência ACID para histórico e logs)
+- **Modelos (Default):** Gemini 3.1 Pro (Reasoning) & Gemini Embedding 2 (RAG)
+- **Protocolos:** ACP (Agent Client Protocol) & MCP (Model Context Protocol)
+- **Inter-Process Communication (IPC):** JSON-RPC 2.0 sobre Named Pipes (Windows) ou Unix Sockets (POSIX)
+- **Inferência Local:** Integração com **llama.cpp** (Qwen 3.6)
+- **Otimização:** TurboQuant (Compressão de KV-Cache)
 
 ---
 

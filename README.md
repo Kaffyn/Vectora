@@ -128,11 +128,12 @@ Vectora is designed to work with the 10 most powerful AI families on the market:
 
 | Family         | Frontier Models (2026)                   |
 | :------------- | :--------------------------------------- |
-| **OpenAI**     | GPT-5.4 Pro, GPT-5-o1                    |
-| **Anthropic**  | Claude 4.6 Sonnet/Opus, Claude 4.5 Haiku |
 | **Google**     | Gemini 3.1 Pro, Gemini 3 Flash, Gemma 4  |
-| **Meta**       | Muse Spark, Llama 4 (Scout/Maverick)     |
+| **Anthropic**  | Claude 4.6 Sonnet/Opus, Claude 4.5 Haiku |
+| **OpenAI**     | GPT-5.4 Pro, GPT-5.4 Mini, GPT-5-o1      |
 | **Alibaba**    | Qwen 3.6-Plus, Qwen 3.6-Turbo, Qwen-Max  |
+| **Voyage AI**  | Voyage-3 Large, Voyage-3 Code            |
+| **Meta**       | Muse Spark, Llama 4 (Scout/Maverick)     |
 | **Microsoft**  | Phi-4-Reasoning-Vision, Phi-4-Medium     |
 | **DeepSeek**   | DeepSeek-V3.2, V3.2-Speciale             |
 | **Mistral AI** | Mistral Small 4, Mistral Large 3         |
@@ -216,14 +217,15 @@ MIT
 
 ## Tech Stack
 
-- **Language:** Go 1.23+
-- **CLI/Core:** Cobra CLI + Systray
-- **Vector DB:** chromem-go (lightweight, local-first)
-- **Metadata DB:** bbolt (ACID)
-- **IA Engine:** Direct calls (HTTP/STDIO) — no framework overhead
-- **Local Inference:** llama.cpp (Qwen3)
-- **Protocol:** ACP (JSON-RPC 2.0)
-- **Transport:** Named Pipes (Windows)
+- **Language:** Go 1.23+ (Golang)
+- **Architecture:** Singleton Daemon with Multi-Tenancy Protocol (MTP)
+- **Vector DB:** **chromem-go** (Local-first RAG engine)
+- **Metadata Store:** **BBolt** (ACID persistence for history and logs)
+- **Models (Default):** Gemini 3.1 Pro (Reasoning) & Gemini Embedding 2 (RAG)
+- **Protocols:** ACP (Agent Client Protocol) & MCP (Model Context Protocol)
+- **Inter-Process Communication (IPC):** JSON-RPC 2.0 over Named Pipes (Windows) or Unix Sockets (POSIX)
+- **Local Inference:** **llama.cpp** integration (Qwen 3.6)
+- **Optimization:** TurboQuant (KV-Cache Compression)
 
 ---
 
