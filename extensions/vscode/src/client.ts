@@ -1,50 +1,46 @@
 import * as cp from "child_process";
 import * as vscode from "vscode";
+import {
+  MessageConnection,
+  createMessageConnection,
+  StreamMessageReader,
+  StreamMessageWriter,
+  RequestType,
+  NotificationType,
+  RequestType0,
+  NotificationType0,
+} from "vscode-jsonrpc/lib/common/connection";
 
-// Legacy JSON-RPC 2.0 types for backward compatibility
-export interface JsonRpcRequest {
-  jsonrpc: "2.0";
-  id?: number | string;
-  method: string;
-  params?: any;
-}
-
-export interface JsonRpcResponse {
-  jsonrpc: "2.0";
-  id: number | string;
-  result?: any;
-  error?: {
-    code: number;
-    message: string;
-    data?: any;
-  };
-}
-
-export interface JsonRpcNotification {
-  jsonrpc: "2.0";
-  method: string;
-  params?: any;
-}
+import type {
+  RpcRequest,
+  RpcResponse,
+  RpcNotification,
+  SessionPromptRequest,
+  PromptResponse,
+  SessionUpdate,
+  SessionNewRequest,
+  SessionNewResponse,
+} from "@/types/core";
 
 const DEFAULT_TIMEOUT_MS = 60000;
 
 /**
- * Unified Client for JSON-RPC 2.0 over Stdio.
- * Now uses official vscode-jsonrpc library for robust transport and message handling.
+ * Vectora ACP Client - JSON-RPC 2.0 Protocol
  *
- * Maintains backward compatibility with old interface while using modern library internally.
+ * Handles communication with Vectora Core binary via JSON-RPC 2.0 over stdio.
+ * Implements request/response, notifications, and streaming support.
  */
-export class Client {
+export class AcpClient {
   private process: cp.ChildProcess | null = null;
   private connection: MessageConnection | null = null;
-  private nextId = 0;
+  private requestId = 0;
   private _isDisposed = false;
+  private notificationHandlers = new Map<string, (params: any) => void>();
 
-  public readonly onNotification = new vscode.EventEmitter<JsonRpcNotification>();
+  // Event emitters
+  public readonly onSessionUpdate = new vscode.EventEmitter<SessionUpdate>();
   public readonly onError = new vscode.EventEmitter<string>();
-  public readonly onExit = new vscode.EventEmitter<number | null>();
-
-  public sessionId?: string;
+  public readonly onConnectionChange = new vscode.EventEmitter<boolean>();
 
   constructor(
     private readonly name: string,
@@ -54,16 +50,16 @@ export class Client {
     private readonly env?: Record<string, string>,
   ) {}
 
-  public get isRunning(): boolean {
+  public get isConnected(): boolean {
     return this.process !== null && !this._isDisposed && this.connection !== null;
   }
 
   /**
-   * Spawns the child process and establishes JSON-RPC connection.
+   * Conecta ao Core binary e estabelece comunicação JSON-RPC
    */
-  public async start(): Promise<void> {
+  public async connect(): Promise<void> {
     if (this._isDisposed) throw new Error(`${this.name} client has been disposed.`);
-    if (this.process) return;
+    if (this.isConnected) return;
 
     return new Promise((resolve, reject) => {
       try {
@@ -75,8 +71,10 @@ export class Client {
 
         this.process.on("error", (err) => {
           const msg = `Failed to start ${this.name}: ${err.message}`;
+          console.error(msg);
           this.onError.fire(msg);
           this._isDisposed = true;
+          this.onConnectionChange.fire(false);
           reject(new Error(msg));
         });
 
@@ -86,29 +84,28 @@ export class Client {
             this.connection.dispose();
             this.connection = null;
           }
-          this.onExit.fire(code);
+          this.onConnectionChange.fire(false);
         });
 
-        // Setup JSON-RPC connection using vscode-jsonrpc
+        // Configurar JSON-RPC
         const reader = new StreamMessageReader(this.process.stdout!);
         const writer = new StreamMessageWriter(this.process.stdin!);
         this.connection = createMessageConnection(reader, writer);
 
-        // Listen for notifications
-        this.connection.onNotification((method, params) => {
-          this.onNotification.fire({
-            jsonrpc: "2.0",
-          });
-        });
+        // Registrar handlers de notificação
+        this.setupNotificationHandlers();
 
         // Handle stderr
         this.process.stderr!.on("data", (data: Buffer) => {
-          const stderr = data.toString().trim();
-          if (stderr) console.error(`[${this.name} Stderr]: ${stderr}`);
+          const msg = data.toString().trim();
+          if (msg) {
+            console.error(`[${this.name}] ${msg}`);
+          }
         });
 
-        // Start connection and resolve
+        // Iniciar conexão
         this.connection.listen();
+        this.onConnectionChange.fire(true);
         resolve();
       } catch (err: any) {
         this._isDisposed = true;
@@ -118,34 +115,66 @@ export class Client {
   }
 
   /**
-   * Sends a JSON-RPC request and waits for a response.
-   * Maintains backward-compatible interface while using vscode-jsonrpc internally.
+   * Configura handlers para notificações do Core
+   */
+  private setupNotificationHandlers(): void {
+    if (!this.connection) return;
+
+    // Handle generic notifications
+    this.connection.onNotification((method: string, params: any) => {
+      // Route to specific handler if registered
+      const handler = this.notificationHandlers.get(method);
+      if (handler) {
+        try {
+          handler(params);
+        } catch (err) {
+          console.error(`Error in notification handler for '${method}':`, err);
+        }
+      }
+
+      // Also emit SessionUpdate if it matches the pattern
+      if (method === "session/update") {
+        this.onSessionUpdate.fire(params as SessionUpdate);
+      }
+    });
+  }
+
+  /**
+   * Registra handler para notificação específica
+   */
+  public onNotification(method: string, handler: (params: any) => void): vscode.Disposable {
+    this.notificationHandlers.set(method, handler);
+    return {
+      dispose: () => this.notificationHandlers.delete(method),
+    };
+  }
+
+  /**
+   * Envia requisição RPC e aguarda resposta
    */
   public async request<TParams = any, TResult = any>(
     method: string,
-    params: TParams,
+    params?: TParams,
     timeoutMs: number = DEFAULT_TIMEOUT_MS,
   ): Promise<TResult> {
-    if (!this.isRunning) throw new Error(`${this.name} is not running`);
+    if (!this.isConnected) throw new Error(`${this.name} is not connected`);
     if (!this.connection) throw new Error(`${this.name} connection not established`);
 
     try {
-      // Create request type dynamically
       const requestType = new RequestType<TParams, TResult, any>(method);
 
-      // Send request with timeout
       const result = await Promise.race([
         this.connection.sendRequest(requestType, params),
         new Promise<TResult>((_, reject) =>
           setTimeout(
             () => reject(new Error(`Request '${method}' timed out after ${timeoutMs}ms`)),
+            timeoutMs,
           ),
         ),
       ]);
 
       return result;
     } catch (err: any) {
-      // Convert vscode-jsonrpc errors to standard format
       if (err.code !== undefined) {
         throw new Error(`JSON-RPC error ${err.code}: ${err.message}`);
       }
@@ -154,25 +183,51 @@ export class Client {
   }
 
   /**
-   * Sends a JSON-RPC notification (no response expected).
+   * Envia notificação (sem aguardar resposta)
    */
-  public notify<TParams = any>(method: string, params: TParams): void {
-    if (!this.isRunning) return;
-    if (!this.connection) return;
+  public notify<TParams = any>(method: string, params?: TParams): void {
+    if (!this.isConnected || !this.connection) return;
 
     try {
-      const notificationType = new NotificationType<TParams>(method);
-      this.connection.sendNotification(notificationType, params);
+      if (params === undefined) {
+        const notificationType = new NotificationType0(method);
+        this.connection.sendNotification(notificationType);
+      } else {
+        const notificationType = new NotificationType<TParams>(method);
+        this.connection.sendNotification(notificationType, params);
+      }
     } catch (err) {
       console.error(`Failed to send notification '${method}':`, err);
     }
   }
 
   /**
-   * Stops the connection and process.
+   * Cria nova sessão no Core
    */
-  public stop(): void {
+  public async createSession(request: SessionNewRequest): Promise<SessionNewResponse> {
+    return this.request<SessionNewRequest, SessionNewResponse>("session/new", request);
+  }
+
+  /**
+   * Envia prompt para processamento
+   */
+  public async prompt(request: SessionPromptRequest): Promise<PromptResponse> {
+    return this.request<SessionPromptRequest, PromptResponse>("session/prompt", request);
+  }
+
+  /**
+   * Cancela sessão ativa
+   */
+  public cancelSession(sessionId: string): void {
+    this.notify("session/cancel", { sessionId });
+  }
+
+  /**
+   * Desconecta do Core e limpa recursos
+   */
+  public disconnect(): void {
     this._isDisposed = true;
+    this.notificationHandlers.clear();
 
     if (this.connection) {
       try {
@@ -191,5 +246,14 @@ export class Client {
       }
       this.process = null;
     }
+
+    this.onConnectionChange.fire(false);
+  }
+
+  /**
+   * Verifica se cliente foi descartado
+   */
+  public get isDisposed(): boolean {
+    return this._isDisposed;
   }
 }
