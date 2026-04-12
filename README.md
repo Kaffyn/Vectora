@@ -314,6 +314,7 @@ Vectora Core is the foundation of a larger ecosystem focused on hybrid RAG and A
 - Native integration with **llama.cpp**
 - Complete offline execution (including embeddings)
 - Support for **Qwen 3.5** and **Qwen 3.6** models
+- **TurboQuant:** Extreme KV Cache compression allowing processing of massive contexts (up to 1M tokens) 100% locally.
 
 ---
 
