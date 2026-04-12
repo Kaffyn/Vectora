@@ -109,6 +109,62 @@ func RegisterRoutes(
 		return map[string]any{"answer": resp.Content, "sources": chunks}, nil
 	})
 
+	// [1.1] File System Code Completion (Ghost Text)
+	server.Register("fs/completion", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+		tenant := manager.TenantFromContext(ctx)
+		if tenant == nil {
+			return nil, errServer("mtp_error", "No tenant context found")
+		}
+
+		var req struct {
+			Path     string `json:"path"`
+			Prefix   string `json:"prefix"`
+			Suffix   string `json:"suffix"`
+			Language string `json:"language"`
+		}
+		if err := json.Unmarshal(payload, &req); err != nil {
+			return nil, ErrIPCPayloadInvalid
+		}
+
+		provider := getProvider()
+		if provider == nil || !provider.IsConfigured() {
+			return nil, ErrProviderNotConfig
+		}
+
+		// Simplified FIM prompt
+		prompt := fmt.Sprintf("Complete the code for the file: %s in language: %s.\n\nPREFIX:\n%s\n\nSUFFIX:\n%s\n\nReturn ONLY the code to be inserted.", req.Path, req.Language, req.Prefix, req.Suffix)
+
+		resp, err := provider.Complete(ctx, llm.CompletionRequest{
+			Messages: []llm.Message{
+				{Role: llm.RoleSystem, Content: "You are an expert software engineer specialized in code completion. Response must contain only the code to be inserted."},
+				{Role: llm.RoleUser, Content: prompt},
+			},
+			MaxTokens:   128,
+			Temperature: 0.0,
+		})
+		if err != nil {
+			return nil, errServer("llm_error", err.Error())
+		}
+
+		return map[string]any{"content": resp.Content}, nil
+	})
+
+	// [1.2] Session Management (ACP Standard)
+	server.Register("session/new", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+		tenant := manager.TenantFromContext(ctx)
+		if tenant == nil {
+			return nil, errServer("mtp_error", "No tenant context found")
+		}
+		
+		// Map MTP tenant ID to ACP session ID
+		return map[string]any{"sessionId": tenant.ID}, nil
+	})
+
+	server.Register("session/prompt", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+		// Bridge session/prompt to workspace.query for consistency
+		return server.handlers["workspace.query"](ctx, payload)
+	})
+
 	// [2] Chat History
 	server.Register("chat.history", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
 		tenant := manager.TenantFromContext(ctx)

@@ -67,6 +67,9 @@ type Config struct {
 	MistralFallbackModel  string
 	GrokFallbackModel     string
 	ZhipuFallbackModel    string
+	MetaAPIKey            string
+	MetaBaseURL           string
+	MetaFallbackModel     string
 }
 
 // GetConfigPath returns the OS-standard path for the Vectora .env file.
@@ -132,6 +135,9 @@ func LoadConfig() *Config {
 		MistralFallbackModel:  os.Getenv("MISTRAL_FALLBACK_MODEL"),
 		GrokFallbackModel:     os.Getenv("GROK_FALLBACK_MODEL"),
 		ZhipuFallbackModel:    os.Getenv("ZHIPU_FALLBACK_MODEL"),
+		MetaAPIKey:            os.Getenv("META_API_KEY"),
+		MetaBaseURL:           os.Getenv("META_BASE_URL"),
+		MetaFallbackModel:     os.Getenv("META_FALLBACK_MODEL"),
 	}
 }
 
@@ -229,6 +235,15 @@ func SaveConfig(cfg *Config) error {
 	}
 	if cfg.ZhipuFallbackModel != "" {
 		content += fmt.Sprintf("ZHIPU_FALLBACK_MODEL=%s\n", cfg.ZhipuFallbackModel)
+	}
+	if cfg.MetaAPIKey != "" {
+		content += fmt.Sprintf("META_API_KEY=%s\n", cfg.MetaAPIKey)
+	}
+	if cfg.MetaBaseURL != "" {
+		content += fmt.Sprintf("META_BASE_URL=%s\n", cfg.MetaBaseURL)
+	}
+	if cfg.MetaFallbackModel != "" {
+		content += fmt.Sprintf("META_FALLBACK_MODEL=%s\n", cfg.MetaFallbackModel)
 	}
 
 	return os.WriteFile(envPath, []byte(content), 0600)

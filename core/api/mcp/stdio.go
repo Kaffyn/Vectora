@@ -157,17 +157,36 @@ func (s *StdioServer) handleRequest(ctx context.Context, method string, params j
 	s.writeResponse(result, id)
 }
 
-// listTools returns all available tools in MCP format.
+// listTools returns only embedding-related tools in MCP format.
+// This prevents duplication of file system tools when Vectora is as a sub-agent.
 func (s *StdioServer) listTools() map[string]any {
 	allTools := s.Engine.Tools.GetAll()
-	mcpTools := make([]map[string]any, 0, len(allTools))
+	mcpTools := make([]map[string]any, 0)
+
+	// Whitelist of embedding and deep analysis tools
+	whitelist := map[string]bool{
+		"embed":                    true,
+		"search_database":          true,
+		"web_search_and_embed":     true,
+		"web_fetch_and_embed":      true,
+		"plan_mode":                true,
+		"refactor_with_context":    true,
+		"analyze_code_patterns":    true,
+		"knowledge_graph_analysis": true,
+		"doc_coverage_analysis":    true,
+		"test_generation":          true,
+		"bug_pattern_detection":    true,
+		"rag_plan":                 true, // Future tool
+	}
 
 	for _, t := range allTools {
-		mcpTools = append(mcpTools, map[string]any{
-			"name":        t.Name(),
-			"description": t.Description(),
-			"inputSchema": json.RawMessage(t.Schema()),
-		})
+		if whitelist[t.Name()] {
+			mcpTools = append(mcpTools, map[string]any{
+				"name":        t.Name(),
+				"description": t.Description(),
+				"inputSchema": json.RawMessage(t.Schema()),
+			})
+		}
 	}
 
 	return map[string]any{

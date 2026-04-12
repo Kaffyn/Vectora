@@ -217,18 +217,27 @@ func (s *Server) handleConnection(conn net.Conn) {
 			continue
 		}
 
+		// Ensure JSONRPC field is set for compliance
+		msg.JSONRPC = "2.0"
+
+		// Use Params if Payload is empty
+		payload := msg.Payload
+		if len(payload) == 0 {
+			payload = msg.Params
+		}
+
 		// 1. Auth handshake
 		if msg.Method == "ipc.auth" {
 			var req struct {
 				Token string `json:"token"`
 			}
-			if err := json.Unmarshal(msg.Payload, &req); err != nil || req.Token != s.token {
+			if err := json.Unmarshal(payload, &req); err != nil || req.Token != s.token {
 				s.sendError(conn, msg.ID, ErrUnauthorized)
 				conn.Close()
 				return
 			}
 			authorized = true
-			s.writeMessage(conn, IPCMessage{ID: msg.ID, Type: MsgTypeResponse, Payload: json.RawMessage(`{"ok":true}`)})
+			s.writeMessage(conn, IPCMessage{JSONRPC: "2.0", ID: msg.ID, Type: MsgTypeResponse, Payload: json.RawMessage(`{"ok":true}`), Result: json.RawMessage(`{"ok":true}`)})
 			continue
 		}
 
@@ -242,7 +251,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 		// This must happen before any other data method is called.
 		if msg.Method == "workspace.init" {
 			var req WorkspaceInitRequest
-			if err := json.Unmarshal(msg.Payload, &req); err != nil {
+			if err := json.Unmarshal(payload, &req); err != nil {
 				s.sendError(conn, msg.ID, ErrIPCPayloadInvalid)
 				continue
 			}
@@ -262,7 +271,7 @@ func (s *Server) handleConnection(conn net.Conn) {
 				"workspace_id": wsID,
 				"status":       "initialized",
 			})
-			s.writeMessage(conn, IPCMessage{ID: msg.ID, Type: MsgTypeResponse, Payload: res})
+			s.writeMessage(conn, IPCMessage{JSONRPC: "2.0", ID: msg.ID, Type: MsgTypeResponse, Result: res, Payload: res})
 			continue
 		}
 
@@ -286,26 +295,28 @@ func (s *Server) handleConnection(conn net.Conn) {
 			continue
 		}
 
-		go func(m IPCMessage, t *manager.Tenant) {
+		go func(m IPCMessage, p json.RawMessage, t *manager.Tenant) {
 			// Create a per-request context that carries the tenant info
 			ctx := manager.ContextWithTenant(s.ctx, t)
 
-			resData, ipcErr := handler(ctx, m.Payload)
+			resData, ipcErr := handler(ctx, p)
 
 			resp := IPCMessage{
-				ID:   m.ID,
-				Type: MsgTypeResponse,
+				JSONRPC: "2.0",
+				ID:      m.ID,
+				Type:    MsgTypeResponse,
 			}
 
 			if ipcErr != nil {
 				resp.Error = ipcErr
 			} else {
 				payloadBytes, _ := json.Marshal(resData)
+				resp.Result = payloadBytes
 				resp.Payload = payloadBytes
 			}
 
 			s.writeMessage(conn, resp)
-		}(msg, activeTenant)
+		}(msg, payload, activeTenant)
 	}
 }
 

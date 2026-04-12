@@ -57,7 +57,9 @@ export class VectoraACPClient extends EventEmitter {
       const id = ++this.messageId;
       const message = {
         jsonrpc: '2.0',
-        params
+        method,
+        params,
+        id
       };
 
       this.pendingRequests.set(id, { resolve, reject, timeout: setTimeout(() => {
@@ -66,7 +68,7 @@ export class VectoraACPClient extends EventEmitter {
       }, 30000) });
 
       this.process.stdin?.write(JSON.stringify(message) + '\n');
-      this.logger.appendLine(`[SEND] ${method}`);
+      this.logger.appendLine(`[SEND] ${id}: ${method}`);
     });
   }
 

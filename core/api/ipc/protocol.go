@@ -28,11 +28,14 @@ const (
 )
 
 type IPCMessage struct {
+	JSONRPC string          `json:"jsonrpc"` // Always "2.0"
 	ID      string          `json:"id"`
-	Type    string          `json:"type"`
-	Method  string          `json:"method,omitempty"`
-	Payload json.RawMessage `json:"payload"`
-	Error   *IPCError       `json:"error,omitempty"`
+	Type    string          `json:"type"`             // Vectora-specific internal use: "request", "response", "event"
+	Method  string          `json:"method,omitempty"` // For requests and events
+	Params  json.RawMessage `json:"params,omitempty"` // Standard JSON-RPC params
+	Result  json.RawMessage `json:"result,omitempty"` // Standard JSON-RPC result
+	Payload json.RawMessage `json:"payload,omitempty"` // Vectora legacy/internal payload
+	Error   *IPCError       `json:"error,omitempty"`  // Standard JSON-RPC error
 }
 
 // IPCError maps to JSON-RPC 2.0 error object. Code is a numeric JSON-RPC

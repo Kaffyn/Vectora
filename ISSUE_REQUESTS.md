@@ -108,11 +108,33 @@ O Vectora utiliza exclusivamente SDKs oficiais para garantir estabilidade:
 - [ ] Implementar a engine de indexação e busca do Chromem-go.
 - [ ] Implementar a ferramenta de "Web search to Embed".
 
-### [Issue #5] Integration: VS Code & CLI
+#### [Issue #5] Integration: VS Code Ecosystem & CLI Bridge
 
-- [ ] Criar painel de chat React (Vite) na extensão VS Code.
-- [ ] Implementar Inline Suggestions baseadas em RAG local.
-- [ ] Configurar o Gemini CLI via MCP Server.
+- [x] **Phase 1-4:** Bootstrap, UI Refactoring, and Basic Chat.
+- [x] **Phase 5: Advanced Features & Polish**
+    - Implementação de Message Caching & History Storage (`~/.vectora/history/`).
+    - Streaming de tokens em tempo real com collapsible "Thinking" blocks.
+    - Tool call progress tracking e cancelamento de requisições.
+    - Otimizador de Context Window e alertas de token usage.
+- [x] **Phase 6-10: Robustness & Provider Integration**
+    - Framework de Error Recovery com exponential backoff.
+    - Integração multi-provider (Gemini, Claude, OpenAI) no frontend.
+    - Analytics e métricas de performance integradas.
+    - Refatoração completa para TypeScript e Type-Safety absoluto.
+- [x] **Phase 11: Internationalization (i18n) & RTL Support**
+    - Suporte nativo para 12 idiomas (incluindo PT-BR, JA, DE, FR).
+    - Implementação de suporte RTL (Right-to-Left) para Árabe, Hebraico, Persa e Urdu.
+    - Sistema de detecção automática de direção de texto e espelhamento de UI/ícones.
+- [/] **Phase 12+: Project Optimization**
+    - Melhoria nas Inline Suggestions baseadas em RAG local.
+    - Indexação FTS (Full-Text Search) para o histórico local.
+
+### [Issue #6] Gemini CLI & Agentic MCP
+
+- [x] Implementação do Bridge `vectora-geminicli` via MCP.
+- [x] Exposição de tools de RAG e File I/O para o Gemini CLI como Main Agent.
+- [x] Configuração automática via JSON settings do Google Cloud SDK.
+- [ ] Implementação de logs semânticos para auditoria de chamadas de sub-agente.
 
 ---
 

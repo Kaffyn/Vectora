@@ -1,0 +1,91 @@
+{
+  "tool_categories": {
+    "system": {
+      "description": "Standard file system and OS interactions (ACP Mode)",
+      "examples": [
+        {
+          "tool": "read_file",
+          "query": "Read the content of main.go to understand the entry point.",
+          "params": {
+            "path": "main.go"
+          }
+        },
+        {
+          "tool": "write_file",
+          "query": "Create a new configuration file with default values.",
+          "params": {
+            "path": "config.json",
+            "content": "{\n  \"version\": \"1.0\",\n  \"active\": true\n}"
+          }
+        },
+        {
+          "tool": "run_command",
+          "query": "Run the tests for the core engine.",
+          "params": {
+            "command": "go test ./core/..."
+          }
+        }
+      ]
+    },
+    "rag": {
+      "description": "Semantic search and embedding management (ACP & MCP Mode)",
+      "examples": [
+        {
+          "tool": "embed",
+          "query": "Index the current project for semantic search.",
+          "params": {
+            "path": "."
+          }
+        },
+        {
+          "tool": "search_database",
+          "query": "Find all code related to KV cache compression.",
+          "params": {
+            "query": "KV cache compression turboquant"
+          }
+        },
+        {
+          "tool": "web_search_to_embed",
+          "query": "Search for the latest GPT-5.4 API documentation and vectorize it.",
+          "params": {
+            "query": "OpenAI GPT-5.4 API reference roadmap 2026"
+          }
+        },
+        {
+          "tool": "implementation_plan_rag",
+          "query": "Create a plan to implement a new authentication provider using existing RAG context.",
+          "params": {
+            "goal": "Add OAuth2 support to the core"
+          }
+        }
+      ]
+    },
+    "analysis": {
+      "description": "Deep code analysis and structural retrieval",
+      "examples": [
+        {
+          "tool": "project_graph_analysis",
+          "query": "Analyze how the IPC server depends on the manager package.",
+          "params": {
+            "scope": "core/api/ipc"
+          }
+        },
+        {
+          "tool": "analyze_code_patterns",
+          "query": "Identify potential memory leaks in the streaming logic.",
+          "params": {
+            "focus": "memory_leak",
+            "path": "src/hooks/useStreamingContent.ts"
+          }
+        },
+        {
+          "tool": "knowledge_graph_analysis",
+          "query": "Show me the relationship between tenants and resource pools.",
+          "params": {
+            "entities": ["Tenant", "ResourcePool"]
+          }
+        }
+      ]
+    }
+  }
+}
