@@ -112,8 +112,17 @@ func buildTools(tools []ToolDefinition) []openai.ChatCompletionToolParam {
 }
 
 func (p *OpenAIProvider) Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error) {
+	model := req.Model
+	if model == "" {
+		if strings.Contains(p.name, "qwen") {
+			model = "qwen3"
+		} else {
+			model = "gpt-5.4-mini"
+		}
+	}
+
 	params := openai.ChatCompletionNewParams{
-		Model:    openai.ChatModel(req.Model),
+		Model:    openai.ChatModel(model),
 		Messages: buildMessages(req.Messages),
 	}
 
@@ -160,8 +169,17 @@ func (p *OpenAIProvider) StreamComplete(ctx context.Context, req CompletionReque
 	respChan := make(chan CompletionResponse, 20)
 	errChan := make(chan error, 1)
 
+	model := req.Model
+	if model == "" {
+		if strings.Contains(p.name, "qwen") {
+			model = "qwen3"
+		} else {
+			model = "gpt-5.4-mini"
+		}
+	}
+
 	params := openai.ChatCompletionNewParams{
-		Model:    openai.ChatModel(req.Model),
+		Model:    openai.ChatModel(model),
 		Messages: buildMessages(req.Messages),
 	}
 	if req.MaxTokens > 0 {

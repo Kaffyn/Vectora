@@ -734,7 +734,7 @@ func initEngine(ctx context.Context, workspace string) (*engine.Engine, func(), 
 	llmRouter.SetFallbackModel("gemini", "gemini-3-flash-preview")
 	llmRouter.SetFallbackModel("claude", "claude-4.5-haiku")
 	llmRouter.SetFallbackModel("openai", "gpt-5.4-mini")
-	llmRouter.SetFallbackModel("qwen", "qwen3.6-turbo")
+	llmRouter.SetFallbackModel("qwen", "qwen3")
 
 	// Set fallback models from config (overrides defaults)
 	if cfg.GeminiFallbackModel != "" {
