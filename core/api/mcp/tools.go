@@ -38,13 +38,30 @@ func RegisterEmbeddingTools(vectoraMCPServer *VectoraMCPServer, router *llm.Rout
 		vectoraMCPServer.logger,
 	)
 
+	// Phase 4H: Planning Tools
+	// Plan mode tool - structured planning with context awareness
+	planTool := embedding.NewPlanModeTool(
+		router,
+		vectoraMCPServer.vecStore,
+		vectoraMCPServer.logger,
+	)
+
+	// Refactor with context tool - code refactoring with pattern matching
+	refactorTool := embedding.NewRefactorWithContextTool(
+		router,
+		vectoraMCPServer.vecStore,
+		vectoraMCPServer.logger,
+	)
+
 	// Store tools in MCP server for exposure via tools/list and tools/call
 	// These will be returned by listTools() and invoked by callTool()
 	vectoraMCPServer.embeddingTools = map[string]interface{}{
-		"embed":                 embedTool,
-		"search_database":       searchTool,
-		"web_search_and_embed":  webSearchTool,
-		"web_fetch_and_embed":   webFetchTool,
+		"embed":                   embedTool,
+		"search_database":         searchTool,
+		"web_search_and_embed":    webSearchTool,
+		"web_fetch_and_embed":     webFetchTool,
+		"plan_mode":               planTool,
+		"refactor_with_context":   refactorTool,
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 // RegisterEmbeddingTools registers all embedding tools for ACP exposure.
 // Phase 4G: When Vectora operates as an ACP agent (standalone mode),
 // it can call embedding tools in addition to generic file/shell tools.
+// Phase 4H: Planning tools added for structured planning and refactoring.
 func (a *VectoraAgent) RegisterEmbeddingTools(router *llm.Router) {
 	// Phase 4G: Core Embedding Tools
 	// These tools are available when Vectora is used directly (ACP mode)
@@ -40,12 +41,29 @@ func (a *VectoraAgent) RegisterEmbeddingTools(router *llm.Router) {
 		a.logger,
 	)
 
+	// Phase 4H: Planning Tools
+	// Plan mode tool - structured planning with context awareness
+	planTool := embedding.NewPlanModeTool(
+		router,
+		a.vecStore,
+		a.logger,
+	)
+
+	// Refactor with context tool - code refactoring with pattern matching
+	refactorTool := embedding.NewRefactorWithContextTool(
+		router,
+		a.vecStore,
+		a.logger,
+	)
+
 	// Store tools for ACP agent use
 	a.embeddingTools = map[string]interface{}{
-		"embed":                embedTool,
-		"search_database":      searchTool,
-		"web_search_and_embed": webSearchTool,
-		"web_fetch_and_embed":  webFetchTool,
+		"embed":                 embedTool,
+		"search_database":       searchTool,
+		"web_search_and_embed":  webSearchTool,
+		"web_fetch_and_embed":   webFetchTool,
+		"plan_mode":             planTool,
+		"refactor_with_context": refactorTool,
 	}
 }
 
