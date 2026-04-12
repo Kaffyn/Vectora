@@ -20,7 +20,7 @@ var geminiAliases = map[string]string{
 	"gemini-3-flash-preview":   "gemini-3-flash-preview",
 
 	// Shorthands
-	"gemini": "gemini-3.1-pro-preview", // Default to latest pro
+	"gemini": "gemini-3-flash-preview", // Default to fast flash model
 	"flash":  "gemini-3.1-flash-preview",
 	"pro":    "gemini-3.1-pro-preview",
 }

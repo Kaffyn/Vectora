@@ -170,7 +170,7 @@ var claudeAliases = map[string]anthropic.Model{
 func (p *ClaudeProvider) prepareParams(req CompletionRequest) anthropic.MessageNewParams {
 	modelID := anthropic.Model(req.Model)
 	if modelID == "" {
-		modelID = anthropic.ModelClaudeSonnet4_6
+		modelID = anthropic.ModelClaudeHaiku4_5
 	} else if resolved, ok := claudeAliases[strings.ToLower(req.Model)]; ok {
 		modelID = resolved
 	}
