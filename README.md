@@ -292,7 +292,7 @@ Unlike purely chat models, Vectora has real tools to interact with your system (
 | **Key-Value DB**    | **bbolt**              | Chat history, logs, configuration                                          |
 | **IA Motor**        | **Direct Calls**       | Optimized HTTP/STDIO calls to APIs and `llama.cpp`. No framework overhead. |
 | **Local Inference** | **llama.cpp (native)** | Offline model execution (Qwen3) via native system integration              |
-| **Vectora Core**    | **Cobra + Systray**    | CLI, Systray, IPC (local), HTTP API (remote)                               |
+| **Vectora Core**    | **Cobra + Systray**    | CLI, Systray, IPC (local), JSON-RPC/stdio (remote)                         |
 
 ---
 

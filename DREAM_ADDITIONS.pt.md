@@ -179,10 +179,10 @@ vectora [Cobra CLI] ← Binário core único
 ├─ --headless → Modo CLI puro (sem UI)
 ├─ padrão → Systray + UI Fyne (auto-detecção)
 ├─ cli → Spawna Bubbletea CLI (subprocesso)
-└─ http :8080 → API HTTP para MCP/ACP (sempre disponível)
+└─ stdio/ACP → JSON-RPC 2.0 para MCP/ACP (sempre disponível)
 ```
 
-**HTTP para MCP/ACP:** Integrações remotas com IDEs e ferramentas externas usam HTTP/stdio — o protocolo universal para agentes de IA.
+**Stdio/ACP para MCP:** Integrações remotas com IDEs e ferramentas externas usam stdio com protocolo JSON-RPC 2.0 — o protocolo universal para agentes de IA.
 
 **Modo Headless First:**
 
