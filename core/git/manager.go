@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/Kaffyn/Vectora/core/infra"
 )
 
 // Manager handles Git operations for snapshots.
@@ -26,12 +28,19 @@ func (m *Manager) checkGit() {
 		return
 	}
 
-	cmd := exec.Command("git", "-C", m.WorkDir, "rev-parse", "--is-inside-work-tree")
+	cmd := m.gitCmd("rev-parse", "--is-inside-work-tree")
 	if err := cmd.Run(); err != nil {
 		m.Available = false
 		return
 	}
 	m.Available = true
+}
+
+func (m *Manager) gitCmd(args ...string) *exec.Cmd {
+	fullArgs := append([]string{"-C", m.WorkDir}, args...)
+	cmd := exec.Command("git", fullArgs...)
+	infra.HideWindow(cmd)
+	return cmd
 }
 
 // Snapshot creates a git snapshot of a specific file.
@@ -46,7 +55,7 @@ func (m *Manager) Snapshot(filePath string) error {
 	}
 
 	// Check if file is tracked or modified
-	statusCmd := exec.Command("git", "-C", m.WorkDir, "status", "--porcelain", absPath)
+	statusCmd := m.gitCmd("status", "--porcelain", absPath)
 	output, err := statusCmd.CombinedOutput()
 	if err != nil {
 		return nil // Not in git repo, silently skip
@@ -56,12 +65,12 @@ func (m *Manager) Snapshot(filePath string) error {
 	}
 
 	// Add specific file only
-	addCmd := exec.Command("git", "-C", m.WorkDir, "add", absPath)
+	addCmd := m.gitCmd("add", absPath)
 	if err := addCmd.Run(); err != nil {
 		return fmt.Errorf("git add failed: %w", err)
 	}
 
-	commitCmd := exec.Command("git", "-C", m.WorkDir, "commit", "-m",
+	commitCmd := m.gitCmd("commit", "-m",
 		fmt.Sprintf("chore(vectora): snapshot pre-edit [%s]", time.Now().Format(time.RFC3339)))
 	if err := commitCmd.Run(); err != nil {
 		return fmt.Errorf("git commit failed: %w", err)
@@ -77,14 +86,14 @@ func (m *Manager) Undo() error {
 	}
 
 	// Find last Vectora commit
-	logCmd := exec.Command("git", "-C", m.WorkDir, "log", "-1", "--oneline", "--grep=chore(vectora)")
+	logCmd := m.gitCmd("log", "-1", "--oneline", "--grep=chore(vectora)")
 	output, err := logCmd.CombinedOutput()
 	if err != nil || len(output) == 0 {
 		return fmt.Errorf("no Vectora snapshot found")
 	}
 
 	// Reset to before that commit
-	resetCmd := exec.Command("git", "-C", m.WorkDir, "reset", "--soft", "HEAD^")
+	resetCmd := m.gitCmd("reset", "--soft", "HEAD^")
 	return resetCmd.Run()
 }
 
@@ -99,16 +108,14 @@ func (m *Manager) Init() error {
 		return nil
 	}
 
-	cmd := exec.Command("git", "-C", m.WorkDir, "init")
+	cmd := m.gitCmd("init")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("git init failed: %w", err)
 	}
 
 	// Create initial commit
-	cmd = exec.Command("git", "-C", m.WorkDir, "add", ".")
-	_ = cmd.Run()
-	cmd = exec.Command("git", "-C", m.WorkDir, "commit", "-m", "Initial commit")
-	_ = cmd.Run()
+	m.gitCmd("add", ".").Run()
+	m.gitCmd("commit", "-m", "Initial commit").Run()
 
 	m.Available = true
 	return nil

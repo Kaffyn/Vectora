@@ -41,12 +41,15 @@ func RegisterRoutes(
 		}
 
 		// Perform agentic query through the Engine
-		answer, err := tenant.Engine.Query(ctx, req.Query, req.ConversationID, req.Model, "chat", "")
+		answer, modelUsed, err := tenant.Engine.Query(ctx, req.Query, req.ConversationID, req.Model, "chat", "")
 		if err != nil {
 			return nil, errServer("engine_query_failed", err.Error())
 		}
 
-		return map[string]any{"answer": answer}, nil
+		return map[string]any{
+			"answer": answer,
+			"model":  modelUsed,
+		}, nil
 	})
 
 	// [1.1] File System Code Completion (Ghost Text)

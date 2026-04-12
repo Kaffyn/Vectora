@@ -594,14 +594,15 @@ func runAsk(query string) error {
 	workspaceID := conversationID
 
 	fmt.Printf("User: %s\n", query)
-	fmt.Print("Thinking...")
+	fmt.Print("Vectora: Connecting to core...")
 
 	client, err := ensureCoreConnected()
 	if err != nil {
-		fmt.Printf("\rError: %v\n", err)
+		fmt.Printf("\rVectora: Error: %v\n", err)
 		fmt.Println("Please try running: vectora start")
 		return err
 	}
+	fmt.Print("\rVectora: Thinking...             ")
 	defer client.Close()
 
 	// Initialize workspace (Required for activeTenant check in Phase 13)
@@ -622,6 +623,7 @@ func runAsk(query string) error {
 
 	var resp struct {
 		Answer string `json:"answer"`
+		Model  string `json:"model"`
 	}
 
 	err = client.Send(ctx, "workspace.query", req, &resp)

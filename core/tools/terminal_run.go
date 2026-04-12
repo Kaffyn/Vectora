@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"runtime"
 	"time"
+
+	"github.com/Kaffyn/Vectora/core/infra"
 )
 
 const CMD_TIMEOUT = 30 * time.Second
@@ -39,6 +41,7 @@ func (t *ShellTool) Execute(ctx context.Context, args json.RawMessage) (*ToolRes
 		cmd = exec.CommandContext(cmdCtx, "bash", "-c", params.Command)
 	}
 	cmd.Dir = t.TrustFolder
+	infra.HideWindow(cmd)
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout

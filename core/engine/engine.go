@@ -85,19 +85,28 @@ func (e *Engine) Embed(ctx context.Context, text string, model string) ([]float3
 }
 
 // Query is the entry point for the ACP server. It uses the agentic StreamQuery loop.
-func (e *Engine) Query(ctx context.Context, query string, workspaceID string, model string, mode string, policy string) (string, error) {
+func (e *Engine) Query(ctx context.Context, query string, workspaceID string, model string, mode string, policy string) (string, string, error) {
 	ch, err := e.StreamQuery(ctx, query, workspaceID, model, mode, policy)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	var finalAnswer string
+	var finalModel string
 	for chunk := range ch {
 		if chunk.IsFinal {
 			finalAnswer = chunk.Token
 		}
+		// Capture the model name from any chunk that carries it (usually the first one)
+		if strings.Contains(chunk.Token, "Vectora: Thinking with ") {
+			// Extract model name: "Vectora: Thinking with [model]...\n"
+			parts := strings.Split(chunk.Token, " ")
+			if len(parts) >= 4 {
+				finalModel = strings.TrimSuffix(parts[3], "...\n")
+			}
+		}
 	}
-	return finalAnswer, nil
+	return finalAnswer, finalModel, nil
 }
 
 // StreamQuery executes an agentic query with multi-turn tool support.
@@ -132,6 +141,9 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 			ch <- QueryChunk{Token: "No LLM provider configured.", IsFinal: true}
 			return
 		}
+
+		// Notify user about the model being used
+		ch <- QueryChunk{Token: fmt.Sprintf("Vectora: Thinking with %s...\n", model), IsFinal: false}
 
 		// 1. Embed query for RAG
 		vector, err := provider.Embed(ctx, query, model)

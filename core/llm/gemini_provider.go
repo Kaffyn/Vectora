@@ -259,15 +259,19 @@ func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionReque
 }
 
 func (p *GeminiProvider) Embed(ctx context.Context, input string, model string) ([]float32, error) {
-	embeddingModel := "gemini-embedding-2-preview" // Correct ID from models-sdk.md
+	embeddingModel := "gemini-embedding-2-preview"
 
-	// Family detection
-	if strings.Contains(strings.ToLower(model), "gemini") {
-		embeddingModel = "gemini-embedding-2-preview"
+	// Add Task Instructions for Gemini 2.0 (improves retrieval quality)
+	// Reference: https://ai.google.dev/gemini-api/docs/models/gemini/embedding-2
+	prefix := ""
+	if len(input) > 200 {
+		prefix = "task:code retrieval\n"
+	} else if len(input) > 0 {
+		prefix = "task:search query\n"
 	}
 
 	resp, err := p.client.Models.EmbedContent(ctx, embeddingModel, []*genai.Content{{
-		Parts: []*genai.Part{{Text: input}},
+		Parts: []*genai.Part{{Text: prefix + input}},
 	}}, nil)
 	if err != nil {
 		// If we hit a rate limit (429), try once more after a short wait or just wrap it

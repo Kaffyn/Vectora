@@ -236,7 +236,7 @@ func onReady() {
 	mModel = systray.AddMenuItem("Modelo", "")
 	modelItems = make(map[string]*systray.MenuItem)
 	// We'll populate this on demand or pre-populate all and hide/show
-	for _, provModels := range ProviderModels {
+	for _, provModels := range llm.ProviderModels {
 		for _, model := range provModels {
 			if _, exists := modelItems[model]; !exists {
 				item := mModel.AddSubMenuItemCheckbox(model, "", false)
@@ -340,7 +340,7 @@ func onReady() {
 						p := infra.LoadPreferences()
 						p.DefaultProvider = id
 						infra.SavePreferences(p)
-						
+
 						key := selectedProv.GetKey(cfg)
 						setProvider(selectedProv, key, cfg)
 						updateLabels()
@@ -388,16 +388,17 @@ func updateLabels() {
 	mModel.SetTitle("Modelo")
 
 	for id, item := range providerItems {
-		item.SetTitle(id) // Optional: use i18n
 		if id == ActiveProviderID {
 			item.Check()
+			item.SetTitle("[✓] " + id)
 		} else {
 			item.Uncheck()
+			item.SetTitle(id)
 		}
 	}
 
 	// Update models visibility and checks
-	validModels := ProviderModels[ActiveProviderID]
+	validModels := llm.ProviderModels[ActiveProviderID]
 	for m, item := range modelItems {
 		isVisible := false
 		for _, vm := range validModels {
@@ -411,8 +412,10 @@ func updateLabels() {
 			item.Show()
 			if m == ActiveModel {
 				item.Check()
+				item.SetTitle("[✓] " + m)
 			} else {
 				item.Uncheck()
+				item.SetTitle(m)
 			}
 		} else {
 			item.Hide()
