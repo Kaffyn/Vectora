@@ -59,7 +59,10 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 		})
 	}
 
-	resp, err := p.client.Models.GenerateContent(ctx, req.Model, contents, config)
+	// Resolve model alias to canonical Gemini API model ID with "-preview" suffix
+	modelID := ResolveGeminiModel(req.Model)
+
+	resp, err := p.client.Models.GenerateContent(ctx, modelID, contents, config)
 	if err != nil {
 		return CompletionResponse{}, p.wrapError(err)
 	}
@@ -105,7 +108,10 @@ func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionReque
 			})
 		}
 
-		iter := p.client.Models.GenerateContentStream(ctx, req.Model, contents, config)
+		// Resolve model alias to canonical Gemini API model ID with "-preview" suffix
+		modelID := ResolveGeminiModel(req.Model)
+
+		iter := p.client.Models.GenerateContentStream(ctx, modelID, contents, config)
 		for resp, err := range iter {
 			if err != nil {
 				errChan <- p.wrapError(err)
