@@ -58,14 +58,26 @@ Example: vectora config set GEMINI_API_KEY AIzaSy...`,
 		key := args[0]
 		value := args[1]
 
+		// Validate key is not empty
+		if key == "" {
+			fmt.Println("Error: Configuration key cannot be empty.")
+			return
+		}
+
+		// Validate value is not empty
+		if value == "" {
+			fmt.Println("Error: Configuration value cannot be empty.")
+			return
+		}
+
 		// Warn on unrecognized keys
 		if _, ok := validConfigKeys[key]; !ok {
-			fmt.Printf("Warning: '%s' is not a recognized key.\nValid keys: ", key)
-			for k := range validConfigKeys {
-				fmt.Printf("%s ", k)
+			fmt.Printf("Warning: '%s' is not a recognized key.\n", key)
+			fmt.Println("Valid keys:")
+			for k, desc := range validConfigKeys {
+				fmt.Printf("  %-30s %s\n", k, desc)
 			}
-			fmt.Println()
-			fmt.Println("Proceeding anyway...")
+			fmt.Println("\nProceeding anyway...")
 		}
 
 		envPath := getConfigPath()
@@ -93,6 +105,32 @@ Example: vectora config set GEMINI_API_KEY AIzaSy...`,
 	},
 }
 
+var configGetCmd = &cobra.Command{
+	Use:   "get [KEY]",
+	Short: "Get a configuration key value",
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		key := args[0]
+
+		envPath := getConfigPath()
+		envMap, err := godotenv.Read(envPath)
+		if err != nil {
+			fmt.Printf("Error reading configuration: %v\n", err)
+			return
+		}
+
+		if val, ok := envMap[key]; ok {
+			displayVal := val
+			if len(val) > 20 {
+				displayVal = val[:10] + "..." + val[len(val)-10:]
+			}
+			fmt.Printf("%s=%s\n", key, displayVal)
+		} else {
+			fmt.Printf("Key '%s' not found in configuration.\n", key)
+		}
+	},
+}
+
 var configListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all configuration keys",
@@ -104,18 +142,20 @@ var configListCmd = &cobra.Command{
 			return
 		}
 
+		fmt.Println("Configuration Keys:")
 		for k, v := range envMap {
 			displayVal := v
 			if len(v) > 10 {
 				displayVal = v[:4] + "..." + v[len(v)-4:]
 			}
-			fmt.Printf("%s=%s\n", k, displayVal)
+			fmt.Printf("  %s=%s\n", k, displayVal)
 		}
 	},
 }
 
 func init() {
 	configCmd.AddCommand(configSetCmd)
+	configCmd.AddCommand(configGetCmd)
 	configCmd.AddCommand(configListCmd)
 }
 

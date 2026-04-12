@@ -60,6 +60,43 @@ Vectora is organized as a monorepo. The current MVP focus is 100% on the **core*
 - Provide a clear description of the changes and what they solve.
 - Link to any relevant issues or architectural discussions.
 
+## Release & Code Signing
+
+### Windows Defender SmartScreen Signing
+
+When distributing Vectora binaries on Windows, code signing helps prevent SmartScreen warnings on first execution.
+
+**Process:**
+
+1. **Obtain a Code Signing Certificate**
+   - Purchase an EV Code Signing certificate from a trusted CA (Sectigo, DigiCert, etc.)
+   - Store the `.pfx` file securely (preferably in Azure Key Vault for CI/CD)
+
+2. **Sign the Binary**
+   ```bash
+   # Using signtool (Windows SDK)
+   signtool sign /f certificate.pfx /p password /t http://timestamp.digicert.com vectora.exe
+   ```
+
+3. **Verify Signature**
+   ```bash
+   signtool verify /pa vectora.exe
+   ```
+
+4. **CI/CD Integration**
+   - Store certificate and password in GitHub Secrets (or equivalent)
+   - Sign binaries as part of release workflow
+   - Include signed checksums in release notes
+
+5. **Microsoft SmartScreen Reputation**
+   - Initial releases may still trigger warnings due to low reputation
+   - Reputation improves as more users download the signed binary
+   - Monitor SmartScreen feedback through Windows Defender Feedback
+
+**References:**
+- [Microsoft Code Signing Guide](https://docs.microsoft.com/en-us/windows/win32/seccrypto/about-cryptography)
+- [Sectigo Code Signing](https://www.sectigo.com/code-signing)
+
 ---
 
 _Part of the Kaffyn open source organization._
