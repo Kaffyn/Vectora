@@ -646,8 +646,7 @@ func runAsk(query string) error {
 	conversationID := workspaceConversationID(absCwd)
 	workspaceID := conversationID
 
-	fmt.Printf("Query: %s\n", query)
-	fmt.Printf("[session: %s]\n", conversationID)
+	fmt.Printf("User: %s\n", query)
 	fmt.Print("Thinking...")
 
 	client, err := ensureCoreConnected()
