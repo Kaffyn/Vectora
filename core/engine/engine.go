@@ -166,7 +166,7 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 
 		// 4. Agent Loop (Multi-turn)
 		messages := []llm.Message{
-			{Role: llm.RoleSystem, Content: "You are Vectora, an expert AI coding assistant. Use the provided tools to fulfill requests. Trust Folder: " + e.Tools.TrustFolder + "\n\nContext:\n" + contextText},
+			{Role: llm.RoleSystem, Content: "You are Vectora, a state-of-the-art AI engineering assistant. Your primary goal is to help the user with code analysis, file modifications, and complex software tasks.\n\nCRITICAL: Use your NATIVE tool-calling abilities to interact with the system. Do NOT output raw JSON blocks. Call the appropriate functions directly.\n\nTrust Folder: " + e.Tools.TrustFolder + "\n\nContext:\n" + contextText},
 			{Role: llm.RoleUser, Content: query},
 		}
 

@@ -380,11 +380,15 @@ func runCore() {
 	infra.Logger().Info("Starting Vectora Core...")
 	appCtx := context.Background()
 
+	cfg := infra.LoadConfig()
+	prefs := infra.LoadPreferences()
+	llmRouter := llm.SetupRouter(appCtx, cfg, prefs)
+
 	// Initialize Multi-Tenancy Managers (MTP Phase 13)
 	tenantMgr := manager.NewTenantManager(manager.EvictionPolicy{
 		IdleTimeout: 30 * time.Minute,
 		MaxTenants:  10,
-	})
+	}, llmRouter)
 	tenantMgr.StartEvictionRoutine()
 
 	resourcePool := manager.NewResourcePool(manager.ResourceConfig{
@@ -413,16 +417,7 @@ func runCore() {
 		salter, _ = crypto.NewWorkspaceSalter(filepath.Join(appDataDir, "tmp"))
 	}
 
-	// Provider fetcher for IPC routes
-	getProvider := func() llm.Provider {
-		// If tray isn't ready or hasn't loaded a provider yet, try to load it now
-		if tray.ActiveProvider == nil {
-			tray.ReloadActiveProvider()
-		}
-		return tray.ActiveProvider
-	}
-
-	ipc.RegisterRoutes(ipcServer, kvStore, getProvider, salter)
+	ipc.RegisterRoutes(ipcServer, kvStore, salter)
 	go ipcServer.Start()
 
 	// ---- Note: ACP Server ----
@@ -505,56 +500,7 @@ func initCoreClientEngine(ctx context.Context, workspace string, vecStore *db.Ch
 
 	cfg := infra.LoadConfig()
 	prefs := infra.LoadPreferences()
-	llmRouter := llm.NewRouter()
-	llmRouter.SetFallbackProvider("gemini")
-	if cfg.DefaultFallbackProvider != "" {
-		llmRouter.SetFallbackProvider(cfg.DefaultFallbackProvider)
-	}
-
-	// Set fallback models
-	if cfg.GeminiFallbackModel != "" {
-		llmRouter.SetFallbackModel("gemini", cfg.GeminiFallbackModel)
-	}
-	if cfg.ClaudeFallbackModel != "" {
-		llmRouter.SetFallbackModel("claude", cfg.ClaudeFallbackModel)
-	}
-	if cfg.OpenAIFallbackModel != "" {
-		llmRouter.SetFallbackModel("openai", cfg.OpenAIFallbackModel)
-	}
-	if cfg.QwenFallbackModel != "" {
-		llmRouter.SetFallbackModel("qwen", cfg.QwenFallbackModel)
-	}
-
-	// Use preference for default provider if available
-	defaultProv := prefs.DefaultProvider
-
-	// Register Native Providers
-	if cfg.GeminiAPIKey != "" {
-		p, _ := llm.NewGeminiProvider(ctx, cfg.GeminiAPIKey)
-		llmRouter.RegisterProvider("gemini", p, defaultProv == "gemini")
-	}
-	if cfg.ClaudeAPIKey != "" {
-		p, _ := llm.NewClaudeProvider(ctx, cfg.ClaudeAPIKey)
-		llmRouter.RegisterProvider("claude", p, defaultProv == "claude")
-	}
-	if cfg.OpenAIAPIKey != "" {
-		p := llm.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.OpenAIBaseURL, "openai")
-		llmRouter.RegisterProvider("openai", p, defaultProv == "openai")
-	}
-	if cfg.QwenAPIKey != "" {
-		p := llm.NewOpenAIProvider(cfg.QwenAPIKey, cfg.QwenBaseURL, "qwen")
-		llmRouter.RegisterProvider("qwen", p, defaultProv == "qwen")
-	}
-
-	// Register Gateway Providers
-	if cfg.OpenRouterAPIKey != "" {
-		p := llm.NewGatewayProvider(cfg.OpenRouterAPIKey, "https://openrouter.ai/api/v1", "openrouter")
-		llmRouter.RegisterProvider("openrouter", p, defaultProv == "openrouter")
-	}
-	if cfg.AnannasAPIKey != "" {
-		p := llm.NewGatewayProvider(cfg.AnannasAPIKey, "https://api.anannas.ai/v1", "anannas")
-		llmRouter.RegisterProvider("anannas", p, defaultProv == "anannas")
-	}
+	llmRouter := llm.SetupRouter(ctx, cfg, prefs)
 
 	guardian := policies.NewGuardian(absPath)
 	toolRegistry := tools.NewRegistry(absPath, guardian, kvStore)
@@ -728,62 +674,7 @@ func initEngine(ctx context.Context, workspace string) (*engine.Engine, func(), 
 		return nil, nil, fmt.Errorf("failed to init vector store: %w", err)
 	}
 
-	llmRouter := llm.NewRouter()
-	llmRouter.SetFallbackProvider("gemini")
-	if cfg.DefaultFallbackProvider != "" {
-		llmRouter.SetFallbackProvider(cfg.DefaultFallbackProvider)
-	}
-
-	// Set default performance-first fallback models
-	llmRouter.SetFallbackModel("gemini", "gemini-3-flash-preview")
-	llmRouter.SetFallbackModel("claude", "claude-4.5-haiku")
-	llmRouter.SetFallbackModel("openai", "gpt-5.4-mini")
-	llmRouter.SetFallbackModel("qwen", "qwen3")
-
-	// Set fallback models from config (overrides defaults)
-	if cfg.GeminiFallbackModel != "" {
-		llmRouter.SetFallbackModel("gemini", cfg.GeminiFallbackModel)
-	}
-	if cfg.ClaudeFallbackModel != "" {
-		llmRouter.SetFallbackModel("claude", cfg.ClaudeFallbackModel)
-	}
-	if cfg.OpenAIFallbackModel != "" {
-		llmRouter.SetFallbackModel("openai", cfg.OpenAIFallbackModel)
-	}
-	if cfg.QwenFallbackModel != "" {
-		llmRouter.SetFallbackModel("qwen", cfg.QwenFallbackModel)
-	}
-
-	// Use preference for default provider
-	defaultProv := prefs.DefaultProvider
-
-	// Register Native Providers
-	if cfg.GeminiAPIKey != "" {
-		p, _ := llm.NewGeminiProvider(ctx, cfg.GeminiAPIKey)
-		llmRouter.RegisterProvider("gemini", p, defaultProv == "gemini")
-	}
-	if cfg.ClaudeAPIKey != "" {
-		p, _ := llm.NewClaudeProvider(ctx, cfg.ClaudeAPIKey)
-		llmRouter.RegisterProvider("claude", p, defaultProv == "claude")
-	}
-	if cfg.OpenAIAPIKey != "" {
-		p := llm.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.OpenAIBaseURL, "openai")
-		llmRouter.RegisterProvider("openai", p, defaultProv == "openai")
-	}
-	if cfg.QwenAPIKey != "" {
-		p := llm.NewOpenAIProvider(cfg.QwenAPIKey, cfg.QwenBaseURL, "qwen")
-		llmRouter.RegisterProvider("qwen", p, defaultProv == "qwen")
-	}
-
-	// Register Gateway Providers
-	if cfg.OpenRouterAPIKey != "" {
-		p := llm.NewGatewayProvider(cfg.OpenRouterAPIKey, "https://openrouter.ai/api/v1", "openrouter")
-		llmRouter.RegisterProvider("openrouter", p, defaultProv == "openrouter")
-	}
-	if cfg.AnannasAPIKey != "" {
-		p := llm.NewGatewayProvider(cfg.AnannasAPIKey, "https://api.anannas.ai/v1", "anannas")
-		llmRouter.RegisterProvider("anannas", p, defaultProv == "anannas")
-	}
+	llmRouter := llm.SetupRouter(ctx, cfg, prefs)
 
 	guardian := policies.NewGuardian(absPath)
 	toolRegistry := tools.NewRegistry(absPath, guardian, kvStore)

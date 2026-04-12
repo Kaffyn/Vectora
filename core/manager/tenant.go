@@ -8,7 +8,10 @@ import (
 	"time"
 
 	"github.com/Kaffyn/Vectora/core/db"
+	"github.com/Kaffyn/Vectora/core/engine"
+	"github.com/Kaffyn/Vectora/core/llm"
 	"github.com/Kaffyn/Vectora/core/policies"
+	"github.com/Kaffyn/Vectora/core/tools"
 )
 
 // Tenant representa um workspace isolado no daemon singleton
@@ -20,6 +23,7 @@ type Tenant struct {
 	VectorStore  db.VectorStore
 	KVStore      db.KVStore
 	Guardian     *policies.Guardian
+	Engine       *engine.Engine
 	LastActivity time.Time
 	mu           sync.RWMutex
 }
@@ -33,6 +37,7 @@ type TenantManager struct {
 	evictionTicker *time.Ticker
 	stopEviction   chan struct{}
 	dataDir        string
+	llmRouter      *llm.Router
 }
 
 // EvictionPolicy define os parâmetros de limpeza automática de tenants
@@ -43,7 +48,7 @@ type EvictionPolicy struct {
 }
 
 // NewTenantManager cria uma nova instância do gerenciador de tenants
-func NewTenantManager(policy EvictionPolicy) *TenantManager {
+func NewTenantManager(policy EvictionPolicy, llmRouter *llm.Router) *TenantManager {
 	if policy.IdleTimeout == 0 {
 		policy.IdleTimeout = 30 * time.Minute
 	}
@@ -70,6 +75,7 @@ func NewTenantManager(policy EvictionPolicy) *TenantManager {
 		evictionPolicy: policy,
 		stopEviction:   make(chan struct{}),
 		dataDir:        dataDir,
+		llmRouter:      llmRouter,
 	}
 }
 
@@ -118,6 +124,17 @@ func (tm *TenantManager) GetOrCreateTenant(wsID, wsRoot, projName string) (*Tena
 
 	// Inicializar Guardian para este tenant
 	tenant.Guardian = policies.NewGuardian(wsRoot)
+
+	// Inicializar Engine com o registro de ferramentas local
+	toolRegistry := tools.NewRegistry(wsRoot, tenant.Guardian, tenant.KVStore)
+	tenant.Engine = engine.NewEngine(
+		vecStore,
+		kvStore,
+		tm.llmRouter,
+		toolRegistry,
+		tenant.Guardian,
+		nil,
+	)
 
 	tm.activeTenants[wsID] = tenant
 	return tenant, nil

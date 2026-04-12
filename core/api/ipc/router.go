@@ -22,7 +22,6 @@ type ProviderFetcher func() llm.Provider
 func RegisterRoutes(
 	server *Server,
 	globalKV db.KVStore,
-	getProvider ProviderFetcher,
 	salter *crypto.WorkspaceSalter,
 ) {
 	// [1] Main RAG Query
@@ -35,67 +34,19 @@ func RegisterRoutes(
 		var req struct {
 			Query          string `json:"query"`
 			ConversationID string `json:"conversation_id,omitempty"`
+			Model          string `json:"model,omitempty"`
 		}
 		if err := json.Unmarshal(payload, &req); err != nil {
 			return nil, ErrIPCPayloadInvalid
 		}
 
-		provider := getProvider()
-		if provider == nil || !provider.IsConfigured() {
-			return nil, ErrProviderNotConfig
-		}
-
-		vector, err := provider.Embed(ctx, req.Query, "")
+		// Perform agentic query through the Engine
+		answer, err := tenant.Engine.Query(ctx, req.Query, req.ConversationID, req.Model, "chat", "")
 		if err != nil {
-			return nil, errServer("embed_failed", err.Error())
+			return nil, errServer("engine_query_failed", err.Error())
 		}
 
-		// Use tenant-specific VectorStore and stable collection ID
-		collectionID := "ws_" + salter.HashPath(tenant.ID)
-		chunks, err := tenant.VectorStore.Query(ctx, collectionID, vector, 5)
-		if err != nil {
-			chunks = []db.ScoredChunk{}
-		}
-
-		contextText := ""
-		for _, doc := range chunks {
-			if filename, ok := doc.Metadata["filename"]; ok {
-				contextText += "File: " + filename + "\n"
-			}
-			contextText += doc.Content + "\n---\n"
-		}
-
-		msgService := llm.NewMessageService(tenant.KVStore)
-		factory := llm.NewPromptFactory()
-		factory.Language = i18n.GetCurrentLang()
-
-		var history []llm.Message
-		if req.ConversationID != "" {
-			conv, err := msgService.GetConversation(ctx, req.ConversationID)
-			if err != nil {
-				msgService.CreateConversation(ctx, req.ConversationID, "chat")
-			} else {
-				for _, m := range conv.Messages {
-					history = append(history, llm.Message{Role: m.Role, Content: m.Content})
-				}
-			}
-			msgService.AddMessage(ctx, req.ConversationID, llm.RoleUser, req.Query)
-		}
-
-		llmReq := factory.BuildFinalPayload(req.Query, contextText, history)
-		llmReq.MaxTokens = 1500
-		llmReq.Temperature = 0.1
-
-		resp, err := provider.Complete(ctx, llmReq)
-		if err != nil {
-			return nil, errServer("llm_failed", err.Error())
-		}
-
-		if req.ConversationID != "" {
-			msgService.AddMessage(ctx, req.ConversationID, llm.RoleAssistant, resp.Content)
-		}
-
-		return map[string]any{"answer": resp.Content, "sources": chunks}, nil
+		return map[string]any{"answer": answer}, nil
 	})
 
 	// [1.1] File System Code Completion (Ghost Text)
@@ -115,7 +66,7 @@ func RegisterRoutes(
 			return nil, ErrIPCPayloadInvalid
 		}
 
-		provider := getProvider()
+		provider := tenant.Engine.LLM.GetDefault()
 		if provider == nil || !provider.IsConfigured() {
 			return nil, ErrProviderNotConfig
 		}
@@ -193,7 +144,11 @@ func RegisterRoutes(
 
 	// [3] Provider Status (Global)
 	server.Register("provider.get", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
-		p := getProvider()
+		tenant := manager.TenantFromContext(ctx)
+		if tenant == nil {
+			return map[string]any{"configured": false}, nil
+		}
+		p := tenant.Engine.LLM.GetDefault()
 		if p == nil {
 			return map[string]any{"configured": false}, nil
 		}
@@ -202,7 +157,11 @@ func RegisterRoutes(
 
 	// [3.1] List Models (Global)
 	server.Register("models.list", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
-		p := getProvider()
+		tenant := manager.TenantFromContext(ctx)
+		if tenant == nil {
+			return nil, errServer("mtp_error", "No tenant context found")
+		}
+		p := tenant.Engine.LLM.GetDefault()
 		if p == nil || !p.IsConfigured() {
 			return nil, ErrProviderNotConfig
 		}
@@ -393,7 +352,7 @@ func RegisterRoutes(
 			return nil, ErrIPCPayloadInvalid
 		}
 
-		provider := getProvider()
+		provider := tenant.Engine.LLM.GetDefault()
 		if provider == nil || !provider.IsConfigured() {
 			return nil, ErrProviderNotConfig
 		}
