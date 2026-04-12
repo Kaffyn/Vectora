@@ -11,7 +11,7 @@ import (
 	"github.com/Kaffyn/Vectora/core/llm"
 )
 
-// ProtocolMode define em qual modo Vectora está operando
+// ProtocolMode defines which protocol mode Vectora is operating in.
 type ProtocolMode string
 
 const (
@@ -20,8 +20,8 @@ const (
 	ModeIPC ProtocolMode = "ipc" // Inter-Process Communication (local)
 )
 
-// InitializeProtocol detecta e inicializa o protocolo apropriado.
-// Phase 7E: Wire-up dos protocolos ACP e MCP no startup do Core
+// InitializeProtocol detects and initializes the appropriate protocol.
+// Phase 7E: Protocol wire-up for ACP and MCP in Core startup.
 func InitializeProtocol(
 	ctx context.Context,
 	mode ProtocolMode,
@@ -33,7 +33,7 @@ func InitializeProtocol(
 	msgService *llm.MessageService,
 	logger *slog.Logger,
 ) error {
-	logger.Info("Inicializando protocolo",
+	logger.Info("Initializing protocol",
 		slog.String("mode", string(mode)),
 		slog.String("name", name),
 		slog.String("version", version),
@@ -47,17 +47,17 @@ func InitializeProtocol(
 		return initializeMCPServer(ctx, name, version, kvStore, vecStore, router, msgService, logger)
 
 	case ModeIPC:
-		logger.Info("Modo IPC - aguardando conexões em socket/pipe")
-		// IPC é configurado em cmd/core/main.go
+		logger.Info("IPC mode - waiting for connections on socket/pipe")
+		// IPC is configured in cmd/core/main.go
 		return nil
 
 	default:
-		logger.Warn("Modo desconhecido, usando IPC padrão", slog.String("mode", string(mode)))
+		logger.Warn("Unknown mode, using default IPC", slog.String("mode", string(mode)))
 		return nil
 	}
 }
 
-// initializeACPAgent inicia Vectora como agente ACP
+// initializeACPAgent starts Vectora as an ACP agent.
 func initializeACPAgent(
 	ctx context.Context,
 	name string,
@@ -68,7 +68,7 @@ func initializeACPAgent(
 	msgService *llm.MessageService,
 	logger *slog.Logger,
 ) error {
-	logger.Info("Inicializando como ACP Agent",
+	logger.Info("Initializing as ACP Agent",
 		slog.String("name", name),
 	)
 
@@ -85,7 +85,9 @@ func initializeACPAgent(
 	return acp.StartACPAgent(ctx, agent, logger)
 }
 
-// initializeMCPServer inicia Vectora como servidor MCP
+// initializeMCPServer starts Vectora as an MCP server via stdio (JSON-RPC 2.0).
+// Implements the Model Context Protocol over stdin/stdout to function as a sub-agent.
+// When invoked by Claude Code, Antigravity, or other MCP clients, communicates via stdio.
 func initializeMCPServer(
 	ctx context.Context,
 	name string,
@@ -96,11 +98,16 @@ func initializeMCPServer(
 	msgService *llm.MessageService,
 	logger *slog.Logger,
 ) error {
-	logger.Info("Inicializando como MCP Server",
+	logger.Info("Initializing as MCP Server",
 		slog.String("name", name),
+		slog.String("version", version),
+		slog.String("protocol", "stdio"),
 	)
 
-	_ = mcp.NewVectoraMCPServer(
+	// Create Engine wrapping all dependencies.
+	// Engine.Tools exposes all available tools via the registry.
+	// Engine.ExecuteTool() executes tools with Guardian validation.
+	eng := mcp.NewVectoraMCPServer(
 		name,
 		version,
 		kvStore,
@@ -110,20 +117,24 @@ func initializeMCPServer(
 		logger,
 	)
 
-	// TODO: Implementar comunicação MCP via stdio
-	// Por enquanto, apenas criar o servidor
-	logger.Debug("MCP Server criado com sucesso")
+	// Create StdioServer for JSON-RPC 2.0 communication via stdin/stdout.
+	// Implements full Model Context Protocol for sub-agent invocation.
+	stdioServer := mcp.NewStdioServerFromMCP(eng, kvStore, vecStore, router, logger)
 
-	// Aguardar indefinidamente
-	<-ctx.Done()
-	return ctx.Err()
+	logger.Info("MCP Server started via stdio",
+		slog.String("protocol_version", "2024-11-05"),
+	)
+	logger.Debug("Waiting for JSON-RPC 2.0 messages on stdin")
+
+	// Start MCP server and block until context is cancelled.
+	return stdioServer.Start(ctx)
 }
 
-// DetectProtocolMode detecta qual protocolo usar baseado em variáveis de ambiente
+// DetectProtocolMode detects which protocol to use based on environment variables.
 func DetectProtocolMode(logger *slog.Logger) ProtocolMode {
-	// Verificar variável de ambiente VECTORA_PROTOCOL
+	// Check VECTORA_PROTOCOL environment variable.
 	if protocol := os.Getenv("VECTORA_PROTOCOL"); protocol != "" {
-		logger.Info("Protocolo detectado via VECTORA_PROTOCOL", slog.String("protocol", protocol))
+		logger.Info("Protocol detected via VECTORA_PROTOCOL", slog.String("protocol", protocol))
 		switch protocol {
 		case "acp":
 			return ModeACP
@@ -134,19 +145,19 @@ func DetectProtocolMode(logger *slog.Logger) ProtocolMode {
 		}
 	}
 
-	// Verificar variáveis indicando invocação por ACP client
+	// Check environment variables indicating invocation by ACP client.
 	if os.Getenv("VECTORA_ACP_AGENT") != "" {
-		logger.Info("Detectado como ACP Agent")
+		logger.Info("Detected as ACP Agent")
 		return ModeACP
 	}
 
-	// Verificar variáveis indicando invocação como MCP server
+	// Check environment variables indicating invocation as MCP server.
 	if os.Getenv("VECTORA_MCP_SERVER") != "" {
-		logger.Info("Detectado como MCP Server")
+		logger.Info("Detected as MCP Server")
 		return ModeMCP
 	}
 
-	// Padrão: modo IPC para operação local
-	logger.Debug("Nenhum protocolo detectado, usando IPC padrão")
+	// Default: IPC mode for local operation.
+	logger.Debug("No protocol detected, using default IPC")
 	return ModeIPC
 }
