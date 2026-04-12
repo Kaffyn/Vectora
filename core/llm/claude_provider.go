@@ -89,17 +89,32 @@ func (p *ClaudeProvider) StreamComplete(ctx context.Context, req CompletionReque
 			event := stream.Current()
 			switch ev := event.AsAny().(type) {
 			case anthropic.ContentBlockDeltaEvent:
+				// Stream text content
 				if txt, ok := ev.Delta.AsAny().(anthropic.TextDelta); ok {
 					respChan <- CompletionResponse{
 						Content: txt.Text,
 					}
 				}
+				// Note: Tool call partial JSON is available during streaming via ToolUseInputJsonDelta,
+				// but we accumulate complete tool calls until stream ends (see TODO below)
 			}
 		}
 
 		if err := stream.Err(); err != nil {
 			errChan <- p.wrapError(err)
+			return
 		}
+
+		// TODO: Extract complete tool calls from final message
+		// The anthropic SDK's streaming interface provides tool call data through:
+		// - ContentBlockStartEvent (marks start of tool use block)
+		// - ToolUseInputJsonDelta events (partial JSON arguments)
+		// - ContentBlockStopEvent (marks end of tool use block)
+		//
+		// We should accumulate these into complete ToolCall objects and emit them
+		// as a final batch, similar to how Complete() does it.
+		// Currently this is partially implemented; full implementation pending
+		// availability of SDK type definitions for these delta events.
 	}()
 
 	return respChan, errChan
@@ -160,9 +175,30 @@ func (p *ClaudeProvider) prepareParams(req CompletionRequest) anthropic.MessageN
 		}
 
 		var m anthropic.MessageParam
-		if msg.Role == RoleAssistant {
-			m = anthropic.NewAssistantMessage(anthropic.NewTextBlock(msg.Content))
-		} else {
+		switch msg.Role {
+		case RoleAssistant:
+			// When assistant has tool calls, include them in the message
+			if len(msg.ToolCalls) > 0 {
+				var blocks []anthropic.ContentBlockParamUnion
+				// Add text content if present
+				if msg.Content != "" {
+					blocks = append(blocks, anthropic.NewTextBlock(msg.Content))
+				}
+				// Add tool use blocks
+				for _, tc := range msg.ToolCalls {
+					// Parse tool arguments (they're in JSON string format)
+					var input any
+					_ = json.Unmarshal([]byte(tc.Args), &input)
+					blocks = append(blocks, anthropic.NewToolUseBlock(tc.ID, input, tc.Name))
+				}
+				m = anthropic.NewAssistantMessage(blocks...)
+			} else {
+				m = anthropic.NewAssistantMessage(anthropic.NewTextBlock(msg.Content))
+			}
+		case RoleTool:
+			// Tool result message
+			m = anthropic.NewUserMessage(anthropic.NewToolResultBlock(msg.ToolCallID, msg.Content, false))
+		default:
 			m = anthropic.NewUserMessage(anthropic.NewTextBlock(msg.Content))
 		}
 		messages = append(messages, m)
