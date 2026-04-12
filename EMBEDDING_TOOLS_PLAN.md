@@ -9,16 +9,19 @@
 ## Contexto Estratégico
 
 ### Problema
+
 - Gemini CLI, VS Code Extension, Antigravity já têm suas próprias tools genéricas (read_file, write_file, grep_search, etc)
 - Expor as mesmas 10 tools via MCP é redundante
 - Não aproveita as forças únicas do Vectora (RAG, embedding, vector search)
 
 ### Solução
+
 - **ACP Mode (Vectora Standalone):** Usar as 10 tools genéricas já implementadas
 - **MCP Mode (Vectora Sub-Agent):** Expor apenas **tools de embedding/RAG únicas** que agregam valor
 - Tools de embedding invocam o **LLM do Vectora** para processar dados
 
 ### Fluxo MCP Embedding
+
 ```
 Gemini CLI (parent agent)
     ↓ (envia requisição JSON-RPC via MCP stdio)
@@ -41,6 +44,7 @@ Gemini CLI (usa resultado em raciocínio)
 **Propósito:** Converter texto em embedding usando o provider LLM do Vectora
 
 **Schema:**
+
 ```json
 {
   "name": "embed",
@@ -56,9 +60,9 @@ Gemini CLI (usa resultado em raciocínio)
         "type": "object",
         "description": "Optional metadata (source, filename, type, etc)",
         "properties": {
-          "source": {"type": "string"},
-          "filename": {"type": "string"},
-          "type": {"type": "string"}
+          "source": { "type": "string" },
+          "filename": { "type": "string" },
+          "type": { "type": "string" }
         }
       },
       "workspace_id": {
@@ -72,6 +76,7 @@ Gemini CLI (usa resultado em raciocínio)
 ```
 
 **Request Example:**
+
 ```json
 {
   "tool": "embed",
@@ -88,6 +93,7 @@ Gemini CLI (usa resultado em raciocínio)
 ```
 
 **Response:**
+
 ```json
 {
   "output": {
@@ -107,6 +113,7 @@ Gemini CLI (usa resultado em raciocínio)
 ```
 
 **Implementação:**
+
 ```go
 type EmbedTool struct {
     Router    *llm.Router
@@ -146,6 +153,7 @@ func (t *EmbedTool) Execute(ctx context.Context, args json.RawMessage) (*ToolRes
 ```
 
 **Guardian Checks:**
+
 - ✅ Metadata validation (no PII exposure)
 - ✅ Workspace isolation (tenant-specific storage)
 - ✅ Token limits (max 50k tokens per request)
@@ -157,6 +165,7 @@ func (t *EmbedTool) Execute(ctx context.Context, args json.RawMessage) (*ToolRes
 **Propósito:** Fazer busca semântica no banco de dados do Vectora (ChromemDB + BBolt)
 
 **Schema:**
+
 ```json
 {
   "name": "search_database",
@@ -187,6 +196,7 @@ func (t *EmbedTool) Execute(ctx context.Context, args json.RawMessage) (*ToolRes
 ```
 
 **Request Example:**
+
 ```json
 {
   "tool": "search_database",
@@ -203,6 +213,7 @@ func (t *EmbedTool) Execute(ctx context.Context, args json.RawMessage) (*ToolRes
 ```
 
 **Response:**
+
 ```json
 {
   "output": {
@@ -237,6 +248,7 @@ func (t *EmbedTool) Execute(ctx context.Context, args json.RawMessage) (*ToolRes
 ```
 
 **Implementação:**
+
 ```go
 type SearchDatabaseTool struct {
     VecStore db.VectorStore
@@ -276,6 +288,7 @@ func (t *SearchDatabaseTool) Execute(ctx context.Context, args json.RawMessage) 
 ```
 
 **Guardian Checks:**
+
 - ✅ Workspace isolation (tenant-specific queries)
 - ✅ Result limiting (top_k max 20)
 - ✅ Metadata filter validation
@@ -287,6 +300,7 @@ func (t *SearchDatabaseTool) Execute(ctx context.Context, args json.RawMessage) 
 **Propósito:** Buscar na web E imediatamente vetorizar resultados
 
 **Schema:**
+
 ```json
 {
   "name": "web_search_and_embed",
@@ -321,6 +335,7 @@ func (t *SearchDatabaseTool) Execute(ctx context.Context, args json.RawMessage) 
 ```
 
 **Request Example:**
+
 ```json
 {
   "tool": "web_search_and_embed",
@@ -335,6 +350,7 @@ func (t *SearchDatabaseTool) Execute(ctx context.Context, args json.RawMessage) 
 ```
 
 **Response:**
+
 ```json
 {
   "output": {
@@ -373,6 +389,7 @@ func (t *SearchDatabaseTool) Execute(ctx context.Context, args json.RawMessage) 
 ```
 
 **Implementação (Pseudocódigo):**
+
 ```go
 type WebSearchAndEmbedTool struct {
     Router      *llm.Router
@@ -418,6 +435,7 @@ func (t *WebSearchAndEmbedTool) Execute(ctx context.Context, args json.RawMessag
 ```
 
 **Guardian Checks:**
+
 - ✅ URL whitelist/blacklist (no scraping private sites)
 - ✅ Rate limiting (max 20 results)
 - ✅ Content validation (no malicious scripts)
@@ -430,6 +448,7 @@ func (t *WebSearchAndEmbedTool) Execute(ctx context.Context, args json.RawMessag
 **Propósito:** Buscar uma URL, navegar links INTERNOS se necessário, vetorizar tudo end-to-end
 
 **Schema:**
+
 ```json
 {
   "name": "web_fetch_and_embed",
@@ -468,6 +487,7 @@ func (t *WebSearchAndEmbedTool) Execute(ctx context.Context, args json.RawMessag
 ```
 
 **Request Example:**
+
 ```json
 {
   "tool": "web_fetch_and_embed",
@@ -483,6 +503,7 @@ func (t *WebSearchAndEmbedTool) Execute(ctx context.Context, args json.RawMessag
 ```
 
 **Response:**
+
 ```json
 {
   "output": {
@@ -525,6 +546,7 @@ func (t *WebSearchAndEmbedTool) Execute(ctx context.Context, args json.RawMessag
 ```
 
 **Implementação (Pseudocódigo):**
+
 ```go
 type WebFetchAndEmbedTool struct {
     WebFetcher *web.Fetcher
@@ -556,6 +578,7 @@ func (t *WebFetchAndEmbedTool) Execute(ctx context.Context, args json.RawMessage
 ```
 
 **Guardian Checks:**
+
 - ✅ robots.txt compliance
 - ✅ sitemap.xml respect
 - ✅ Rate limiting (max 50 pages)
@@ -571,6 +594,7 @@ func (t *WebFetchAndEmbedTool) Execute(ctx context.Context, args json.RawMessage
 **Propósito:** Criar ou atualizar um plano de implementação usando embedding para maior precisão contextual
 
 **Schema:**
+
 ```json
 {
   "name": "plan_mode",
@@ -594,7 +618,7 @@ func (t *WebFetchAndEmbedTool) Execute(ctx context.Context, args json.RawMessage
       "context_queries": {
         "type": "array",
         "description": "Search queries for context gathering",
-        "items": {"type": "string"}
+        "items": { "type": "string" }
       },
       "plan_id": {
         "type": "string",
@@ -611,6 +635,7 @@ func (t *WebFetchAndEmbedTool) Execute(ctx context.Context, args json.RawMessage
 ```
 
 **Request Example:**
+
 ```json
 {
   "tool": "plan_mode",
@@ -629,6 +654,7 @@ func (t *WebFetchAndEmbedTool) Execute(ctx context.Context, args json.RawMessage
 ```
 
 **Response:**
+
 ```json
 {
   "output": {
@@ -650,20 +676,13 @@ func (t *WebFetchAndEmbedTool) Execute(ctx context.Context, args json.RawMessage
       {
         "phase": 2,
         "title": "Implement Resolvers",
-        "tasks": [
-          "Implement search_database resolver",
-          "Implement embed resolver",
-          "Add error handling"
-        ],
+        "tasks": ["Implement search_database resolver", "Implement embed resolver", "Add error handling"],
         "estimated_hours": 12,
         "dependencies": [1]
       }
     ],
     "context_gathered": 3,
-    "relevant_chunks": [
-      "chunk-graphql-best-practices",
-      "chunk-vector-search-patterns"
-    ],
+    "relevant_chunks": ["chunk-graphql-best-practices", "chunk-vector-search-patterns"],
     "created_at": "2026-04-11T15:30:00Z"
   },
   "isError": false
@@ -671,6 +690,7 @@ func (t *WebFetchAndEmbedTool) Execute(ctx context.Context, args json.RawMessage
 ```
 
 **Implementação:**
+
 ```go
 type PlanModeTool struct {
     Router      *llm.Router
@@ -720,6 +740,7 @@ func (t *PlanModeTool) Execute(ctx context.Context, args json.RawMessage) (*Tool
 **Propósito:** Refatorar código usando similiaridade semântica para encontrar padrões
 
 **Schema:**
+
 ```json
 {
   "name": "refactor_with_context",
@@ -753,6 +774,7 @@ func (t *PlanModeTool) Execute(ctx context.Context, args json.RawMessage) (*Tool
 ```
 
 **Request Example:**
+
 ```json
 {
   "tool": "refactor_with_context",
@@ -767,6 +789,7 @@ func (t *PlanModeTool) Execute(ctx context.Context, args json.RawMessage) (*Tool
 ```
 
 **Response:**
+
 ```json
 {
   "output": {
@@ -800,6 +823,7 @@ func (t *PlanModeTool) Execute(ctx context.Context, args json.RawMessage) (*Tool
 **Propósito:** Analisar padrões de código em toda codebase usando embedding
 
 **Schema:**
+
 ```json
 {
   "name": "analyze_code_patterns",
@@ -830,6 +854,7 @@ func (t *PlanModeTool) Execute(ctx context.Context, args json.RawMessage) (*Tool
 ```
 
 **Response:**
+
 ```json
 {
   "output": {
@@ -857,6 +882,7 @@ func (t *PlanModeTool) Execute(ctx context.Context, args json.RawMessage) (*Tool
 **Propósito:** Construir um grafo de conhecimento a partir dos embeddings armazenados
 
 **Schema:**
+
 ```json
 {
   "name": "knowledge_graph_analysis",
@@ -882,17 +908,16 @@ func (t *PlanModeTool) Execute(ctx context.Context, args json.RawMessage) (*Tool
 ```
 
 **Response:**
+
 ```json
 {
   "output": {
     "topic": "Vector Databases",
     "nodes": [
-      {"id": "chromemdb", "label": "ChromemDB", "type": "technology"},
-      {"id": "embedding", "label": "Embeddings", "type": "concept"}
+      { "id": "chromemdb", "label": "ChromemDB", "type": "technology" },
+      { "id": "embedding", "label": "Embeddings", "type": "concept" }
     ],
-    "edges": [
-      {"from": "chromemdb", "to": "embedding", "relation": "uses"}
-    ],
+    "edges": [{ "from": "chromemdb", "to": "embedding", "relation": "uses" }],
     "graph_json": "..."
   }
 }
@@ -905,6 +930,7 @@ func (t *PlanModeTool) Execute(ctx context.Context, args json.RawMessage) (*Tool
 **Propósito:** Analisar quais partes da codebase têm documentação
 
 **Schema:**
+
 ```json
 {
   "name": "doc_coverage_analysis",
@@ -938,40 +964,44 @@ func (t *PlanModeTool) Execute(ctx context.Context, args json.RawMessage) (*Tool
 
 ## Resumo: 11 Embedding Tools Propostas
 
-| # | Tool | Categoria | Propósito | Impacto |
-|---|------|-----------|----------|--------|
-| 1 | `embed` | Core | Converter texto em embedding | Alto |
-| 2 | `search_database` | Core | Buscar semântica no banco | Alto |
-| 3 | `web_search_and_embed` | Core | Web search + vetorização end-to-end | Alto |
-| 4 | `web_fetch_and_embed` | Core | Navegar links + vetorização | Alto |
-| 5 | `plan_mode` | Planning | Criar planos com contexto | Médio |
-| 6 | `refactor_with_context` | Planning | Refatorar com padrões | Médio |
-| 7 | `analyze_code_patterns` | Analysis | Encontrar antipatterns | Médio |
-| 8 | `knowledge_graph_analysis` | Analysis | Construir grafo de conhecimento | Médio |
-| 9 | `doc_coverage_analysis` | Analysis | Cobertura de docs | Baixo |
-| 10 | `test_generation` | Quality | Gerar testes | Médio |
-| 11 | `bug_pattern_detection` | Quality | Detectar bugs | Médio |
+| #   | Tool                       | Categoria | Propósito                           | Impacto |
+| --- | -------------------------- | --------- | ----------------------------------- | ------- |
+| 1   | `embed`                    | Core      | Converter texto em embedding        | Alto    |
+| 2   | `search_database`          | Core      | Buscar semântica no banco           | Alto    |
+| 3   | `web_search_and_embed`     | Core      | Web search + vetorização end-to-end | Alto    |
+| 4   | `web_fetch_and_embed`      | Core      | Navegar links + vetorização         | Alto    |
+| 5   | `plan_mode`                | Planning  | Criar planos com contexto           | Médio   |
+| 6   | `refactor_with_context`    | Planning  | Refatorar com padrões               | Médio   |
+| 7   | `analyze_code_patterns`    | Analysis  | Encontrar antipatterns              | Médio   |
+| 8   | `knowledge_graph_analysis` | Analysis  | Construir grafo de conhecimento     | Médio   |
+| 9   | `doc_coverage_analysis`    | Analysis  | Cobertura de docs                   | Baixo   |
+| 10  | `test_generation`          | Quality   | Gerar testes                        | Médio   |
+| 11  | `bug_pattern_detection`    | Quality   | Detectar bugs                       | Médio   |
 
 ---
 
 ## Fase de Implementação
 
 ### Phase 4G: Core Embedding Tools (2026-04-15)
+
 - [ ] `embed` - embedding básico
 - [ ] `search_database` - busca vetorial
 - [ ] `web_search_and_embed` - busca web integrada
 - [ ] `web_fetch_and_embed` - crawling com embedding
 
 ### Phase 4H: Planning Tools (2026-04-18)
+
 - [ ] `plan_mode` - criação de planos
 - [ ] `refactor_with_context` - refatoração
 
 ### Phase 4I: Analysis Tools (2026-04-22)
+
 - [ ] `analyze_code_patterns`
 - [ ] `knowledge_graph_analysis`
 - [ ] `doc_coverage_analysis`
 
 ### Phase 4J: Quality Tools (2026-04-25)
+
 - [ ] `test_generation`
 - [ ] `bug_pattern_detection`
 
@@ -997,11 +1027,11 @@ func RegisterEmbeddingTools(mcpServer *mcp.StdioServer, engine *engine.Engine) {
 
 ## Diferenças Estratégicas
 
-| Scenario | Tools | Transporte |
-|----------|-------|-----------|
-| **Vectora Standalone (ACP Mode)** | 10 tools genéricas (read_file, write_file, etc) | stdio (ACP SDK) |
-| **Vectora como MCP (Sub-Agent)** | 11 embedding tools únicos | stdio (MCP JSON-RPC) |
-| **Internal Comm (CLI ↔ Core)** | 14 métodos IPC (workspace.query, chat.*, etc) | named pipes |
+| Scenario                          | Tools                                           | Transporte           |
+| --------------------------------- | ----------------------------------------------- | -------------------- |
+| **Vectora Standalone (ACP Mode)** | 10 tools genéricas (read_file, write_file, etc) | stdio (ACP SDK)      |
+| **Vectora como MCP (Sub-Agent)**  | 11 embedding tools únicos                       | stdio (MCP JSON-RPC) |
+| **Internal Comm (CLI ↔ Core)**    | 14 métodos IPC (workspace.query, chat.\*, etc)  | named pipes          |
 
 **Resultado:** Gemini CLI não precisa expor tools duplicadas, só aproveita as únicas capacidades do Vectora (RAG + embedding).
 

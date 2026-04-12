@@ -519,6 +519,7 @@ return {
 **Localização:** `core/tools/registry.go` → 10 tools registradas
 
 As tools são expostas via:
+
 - **ACP:** Invocadas através do `session/prompt` com tool calls
 - **MCP:** Listadas em `tools/list` e executadas em `tools/call`
 - **IPC:** Executadas via `ExecuteTool()` no Engine
@@ -526,6 +527,7 @@ As tools são expostas via:
 ### 9.1 File Operations (4 tools)
 
 #### `read_file` — Ler arquivo
+
 ```json
 {
   "name": "read_file",
@@ -541,6 +543,7 @@ As tools são expostas via:
 ```
 
 **Resposta:**
+
 ```json
 {
   "output": "<conteúdo do arquivo>",
@@ -557,6 +560,7 @@ As tools são expostas via:
 ---
 
 #### `write_file` — Criar/sobrescrever arquivo
+
 ```json
 {
   "name": "write_file",
@@ -573,6 +577,7 @@ As tools são expostas via:
 ```
 
 **Resposta:**
+
 ```json
 {
   "output": "File written successfully",
@@ -586,6 +591,7 @@ As tools são expostas via:
 ---
 
 #### `read_folder` — Listar diretório
+
 ```json
 {
   "name": "read_folder",
@@ -601,6 +607,7 @@ As tools são expostas via:
 ```
 
 **Resposta:**
+
 ```json
 {
   "output": "Contents of /path/to/folder:\n- file1.go\n- subdir/\n- file2.md",
@@ -613,6 +620,7 @@ As tools são expostas via:
 ---
 
 #### `edit` — Editar trecho de arquivo
+
 ```json
 {
   "name": "edit",
@@ -630,6 +638,7 @@ As tools são expostas via:
 ```
 
 **Resposta:**
+
 ```json
 {
   "output": "Updated successfully",
@@ -645,6 +654,7 @@ As tools são expostas via:
 ### 9.2 Search & Discovery (2 tools)
 
 #### `find_files` — Encontrar arquivos
+
 ```json
 {
   "name": "find_files",
@@ -661,6 +671,7 @@ As tools são expostas via:
 ```
 
 **Resposta:**
+
 ```json
 {
   "output": "Found 5 matches:\n- /src/main.go\n- /src/utils.go\n...",
@@ -671,6 +682,7 @@ As tools são expostas via:
 ---
 
 #### `grep_search` — Buscar conteúdo com regex
+
 ```json
 {
   "name": "grep_search",
@@ -688,6 +700,7 @@ As tools são expostas via:
 ```
 
 **Resposta:**
+
 ```json
 {
   "output": "Found 3 matches:\n/src/api.go:12: const API_URL = \"...\"\n...",
@@ -700,6 +713,7 @@ As tools são expostas via:
 ### 9.3 Execution (1 tool)
 
 #### `run_shell_command` — Executar comando shell
+
 ```json
 {
   "name": "run_shell_command",
@@ -716,6 +730,7 @@ As tools são expostas via:
 ```
 
 **Resposta:**
+
 ```json
 {
   "output": "go version go1.21.0 linux/amd64",
@@ -731,6 +746,7 @@ As tools são expostas via:
 ### 9.4 Memory & Knowledge (1 tool)
 
 #### `save_memory` — Armazenar na memória persistente
+
 ```json
 {
   "name": "save_memory",
@@ -747,6 +763,7 @@ As tools são expostas via:
 ```
 
 **Resposta:**
+
 ```json
 {
   "output": "Memory saved: 'project_name' = 'Vectora'",
@@ -761,6 +778,7 @@ As tools são expostas via:
 ### 9.5 Web & Internet (2 tools)
 
 #### `google_search` — Buscar na web (DuckDuckGo)
+
 ```json
 {
   "name": "google_search",
@@ -776,6 +794,7 @@ As tools são expostas via:
 ```
 
 **Resposta:**
+
 ```json
 {
   "output": "Top results for 'golang embedding':\n1. golang.org/pkg/embedding\n2. ...",
@@ -786,6 +805,7 @@ As tools são expostas via:
 ---
 
 #### `web_fetch` — Buscar conteúdo de URL
+
 ```json
 {
   "name": "web_fetch",
@@ -801,6 +821,7 @@ As tools são expostas via:
 ```
 
 **Resposta:**
+
 ```json
 {
   "output": "<HTML content parsed as text>...",
@@ -832,12 +853,12 @@ Embedding é feito via:
 
 ## 10. Resumo: Tools vs Métodos
 
-| Tipo | Localização | Transporte | Exemplo |
-|------|-------------|-----------|---------|
-| **Tools** (10) | `core/tools/registry.go` | ACP, MCP, IPC | `read_file`, `run_shell_command` |
-| **Métodos IPC** (14) | `core/api/ipc/router.go` | Named Pipe/Socket | `workspace.query`, `chat.list` |
-| **Métodos ACP** (12+) | Coder ACP SDK | Stdio | `session/prompt`, `fs/read` |
-| **Métodos MCP** (3) | `core/api/mcp/stdio.go` | Stdio | `initialize`, `tools/call` |
+| Tipo                  | Localização              | Transporte        | Exemplo                          |
+| --------------------- | ------------------------ | ----------------- | -------------------------------- |
+| **Tools** (10)        | `core/tools/registry.go` | ACP, MCP, IPC     | `read_file`, `run_shell_command` |
+| **Métodos IPC** (14)  | `core/api/ipc/router.go` | Named Pipe/Socket | `workspace.query`, `chat.list`   |
+| **Métodos ACP** (12+) | Coder ACP SDK            | Stdio             | `session/prompt`, `fs/read`      |
+| **Métodos MCP** (3)   | `core/api/mcp/stdio.go`  | Stdio             | `initialize`, `tools/call`       |
 
 ---
 

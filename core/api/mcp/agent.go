@@ -11,16 +11,18 @@ import (
 // VectoraMCPServer implementa o Vectora como um servidor MCP (Model Context Protocol).
 // Quando invocado como sub-agente, oferece ferramentas e contexto via MCP.
 //
+// Phase 4G: Core Embedding Tools para MCP exposure
 // Phase 7D: MCP Server em Core para funcionar como sub-agent
 // Exemplo: quando Claude Code invoca Vectora Core como sub-agent
 type VectoraMCPServer struct {
-	name       string
-	version    string
-	kvStore    db.KVStore
-	vecStore   db.VectorStore
-	llmRouter  *llm.Router
-	msgService *llm.MessageService
-	logger     *slog.Logger
+	name             string
+	version          string
+	kvStore          db.KVStore
+	vecStore         db.VectorStore
+	llmRouter        *llm.Router
+	msgService       *llm.MessageService
+	logger           *slog.Logger
+	embeddingTools   map[string]interface{} // Phase 4G: Registered embedding tools
 }
 
 // NewVectoraMCPServer cria um novo servidor MCP do Vectora.
