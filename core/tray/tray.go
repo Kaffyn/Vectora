@@ -54,26 +54,6 @@ var AllProviders = []ProviderInfo{
 		},
 	},
 	{
-		ID:      "openrouter",
-		I18nKey: "tray_prov_openrouter",
-		GetKey: func(cfg *infra.Config) string {
-			return cfg.OpenRouterAPIKey
-		},
-		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
-			return llm.NewGatewayProvider(key, "https://openrouter.ai/api/v1", "openrouter"), nil
-		},
-	},
-	{
-		ID:      "anannas",
-		I18nKey: "tray_prov_anannas",
-		GetKey: func(cfg *infra.Config) string {
-			return cfg.AnannasAPIKey
-		},
-		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
-			return llm.NewGatewayProvider(key, "https://api.anannas.ai/v1", "anannas"), nil
-		},
-	},
-	{
 		ID:      "deepseek",
 		I18nKey: "tray_prov_deepseek",
 		GetKey: func(cfg *infra.Config) string {
@@ -131,14 +111,51 @@ var AllProviders = []ProviderInfo{
 	},
 }
 
+// GatewayInfo describes a routing gateway (openrouter, anannas, none)
+type GatewayInfo struct {
+	ID    string
+	Label string
+	GetKey func(*infra.Config) string
+	Setup  func(context.Context, string, *infra.Config) (llm.Provider, error)
+}
+
+var AllGateways = []GatewayInfo{
+	{
+		ID:    "none",
+		Label: "Nenhum (direto)",
+		GetKey: func(cfg *infra.Config) string { return "" },
+		Setup:  nil,
+	},
+	{
+		ID:    "openrouter",
+		Label: "OpenRouter",
+		GetKey: func(cfg *infra.Config) string { return cfg.OpenRouterAPIKey },
+		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
+			return llm.NewGatewayProvider(key, "https://openrouter.ai/api/v1", "openrouter"), nil
+		},
+	},
+	{
+		ID:    "anannas",
+		Label: "Anannas",
+		GetKey: func(cfg *infra.Config) string { return cfg.AnannasAPIKey },
+		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
+			return llm.NewGatewayProvider(key, "https://api.anannas.ai/v1", "anannas"), nil
+		},
+	},
+}
+
 var (
 	mStatus       *systray.MenuItem
+	mGateway      *systray.MenuItem
+	gatewayItems  map[string]*systray.MenuItem // Gateway menu items
 	mProv         *systray.MenuItem
 	providerItems map[string]*systray.MenuItem // Dynamic provider menu items
 	mModel        *systray.MenuItem
 	modelItems    map[string]*systray.MenuItem // Dynamic model menu items
 	mLang         *systray.MenuItem
 	mQuit         *systray.MenuItem
+
+	ActiveGatewayID string
 
 	mEn *systray.MenuItem
 	mPt *systray.MenuItem
@@ -222,6 +239,19 @@ func onReady() {
 	mStatus = systray.AddMenuItem("", "")
 	mStatus.Disable()
 	systray.AddSeparator()
+
+	// Gateway selection (openrouter, anannas, none)
+	mGateway = systray.AddMenuItem("Gateway", "")
+	gatewayItems = make(map[string]*systray.MenuItem)
+	cfg0 := infra.LoadConfig()
+	ActiveGatewayID = cfg0.ActiveGateway
+	if ActiveGatewayID == "" {
+		ActiveGatewayID = "none"
+	}
+	for _, gw := range AllGateways {
+		item := mGateway.AddSubMenuItemCheckbox(gw.Label, "", gw.ID == ActiveGatewayID)
+		gatewayItems[gw.ID] = item
+	}
 
 	// AI Provider selection
 	mProv = systray.AddMenuItem("", "")
@@ -322,9 +352,39 @@ func onReady() {
 				infra.SavePreferences(p)
 				updateLabels()
 
-			// Dynamic provider selection
+			// Dynamic gateway selection
 			default:
 				cfg := infra.LoadConfig()
+				for id, item := range gatewayItems {
+					select {
+					case <-item.ClickedCh:
+						ActiveGatewayID = id
+						// Persist gateway choice
+						envVal := id
+						if id == "none" {
+							envVal = ""
+						}
+						// Save via env map (reuse godotenv path from infra)
+						saveGateway(envVal, cfg)
+						// If gateway selected, set active provider to gateway
+						for _, gw := range AllGateways {
+							if gw.ID == id && gw.Setup != nil {
+								key := gw.GetKey(cfg)
+								if key != "" {
+									p, err := gw.Setup(context.Background(), key, cfg)
+									if err == nil {
+										ActiveProvider = p
+										ActiveProviderID = id
+									}
+								}
+							}
+						}
+						updateLabels()
+					default:
+					}
+				}
+
+				// Dynamic provider selection
 				for id, item := range providerItems {
 					select {
 					case <-item.ClickedCh:
@@ -382,10 +442,24 @@ func setProvider(prov ProviderInfo, secret string, cfg *infra.Config) {
 	ActiveProvider = p
 }
 
+func saveGateway(value string, cfg *infra.Config) {
+	cfg.ActiveGateway = value
+	_ = infra.SaveConfig(cfg)
+}
+
 func updateLabels() {
 	mStatus.SetTitle(i18n.T("tray_status"))
+	mGateway.SetTitle("Gateway")
 	mProv.SetTitle(i18n.T("tray_provider"))
 	mModel.SetTitle("Modelo")
+
+	for id, item := range gatewayItems {
+		if id == ActiveGatewayID {
+			item.Check()
+		} else {
+			item.Uncheck()
+		}
+	}
 
 	for id, item := range providerItems {
 		if id == ActiveProviderID {
