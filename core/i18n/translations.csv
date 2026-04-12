@@ -1,7 +1,16 @@
 key,en,pt,es,fr
 tray_status,Status: Running,Status: Rodando,Estado: En ejecución,Statut : En cours
 tray_provider,AI Provider,Provedor de IA,Proveedor de IA,Fournisseur d'IA
-tray_prov_gemini,Gemini (Cloud),Gemini (Nuvem),Gemini (Nube),Gemini (Cloud)
-tray_prov_claude,Claude (Cloud),Claude (Nuvem),Claude (Nube),Claude (Cloud)
+tray_prov_gemini,Google Gemini,Google Gemini,Google Gemini,Google Gemini
+tray_prov_claude,Anthropic Claude,Anthropic Claude,Anthropic Claude,Anthropic Claude
+tray_prov_openai,OpenAI (GPT-5.4),OpenAI (GPT-5.4),OpenAI (GPT-5.4),OpenAI (GPT-5.4)
+tray_prov_qwen,Alibaba Qwen,Alibaba Qwen,Alibaba Qwen,Alibaba Qwen
+tray_prov_voyage,Voyage AI,Voyage AI,Voyage AI,Voyage AI
+tray_prov_openrouter,OpenRouter (Gateway),OpenRouter (Gateway),OpenRouter (Gateway),OpenRouter (Gateway)
+tray_prov_anannas,Anannas (Gateway),Anannas (Gateway),Anannas (Gateway),Anannas (Gateway)
+tray_prov_deepseek,DeepSeek V3,DeepSeek V3,DeepSeek V3,DeepSeek V3
+tray_prov_mistral,Mistral AI,Mistral AI,Mistral AI,Mistral AI
+tray_prov_grok,xAI Grok,xAI Grok,xAI Grok,xAI Grok
+tray_prov_zhipu,Zhipu GLM-5,Zhipu GLM-5,Zhipu GLM-5,Zhipu GLM-5
 tray_language,Language,Idioma,Idioma,Langue
 tray_quit,Quit Vectora,Encerrar Vectora,Cerrar Vectora,Quitter Vectora

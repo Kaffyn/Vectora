@@ -12,13 +12,131 @@ import (
 	"github.com/getlantern/systray"
 )
 
+// ProviderInfo describes an LLM provider available in the tray menu
+type ProviderInfo struct {
+	ID       string // Internal identifier (gemini, claude, openai, etc.)
+	Label    string // Display label (from i18n key)
+	I18nKey  string // i18n translation key
+	GetKey   func(*infra.Config) string // Function to get API key from config
+	Setup    func(context.Context, string, *infra.Config) (llm.Provider, error) // Constructor
+}
+
+// AllProviders defines all 10+ LLM families supported by Vectora (AGENTS.md April 2026)
+var AllProviders = []ProviderInfo{
+	{
+		ID:      "gemini",
+		I18nKey: "tray_prov_gemini",
+		GetKey: func(cfg *infra.Config) string {
+			return cfg.GeminiAPIKey
+		},
+		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
+			return llm.NewGeminiProvider(ctx, key)
+		},
+	},
+	{
+		ID:      "claude",
+		I18nKey: "tray_prov_claude",
+		GetKey: func(cfg *infra.Config) string {
+			return cfg.ClaudeAPIKey
+		},
+		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
+			return llm.NewClaudeProvider(ctx, key)
+		},
+	},
+	{
+		ID:      "openai",
+		I18nKey: "tray_prov_openai",
+		GetKey: func(cfg *infra.Config) string {
+			return cfg.OpenAIAPIKey
+		},
+		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
+			return llm.NewOpenAIProvider(key, cfg.OpenAIBaseURL, "openai"), nil
+		},
+	},
+	{
+		ID:      "openrouter",
+		I18nKey: "tray_prov_openrouter",
+		GetKey: func(cfg *infra.Config) string {
+			return cfg.OpenRouterAPIKey
+		},
+		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
+			return llm.NewGatewayProvider(key, "https://openrouter.ai/api/v1", "openrouter"), nil
+		},
+	},
+	{
+		ID:      "anannas",
+		I18nKey: "tray_prov_anannas",
+		GetKey: func(cfg *infra.Config) string {
+			return cfg.AnannasAPIKey
+		},
+		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
+			return llm.NewGatewayProvider(key, "https://api.anannas.ai/v1", "anannas"), nil
+		},
+	},
+	{
+		ID:      "deepseek",
+		I18nKey: "tray_prov_deepseek",
+		GetKey: func(cfg *infra.Config) string {
+			return cfg.DeepSeekAPIKey
+		},
+		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
+			baseURL := cfg.DeepSeekBaseURL
+			if baseURL == "" {
+				baseURL = "https://api.deepseek.com/v1"
+			}
+			return llm.NewOpenAIProvider(key, baseURL, "deepseek"), nil
+		},
+	},
+	{
+		ID:      "mistral",
+		I18nKey: "tray_prov_mistral",
+		GetKey: func(cfg *infra.Config) string {
+			return cfg.MistralAPIKey
+		},
+		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
+			baseURL := cfg.MistralBaseURL
+			if baseURL == "" {
+				baseURL = "https://api.mistral.ai/v1"
+			}
+			return llm.NewOpenAIProvider(key, baseURL, "mistral"), nil
+		},
+	},
+	{
+		ID:      "grok",
+		I18nKey: "tray_prov_grok",
+		GetKey: func(cfg *infra.Config) string {
+			return cfg.GrokAPIKey
+		},
+		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
+			baseURL := cfg.GrokBaseURL
+			if baseURL == "" {
+				baseURL = "https://api.x.ai/v1"
+			}
+			return llm.NewOpenAIProvider(key, baseURL, "grok"), nil
+		},
+	},
+	{
+		ID:      "zhipu",
+		I18nKey: "tray_prov_zhipu",
+		GetKey: func(cfg *infra.Config) string {
+			return cfg.ZhipuAPIKey
+		},
+		Setup: func(ctx context.Context, key string, cfg *infra.Config) (llm.Provider, error) {
+			baseURL := cfg.ZhipuBaseURL
+			if baseURL == "" {
+				baseURL = "https://open.bigmodel.cn/api/paas/v4"
+			}
+			return llm.NewOpenAIProvider(key, baseURL, "zhipu"), nil
+		},
+	},
+}
+
 var (
-	mStatus *systray.MenuItem
-	mProv   *systray.MenuItem
-	mGemini *systray.MenuItem
-	mClaude *systray.MenuItem
-	mLang   *systray.MenuItem
-	mQuit   *systray.MenuItem
+	mStatus        *systray.MenuItem
+	mProv          *systray.MenuItem
+	providerItems  map[string]*systray.MenuItem // Dynamic provider menu items
+	mLang          *systray.MenuItem
+	mQuit          *systray.MenuItem
 
 	mEn *systray.MenuItem
 	mPt *systray.MenuItem
@@ -26,10 +144,11 @@ var (
 	mFr *systray.MenuItem
 
 	ActiveProvider llm.Provider
+	ActiveProviderID string
 )
 
 // Setup configures and launches the systray.
-// MVP: minimal tray — status, provider switch (Gemini/Claude), language, quit.
+// Supports all 10+ LLM families from AGENTS.md (April 2026).
 func Setup() {
 	systray.Run(onReady, onExit)
 }
@@ -44,10 +163,14 @@ func onReady() {
 	mStatus.Disable()
 	systray.AddSeparator()
 
-	// AI Provider selection (Gemini / Claude)
+	// AI Provider selection (dynamic list of all available providers)
 	mProv = systray.AddMenuItem("", "")
-	mGemini = mProv.AddSubMenuItemCheckbox("", "", false)
-	mClaude = mProv.AddSubMenuItemCheckbox("", "", false)
+	providerItems = make(map[string]*systray.MenuItem)
+
+	for _, prov := range AllProviders {
+		item := mProv.AddSubMenuItemCheckbox("", "", false)
+		providerItems[prov.ID] = item
+	}
 	systray.AddSeparator()
 
 	// Language selection
@@ -75,31 +198,45 @@ func onReady() {
 
 	// Initial config check for default provider
 	cfg := infra.LoadConfig()
-	if cfg.GeminiAPIKey != "" {
-		mGemini.Check()
-		setProvider("gemini", cfg.GeminiAPIKey)
-	} else if cfg.ClaudeAPIKey != "" {
-		mClaude.Check()
-		setProvider("claude", cfg.ClaudeAPIKey)
-	} else {
-		// Default to Gemini — user must configure API key
-		mGemini.Check()
+	activeSet := false
+
+	// Try to use DEFAULT_PROVIDER if set
+	if cfg.DefaultProvider != "" {
+		for _, prov := range AllProviders {
+			if prov.ID == cfg.DefaultProvider {
+				key := prov.GetKey(cfg)
+				if key != "" {
+					providerItems[prov.ID].Check()
+					ActiveProviderID = prov.ID
+					setProvider(prov, key, cfg)
+					activeSet = true
+					break
+				}
+			}
+		}
+	}
+
+	// If no default provider, find first available
+	if !activeSet {
+		for _, prov := range AllProviders {
+			key := prov.GetKey(cfg)
+			if key != "" {
+				providerItems[prov.ID].Check()
+				ActiveProviderID = prov.ID
+				setProvider(prov, key, cfg)
+				activeSet = true
+				break
+			}
+		}
 	}
 
 	// Event loop
 	go func() {
 		for {
 			select {
-			case <-mGemini.ClickedCh:
-				cfg := infra.LoadConfig()
-				mGemini.Check()
-				mClaude.Uncheck()
-				setProvider("gemini", cfg.GeminiAPIKey)
-			case <-mClaude.ClickedCh:
-				cfg := infra.LoadConfig()
-				mClaude.Check()
-				mGemini.Uncheck()
-				setProvider("claude", cfg.ClaudeAPIKey)
+			// Provider selection
+			case <-mQuit.ClickedCh:
+				systray.Quit()
 			case <-mEn.ClickedCh:
 				mEn.Check()
 				mPt.Uncheck()
@@ -128,40 +265,57 @@ func onReady() {
 				mEs.Uncheck()
 				i18n.SetLanguage("fr")
 				updateLabels()
-			case <-mQuit.ClickedCh:
-				systray.Quit()
+
+			// Dynamic provider selection
+			default:
+				cfg := infra.LoadConfig()
+				for _, prov := range AllProviders {
+					select {
+					case <-providerItems[prov.ID].ClickedCh:
+						// Uncheck all others, check this one
+						for _, p := range AllProviders {
+							if p.ID == prov.ID {
+								providerItems[p.ID].Check()
+							} else {
+								providerItems[p.ID].Uncheck()
+							}
+						}
+						ActiveProviderID = prov.ID
+						key := prov.GetKey(cfg)
+						setProvider(prov, key, cfg)
+					default:
+					}
+				}
 			}
 		}
 	}()
 }
 
-func setProvider(id, secret string) {
-	if id == "gemini" {
-		ctx := context.Background()
-		prov, err := llm.NewGeminiProvider(ctx, secret)
-		if err != nil {
-			infra.NotifyOS("Vectora", "Gemini API key invalid or missing.")
-			return
-		}
-		ActiveProvider = prov
-		infra.NotifyOS("Vectora", "Gemini provider activated.")
-	} else if id == "claude" {
-		ctx := context.Background()
-		prov, err := llm.NewClaudeProvider(ctx, secret)
-		if err != nil {
-			infra.NotifyOS("Vectora", "Claude API key invalid or missing.")
-			return
-		}
-		ActiveProvider = prov
-		infra.NotifyOS("Vectora", "Claude provider activated.")
+func setProvider(prov ProviderInfo, secret string, cfg *infra.Config) {
+	if secret == "" {
+		infra.NotifyOS("Vectora", "API key for "+prov.I18nKey+" not configured.")
+		return
 	}
+
+	ctx := context.Background()
+	p, err := prov.Setup(ctx, secret, cfg)
+	if err != nil {
+		infra.NotifyOS("Vectora", "Failed to initialize "+prov.ID+" provider: "+err.Error())
+		return
+	}
+
+	ActiveProvider = p
+	infra.NotifyOS("Vectora", prov.ID+" provider activated.")
 }
 
 func updateLabels() {
 	mStatus.SetTitle(i18n.T("tray_status"))
 	mProv.SetTitle(i18n.T("tray_provider"))
-	mGemini.SetTitle(i18n.T("tray_prov_gemini"))
-	mClaude.SetTitle(i18n.T("tray_prov_claude"))
+
+	for _, prov := range AllProviders {
+		providerItems[prov.ID].SetTitle(i18n.T(prov.I18nKey))
+	}
+
 	mLang.SetTitle(i18n.T("tray_language"))
 	mQuit.SetTitle(i18n.T("tray_quit"))
 }
