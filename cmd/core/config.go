@@ -144,129 +144,160 @@ func stringsContains(s, substr string) bool {
 func runConfigInteractive() {
 	cfg := infra.LoadConfig()
 
-	formatLabel := func(base, key string) string {
+	keyPreview := func(key string) string {
 		if key == "" {
-			return base + " (not set)"
+			return "not set"
 		}
 		prefixLen := 7
 		if len(key) < prefixLen {
 			prefixLen = len(key)
 		}
-		return fmt.Sprintf("%s (%s...)", base, key[:prefixLen])
+		return key[:prefixLen] + "..."
 	}
 
-	gatewayLabel := func(name, key string) string {
-		active := cfg.ActiveGateway == name
-		label := formatLabel(name, key)
-		if active {
-			label += " ★ ativo"
-		}
-		return label
+	// ── PASSO 1: Gateway ──────────────────────────────────────────────
+	gatewayOptions := []string{}
+	noneLabel := "Nenhum (direto)"
+	if cfg.ActiveGateway == "" || cfg.ActiveGateway == "none" {
+		noneLabel += " ★"
 	}
+	gatewayOptions = append(gatewayOptions, noneLabel)
 
-	options := []string{
-		// ── GATEWAY (camada de roteamento, opcional) ──────────────────
-		"── Gateway ──────────────────────────────────",
-		gatewayLabel("Nenhum (direto)", ""),
-		gatewayLabel("OpenRouter", cfg.OpenRouterAPIKey),
-		gatewayLabel("Anannas", cfg.AnannasAPIKey),
-		// ── PROVIDERS NATIVOS ─────────────────────────────────────────
-		"── Providers ───────────────────────────────",
-		formatLabel("Google Gemini", cfg.GeminiAPIKey),
-		formatLabel("Anthropic Claude", cfg.ClaudeAPIKey),
-		formatLabel("OpenAI", cfg.OpenAIAPIKey),
-		formatLabel("DeepSeek", cfg.DeepSeekAPIKey),
-		formatLabel("Mistral", cfg.MistralAPIKey),
-		formatLabel("xAI Grok", cfg.GrokAPIKey),
-		formatLabel("Alibaba Qwen", cfg.QwenAPIKey),
-		formatLabel("Zhipu GLM-5", cfg.ZhipuAPIKey),
-		// ── EMBEDDING ─────────────────────────────────────────────────
-		"── Embedding only ──────────────────────────",
-		formatLabel("Voyage AI", cfg.VoyageAPIKey),
-		// ── CONFIGURAÇÕES ─────────────────────────────────────────────
-		"── Configurações ───────────────────────────",
-		"Set Default Provider",
-		"Set Default Model",
-		"Set Fallback Provider",
-		"Cancel",
+	orLabel := fmt.Sprintf("OpenRouter [%s]", keyPreview(cfg.OpenRouterAPIKey))
+	if cfg.ActiveGateway == "openrouter" {
+		orLabel += " ★"
 	}
+	gatewayOptions = append(gatewayOptions, orLabel)
 
-	var choice string
-	prompt := &survey.Select{
-		Message: "Vectora — configuração:",
-		Options: options,
+	anLabel := fmt.Sprintf("Anannas [%s]", keyPreview(cfg.AnannasAPIKey))
+	if cfg.ActiveGateway == "anannas" {
+		anLabel += " ★"
 	}
-	err := survey.AskOne(prompt, &choice)
-	if err != nil || choice == "Cancel" {
+	gatewayOptions = append(gatewayOptions, anLabel)
+	gatewayOptions = append(gatewayOptions, "Cancelar")
+
+	var gatewayChoice string
+	if err := survey.AskOne(&survey.Select{
+		Message: "1/3 — Gateway (camada de roteamento):",
+		Options: gatewayOptions,
+	}, &gatewayChoice); err != nil || gatewayChoice == "Cancelar" {
 		return
 	}
 
-	// Ignorar separadores (linhas que começam com "──")
-	if len(choice) >= 3 && choice[:3] == "── " {
-		return
-	}
-
-	// Extrai base sem sufixos " (..." e " ★ ativo"
-	baseChoice := choice
-	if idx := stringsIndexOf(choice, " ("); idx != -1 {
-		baseChoice = choice[:idx]
-	}
-	if idx := stringsIndexOf(baseChoice, " ★"); idx != -1 {
-		baseChoice = baseChoice[:idx]
-	}
-
-	switch baseChoice {
-	// ── Gateway
-	case "Nenhum (direto)":
+	switch {
+	case stringsIndexOf(gatewayChoice, "Nenhum") != -1:
 		saveEnvKey("ACTIVE_GATEWAY", "")
-		fmt.Println("Gateway desativado — conexão direta com providers.")
-	case "OpenRouter":
-		promptKeyAndSave("OPENROUTER_API_KEY", "OpenRouter API Key:", true)
+		fmt.Println("Gateway: desativado.")
+	case stringsIndexOf(gatewayChoice, "OpenRouter") != -1:
+		if cfg.OpenRouterAPIKey == "" {
+			promptKeyAndSave("OPENROUTER_API_KEY", "OpenRouter API Key:", true)
+		}
 		saveEnvKey("ACTIVE_GATEWAY", "openrouter")
-		fmt.Println("Gateway definido: OpenRouter. Todos os requests serão roteados por ele.")
-	case "Anannas":
-		promptKeyAndSave("ANANNAS_API_KEY", "Anannas API Key:", true)
+		fmt.Println("Gateway: OpenRouter ativo.")
+	case stringsIndexOf(gatewayChoice, "Anannas") != -1:
+		if cfg.AnannasAPIKey == "" {
+			promptKeyAndSave("ANANNAS_API_KEY", "Anannas API Key:", true)
+		}
 		saveEnvKey("ACTIVE_GATEWAY", "anannas")
-		fmt.Println("Gateway definido: Anannas.")
-
-	// ── Providers nativos
-	case "Google Gemini":
-		promptKeyAndSave("GEMINI_API_KEY", "Gemini API Key:", true)
-	case "Anthropic Claude":
-		promptKeyAndSave("ANTHROPIC_API_KEY", "Anthropic/Claude API Key:", true)
-	case "OpenAI":
-		promptKeyAndSave("OPENAI_API_KEY", "OpenAI API Key:", true)
-		promptKeyAndSave("OPENAI_BASE_URL", "OpenAI Base URL (opcional):", false)
-	case "DeepSeek":
-		promptKeyAndSave("DEEPSEEK_API_KEY", "DeepSeek API Key:", true)
-		promptKeyAndSave("DEEPSEEK_BASE_URL", "DeepSeek Base URL (opcional):", false)
-	case "Mistral":
-		promptKeyAndSave("MISTRAL_API_KEY", "Mistral API Key:", true)
-		promptKeyAndSave("MISTRAL_BASE_URL", "Mistral Base URL (opcional):", false)
-	case "xAI Grok":
-		promptKeyAndSave("GROK_API_KEY", "xAI Grok API Key:", true)
-		promptKeyAndSave("GROK_BASE_URL", "xAI Grok Base URL (opcional):", false)
-	case "Alibaba Qwen":
-		promptKeyAndSave("QWEN_API_KEY", "Qwen API Key:", true)
-		promptKeyAndSave("QWEN_BASE_URL", "Qwen Base URL (opcional):", false)
-	case "Zhipu GLM-5":
-		promptKeyAndSave("ZHIPU_API_KEY", "Zhipu AI / GLM API Key:", true)
-		promptKeyAndSave("ZHIPU_BASE_URL", "Zhipu Base URL (opcional):", false)
-
-	// ── Embedding
-	case "Voyage AI":
-		promptKeyAndSave("VOYAGE_API_KEY", "Voyage AI API Key (voyage-3, voyage-code-3 — embeddings only):", true)
-
-	// ── Configurações
-	case "Set Default Provider":
-		selectAndSave("DEFAULT_PROVIDER", "Provider padrão (usado sem gateway):",
-			[]string{"gemini", "claude", "openai", "deepseek", "mistral", "grok", "qwen", "zhipu", "voyage"})
-	case "Set Default Model":
-		promptKeyAndSave("DEFAULT_MODEL", "Model ID padrão (ex: gemini-3-flash-preview):", false)
-	case "Set Fallback Provider":
-		selectAndSave("DEFAULT_FALLBACK_PROVIDER", "Provider de fallback:",
-			[]string{"gemini", "claude", "openai", "voyage"})
+		fmt.Println("Gateway: Anannas ativo.")
 	}
+
+	// Recarrega cfg após salvar gateway
+	cfg = infra.LoadConfig()
+
+	// ── PASSO 2: Provider ─────────────────────────────────────────────
+	type providerDef struct {
+		label   string
+		envKey  string
+		baseURL string
+		current string
+	}
+	providers := []providerDef{
+		{"Google Gemini", "GEMINI_API_KEY", "", cfg.GeminiAPIKey},
+		{"Anthropic Claude", "CLAUDE_API_KEY", "", cfg.ClaudeAPIKey},
+		{"OpenAI", "OPENAI_API_KEY", "OPENAI_BASE_URL", cfg.OpenAIAPIKey},
+		{"DeepSeek", "DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", cfg.DeepSeekAPIKey},
+		{"Mistral", "MISTRAL_API_KEY", "MISTRAL_BASE_URL", cfg.MistralAPIKey},
+		{"xAI Grok", "GROK_API_KEY", "GROK_BASE_URL", cfg.GrokAPIKey},
+		{"Alibaba Qwen", "QWEN_API_KEY", "QWEN_BASE_URL", cfg.QwenAPIKey},
+		{"Zhipu GLM-5", "ZHIPU_API_KEY", "ZHIPU_BASE_URL", cfg.ZhipuAPIKey},
+		{"Voyage AI (embedding only)", "VOYAGE_API_KEY", "", cfg.VoyageAPIKey},
+	}
+
+	providerLabels := []string{}
+	for _, p := range providers {
+		label := fmt.Sprintf("%s [%s]", p.label, keyPreview(p.current))
+		providerLabels = append(providerLabels, label)
+	}
+	providerLabels = append(providerLabels, "Pular")
+
+	var providerChoice string
+	if err := survey.AskOne(&survey.Select{
+		Message: "2/3 — Provider padrão:",
+		Options: providerLabels,
+	}, &providerChoice); err != nil || providerChoice == "Pular" {
+		fmt.Println("Configuração salva.")
+		return
+	}
+
+	// Encontra provider selecionado
+	var selectedProvider *providerDef
+	for i, label := range providerLabels {
+		if label == providerChoice && i < len(providers) {
+			p := providers[i]
+			selectedProvider = &p
+			break
+		}
+	}
+
+	if selectedProvider != nil {
+		if selectedProvider.current == "" {
+			promptKeyAndSave(selectedProvider.envKey, selectedProvider.label+" API Key:", true)
+			if selectedProvider.baseURL != "" {
+				promptKeyAndSave(selectedProvider.baseURL, selectedProvider.label+" Base URL (opcional, deixe vazio para padrão):", false)
+			}
+		}
+
+		// Deriva nome interno do provider para salvar DEFAULT_PROVIDER
+		provInternal := map[string]string{
+			"Google Gemini":              "gemini",
+			"Anthropic Claude":           "claude",
+			"OpenAI":                     "openai",
+			"DeepSeek":                   "deepseek",
+			"Mistral":                    "mistral",
+			"xAI Grok":                   "grok",
+			"Alibaba Qwen":               "qwen",
+			"Zhipu GLM-5":                "zhipu",
+			"Voyage AI (embedding only)": "voyage",
+		}
+		if internal, ok := provInternal[selectedProvider.label]; ok {
+			saveEnvKey("DEFAULT_PROVIDER", internal)
+			fmt.Printf("Provider padrão: %s\n", internal)
+		}
+	}
+
+	// ── PASSO 3: Model ────────────────────────────────────────────────
+	currentModel := ""
+	envMap, _ := godotenv.Read(getConfigPath())
+	if envMap != nil {
+		currentModel = envMap["DEFAULT_MODEL"]
+	}
+
+	modelMsg := "3/3 — Model padrão (Enter para manter"
+	if currentModel != "" {
+		modelMsg += " '" + currentModel + "'"
+	} else {
+		modelMsg += " padrão do provider"
+	}
+	modelMsg += "):"
+
+	var modelVal string
+	if err := survey.AskOne(&survey.Input{Message: modelMsg}, &modelVal); err == nil && modelVal != "" {
+		saveEnvKey("DEFAULT_MODEL", modelVal)
+		fmt.Printf("Model padrão: %s\n", modelVal)
+	}
+
+	fmt.Println("\nConfiguração concluída.")
 }
 
 // saveEnvKey persiste uma chave no .env sem prompt interativo.

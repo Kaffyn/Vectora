@@ -58,14 +58,22 @@ export class BinaryManager {
       return releasePath;
     }
 
-    // 3. Check AppData\Local\Programs\Vectora on Windows (standard per-user install dir)
+    // 3. Check Windows install locations
     if (os.platform() === "win32") {
       const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local");
-      // Check both canonical and release binary names
-      for (const name of [this.binaryName, this.releaseBinaryName]) {
-        const installPath = path.join(localAppData, "Programs", "Vectora", name);
-        if (await this.fileExists(installPath)) {
-          return installPath;
+      // Check both canonical and release binary names, in priority order:
+      // build.ps1 installs to AppData\Local\Vectora\ (no Programs subfolder)
+      // Old installer used AppData\Local\Programs\Vectora\
+      const searchDirs = [
+        path.join(localAppData, "Vectora"),
+        path.join(localAppData, "Programs", "Vectora"),
+      ];
+      for (const dir of searchDirs) {
+        for (const name of [this.binaryName, this.releaseBinaryName]) {
+          const installPath = path.join(dir, name);
+          if (await this.fileExists(installPath)) {
+            return installPath;
+          }
         }
       }
     }
