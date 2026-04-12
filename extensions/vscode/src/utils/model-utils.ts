@@ -3,11 +3,27 @@
  * TODO: Implement model-related utilities
  */
 
+export type ServiceTier = "default" | "pro" | string;
+
+export interface LongContextPricing {
+	thresholdTokens: number;
+	appliesToServiceTiers?: string[];
+	inputPriceMultiplier?: number;
+	outputPriceMultiplier?: number;
+	cacheWritesPriceMultiplier?: number;
+	cacheReadsPriceMultiplier?: number;
+}
+
 export interface ModelInfo {
-  contextWindow: number;
-  maxTokens?: number;
-  supportsReasoningBudget?: boolean;
-  supportsReasoningEffort?: boolean;
+	contextWindow: number;
+	maxTokens?: number;
+	supportsReasoningBudget?: boolean;
+	supportsReasoningEffort?: boolean;
+	inputPrice?: number;
+	outputPrice?: number;
+	cacheWritesPrice?: number;
+	cacheReadsPrice?: number;
+	longContextPricing?: LongContextPricing;
 }
 
 export function estimateTokens(text: string): number {

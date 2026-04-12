@@ -45,6 +45,13 @@ func (p *ClaudeProvider) Complete(ctx context.Context, req CompletionRequest) (C
 
 	msg, err := p.client.Messages.New(ctx, params)
 	if err != nil {
+		if req.FallbackModel != "" && req.FallbackModel != req.Model {
+			// Try fallback model
+			fallbackReq := req
+			fallbackReq.Model = req.FallbackModel
+			fallbackReq.FallbackModel = "" // Avoid infinite recursion
+			return p.Complete(ctx, fallbackReq)
+		}
 		return CompletionResponse{}, p.wrapError(err)
 	}
 

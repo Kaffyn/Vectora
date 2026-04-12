@@ -61,10 +61,21 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 
 	// Resolve model alias to canonical Gemini API model ID with "-preview" suffix
 	modelID := ResolveGeminiModel(req.Model)
-	fmt.Printf("[DEBUG] Gemini modelID: '%s'\n", modelID)
 
 	resp, err := p.client.Models.GenerateContent(ctx, modelID, contents, config)
 	if err != nil {
+		fallbackModel := req.FallbackModel
+		if fallbackModel == "" {
+			fallbackModel = "gemini-3-flash-preview" // As per user instruction
+		}
+
+		if fallbackModel != req.Model {
+			// Try fallback model
+			fallbackReq := req
+			fallbackReq.Model = fallbackModel
+			fallbackReq.FallbackModel = "" // Avoid infinite recursion
+			return p.Complete(ctx, fallbackReq)
+		}
 		return CompletionResponse{}, p.wrapError(err)
 	}
 

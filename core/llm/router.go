@@ -6,13 +6,16 @@ import (
 )
 
 type Router struct {
-	providers       map[string]Provider
-	defaultProvider string
+	providers        map[string]Provider
+	defaultProvider  string
+	fallbackProvider string
+	fallbackModels   map[string]string
 }
 
 func NewRouter() *Router {
 	return &Router{
-		providers: make(map[string]Provider),
+		providers:      make(map[string]Provider),
+		fallbackModels: make(map[string]string),
 	}
 }
 
@@ -21,6 +24,18 @@ func (r *Router) RegisterProvider(name string, p Provider, asDefault bool) {
 	if asDefault || r.defaultProvider == "" {
 		r.defaultProvider = name
 	}
+}
+
+func (r *Router) SetFallbackProvider(name string) {
+	r.fallbackProvider = name
+}
+
+func (r *Router) SetFallbackModel(providerName, model string) {
+	r.fallbackModels[providerName] = model
+}
+
+func (r *Router) GetFallbackModel(providerName string) string {
+	return r.fallbackModels[providerName]
 }
 
 func (r *Router) ListModels(ctx context.Context, providerName string) ([]string, error) {
@@ -58,7 +73,18 @@ func (r *Router) Complete(ctx context.Context, req CompletionRequest) (Completio
 	if p == nil {
 		return CompletionResponse{}, fmt.Errorf("no LLM provider configured")
 	}
-	return p.Complete(ctx, req)
+
+	res, err := p.Complete(ctx, req)
+	if err != nil && r.fallbackProvider != "" && r.fallbackProvider != r.defaultProvider {
+		// Try fallback provider (e.g., Gemini)
+		fp, ok := r.providers[r.fallbackProvider]
+		if ok && fp.IsConfigured() {
+			// Optional: log that we are falling back
+			return fp.Complete(ctx, req)
+		}
+	}
+
+	return res, err
 }
 
 func (r *Router) Embed(ctx context.Context, input string, model string) ([]float32, error) {

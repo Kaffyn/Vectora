@@ -499,6 +499,25 @@ func initCoreClientEngine(ctx context.Context, workspace string, vecStore *db.Ch
 
 	cfg := infra.LoadConfig()
 	llmRouter := llm.NewRouter()
+	llmRouter.SetFallbackProvider("gemini")
+	if cfg.DefaultFallbackProvider != "" {
+		llmRouter.SetFallbackProvider(cfg.DefaultFallbackProvider)
+	}
+
+	// Set fallback models
+	if cfg.GeminiFallbackModel != "" {
+		llmRouter.SetFallbackModel("gemini", cfg.GeminiFallbackModel)
+	}
+	if cfg.ClaudeFallbackModel != "" {
+		llmRouter.SetFallbackModel("claude", cfg.ClaudeFallbackModel)
+	}
+	if cfg.OpenAIFallbackModel != "" {
+		llmRouter.SetFallbackModel("openai", cfg.OpenAIFallbackModel)
+	}
+	if cfg.QwenFallbackModel != "" {
+		llmRouter.SetFallbackModel("qwen", cfg.QwenFallbackModel)
+	}
+
 
 	// Register Native Providers
 	if cfg.GeminiAPIKey != "" {
@@ -655,7 +674,7 @@ func runAsk(query string) error {
 	if err != nil {
 		if strings.Contains(err.Error(), "No LLM provider has been configured") || strings.Contains(err.Error(), "provider_not_configured") {
 			fmt.Println("\rError: Vectora requires an API key to work.")
-			runSetup()
+			runConfigInteractive()
 			return fmt.Errorf("please try your query again after configuration")
 		}
 		fmt.Println("\rError while querying Vectora:", err)
@@ -671,25 +690,7 @@ func runAsk(query string) error {
 	return nil
 }
 
-func runSetup() {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("\n--- Vectora Initial Setup ---")
-	fmt.Println("Which AI provider do you want to use?")
-	fmt.Println("[1] Google Gemini (Recommended, accepts free keys)")
-	fmt.Println("[2] Anthropic Claude")
-	fmt.Print("Choice (1 or 2): ")
-
-	choice, _ := reader.ReadString('\n')
-	choice = strings.TrimSpace(choice)
-
-	var envKey string
-	if choice == "2" {
-		envKey = "CLAUDE_API_KEY"
-		fmt.Print("\nPaste your CLAUDE_API_KEY: ")
-	} else {
-		envKey = "GEMINI_API_KEY"
-		fmt.Print("\nPaste your GEMINI_API_KEY: ")
-	}
+// Legacy runSetup removed in favor of runConfigInteractive in config.go
 
 	key, _ := reader.ReadString('\n')
 	key = strings.TrimSpace(key)
@@ -735,6 +736,25 @@ func initEngine(ctx context.Context, workspace string) (*engine.Engine, func(), 
 	}
 
 	llmRouter := llm.NewRouter()
+	llmRouter.SetFallbackProvider("gemini")
+	if cfg.DefaultFallbackProvider != "" {
+		llmRouter.SetFallbackProvider(cfg.DefaultFallbackProvider)
+	}
+
+	// Set fallback models
+	if cfg.GeminiFallbackModel != "" {
+		llmRouter.SetFallbackModel("gemini", cfg.GeminiFallbackModel)
+	}
+	if cfg.ClaudeFallbackModel != "" {
+		llmRouter.SetFallbackModel("claude", cfg.ClaudeFallbackModel)
+	}
+	if cfg.OpenAIFallbackModel != "" {
+		llmRouter.SetFallbackModel("openai", cfg.OpenAIFallbackModel)
+	}
+	if cfg.QwenFallbackModel != "" {
+		llmRouter.SetFallbackModel("qwen", cfg.QwenFallbackModel)
+	}
+
 
 	// Register Native Providers
 	if cfg.GeminiAPIKey != "" {

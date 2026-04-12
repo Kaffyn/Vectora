@@ -170,11 +170,12 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 
 		for turn := 0; turn < maxTurns; turn++ {
 			resp, err := provider.Complete(ctx, llm.CompletionRequest{
-				Messages:    messages,
-				Model:       model,
-				MaxTokens:   4000,
-				Temperature: 0.1,
-				Tools:       toolDefs,
+				Messages:      messages,
+				Model:         model,
+				FallbackModel: e.LLM.GetFallbackModel(provider.Name()),
+				MaxTokens:     4000,
+				Temperature:   0.1,
+				Tools:         toolDefs,
 			})
 			if err != nil {
 				ch <- QueryChunk{Token: fmt.Sprintf("LLM error: %v", err), IsFinal: true}

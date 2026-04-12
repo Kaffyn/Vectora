@@ -14,11 +14,11 @@ import (
 
 // ProviderInfo describes an LLM provider available in the tray menu
 type ProviderInfo struct {
-	ID       string // Internal identifier (gemini, claude, openai, etc.)
-	Label    string // Display label (from i18n key)
-	I18nKey  string // i18n translation key
-	GetKey   func(*infra.Config) string // Function to get API key from config
-	Setup    func(context.Context, string, *infra.Config) (llm.Provider, error) // Constructor
+	ID      string                                                             // Internal identifier (gemini, claude, openai, etc.)
+	Label   string                                                             // Display label (from i18n key)
+	I18nKey string                                                             // i18n translation key
+	GetKey  func(*infra.Config) string                                         // Function to get API key from config
+	Setup   func(context.Context, string, *infra.Config) (llm.Provider, error) // Constructor
 }
 
 // AllProviders defines all 10+ LLM families supported by Vectora (AGENTS.md April 2026)
@@ -132,18 +132,18 @@ var AllProviders = []ProviderInfo{
 }
 
 var (
-	mStatus        *systray.MenuItem
-	mProv          *systray.MenuItem
-	providerItems  map[string]*systray.MenuItem // Dynamic provider menu items
-	mLang          *systray.MenuItem
-	mQuit          *systray.MenuItem
+	mStatus       *systray.MenuItem
+	mProv         *systray.MenuItem
+	providerItems map[string]*systray.MenuItem // Dynamic provider menu items
+	mLang         *systray.MenuItem
+	mQuit         *systray.MenuItem
 
 	mEn *systray.MenuItem
 	mPt *systray.MenuItem
 	mEs *systray.MenuItem
 	mFr *systray.MenuItem
 
-	ActiveProvider llm.Provider
+	ActiveProvider   llm.Provider
 	ActiveProviderID string
 )
 

@@ -155,6 +155,19 @@ func RegisterRoutes(
 		return map[string]any{"configured": p.IsConfigured()}, nil
 	})
 
+	// [3.1] List Models (Global)
+	server.Register("models.list", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+		p := getProvider()
+		if p == nil || !p.IsConfigured() {
+			return nil, ErrProviderNotConfig
+		}
+		list, err := p.ListModels(ctx)
+		if err != nil {
+			return nil, errServer("llm_error", err.Error())
+		}
+		return map[string]any{"models": list}, nil
+	})
+
 	// [4] Memory Search (Global for now)
 	server.Register("memory.search", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
 		// Note: MemoryService currently uses a global path.

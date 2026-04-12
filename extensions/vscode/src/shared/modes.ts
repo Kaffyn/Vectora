@@ -139,6 +139,7 @@ export const defaultPrompts: Readonly<CustomModePrompts> = Object.freeze(
 	Object.fromEntries(
 		modes.map((mode) => [
 			mode.slug,
+			{
 				roleDefinition: mode.roleDefinition,
 				whenToUse: mode.whenToUse,
 				customInstructions: mode.customInstructions,

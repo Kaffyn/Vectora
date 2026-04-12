@@ -56,6 +56,17 @@ type Config struct {
 	DefaultEmbeddingModel string
 	DefaultModel          string
 	DefaultProvider       string
+	DefaultFallbackProvider string
+
+	// Fallback models per provider
+	GeminiFallbackModel   string
+	ClaudeFallbackModel   string
+	OpenAIFallbackModel   string
+	QwenFallbackModel     string
+	DeepSeekFallbackModel string
+	MistralFallbackModel  string
+	GrokFallbackModel     string
+	ZhipuFallbackModel    string
 }
 
 // LoadConfig loads configuration from %USERPROFILE%\.Vectora\.env.
@@ -98,6 +109,16 @@ func LoadConfig() *Config {
 		DefaultEmbeddingModel: os.Getenv("DEFAULT_EMBEDDING_MODEL"),
 		DefaultModel:          os.Getenv("DEFAULT_MODEL"),
 		DefaultProvider:       os.Getenv("DEFAULT_PROVIDER"),
+		DefaultFallbackProvider: os.Getenv("DEFAULT_FALLBACK_PROVIDER"),
+
+		GeminiFallbackModel:   os.Getenv("GEMINI_FALLBACK_MODEL"),
+		ClaudeFallbackModel:   os.Getenv("CLAUDE_FALLBACK_MODEL"),
+		OpenAIFallbackModel:   os.Getenv("OPENAI_FALLBACK_MODEL"),
+		QwenFallbackModel:     os.Getenv("QWEN_FALLBACK_MODEL"),
+		DeepSeekFallbackModel: os.Getenv("DEEPSEEK_FALLBACK_MODEL"),
+		MistralFallbackModel:  os.Getenv("MISTRAL_FALLBACK_MODEL"),
+		GrokFallbackModel:     os.Getenv("GROK_FALLBACK_MODEL"),
+		ZhipuFallbackModel:    os.Getenv("ZHIPU_FALLBACK_MODEL"),
 	}
 }
 
@@ -171,6 +192,35 @@ func SaveConfig(cfg *Config) error {
 	}
 	if cfg.DefaultProvider != "" {
 		content += fmt.Sprintf("DEFAULT_PROVIDER=%s\n", cfg.DefaultProvider)
+	}
+	if cfg.DefaultFallbackProvider != "" {
+		content += fmt.Sprintf("DEFAULT_FALLBACK_PROVIDER=%s\n", cfg.DefaultFallbackProvider)
+	}
+
+	// Fallback models
+	if cfg.GeminiFallbackModel != "" {
+		content += fmt.Sprintf("GEMINI_FALLBACK_MODEL=%s\n", cfg.GeminiFallbackModel)
+	}
+	if cfg.ClaudeFallbackModel != "" {
+		content += fmt.Sprintf("CLAUDE_FALLBACK_MODEL=%s\n", cfg.ClaudeFallbackModel)
+	}
+	if cfg.OpenAIFallbackModel != "" {
+		content += fmt.Sprintf("OPENAI_FALLBACK_MODEL=%s\n", cfg.OpenAIFallbackModel)
+	}
+	if cfg.QwenFallbackModel != "" {
+		content += fmt.Sprintf("QWEN_FALLBACK_MODEL=%s\n", cfg.QwenFallbackModel)
+	}
+	if cfg.DeepSeekFallbackModel != "" {
+		content += fmt.Sprintf("DEEPSEEK_FALLBACK_MODEL=%s\n", cfg.DeepSeekFallbackModel)
+	}
+	if cfg.MistralFallbackModel != "" {
+		content += fmt.Sprintf("MISTRAL_FALLBACK_MODEL=%s\n", cfg.MistralFallbackModel)
+	}
+	if cfg.GrokFallbackModel != "" {
+		content += fmt.Sprintf("GROK_FALLBACK_MODEL=%s\n", cfg.GrokFallbackModel)
+	}
+	if cfg.ZhipuFallbackModel != "" {
+		content += fmt.Sprintf("ZHIPU_FALLBACK_MODEL=%s\n", cfg.ZhipuFallbackModel)
 	}
 
 	return os.WriteFile(envPath, []byte(content), 0600)

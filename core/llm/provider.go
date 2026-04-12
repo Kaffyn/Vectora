@@ -31,12 +31,13 @@ type TokenUsage struct {
 }
 
 type CompletionRequest struct {
-	Model        string
-	Messages     []Message
-	SystemPrompt string
-	MaxTokens    int
-	Temperature  float32
-	Tools        []ToolDefinition
+	Model         string
+	FallbackModel string
+	Messages      []Message
+	SystemPrompt  string
+	MaxTokens     int
+	Temperature   float32
+	Tools         []ToolDefinition
 }
 
 type CompletionResponse struct {

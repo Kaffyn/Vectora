@@ -1,0 +1,91 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "ok": "OK",
+    "close": "Close",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "error": "Error",
+    "warning": "Warning",
+    "success": "Success",
+    "info": "Information",
+    "yes": "Yes",
+    "no": "No",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "settings": "Settings",
+    "about": "About",
+    "help": "Help"
+  },
+  "chat": {
+    "title": "Vectora Chat",
+    "placeholder": "Type your message here...",
+    "send": "Send",
+    "sendMessage": "Send message (Ctrl+Enter)",
+    "clear": "Clear history",
+    "clearConfirm": "Are you sure you want to clear the history?",
+    "noMessages": "No messages yet. Start a conversation!",
+    "thinking": "Thinking...",
+    "userLabel": "You",
+    "assistantLabel": "Assistant",
+    "errorSending": "Error sending message",
+    "connectionError": "Connection error with server",
+    "messageNotSent": "Message not sent"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "theme": "Theme",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
+    "highContrast": "High Contrast",
+    "fontSize": "Font Size",
+    "fontSizeSmall": "Small",
+    "fontSizeMedium": "Medium",
+    "fontSizeLarge": "Large",
+    "provider": "AI Provider",
+    "autoSave": "Auto Save",
+    "accessibility": "Accessibility",
+    "keyboardShortcuts": "Keyboard Shortcuts"
+  },
+  "accessibility": {
+    "title": "Accessibility",
+    "keyboard": "Keyboard Navigation",
+    "screenReader": "Screen Reader",
+    "contrast": "Contrast",
+    "focusIndicator": "Focus Indicator",
+    "skipToContent": "Skip to main content",
+    "keyboardShortcutsHelp": "Press \"?\" to view keyboard shortcuts"
+  },
+  "errors": {
+    "genericError": "Something went wrong. Please try again.",
+    "networkError": "Network error. Check your connection.",
+    "timeoutError": "Request timed out. Please try again.",
+    "validationError": "Invalid data. Please check your input.",
+    "notFound": "Not found",
+    "unauthorized": "Unauthorized"
+  },
+  "apiConfig": {
+    "title": "API Configuration",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter your API key",
+    "provider": "Provider",
+    "model": "Model",
+    "baseUrl": "Base URL",
+    "testConnection": "Test Connection",
+    "connectionSuccess": "Connection successful!",
+    "connectionFailed": "Connection failed"
+  },
+  "commands": {
+    "explainCode": "Explain Code",
+    "refactorCode": "Refactor Code",
+    "generateTests": "Generate Tests",
+    "addComments": "Add Comments",
+    "optimizePerformance": "Optimize Performance"
+  }
+}

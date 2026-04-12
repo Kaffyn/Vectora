@@ -1,0 +1,91 @@
+{
+  "common": {
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "ok": "Aceptar",
+    "close": "Cerrar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "warning": "Advertencia",
+    "success": "Éxito",
+    "info": "Información",
+    "yes": "Sí",
+    "no": "No",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "search": "Buscar",
+    "settings": "Configuración",
+    "about": "Acerca de",
+    "help": "Ayuda"
+  },
+  "chat": {
+    "title": "Chat de Vectora",
+    "placeholder": "Escribe tu mensaje aquí...",
+    "send": "Enviar",
+    "sendMessage": "Enviar mensaje (Ctrl+Enter)",
+    "clear": "Limpiar historial",
+    "clearConfirm": "¿Estás seguro de que deseas limpiar el historial?",
+    "noMessages": "Sin mensajes aún. ¡Comienza una conversación!",
+    "thinking": "Pensando...",
+    "userLabel": "Tú",
+    "assistantLabel": "Asistente",
+    "errorSending": "Error al enviar el mensaje",
+    "connectionError": "Error de conexión con el servidor",
+    "messageNotSent": "Mensaje no enviado"
+  },
+  "settings": {
+    "title": "Configuración",
+    "language": "Idioma",
+    "theme": "Tema",
+    "darkMode": "Modo Oscuro",
+    "lightMode": "Modo Claro",
+    "highContrast": "Alto Contraste",
+    "fontSize": "Tamaño de Fuente",
+    "fontSizeSmall": "Pequeño",
+    "fontSizeMedium": "Medio",
+    "fontSizeLarge": "Grande",
+    "provider": "Proveedor de IA",
+    "autoSave": "Guardar Automáticamente",
+    "accessibility": "Accesibilidad",
+    "keyboardShortcuts": "Atajos de Teclado"
+  },
+  "accessibility": {
+    "title": "Accesibilidad",
+    "keyboard": "Navegación por Teclado",
+    "screenReader": "Lector de Pantalla",
+    "contrast": "Contraste",
+    "focusIndicator": "Indicador de Enfoque",
+    "skipToContent": "Saltar al contenido principal",
+    "keyboardShortcutsHelp": "Presiona \"?\" para ver los atajos de teclado"
+  },
+  "errors": {
+    "genericError": "Algo salió mal. Por favor, intenta de nuevo.",
+    "networkError": "Error de red. Verifica tu conexión.",
+    "timeoutError": "Tiempo de solicitud agotado. Intenta de nuevo.",
+    "validationError": "Datos inválidos. Verifica tu entrada.",
+    "notFound": "No encontrado",
+    "unauthorized": "No autorizado"
+  },
+  "apiConfig": {
+    "title": "Configuración de API",
+    "apiKey": "Clave de API",
+    "apiKeyPlaceholder": "Ingresa tu clave de API",
+    "provider": "Proveedor",
+    "model": "Modelo",
+    "baseUrl": "URL Base",
+    "testConnection": "Probar Conexión",
+    "connectionSuccess": "¡Conexión exitosa!",
+    "connectionFailed": "Fallo en la conexión"
+  },
+  "commands": {
+    "explainCode": "Explicar Código",
+    "refactorCode": "Refactorizar Código",
+    "generateTests": "Generar Pruebas",
+    "addComments": "Añadir Comentarios",
+    "optimizePerformance": "Optimizar Rendimiento"
+  }
+}

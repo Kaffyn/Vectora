@@ -1,2 +1,4 @@
 
-export { combineApiRequests }
+export function combineApiRequests<T>(messages: T[]): T[] {
+    return messages;
+}

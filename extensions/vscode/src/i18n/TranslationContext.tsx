@@ -1,21 +1,29 @@
 import React, { createContext, useContext, ReactNode, useEffect, useCallback, useState } from "react";
+import { TranslationOptions } from "./types";
 
 let globalTranslations: Record<string, any> = {};
 
 export const TranslationContext = createContext<{
-  t: (key: string, options?: Record<string, any>) => string;
-  i18n: any;
-}>({
-  t: (key: string) => key,
-  i18n: { language: "en", changeLanguage: async () => {} },
-});
+  t: (key: string, options?: TranslationOptions | Record<string, any>) => string;
+  i18n: {
+    language: string;
+    changeLanguage: (lang: string) => Promise<void>;
+  };
+} | null>(null);
 
+/**
+ * Component for inline translations with component interpolation
+ * Example: <Trans i18nKey="welcome.message" components={{ bold: <strong /> }} />
+ */
 export const Trans: React.FC<{
   i18nKey: string;
   components?: Record<string, React.ReactElement>;
   values?: Record<string, any>;
 }> = ({ i18nKey, components, values }) => {
-  const { t } = useContext(TranslationContext);
+  const context = useContext(TranslationContext);
+  if (!context) return <>{i18nKey}</>;
+
+  const { t } = context;
   const text = t(i18nKey, values);
 
   if (!components) return <>{text}</>;
@@ -39,76 +47,149 @@ export const Trans: React.FC<{
   );
 };
 
-export const TranslationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [lang, setLang] = useState("en");
+interface TranslationProviderProps {
+  children: ReactNode;
+  defaultLanguage?: string;
+  fallbackLanguage?: string;
+  debug?: boolean;
+}
+
+/**
+ * Translation provider component
+ * Manages translations loading and language switching
+ */
+export const TranslationProvider: React.FC<TranslationProviderProps> = ({
+  children,
+  defaultLanguage = "en-US",
+  fallbackLanguage = "en-US",
+  debug = false,
+}) => {
+  const [lang, setLang] = useState(defaultLanguage);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const data = event.data;
       if (data.type === "translations") {
         globalTranslations = data.translations;
-        console.log("Translations loaded in Context:", Object.keys(globalTranslations).length, "keys");
+        if (debug) {
+          console.log("[i18n] Translations loaded:", Object.keys(globalTranslations).length, "keys");
+        }
       }
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, [debug]);
 
   const translate = useCallback(
-    (key: string, options?: Record<string, any>) => {
-      const cleanKey = key.includes(":") ? key.split(":")[1] : key;
-      const translation = globalTranslations[cleanKey];
+    (key: string, options?: TranslationOptions | Record<string, any>): string => {
+      // Parse namespace and key
+      let namespace = "common";
+      let keyPath = key;
+
+      if (key.includes(":")) {
+        const parts = key.split(":");
+        namespace = parts[0];
+        keyPath = parts.slice(1).join(":");
+      }
+
+      // Try to get translation from global translations
+      const translation = globalTranslations[keyPath];
       if (translation && translation[lang]) {
         let text = translation[lang];
-        if (options) {
-          Object.keys(options).forEach((k) => {
-            text = text.replace(`{{${k}}}`, options[k]);
+        // Handle interpolation
+        const variables =
+          options && "variables" in options ? options.variables : (options as Record<string, any>);
+        if (variables) {
+          Object.keys(variables).forEach((k) => {
+            text = text.replace(new RegExp(`{{${k}}}`, "g"), String(variables[k]));
           });
         }
         return text;
       }
-      return cleanKey;
+
+      // Try fallback language
+      if (lang !== fallbackLanguage && translation && translation[fallbackLanguage]) {
+        let text = translation[fallbackLanguage];
+        const variables =
+          options && "variables" in options ? options.variables : (options as Record<string, any>);
+        if (variables) {
+          Object.keys(variables).forEach((k) => {
+            text = text.replace(new RegExp(`{{${k}}}`, "g"), String(variables[k]));
+          });
+        }
+        return text;
+      }
+
+      if (debug) {
+        console.warn(`[i18n] Missing translation for key: ${key}`);
+      }
+      return (options && "defaultValue" in options && options.defaultValue) || key;
     },
-    [lang],
+    [lang, fallbackLanguage, debug],
+  );
+
+  const changeLanguage = useCallback(
+    async (newLang: string) => {
+      setLoading(true);
+      try {
+        setLang(newLang);
+        if (debug) {
+          console.log(`[i18n] Language changed to: ${newLang}`);
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    [debug],
   );
 
   const i18n = {
     language: lang,
-    changeLanguage: async (newLang: string) => {
-      setLang(newLang);
-    },
+    changeLanguage,
   };
 
-  return <TranslationContext.Provider value={{ t: translate, i18n }}>{children}</TranslationContext.Provider>;
+  return (
+    <TranslationContext.Provider value={{ t: translate, i18n }}>
+      {children}
+    </TranslationContext.Provider>
+  );
 };
 
-export const useAppTranslation = () => useContext(TranslationContext);
-export const useTranslation = () => {
+/**
+ * @deprecated Use useTranslation from useTranslation.ts instead
+ */
+export const useAppTranslation = () => {
   const context = useContext(TranslationContext);
-  return { t: context.t, i18n: context.i18n };
+  if (!context) {
+    return { t: (key: string) => key, i18n: { language: "en", changeLanguage: async () => {} } };
+  }
+  return context;
 };
 
 // Global i18n object for non-React usage
 export const i18n = {
   get language() {
-    return "en";
-  }, // Could be improved to track global state if needed
-  t: (key: string, options?: Record<string, any>) => {
+    return "en-US";
+  },
+  t: (key: string, options?: TranslationOptions | Record<string, any>) => {
     const cleanKey = key.includes(":") ? key.split(":")[1] : key;
     const translation = globalTranslations[cleanKey];
-    if (translation && translation["en"]) {
-      let text = translation["en"];
-      if (options) {
-        Object.keys(options).forEach((k) => {
-          text = text.replace(`{{${k}}}`, options[k]);
+    if (translation && translation["en-US"]) {
+      let text = translation["en-US"];
+      const variables =
+        options && "variables" in options ? options.variables : (options as Record<string, any>);
+      if (variables) {
+        Object.keys(variables).forEach((k) => {
+          text = text.replace(new RegExp(`{{${k}}}`, "g"), String(variables[k]));
         });
       }
       return text;
     }
     return cleanKey;
   },
-  changeLanguage: async (lang: string) => {
+  changeLanguage: async () => {
     /* no-op globally for now */
   },
 };

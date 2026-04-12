@@ -49,6 +49,12 @@ export const ExtensionStateContextProvider: React.FC<{ children: ReactNode }> = 
   }, []);
 
   const value: ExtensionContextType = {
+    state,
+    setConnected,
+    setCoreStatus,
+    setSelectedProvider,
+    setWorkspace,
+    setError,
   };
 
   return (

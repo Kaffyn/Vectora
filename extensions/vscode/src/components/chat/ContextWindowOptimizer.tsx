@@ -30,7 +30,7 @@ export const ContextWindowOptimizer = memo(
       const percentUsed = (usedTokens / state.maxTokens) * 100;
       const tokensPerMessage = state.inputTokens > 0 ? state.outputTokens / state.inputTokens : 0;
 
-      let suggestions: string[] = [];
+      const suggestions: string[] = [];
 
       // Generate suggestions based on usage
       if (percentUsed > 90) {
