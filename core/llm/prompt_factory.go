@@ -6,11 +6,13 @@ import (
 
 type PromptFactory struct {
 	BaseIdentity string
+	Language     string
 }
 
 func NewPromptFactory() *PromptFactory {
 	return &PromptFactory{
 		BaseIdentity: "You are Vectora, an elite AI software engineer assistant. You operate strictly within the Trust Folder.",
+		Language:     "en",
 	}
 }
 
@@ -22,6 +24,12 @@ func (pf *PromptFactory) BuildSystemPrompt(ragContext string) string {
 	sb.WriteString("- NEVER access files outside the Trust Folder.\n")
 	sb.WriteString("- NEVER read/write protected files (.env, .key, .db).\n")
 	sb.WriteString("- ALWAYS use provided tools for file operations.\n")
+
+	sb.WriteString("\n[USER_PREFERENCE]\n")
+	sb.WriteString("@contextScopeItemMention\n")
+	sb.WriteString("- Preferred Language: " + pf.Language + "\n")
+	sb.WriteString("- ALWAYS respond in the user's preferred language (e.g. pt, en, es) by default.\n")
+	sb.WriteString("- If the user asks in another language, you may respond in that language.\n")
 
 	if ragContext != "" {
 		sb.WriteString("\n\n[SYSTEM_KNOWLEDGE - SOURCE OF TRUTH]\n")

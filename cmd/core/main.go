@@ -20,6 +20,7 @@ import (
 	"github.com/Kaffyn/Vectora/core/crypto"
 	"github.com/Kaffyn/Vectora/core/db"
 	"github.com/Kaffyn/Vectora/core/engine"
+	"github.com/Kaffyn/Vectora/core/i18n"
 	"github.com/Kaffyn/Vectora/core/infra"
 	"github.com/Kaffyn/Vectora/core/llm"
 	"github.com/Kaffyn/Vectora/core/manager"
@@ -372,6 +373,7 @@ func runCore() {
 	}
 
 	infra.SetupLogger()
+	i18n.SetLanguage(systemManager.GetSystemLanguage())
 
 	// Load configuration using the official standardized paths (MTP Phase 13)
 	envPath := infra.GetConfigPath()

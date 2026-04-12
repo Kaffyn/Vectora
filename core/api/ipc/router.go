@@ -66,40 +66,27 @@ func RegisterRoutes(
 		}
 
 		msgService := llm.NewMessageService(tenant.KVStore)
-		var messages []llm.Message
+		factory := llm.NewPromptFactory()
+		factory.Language = i18n.GetCurrentLang()
 
+		var history []llm.Message
 		if req.ConversationID != "" {
 			conv, err := msgService.GetConversation(ctx, req.ConversationID)
 			if err != nil {
 				msgService.CreateConversation(ctx, req.ConversationID, "chat")
-				messages = append(messages, llm.Message{
-					Role:    llm.RoleSystem,
-					Content: "You are Vectora. Use the following context:\n" + contextText,
-				})
 			} else {
-				messages = append(messages, llm.Message{
-					Role:    llm.RoleSystem,
-					Content: "You are Vectora. Use the following context:\n" + contextText,
-				})
 				for _, m := range conv.Messages {
-					messages = append(messages, llm.Message{Role: m.Role, Content: m.Content})
+					history = append(history, llm.Message{Role: m.Role, Content: m.Content})
 				}
 			}
 			msgService.AddMessage(ctx, req.ConversationID, llm.RoleUser, req.Query)
-		} else {
-			messages = append(messages, llm.Message{
-				Role:    llm.RoleSystem,
-				Content: "You are Vectora. Use the following context:\n" + contextText,
-			})
 		}
 
-		messages = append(messages, llm.Message{Role: llm.RoleUser, Content: req.Query})
+		llmReq := factory.BuildFinalPayload(req.Query, contextText, history)
+		llmReq.MaxTokens = 1500
+		llmReq.Temperature = 0.1
 
-		resp, err := provider.Complete(ctx, llm.CompletionRequest{
-			Messages:    messages,
-			MaxTokens:   1500,
-			Temperature: 0.1,
-		})
+		resp, err := provider.Complete(ctx, llmReq)
 		if err != nil {
 			return nil, errServer("llm_failed", err.Error())
 		}

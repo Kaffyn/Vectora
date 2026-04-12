@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"syscall"
+	"unsafe"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -127,4 +128,26 @@ func (m *WindowsManager) RegisterApp(installDir string) {
 func (m *WindowsManager) UnregisterApp(installDir string) {
 	_ = registry.DeleteKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Uninstall\Vectora`)
 	_ = installDir
+}
+
+func (m *WindowsManager) GetSystemLanguage() string {
+	// 1. Try environment variable first (standard for many dev tools)
+	if lang := os.Getenv("LANG"); lang != "" {
+		return lang[:2]
+	}
+
+	// 2. Query Windows API for default locale (e.g., pt-BR)
+	modkernel32 := syscall.NewLazyDLL("kernel32.dll")
+	proc := modkernel32.NewProc("GetUserDefaultLocaleName")
+
+	buffer := make([]uint16, 85) // LOCALE_NAME_MAX_LENGTH
+	ret, _, _ := proc.Call(uintptr(unsafe.Pointer(&buffer[0])), uintptr(len(buffer)))
+	if ret > 0 {
+		locale := syscall.UTF16ToString(buffer)
+		if len(locale) >= 2 {
+			return locale[:2] // Return "pt", "en", etc.
+		}
+	}
+
+	return "en" // Absolute fallback
 }

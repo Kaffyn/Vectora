@@ -19,4 +19,5 @@ type OSManager interface {
 	IsInstalled() string
 	RegisterApp(installDir string)
 	UnregisterApp(installDir string)
+	GetSystemLanguage() string
 }

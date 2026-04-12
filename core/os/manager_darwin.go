@@ -89,3 +89,13 @@ func (m *MacosManager) RegisterApp(installDir string) {
 func (m *MacosManager) UnregisterApp(installDir string) {
 	_ = installDir
 }
+
+func (m *MacosManager) GetSystemLanguage() string {
+	if lang := os.Getenv("APPLE_LANGUAGE"); lang != "" {
+		return lang[:2]
+	}
+	if lang := os.Getenv("LANG"); lang != "" {
+		return lang[:2]
+	}
+	return "en"
+}

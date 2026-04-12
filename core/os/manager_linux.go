@@ -104,3 +104,10 @@ func (m *LinuxManager) UnregisterApp(installDir string) {
 	os.Remove(filepath.Join(home, ".local", "share", "applications", "vectora.desktop"))
 	_ = installDir
 }
+
+func (m *LinuxManager) GetSystemLanguage() string {
+	if lang := os.Getenv("LANG"); lang != "" {
+		return lang[:2]
+	}
+	return "en"
+}
