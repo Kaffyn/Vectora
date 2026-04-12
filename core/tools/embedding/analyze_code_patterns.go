@@ -69,11 +69,11 @@ func (t *AnalyzeCodePatternsTool) Schema() json.RawMessage {
 
 // PatternAnalysis represents analysis of detected patterns.
 type PatternAnalysis struct {
-	TotalSnippets int           `json:"total_snippets"`
-	PatternsFound int           `json:"patterns_found"`
-	Patterns      []interface{} `json:"patterns"`
-	Risks         []string      `json:"risks"`
-	Recommendations []string    `json:"recommendations"`
+	TotalSnippets   int           `json:"total_snippets"`
+	PatternsFound   int           `json:"patterns_found"`
+	Patterns        []interface{} `json:"patterns"`
+	Risks           []string      `json:"risks"`
+	Recommendations []string      `json:"recommendations"`
 }
 
 // Execute analyzes code patterns.
@@ -152,7 +152,7 @@ func (t *AnalyzeCodePatternsTool) Execute(ctx context.Context, args json.RawMess
 		var pattern map[string]interface{}
 		if len(results) > 0 {
 			pattern = map[string]interface{}{
-				"snippet_index":   i,
+				"snippet_index":    i,
 				"similar_patterns": len(results),
 				"top_match_score":  fmt.Sprintf("%.4f", results[0].Score),
 				"pattern_type":     input.PatternType,
@@ -191,9 +191,9 @@ func (t *AnalyzeCodePatternsTool) Execute(ctx context.Context, args json.RawMess
 
 	// Output
 	output := map[string]interface{}{
-		"analysis":    analysis,
-		"stored":      true,
-		"message":     fmt.Sprintf("Pattern analysis complete: %d patterns found", analysis.PatternsFound),
+		"analysis": analysis,
+		"stored":   true,
+		"message":  fmt.Sprintf("Pattern analysis complete: %d patterns found", analysis.PatternsFound),
 	}
 
 	result, _ := json.Marshal(output)

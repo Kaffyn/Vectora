@@ -153,19 +153,19 @@ func (t *SearchDatabaseTool) Execute(ctx context.Context, args json.RawMessage) 
 
 	// Format results
 	output := map[string]interface{}{
-		"query":       input.Query,
-		"workspace":   input.WorkspaceID,
+		"query":         input.Query,
+		"workspace":     input.WorkspaceID,
 		"results_count": len(filteredResults),
-		"results":     make([]map[string]interface{}, 0),
+		"results":       make([]map[string]interface{}, 0),
 	}
 
 	resultsList := output["results"].([]map[string]interface{})
 	for _, result := range filteredResults {
 		resultsList = append(resultsList, map[string]interface{}{
-			"chunk_id":     result.ID,
-			"content":      result.Content,
-			"similarity":   fmt.Sprintf("%.4f", result.Score),
-			"metadata":     result.Metadata,
+			"chunk_id":      result.ID,
+			"content":       result.Content,
+			"similarity":    fmt.Sprintf("%.4f", result.Score),
+			"metadata":      result.Metadata,
 			"embedding_dim": len(result.Vector),
 		})
 	}

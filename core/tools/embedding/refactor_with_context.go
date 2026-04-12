@@ -71,22 +71,22 @@ func (t *RefactorWithContextTool) Schema() json.RawMessage {
 
 // RefactoringResult represents the output of a refactoring operation.
 type RefactoringResult struct {
-	OriginalSnippet string `json:"original_snippet"`
-	RefactoredSnippet string `json:"refactored_snippet"`
-	Goal            string `json:"goal"`
-	Changes         []string `json:"changes"`
-	Explanation     string `json:"explanation"`
-	SimilarPatterns int    `json:"similar_patterns_found"`
+	OriginalSnippet   string   `json:"original_snippet"`
+	RefactoredSnippet string   `json:"refactored_snippet"`
+	Goal              string   `json:"goal"`
+	Changes           []string `json:"changes"`
+	Explanation       string   `json:"explanation"`
+	SimilarPatterns   int      `json:"similar_patterns_found"`
 }
 
 // Execute performs code refactoring with context.
 func (t *RefactorWithContextTool) Execute(ctx context.Context, args json.RawMessage) (*tools.ToolResult, error) {
 	var input struct {
-		CodeSnippet    string `json:"code_snippet"`
+		CodeSnippet     string `json:"code_snippet"`
 		RefactoringGoal string `json:"refactoring_goal"`
-		Language       string `json:"language,omitempty"`
-		WorkspaceID    string `json:"workspace_id,omitempty"`
-		FindSimilar    bool   `json:"find_similar,omitempty"`
+		Language        string `json:"language,omitempty"`
+		WorkspaceID     string `json:"workspace_id,omitempty"`
+		FindSimilar     bool   `json:"find_similar,omitempty"`
 	}
 
 	if err := json.Unmarshal(args, &input); err != nil {
@@ -155,15 +155,15 @@ func (t *RefactorWithContextTool) Execute(ctx context.Context, args json.RawMess
 	refactoredSnippet := fmt.Sprintf("// Refactored version (%s)\n%s", input.RefactoringGoal, input.CodeSnippet)
 
 	result := RefactoringResult{
-		OriginalSnippet: input.CodeSnippet,
+		OriginalSnippet:   input.CodeSnippet,
 		RefactoredSnippet: refactoredSnippet,
-		Goal:            input.RefactoringGoal,
+		Goal:              input.RefactoringGoal,
 		Changes: []string{
 			fmt.Sprintf("Applied %s refactoring", input.RefactoringGoal),
 			"Improved code readability",
 			"Maintained functionality",
 		},
-		Explanation: fmt.Sprintf("Refactored code for %s goal using %s patterns and best practices", input.RefactoringGoal, input.Language),
+		Explanation:     fmt.Sprintf("Refactored code for %s goal using %s patterns and best practices", input.RefactoringGoal, input.Language),
 		SimilarPatterns: similarPatterns,
 	}
 

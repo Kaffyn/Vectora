@@ -64,25 +64,25 @@ func (t *KnowledgeGraphAnalysisTool) Schema() json.RawMessage {
 
 // Entity represents a node in the knowledge graph.
 type Entity struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Count    int    `json:"count"`
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Count int    `json:"count"`
 }
 
 // Relationship represents an edge in the knowledge graph.
 type Relationship struct {
-	Source      string `json:"source"`
-	Target      string `json:"target"`
-	Type        string `json:"type"`
-	Strength    float64 `json:"strength"`
+	Source   string  `json:"source"`
+	Target   string  `json:"target"`
+	Type     string  `json:"type"`
+	Strength float64 `json:"strength"`
 }
 
 // KnowledgeGraph represents extracted entities and relationships.
 type KnowledgeGraph struct {
-	Entities      []Entity       `json:"entities"`
-	Relationships []Relationship `json:"relationships"`
-	EntityCount   int            `json:"entity_count"`
-	RelationshipCount int        `json:"relationship_count"`
+	Entities          []Entity       `json:"entities"`
+	Relationships     []Relationship `json:"relationships"`
+	EntityCount       int            `json:"entity_count"`
+	RelationshipCount int            `json:"relationship_count"`
 }
 
 // Execute extracts knowledge graph from text.
@@ -169,11 +169,11 @@ func (t *KnowledgeGraphAnalysisTool) Execute(ctx context.Context, args json.RawM
 		ID:      uuid.New().String(),
 		Content: string(graphJSON),
 		Metadata: map[string]string{
-			"type":              "knowledge_graph",
-			"entity_count":      fmt.Sprintf("%d", graph.EntityCount),
+			"type":               "knowledge_graph",
+			"entity_count":       fmt.Sprintf("%d", graph.EntityCount),
 			"relationship_count": fmt.Sprintf("%d", graph.RelationshipCount),
-			"provider":          provider.Name(),
-			"tool":              "knowledge_graph_analysis",
+			"provider":           provider.Name(),
+			"tool":               "knowledge_graph_analysis",
 		},
 		Vector: textEmbedding,
 	}
@@ -183,9 +183,9 @@ func (t *KnowledgeGraphAnalysisTool) Execute(ctx context.Context, args json.RawM
 
 	// Output
 	output := map[string]interface{}{
-		"graph":              graph,
-		"stored":             true,
-		"message":            fmt.Sprintf("Extracted %d entities and %d relationships", graph.EntityCount, graph.RelationshipCount),
+		"graph":   graph,
+		"stored":  true,
+		"message": fmt.Sprintf("Extracted %d entities and %d relationships", graph.EntityCount, graph.RelationshipCount),
 	}
 
 	result, _ := json.Marshal(output)

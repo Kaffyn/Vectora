@@ -76,11 +76,11 @@ type GeneratedTest struct {
 
 // TestGenerationResult represents the output of test generation.
 type TestGenerationResult struct {
-	TotalTests        int              `json:"total_tests"`
-	TestsGenerated    int              `json:"tests_generated"`
-	EstimatedCoverage float64          `json:"estimated_coverage"`
-	Tests             []GeneratedTest  `json:"tests"`
-	Recommendations   []string         `json:"recommendations"`
+	TotalTests        int             `json:"total_tests"`
+	TestsGenerated    int             `json:"tests_generated"`
+	EstimatedCoverage float64         `json:"estimated_coverage"`
+	Tests             []GeneratedTest `json:"tests"`
+	Recommendations   []string        `json:"recommendations"`
 }
 
 // Execute generates test cases.
@@ -192,13 +192,13 @@ func (t *TestGenerationTool) Execute(ctx context.Context, args json.RawMessage) 
 		ID:      uuid.New().String(),
 		Content: string(resultJSON),
 		Metadata: map[string]string{
-			"type":                "test_generation",
-			"framework":           input.TestFramework,
-			"tests_generated":     fmt.Sprintf("%d", testResult.TestsGenerated),
-			"estimated_coverage":  fmt.Sprintf("%.1f", testResult.EstimatedCoverage),
-			"coverage_goal":       fmt.Sprintf("%d", input.CoverageGoal),
-			"provider":            provider.Name(),
-			"tool":                "test_generation",
+			"type":               "test_generation",
+			"framework":          input.TestFramework,
+			"tests_generated":    fmt.Sprintf("%d", testResult.TestsGenerated),
+			"estimated_coverage": fmt.Sprintf("%.1f", testResult.EstimatedCoverage),
+			"coverage_goal":      fmt.Sprintf("%d", input.CoverageGoal),
+			"provider":           provider.Name(),
+			"tool":               "test_generation",
 		},
 		Vector: codeEmbedding,
 	}

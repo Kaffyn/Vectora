@@ -72,30 +72,30 @@ func (t *PlanModeTool) Schema() json.RawMessage {
 
 // PlanPhase represents one phase in an implementation plan.
 type PlanPhase struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Tasks       []string `json:"tasks"`
+	Name         string   `json:"name"`
+	Description  string   `json:"description"`
+	Tasks        []string `json:"tasks"`
 	Dependencies string   `json:"dependencies"`
 }
 
 // ImplementationPlan represents a complete implementation plan.
 type ImplementationPlan struct {
-	Objective  string       `json:"objective"`
-	Scope      string       `json:"scope"`
-	Phases     []PlanPhase  `json:"phases"`
-	Risks      []string     `json:"risks"`
-	Timeline   string       `json:"timeline"`
-	Resources  []string     `json:"resources"`
+	Objective string      `json:"objective"`
+	Scope     string      `json:"scope"`
+	Phases    []PlanPhase `json:"phases"`
+	Risks     []string    `json:"risks"`
+	Timeline  string      `json:"timeline"`
+	Resources []string    `json:"resources"`
 }
 
 // Execute creates a structured implementation plan.
 func (t *PlanModeTool) Execute(ctx context.Context, args json.RawMessage) (*tools.ToolResult, error) {
 	var input struct {
-		Objective   string `json:"objective"`
-		Context     string `json:"context,omitempty"`
-		Scope       string `json:"scope,omitempty"`
-		WorkspaceID string `json:"workspace_id,omitempty"`
-		SearchSimilar bool `json:"search_similar,omitempty"`
+		Objective     string `json:"objective"`
+		Context       string `json:"context,omitempty"`
+		Scope         string `json:"scope,omitempty"`
+		WorkspaceID   string `json:"workspace_id,omitempty"`
+		SearchSimilar bool   `json:"search_similar,omitempty"`
 	}
 
 	if err := json.Unmarshal(args, &input); err != nil {
@@ -236,10 +236,10 @@ func (t *PlanModeTool) Execute(ctx context.Context, args json.RawMessage) (*tool
 
 	// Build output
 	output := map[string]interface{}{
-		"plan":           plan,
-		"similar_plans":  len(similarPlans),
-		"stored":         true,
-		"message":        fmt.Sprintf("Created %s implementation plan with %d phases", input.Scope, len(plan.Phases)),
+		"plan":          plan,
+		"similar_plans": len(similarPlans),
+		"stored":        true,
+		"message":       fmt.Sprintf("Created %s implementation plan with %d phases", input.Scope, len(plan.Phases)),
 	}
 
 	result, _ := json.Marshal(output)

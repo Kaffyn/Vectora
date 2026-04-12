@@ -64,21 +64,21 @@ func (t *DocCoverageAnalysisTool) Schema() json.RawMessage {
 
 // DocumentationMetrics represents doc coverage metrics.
 type DocumentationMetrics struct {
-	TotalItems        int     `json:"total_items"`
-	DocumentedItems   int     `json:"documented_items"`
-	CoveragePercent   float64 `json:"coverage_percent"`
-	QualityScore      float64 `json:"quality_score"`
-	MissingDocs       []string `json:"missing_docs"`
-	IncompleteItems   []string `json:"incomplete_items"`
-	Recommendations   []string `json:"recommendations"`
+	TotalItems      int      `json:"total_items"`
+	DocumentedItems int      `json:"documented_items"`
+	CoveragePercent float64  `json:"coverage_percent"`
+	QualityScore    float64  `json:"quality_score"`
+	MissingDocs     []string `json:"missing_docs"`
+	IncompleteItems []string `json:"incomplete_items"`
+	Recommendations []string `json:"recommendations"`
 }
 
 // Execute analyzes documentation coverage.
 func (t *DocCoverageAnalysisTool) Execute(ctx context.Context, args json.RawMessage) (*tools.ToolResult, error) {
 	var input struct {
-		CodeItems       []string `json:"code_items"`
-		Documentation   string   `json:"documentation"`
-		WorkspaceID     string   `json:"workspace_id,omitempty"`
+		CodeItems     []string `json:"code_items"`
+		Documentation string   `json:"documentation"`
+		WorkspaceID   string   `json:"workspace_id,omitempty"`
 	}
 
 	if err := json.Unmarshal(args, &input); err != nil {
@@ -151,7 +151,7 @@ func (t *DocCoverageAnalysisTool) Execute(ctx context.Context, args json.RawMess
 	}
 
 	// Calculate quality score (0-100)
-	metrics.QualityScore = metrics.CoveragePercent * 0.7 + 20.0 // Coverage + base quality
+	metrics.QualityScore = metrics.CoveragePercent*0.7 + 20.0 // Coverage + base quality
 
 	// Generate recommendations
 	if metrics.CoveragePercent < 80 {
@@ -186,9 +186,9 @@ func (t *DocCoverageAnalysisTool) Execute(ctx context.Context, args json.RawMess
 
 	// Output
 	output := map[string]interface{}{
-		"metrics":    metrics,
-		"stored":     true,
-		"message":    fmt.Sprintf("Documentation analysis complete: %.1f%% coverage, quality score %.1f/100", metrics.CoveragePercent, metrics.QualityScore),
+		"metrics": metrics,
+		"stored":  true,
+		"message": fmt.Sprintf("Documentation analysis complete: %.1f%% coverage, quality score %.1f/100", metrics.CoveragePercent, metrics.QualityScore),
 	}
 
 	result, _ := json.Marshal(output)

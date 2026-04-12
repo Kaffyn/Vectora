@@ -49,7 +49,7 @@ func TestStdioServerInitialize(t *testing.T) {
 	var response struct {
 		JSONRPC string `json:"jsonrpc"`
 		Result  struct {
-			ProtocolVersion string `json:"protocolVersion"`
+			ProtocolVersion string                 `json:"protocolVersion"`
 			Capabilities    map[string]interface{} `json:"capabilities"`
 			ServerInfo      struct {
 				Name    string `json:"name"`

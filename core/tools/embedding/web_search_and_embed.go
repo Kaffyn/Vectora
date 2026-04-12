@@ -160,12 +160,12 @@ func (t *WebSearchAndEmbedTool) Execute(ctx context.Context, args json.RawMessag
 
 			// Create metadata with source information
 			metadata := map[string]string{
-				"source":      result.URL,
-				"title":       result.Title,
-				"chunk_idx":   fmt.Sprintf("%d", chunkIdx),
-				"provider":    provider.Name(),
+				"source":        result.URL,
+				"title":         result.Title,
+				"chunk_idx":     fmt.Sprintf("%d", chunkIdx),
+				"provider":      provider.Name(),
 				"embedding_dim": fmt.Sprintf("%d", len(embedding)),
-				"tool":        "web_search_and_embed",
+				"tool":          "web_search_and_embed",
 			}
 
 			// Store chunk

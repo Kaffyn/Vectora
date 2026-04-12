@@ -93,17 +93,17 @@ func RegisterEmbeddingTools(vectoraMCPServer *VectoraMCPServer, router *llm.Rout
 	// Store tools in MCP server for exposure via tools/list and tools/call
 	// These will be returned by listTools() and invoked by callTool()
 	vectoraMCPServer.embeddingTools = map[string]interface{}{
-		"embed":                      embedTool,
-		"search_database":            searchTool,
-		"web_search_and_embed":       webSearchTool,
-		"web_fetch_and_embed":        webFetchTool,
-		"plan_mode":                  planTool,
-		"refactor_with_context":      refactorTool,
-		"analyze_code_patterns":      patternsAnalysisTool,
-		"knowledge_graph_analysis":   knowledgeGraphTool,
-		"doc_coverage_analysis":      docCoverageTool,
-		"test_generation":            testGenTool,
-		"bug_pattern_detection":      bugDetectionTool,
+		"embed":                    embedTool,
+		"search_database":          searchTool,
+		"web_search_and_embed":     webSearchTool,
+		"web_fetch_and_embed":      webFetchTool,
+		"plan_mode":                planTool,
+		"refactor_with_context":    refactorTool,
+		"analyze_code_patterns":    patternsAnalysisTool,
+		"knowledge_graph_analysis": knowledgeGraphTool,
+		"doc_coverage_analysis":    docCoverageTool,
+		"test_generation":          testGenTool,
+		"bug_pattern_detection":    bugDetectionTool,
 	}
 }
 

@@ -16,16 +16,16 @@ import (
 // operates as an agent (e.g., invoked by Claude Code, VS Code Extension).
 // Phase 4G: Includes embedding tools for RAG capabilities.
 type VectoraAgent struct {
-	name             string
-	version          string
-	kvStore          db.KVStore
-	vecStore         db.VectorStore
-	llmRouter        *llm.Router
-	msgService       *llm.MessageService
-	logger           *slog.Logger
-	sessions         map[acp.SessionId]*AgentSession
-	sessionLock      sync.RWMutex
-	embeddingTools   map[string]interface{} // Phase 4G: Registered embedding tools
+	name           string
+	version        string
+	kvStore        db.KVStore
+	vecStore       db.VectorStore
+	llmRouter      *llm.Router
+	msgService     *llm.MessageService
+	logger         *slog.Logger
+	sessions       map[acp.SessionId]*AgentSession
+	sessionLock    sync.RWMutex
+	embeddingTools map[string]interface{} // Phase 4G: Registered embedding tools
 }
 
 // AgentSession tracks state for a single agent session.

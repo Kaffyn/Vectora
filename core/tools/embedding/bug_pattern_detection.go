@@ -204,10 +204,10 @@ func (t *BugPatternDetectionTool) Execute(ctx context.Context, args json.RawMess
 
 	// Output
 	output := map[string]interface{}{
-		"result":      result,
-		"stored":      true,
-		"risk_level":  result.RiskLevel,
-		"message":     fmt.Sprintf("Bug detection complete: %d potential issues found (risk: %s)", result.BugsFound, result.RiskLevel),
+		"result":     result,
+		"stored":     true,
+		"risk_level": result.RiskLevel,
+		"message":    fmt.Sprintf("Bug detection complete: %d potential issues found (risk: %s)", result.BugsFound, result.RiskLevel),
 	}
 
 	resultJSON, _ := json.Marshal(output)
