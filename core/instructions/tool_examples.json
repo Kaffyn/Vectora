@@ -1,91 +1,165 @@
 {
   "tool_categories": {
-    "system": {
-      "description": "Standard file system and OS interactions (ACP Mode)",
+    "file_system": {
+      "description": "File system operations within Trust Folder",
       "examples": [
         {
           "tool": "read_file",
-          "query": "Read the content of main.go to understand the entry point.",
+          "scenario": "Understand a specific file's content",
+          "query": "Ler o arquivo src/main.go para entender o entry point",
           "params": {
-            "path": "main.go"
-          }
+            "path": "src/main.go"
+          },
+          "when_to_use": "Quando precisa ver o conteúdo de um arquivo específico"
         },
         {
           "tool": "write_file",
-          "query": "Create a new configuration file with default values.",
+          "scenario": "Create a new configuration file",
+          "query": "Criar um novo arquivo config.json com configurações padrão",
           "params": {
             "path": "config.json",
             "content": "{\n  \"version\": \"1.0\",\n  \"active\": true\n}"
-          }
+          },
+          "when_to_use": "Para gerar código novo ou criar arquivos de configuração"
         },
         {
-          "tool": "run_command",
-          "query": "Run the tests for the core engine.",
+          "tool": "read_folder",
+          "scenario": "Explore project structure",
+          "query": "Listar arquivos em src/ para entender a estrutura",
           "params": {
-            "command": "go test ./core/..."
-          }
-        }
-      ]
-    },
-    "rag": {
-      "description": "Semantic search and embedding management (ACP & MCP Mode)",
-      "examples": [
+            "path": "src/"
+          },
+          "when_to_use": "Para explorar a estrutura do projeto e ver quais arquivos existem"
+        },
         {
-          "tool": "embed",
-          "query": "Index the current project for semantic search.",
+          "tool": "find_files",
+          "scenario": "Find all Go source files",
+          "query": "Encontrar todos os arquivos .go no projeto",
           "params": {
+            "pattern": "**/*.go"
+          },
+          "when_to_use": "Para localizar arquivos que correspondem a um padrão (*.go, *.ts, etc)"
+        },
+        {
+          "tool": "grep_search",
+          "scenario": "Find all function definitions",
+          "query": "Encontrar todas as funções que começam com 'Query'",
+          "params": {
+            "pattern": "func.*Query",
             "path": "."
-          }
+          },
+          "when_to_use": "Para buscar padrões dentro de arquivos usando regex"
         },
         {
-          "tool": "search_database",
-          "query": "Find all code related to KV cache compression.",
+          "tool": "edit",
+          "scenario": "Add logging to a function",
+          "query": "Adicionar logging ao início da função ProcessQuery",
           "params": {
-            "query": "KV cache compression turboquant"
-          }
-        },
-        {
-          "tool": "web_search_to_embed",
-          "query": "Search for the latest GPT-5.4 API documentation and vectorize it.",
-          "params": {
-            "query": "OpenAI GPT-5.4 API reference roadmap 2026"
-          }
-        },
-        {
-          "tool": "implementation_plan_rag",
-          "query": "Create a plan to implement a new authentication provider using existing RAG context.",
-          "params": {
-            "goal": "Add OAuth2 support to the core"
-          }
+            "path": "src/engine.go",
+            "instruction": "No início da função ProcessQuery, adicione fmt.Println(\"Starting query processing\")",
+            "content": "fmt.Println(\"Starting query processing\")"
+          },
+          "when_to_use": "Para fazer mudanças semânticas em código existente (não é find-replace)"
         }
       ]
     },
-    "analysis": {
-      "description": "Deep code analysis and structural retrieval",
+    "execution": {
+      "description": "Code execution and integration",
       "examples": [
         {
-          "tool": "project_graph_analysis",
-          "query": "Analyze how the IPC server depends on the manager package.",
+          "tool": "run_shell_command",
+          "scenario": "Run project tests",
+          "query": "Executar todos os testes do projeto",
           "params": {
-            "scope": "core/api/ipc"
-          }
+            "command": "go test ./..."
+          },
+          "when_to_use": "Para executar comandos, rodar testes, compilar código, etc"
+        }
+      ]
+    },
+    "web_integration": {
+      "description": "Web search and content fetching",
+      "examples": [
+        {
+          "tool": "google_search",
+          "scenario": "Search for Go concurrency patterns",
+          "query": "Pesquisar por 'Go concurrency patterns 2026' para encontrar recursos",
+          "params": {
+            "query": "Go concurrency patterns 2026"
+          },
+          "when_to_use": "Para buscar informações na internet, encontrar documentação, artigos"
         },
         {
-          "tool": "analyze_code_patterns",
-          "query": "Identify potential memory leaks in the streaming logic.",
+          "tool": "web_fetch",
+          "scenario": "Fetch API documentation",
+          "query": "Baixar e processar a documentação da API",
           "params": {
-            "focus": "memory_leak",
-            "path": "src/hooks/useStreamingContent.ts"
-          }
-        },
+            "url": "https://example.com/api-documentation"
+          },
+          "when_to_use": "Para baixar conteúdo de URLs e processar como texto (HTML → Markdown)"
+        }
+      ]
+    },
+    "persistence": {
+      "description": "Long-term memory storage",
+      "examples": [
         {
-          "tool": "knowledge_graph_analysis",
-          "query": "Show me the relationship between tenants and resource pools.",
+          "tool": "save_memory",
+          "scenario": "Save important patterns discovered",
+          "query": "Salvar padrões de event-driven encontrados para futura referência",
           "params": {
-            "entities": ["Tenant", "ResourcePool"]
-          }
+            "key": "event_patterns_go",
+            "value": "{\"patterns\": [\"observer\", \"pubsub\", \"event_sourcing\"], \"date\": \"2026-04-12\"}"
+          },
+          "when_to_use": "Para guardar aprendizados, descobertas importantes, contexto para future queries"
         }
       ]
     }
-  }
+  },
+  "decision_tree": {
+    "description": "How to decide which tools to use",
+    "trivial_query": {
+      "definition": "Greetings, thanks, goodbyes, simple knowledge questions",
+      "examples": ["oi", "olá", "obrigado", "valeu", "qual é seu nome?"],
+      "action": "RESPONDA APENAS COM HISTÓRICO - NÃO USE FERRAMENTAS",
+      "expected_time": "2-5 segundos"
+    },
+    "code_reading": {
+      "definition": "User wants to understand code, find specific functions/patterns",
+      "examples": ["leia main.go", "encontre async functions", "mostre o arquivo X"],
+      "tools": ["read_file", "grep_search", "find_files"],
+      "action": "Use specific tools - NÃO use embedding/RAG",
+      "expected_time": "5-15 segundos"
+    },
+    "code_writing": {
+      "definition": "User wants to create or modify code",
+      "examples": ["adicione logging", "refatore este código", "crie nova função"],
+      "tools": ["read_file", "grep_search", "edit", "write_file"],
+      "action": "Read context, then edit/write",
+      "expected_time": "10-20 segundos"
+    },
+    "semantic_analysis": {
+      "definition": "Deep analysis requiring semantic understanding across multiple files",
+      "examples": ["analise padrões do projeto", "encontre código duplicado", "explique arquitetura"],
+      "tools": ["embedding", "RAG", "read_file", "grep_search"],
+      "action": "Use embedding + semantic search for deep analysis",
+      "expected_time": "30-60 segundos"
+    },
+    "web_research": {
+      "definition": "User needs external information",
+      "examples": ["pesquise sobre X", "encontre documentação de Y", "qual é melhor prática para Z"],
+      "tools": ["google_search", "web_fetch"],
+      "action": "Search web and fetch relevant resources",
+      "expected_time": "15-30 segundos"
+    }
+  },
+  "critical_rules": [
+    "NUNCA use embedding/RAG para queries triviais",
+    "NUNCA use embedding/RAG sem necessidade",
+    "Para greetings, respostas, perguntas simples: APENAS histórico",
+    "Para leitura de código: use read_file + grep_search (SEM embedding)",
+    "Para análise profunda: use embedding + RAG",
+    "Sempre mantenha respostas focadas na tarefa",
+    "Sempre respeite Trust Folder (não acesse arquivos fora)"
+  ]
 }

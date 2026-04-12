@@ -63,7 +63,8 @@
       "Bash(xargs echo:*)",
       "Bash(./vectora-setup-windows-amd64.exe --help)",
       "Bash(go install:*)",
-      "Bash(ls -la desktop/ui/*.go)"
+      "Bash(ls -la desktop/ui/*.go)",
+      "Bash(pwsh -NoProfile -ExecutionPolicy Bypass \"./build.ps1\")"
     ]
   }
 }
