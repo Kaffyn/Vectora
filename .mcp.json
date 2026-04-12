@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "vectora": {
+      "command": "vectora",
+      "args": ["mcp", "C:\\Users\\bruno\\Desktop\\Vectora"],
+      "description": "Vectora MCP Server - AI engineering assistant with RAG capabilities"
+    }
+  }
+}

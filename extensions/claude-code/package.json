@@ -1,0 +1,130 @@
+{
+  "name": "vectora-claude-code",
+  "displayName": "Vectora AI",
+  "description": "Integração Vectora para VS Code — busca semântica, análise e refatoração via MCP",
+  "version": "0.1.0",
+  "publisher": "kaffyn",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["AI", "Programming Languages", "Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vectora.search",
+        "title": "Vectora: Busca Semântica",
+        "icon": "$(search)"
+      },
+      {
+        "command": "vectora.docs",
+        "title": "Vectora: Analisar Documentação",
+        "icon": "$(book)"
+      },
+      {
+        "command": "vectora.analyze",
+        "title": "Vectora: Analisar Código",
+        "icon": "$(inspect)"
+      },
+      {
+        "command": "vectora.refactor",
+        "title": "Vectora: Refatorar Código",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "vectora.selectTool",
+        "title": "Vectora: Selecionar Ferramenta",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "vectora.reconnect",
+        "title": "Vectora: Reconectar",
+        "icon": "$(refresh)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "vectora.search",
+        "key": "ctrl+shift+v s",
+        "mac": "cmd+shift+v s"
+      },
+      {
+        "command": "vectora.analyze",
+        "key": "ctrl+shift+v a",
+        "mac": "cmd+shift+v a"
+      },
+      {
+        "command": "vectora.refactor",
+        "key": "ctrl+shift+v r",
+        "mac": "cmd+shift+v r"
+      },
+      {
+        "command": "vectora.docs",
+        "key": "ctrl+shift+v d",
+        "mac": "cmd+shift+v d"
+      },
+      {
+        "command": "vectora.selectTool",
+        "key": "ctrl+shift+v t",
+        "mac": "cmd+shift+v t"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "vectora.sidebar",
+          "name": "Vectora AI",
+          "icon": "$(sparkle)",
+          "contextualTitle": "Vectora"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Vectora",
+      "properties": {
+        "vectora.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "Habilitar logs de debug do Vectora"
+        },
+        "vectora.workspacePath": {
+          "type": "string",
+          "default": "",
+          "description": "Caminho do workspace Vectora (padrão: workspace atual)"
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "vectora.search",
+          "group": "vectora@1",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "vectora.refactor",
+          "group": "vectora@2",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "vectora.analyze",
+          "group": "vectora@3"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.90.0",
+    "esbuild": "^0.21.0",
+    "typescript": "^5.4.0"
+  }
+}
