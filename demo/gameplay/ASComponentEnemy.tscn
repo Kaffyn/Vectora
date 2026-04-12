@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dyc6u40py7v6p"]
+
+[ext_resource type="Script" path="res://gameplay/core/ASComponentEnemy.gd" id="1_5yo7k"]
+
+[node name="ASComponentEnemy" type="Node"]
+script = ExtResource("1_5yo7k")

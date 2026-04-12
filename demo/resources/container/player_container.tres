@@ -1,0 +1,20 @@
+[gd_resource type="ASContainer" load_steps=18 format=3]
+
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_idle.tres" id="1"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_walk.tres" id="2"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_run.tres" id="3"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_dash.tres" id="4"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_jump.tres" id="5"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_fall.tres" id="6"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_hurt.tres" id="7"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_die.tres" id="8"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_combo_master.tres" id="10"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_heavy.tres" id="13"]
+[ext_resource type="ASEffect" path="res://resources/effects/effect_attack_damage.tres" id="15"]
+[ext_resource type="ASEffect" path="res://resources/effects/effect_dash_cost.tres" id="16"]
+[ext_resource type="ASAttributeSet" path="res://resources/attributes/player_attributes.tres" id="17"]
+
+[resource]
+abilities = [ExtResource("1"), ExtResource("2"), ExtResource("3"), ExtResource("4"), ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8"), ExtResource("10"), ExtResource("13")]
+effects = [ExtResource("15"), ExtResource("16")]
+attribute_set = ExtResource("17")

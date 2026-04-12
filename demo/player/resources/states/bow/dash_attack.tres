@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="AttackData" format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/AttackData.gd" id="1_attack_data"]
+[ext_resource type="Script" path="res://gameplay/core/State.gd" id="1_n1gac"]
+[ext_resource type="PackedScene" path="res://player/resources/states/bow/projectiles/Arrow.tscn" id="2_arrow"]
+
+[sub_resource type="Animation" id="Animation_dash_atk"]
+length = 0.3
+
+[resource]
+script = ExtResource("1_attack_data")
+name = "Bow Dash Shot"
+animation_res = SubResource("Animation_dash_atk")
+debug_color = Color(0.8, 0.2, 0.8, 1)
+duration = 0.3
+preserve_momentum = true
+projectile_scene = ExtResource("2_arrow")
+projectile_speed = 800.0
+cost_type = 1
+cost_amount = 15
+entry_requirements = {
+"attack": 2,
+"effect": 0,
+"jump": 0,
+"motion": 4,
+"physics": 6,
+"status": 0
+}

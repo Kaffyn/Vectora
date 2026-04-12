@@ -1,0 +1,72 @@
+[configuration]
+
+entry_symbol = "as_library_init"
+compatibility_minimum = "4.2"
+
+[libraries]
+
+macos.debug = "res://addons/ability_system/bin/libability_system.macos.editor.dylib"
+macos.release = "res://addons/ability_system/bin/libability_system.macos.template_release.dylib"
+
+windows.debug.x86_32 = "res://addons/ability_system/bin/ability_system.windows.editor.x86_32.dll"
+windows.release.x86_32 = "res://addons/ability_system/bin/ability_system.windows.template_release.x86_32.dll"
+windows.debug.x86_64 = "res://addons/ability_system/bin/ability_system.windows.editor.x86_64.dll"
+windows.release.x86_64 = "res://addons/ability_system/bin/ability_system.windows.template_release.x86_64.dll"
+
+linux.debug.x86_64 = "res://addons/ability_system/bin/libability_system.linux.editor.x86_64.so"
+linux.release.x86_64 = "res://addons/ability_system/bin/libability_system.linux.template_release.x86_64.so"
+linux.debug.x86_32 = "res://addons/ability_system/bin/libability_system.linux.editor.x86_32.so"
+linux.release.x86_32 = "res://addons/ability_system/bin/libability_system.linux.template_release.x86_32.so"
+linux.debug.arm64 = "res://addons/ability_system/bin/libability_system.linux.editor.arm64.so"
+linux.release.arm64 = "res://addons/ability_system/bin/libability_system.linux.template_release.arm64.so"
+linux.debug.arm32 = "res://addons/ability_system/bin/libability_system.linux.editor.arm32.so"
+linux.release.arm32 = "res://addons/ability_system/bin/libability_system.linux.template_release.arm32.so"
+
+android.debug.arm64 = "res://addons/ability_system/bin/libability_system.android.editor.arm64.so"
+android.release.arm64 = "res://addons/ability_system/bin/libability_system.android.template_release.arm64.so"
+android.debug.arm32 = "res://addons/ability_system/bin/libability_system.android.editor.arm32.so"
+android.release.arm32 = "res://addons/ability_system/bin/libability_system.android.template_release.arm32.so"
+android.debug.x86_64 = "res://addons/ability_system/bin/libability_system.android.editor.x86_64.so"
+android.release.x86_64 = "res://addons/ability_system/bin/libability_system.android.template_release.x86_64.so"
+android.debug.x86_32 = "res://addons/ability_system/bin/libability_system.android.editor.x86_32.so"
+android.release.x86_32 = "res://addons/ability_system/bin/libability_system.android.template_release.x86_32.so"
+
+ios.debug.arm64 = "res://addons/ability_system/bin/libability_system.ios.editor.arm64.dylib"
+ios.release.arm64 = "res://addons/ability_system/bin/libability_system.ios.template_release.arm64.dylib"
+
+web.debug.wasm32 = "res://addons/ability_system/bin/libability_system.web.editor.wasm32.wasm"
+web.release.wasm32 = "res://addons/ability_system/bin/libability_system.web.template_release.wasm32.wasm"
+
+[icons]
+
+AbilitySystem = "res://addons/ability_system/icons/AbilitySystem.svg"
+ASAbility = "res://addons/ability_system/icons/ASAbility.svg"
+ASAttribute = "res://addons/ability_system/icons/ASAttribute.svg"
+ASAttributeSet = "res://addons/ability_system/icons/ASAttributeSet.svg"
+ASComponent = "res://addons/ability_system/icons/ASComponent.svg"
+ASCue = "res://addons/ability_system/icons/ASCue.svg"
+ASEffect = "res://addons/ability_system/icons/ASEffect.svg"
+ASTagSpec = "res://addons/ability_system/icons/ASTagContainer.svg"
+ASEventTag = "res://addons/ability_system/icons/ASEventTag.svg"
+ASNameTag = "res://addons/ability_system/icons/ASNameTag.svg"
+ASConditionalTag = "res://addons/ability_system/icons/ASConditionalTag.svg"
+
+# LimboAI Integration Icons
+LimboAI = "res://addons/ability_system/icons/LimboAI.svg"
+BTPlayer = "res://addons/ability_system/icons/BTPlayer.svg"
+BehaviorTree = "res://addons/ability_system/icons/BehaviorTree.svg"
+BehaviorTreeData = "res://addons/ability_system/icons/BehaviorTree.svg"
+LimboState = "res://addons/ability_system/icons/LimboState.svg"
+LimboHSM = "res://addons/ability_system/icons/LimboHSM.svg"
+BTTask = "res://addons/ability_system/icons/BTTask.svg"
+BTAction = "res://addons/ability_system/icons/BTAction.svg"
+BTCondition = "res://addons/ability_system/icons/BTCondition.svg"
+BTComposite = "res://addons/ability_system/icons/BTComposite.svg"
+BTDecorator = "res://addons/ability_system/icons/BTDecorator.svg"
+BTSequence = "res://addons/ability_system/icons/BTSequence.svg"
+BTSelector = "res://addons/ability_system/icons/BTSelector.svg"
+BTWait = "res://addons/ability_system/icons/BTWait.svg"
+BTDelay = "res://addons/ability_system/icons/BTDelay.svg"
+BTComment = "res://addons/ability_system/icons/BTComment.svg"
+BlackboardPlan = "res://addons/ability_system/icons/BlackboardPlan.svg"
+BTSubtree = "res://addons/ability_system/icons/BTSubtree.svg"

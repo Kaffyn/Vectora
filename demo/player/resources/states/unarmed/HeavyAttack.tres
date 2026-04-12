@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/AttackData.gd" id="1_attack_data"]
+
+[resource]
+script = ExtResource("1_attack_data")
+name = "Heavy"
+debug_color = Color(0.8, 0, 0, 1)
+priority_override = 5
+req_min_hp = 20.0
+duration = 1.2
+damage = 25
+cooldown = 0.5
+area_pivot = Vector2(30, 0)
+area_size = Vector2(50, 50)
+combo_step = 1
+is_charged = true
+min_charge_time = 0.5
+max_charge_time = 2.0
+fully_charged_damage_multiplier = 2.0
+entry_requirements = {
+"attack": 4,
+"effect": 0,
+"jump": 0,
+"motion": 0,
+"physics": 0,
+"status": 0,
+}
+attack = 4
+weapon = 0
+cancel_min_time = 0.3
+buffer_window_start = 0.5
+cost_type = 1
+cost_amount = 0
+on_physics_change = 1
+on_weapon_change = 1
+on_attack_change = 0
+on_take_damage = 1

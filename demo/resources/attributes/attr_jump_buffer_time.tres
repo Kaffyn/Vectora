@@ -1,0 +1,7 @@
+[gd_resource type="ASAttribute" format=3]
+
+[resource]
+attribute_name = "jump_buffer_time"
+base_value = 0.1
+min_value = 0.0
+max_value = 0.1

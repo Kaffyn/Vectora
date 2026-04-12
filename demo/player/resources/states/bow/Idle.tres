@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="MoveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/MoveData.gd" id="1_move_data"]
+
+[resource]
+script = ExtResource("1_move_data")
+name = "Bow Idle"
+debug_color = Color(0.7850983, 0.7861089, 0.7607244, 1)
+entry_requirements = {
+"attack": 0,
+"effect": 0,
+"jump": 0,
+"motion": 1,
+"physics": 1,
+"status": 1,
+}
+motion = 1
+weapon = 3
+physics = 1
+status = 1

@@ -1,0 +1,12 @@
+[gd_resource type="ASAbility" load_steps=5 format=3]
+[ext_resource type="ASAbilityPhase" path="res://resources/abilities/ability_combo1.tres" id="1"]
+[ext_resource type="ASAbilityPhase" path="res://resources/abilities/ability_combo2.tres" id="2"]
+[ext_resource type="ASAbilityPhase" path="res://resources/abilities/ability_combo3.tres" id="3"]
+[resource]
+ability_name = "combat_combo"
+ability_tag = &"attack.fast"
+activation_owned_tags = PackedStringArray("status.attacking")
+activation_blocked_any_tags = PackedStringArray("status.dead", "status.hurt")
+phases = [ExtResource("1"), ExtResource("2"), ExtResource("3")]
+duration_policy = 1
+ability_duration = 1.2

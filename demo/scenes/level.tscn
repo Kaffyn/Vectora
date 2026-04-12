@@ -1,0 +1,188 @@
+[gd_scene format=3 uid="uid://covor50ks235b"]
+
+[ext_resource type="Script" uid="uid://cj638kd8m5hd0" path="res://scenes/level.gd" id="1_g0gct"]
+[ext_resource type="PackedScene" path="res://player/player.tscn" id="2_70hee"]
+[ext_resource type="PackedScene" path="res://ui/hud.tscn" id="3_4ffrk"]
+[ext_resource type="Script" uid="uid://bgxkhg4nhtfw6" path="res://camera/camera.gd" id="4_70hee"]
+[ext_resource type="PhysicsMaterial" path="res://resources/physics_material.tres" id="5_4ffrk"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_g0gct"]
+size = Vector2(1000, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_70hee"]
+size = Vector2(200, 100)
+
+[node name="Level" type="Node2D" unique_id=496215491]
+script = ExtResource("1_g0gct")
+
+[node name="PlayerSpawn" type="Marker2D" parent="." unique_id=1045317031 groups=["PlayerSpawn"]]
+position = Vector2(576, 324)
+
+[node name="Node" type="Node2D" parent="." unique_id=1432215782]
+
+[node name="Node2D" type="Node2D" parent="Node" unique_id=1844089005]
+
+[node name="Floor" type="StaticBody2D" parent="Node/Node2D" unique_id=1313976046]
+position = Vector2(573, 531)
+physics_material_override = ExtResource("5_4ffrk")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Node/Node2D/Floor" unique_id=1342943554]
+shape = SubResource("RectangleShape2D_g0gct")
+
+[node name="ColorRect" type="ColorRect" parent="Node/Node2D/Floor" unique_id=448994102]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -20.0
+offset_right = 500.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Floor2" type="StaticBody2D" parent="Node/Node2D" unique_id=1153882825]
+position = Vector2(1584, 412)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Node/Node2D/Floor2" unique_id=1711159603]
+shape = SubResource("RectangleShape2D_g0gct")
+
+[node name="ColorRect" type="ColorRect" parent="Node/Node2D/Floor2" unique_id=1194769144]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -20.0
+offset_right = 500.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Floor3" type="StaticBody2D" parent="Node/Node2D" unique_id=1308651103]
+position = Vector2(-426, 480)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Node/Node2D/Floor3" unique_id=135757031]
+shape = SubResource("RectangleShape2D_g0gct")
+
+[node name="ColorRect" type="ColorRect" parent="Node/Node2D/Floor3" unique_id=138790603]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -20.0
+offset_right = 500.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Floor4" type="StaticBody2D" parent="Node/Node2D" unique_id=1498062992]
+position = Vector2(2327, 275)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Node/Node2D/Floor4" unique_id=1237223942]
+shape = SubResource("RectangleShape2D_g0gct")
+
+[node name="ColorRect" type="ColorRect" parent="Node/Node2D/Floor4" unique_id=1960719283]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -20.0
+offset_right = 500.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Floor5" type="StaticBody2D" parent="Node/Node2D" unique_id=1733524022]
+position = Vector2(1114, 153)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Node/Node2D/Floor5" unique_id=1486689158]
+shape = SubResource("RectangleShape2D_g0gct")
+
+[node name="ColorRect" type="ColorRect" parent="Node/Node2D/Floor5" unique_id=1219612678]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -20.0
+offset_right = 500.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Floor6" type="StaticBody2D" parent="Node/Node2D" unique_id=1791454705]
+position = Vector2(-178, 26)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Node/Node2D/Floor6" unique_id=1868629899]
+shape = SubResource("RectangleShape2D_g0gct")
+
+[node name="ColorRect" type="ColorRect" parent="Node/Node2D/Floor6" unique_id=1099652416]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -20.0
+offset_right = 500.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Floor7" type="StaticBody2D" parent="Node/Node2D" unique_id=3026727]
+position = Vector2(-1358, 264)
+physics_material_override = ExtResource("5_4ffrk")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Node/Node2D/Floor7" unique_id=2103457619]
+shape = SubResource("RectangleShape2D_g0gct")
+
+[node name="ColorRect" type="ColorRect" parent="Node/Node2D/Floor7" unique_id=120198108]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -20.0
+offset_right = 500.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Node2D2" type="Node2D" parent="Node" unique_id=2135560692]
+
+[node name="Water" type="Area2D" parent="Node/Node2D2" unique_id=443849341]
+position = Vector2(1373, 345)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Node/Node2D2/Water" unique_id=135143227]
+shape = SubResource("RectangleShape2D_70hee")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="." unique_id=1460671460]
+process_mode = 3
+
+[node name="HUD" parent="CanvasLayer" unique_id=37653944 instance=ExtResource("3_4ffrk")]
+offset_left = 1.0
+offset_top = 4.0
+offset_right = 1.0
+offset_bottom = 4.0
+
+[node name="Players" type="Node" parent="." unique_id=1279872675]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1039054140]
+position = Vector2(576, 324)
+script = ExtResource("4_70hee")

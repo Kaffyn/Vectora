@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MoveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/MoveData.gd" id="1_move_data"]
+
+[resource]
+script = ExtResource("1_move_data")
+name = "Katana Fall"
+debug_color = Color(0, 0.5, 0.5, 1)
+entry_requirements = {
+"attack": 0,
+"effect": 0,
+"jump": 4,
+"motion": 5,
+"physics": 2,
+"status": 1,
+}
+motion = 5
+jump = 4
+weapon = 2
+physics = 2
+status = 1

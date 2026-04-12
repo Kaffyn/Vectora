@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/AttackData.gd" id="1_attack_data"]
+[ext_resource type="Resource" path="res://player/resources/states/bow/AttackLight3.tres" id="2_next"]
+
+[resource]
+script = ExtResource("1_attack_data")
+name = "Bow Attack Light 2"
+damage = 12
+cooldown = 0.4
+area_pivot = Vector2(0, 20)
+area_size = Vector2(20, 20)
+projectile_speed = 600.0
+projectile_count = 1
+spawn_offset = Vector2(20, 0)
+next_combo_state = ExtResource("2_next")
+combo_window_start = 0.4
+min_charge_time = 0.5
+max_charge_time = 2.0
+fully_charged_damage_multiplier = 2.0
+entry_requirements = {
+"attack": 2,
+"effect": 0,
+"jump": 0,
+"motion": 0,
+"physics": 0,
+"status": 0,
+}
+attack = 2
+weapon = 3
+cancel_min_time = 0.2
+enable_buffering = true
+buffer_window_start = 0.5
+cost_type = 1
+cost_amount = 8
+on_physics_change = 1
+on_weapon_change = 1
+on_take_damage = 1

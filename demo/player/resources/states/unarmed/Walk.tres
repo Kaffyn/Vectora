@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="MoveData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/MoveData.gd" id="1_move_data"]
+
+[sub_resource type="Animation" id="Animation_l7nye"]
+
+[resource]
+script = ExtResource("1_move_data")
+name = "Walk"
+animation_res = SubResource("Animation_l7nye")
+debug_color = Color(0.5, 0.5, 0.5, 1)
+entry_requirements = {
+"attack": 0,
+"effect": 0,
+"jump": 1,
+"motion": 2,
+"physics": 1,
+"status": 1,
+}
+motion = 2
+jump = 1
+weapon = 0
+physics = 1
+status = 1

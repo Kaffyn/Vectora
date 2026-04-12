@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/AttackData.gd" id="1_attack_data"]
+[ext_resource type="Resource" path="res://player/resources/states/unarmed/Dash.tres" id="2_dash"]
+[ext_resource type="Resource" path="res://player/resources/states/unarmed/HyperDash.tres" id="3_hyper"]
+
+[sub_resource type="Animation" id="Animation_dash_atk"]
+
+[resource]
+script = ExtResource("1_attack_data")
+name = "Dash Attack"
+animation_res = SubResource("Animation_dash_atk")
+debug_color = Color(0.8, 0.2, 0.2, 1)
+duration = 0.3
+damage = 8
+preserve_momentum = true
+previous_states = Array[Resource]([ExtResource("2_dash"), ExtResource("3_hyper")])
+entry_requirements = {
+"attack": 2,
+"effect": 0,
+"jump": 0,
+"motion": 4,
+"physics": 6,
+"status": 0,
+}
+maintenance_requirements = {
+"attack": 2,
+"motion": 0,
+"physics": 0,
+}
+motion = 4
+attack = 2
+weapon = 0
+physics = 6
+cost_type = 1
+cost_amount = 12

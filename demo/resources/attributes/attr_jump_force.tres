@@ -1,0 +1,7 @@
+[gd_resource type="ASAttribute" format=3]
+
+[resource]
+attribute_name = "jump_force"
+base_value = 500.0
+min_value = 0.0
+max_value = 500.0

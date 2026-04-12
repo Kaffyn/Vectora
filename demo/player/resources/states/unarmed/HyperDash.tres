@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="MoveData" format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/MoveData.gd" id="1_move_data"]
+[ext_resource type="Script" path="res://gameplay/core/State.gd" id="1_xdkp6"]
+[ext_resource type="Resource" path="res://player/resources/states/unarmed/Dash.tres" id="2_dash"]
+
+[sub_resource type="Animation" id="Animation_hyper"]
+resource_name = "Jump"
+
+[resource]
+script = ExtResource("1_move_data")
+name = "HyperDash"
+animation_res = SubResource("Animation_hyper")
+debug_color = Color(0, 0.2, 1, 1)
+speed_multiplier = 2.5
+duration = 0.4
+lock_movement = true
+jump_force = 600.0
+context_cooldown_filter = 1
+cost_type = 1
+cost_amount = 15
+priority_override = 5
+previous_states = Array[Resource]([ExtResource("2_dash")])
+entry_requirements = {
+"attack": 0,
+"effect": 0,
+"jump": 2,
+"motion": 4,
+"physics": 1,
+"status": 1
+}
+maintenance_requirements = {
+"physics": 5
+}
+on_physics_change = 0

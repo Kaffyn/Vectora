@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://qq1cyb7u4b53"]
+
+[ext_resource type="Script" uid="uid://bte44jl501sb0" path="res://ui/chat_message.gd" id="1_msg"]
+
+[node name="ChatMessage" type="Container" unique_id=439216970]
+custom_minimum_size = Vector2(200, 20)
+offset_right = 200.0
+offset_bottom = 23.0
+script = ExtResource("1_msg")
+
+[node name="Label" type="Label" parent="." unique_id=1043624748]
+custom_minimum_size = Vector2(200, 10)
+layout_mode = 2
+size_flags_horizontal = 3
+text = ""
+autowrap_mode = 2

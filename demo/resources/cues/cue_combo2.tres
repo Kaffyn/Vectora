@@ -1,0 +1,6 @@
+[gd_resource type="ASCueAnimation" format=3]
+[resource]
+cue_name = "Cue_Combo2"
+cue_tag = &"attack.normal"
+event_type = 1
+animation_name = "Combo2"

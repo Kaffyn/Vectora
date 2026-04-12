@@ -1,0 +1,6 @@
+[gd_resource type="ASCueAnimation" format=3]
+[resource]
+cue_name = "Cue_Run"
+cue_tag = &"motion.run"
+event_type = 1
+animation_name = "Run"

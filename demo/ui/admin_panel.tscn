@@ -1,0 +1,155 @@
+[gd_scene format=3 uid="uid://d3tnfghijklm"]
+
+[ext_resource type="Script" uid="uid://bte44jr2qb2m" path="res://ui/admin_panel.gd" id="1_admin"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_admin"]
+bg_color = Color(0.2, 0.15, 0.15, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.8, 0.3, 0.3, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_section"]
+bg_color = Color(0.15, 0.15, 0.2, 0.8)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.5, 0.5, 0.6, 0.8)
+
+[node name="AdminPanel" type="PanelContainer" unique_id=3856423618]
+visible = false
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -350.0
+offset_top = 80.0
+offset_right = 350.0
+offset_bottom = 580.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_admin")
+script = ExtResource("1_admin")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=2945671234]
+layout_mode = 2
+theme_override_constants/margin_left = 15
+theme_override_constants/margin_top = 15
+theme_override_constants/margin_right = 15
+theme_override_constants/margin_bottom = 15
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=3128456789]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=3856456234]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ADMIN PANEL"
+horizontal_alignment = 1
+
+[node name="Separator1" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=3857234567]
+layout_mode = 2
+
+[node name="PlayersSection" type="PanelContainer" parent="MarginContainer/VBoxContainer" unique_id=3857345678]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_section")
+
+[node name="PlayersMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/PlayersSection" unique_id=3857456789]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="PlayersVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/PlayersSection/PlayersMargin" unique_id=3857567890]
+layout_mode = 2
+
+[node name="PlayersTitle" type="Label" parent="MarginContainer/VBoxContainer/PlayersSection/PlayersMargin/PlayersVBox" unique_id=3857678901]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Jogadores Conectados"
+horizontal_alignment = 0
+
+[node name="PlayersList" type="VBoxContainer" parent="MarginContainer/VBoxContainer/PlayersSection/PlayersMargin/PlayersVBox" unique_id=3857789012]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 100)
+
+[node name="NoPlayersLabel" type="Label" parent="MarginContainer/VBoxContainer/PlayersSection/PlayersMargin/PlayersVBox/PlayersList" unique_id=3857890123]
+layout_mode = 2
+text = "Nenhum jogador conectado"
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+
+[node name="Separator2" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=3858234567]
+layout_mode = 2
+
+[node name="BroadcastSection" type="PanelContainer" parent="MarginContainer/VBoxContainer" unique_id=3858345678]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_section")
+
+[node name="BroadcastMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/BroadcastSection" unique_id=3858456789]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="BroadcastVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/BroadcastSection/BroadcastMargin" unique_id=3858567890]
+layout_mode = 2
+
+[node name="BroadcastLabel" type="Label" parent="MarginContainer/VBoxContainer/BroadcastSection/BroadcastMargin/BroadcastVBox" unique_id=3858678901]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Enviar Mensagem"
+
+[node name="BroadcastInput" type="LineEdit" parent="MarginContainer/VBoxContainer/BroadcastSection/BroadcastMargin/BroadcastVBox" unique_id=3858789012]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+placeholder_text = "Digite mensagem para todos..."
+
+[node name="BroadcastButton" type="Button" parent="MarginContainer/VBoxContainer/BroadcastSection/BroadcastMargin/BroadcastVBox" unique_id=3858890123]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+text = "Enviar"
+
+[node name="Separator3" type="HSeparator" parent="MarginContainer/VBoxContainer" unique_id=3859234567]
+layout_mode = 2
+
+[node name="ServerSection" type="PanelContainer" parent="MarginContainer/VBoxContainer" unique_id=3859345678]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_section")
+
+[node name="ServerMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/ServerSection" unique_id=3859456789]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="ServerVBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/ServerSection/ServerMargin" unique_id=3859567890]
+layout_mode = 2
+
+[node name="ServerLabel" type="Label" parent="MarginContainer/VBoxContainer/ServerSection/ServerMargin/ServerVBox" unique_id=3859678901]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Configurações do Servidor"
+
+[node name="ServerHBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/ServerSection/ServerMargin/ServerVBox" unique_id=3859789012]
+layout_mode = 2
+separation = 10
+
+[node name="CloseToLANButton" type="Button" parent="MarginContainer/VBoxContainer/ServerSection/ServerMargin/ServerVBox/ServerHBox" unique_id=3859890123]
+custom_minimum_size = Vector2(100, 35)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Fechar LAN"
+
+[node name="ShutdownButton" type="Button" parent="MarginContainer/VBoxContainer/ServerSection/ServerMargin/ServerVBox/ServerHBox" unique_id=3859901234]
+custom_minimum_size = Vector2(100, 35)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Desligar"
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
+
+[connection signal="pressed" from="MarginContainer/VBoxContainer/BroadcastSection/BroadcastMargin/BroadcastVBox/BroadcastButton" to="." method="_on_broadcast_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ServerSection/ServerMargin/ServerVBox/ServerHBox/CloseToLANButton" to="." method="_on_close_to_lan_pressed"]
+[connection signal="pressed" from="MarginContainer/VBoxContainer/ServerSection/ServerMargin/ServerVBox/ServerHBox/ShutdownButton" to="." method="_on_shutdown_pressed"]

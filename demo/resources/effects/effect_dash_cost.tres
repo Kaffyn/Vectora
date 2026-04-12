@@ -1,0 +1,9 @@
+[gd_resource type="ASEffect" format=3]
+[resource]
+effect_name = "dash_cost"
+effect_tag = &"effect.dash_cost"
+duration_policy = 0
+modifiers/0/attribute = &"stamina"
+modifiers/0/operation = 0
+modifiers/0/magnitude = -10.0
+modifiers/0/use_custom_magnitude = false

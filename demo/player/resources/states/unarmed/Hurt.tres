@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MoveData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/MoveData.gd" id="1_move_data"]
+
+[sub_resource type="Animation" id="Animation_50fql"]
+
+[resource]
+script = ExtResource("1_move_data")
+name = "Hurt"
+animation_res = SubResource("Animation_50fql")
+debug_color = Color(1, 0, 0, 1)
+entry_requirements = {
+"attack": 0,
+"effect": 0,
+"jump": 0,
+"motion": 0,
+"physics": 0,
+"status": 6,
+}
+weapon = 0
+status = 2

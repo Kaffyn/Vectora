@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://gameplay/core/ItemData.gd" id="1_1da0t"]
+[ext_resource type="Resource" path="res://player/resources/compose/BowCompose.tres" id="2_compose"]
+
+[resource]
+script = ExtResource("1_1da0t")
+display_name = "Bow"
+compose = ExtResource("2_compose")
+weapon_tag = &"weapon.bow"
+context_modifiers = {
+"Weapon": 2
+}

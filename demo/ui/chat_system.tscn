@@ -1,0 +1,48 @@
+[gd_scene format=3 uid="uid://dwtpbsdxv5hqn"]
+
+[ext_resource type="Script" uid="uid://beauahfgm5slh" path="res://ui/chat_system.gd" id="1_chat_system"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_chat"]
+bg_color = Color(0.05, 0.05, 0.08, 0.8)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.3, 0.4, 0.8)
+
+[node name="ChatLayer" type="CanvasLayer" unique_id=828085499]
+script = ExtResource("1_chat_system")
+
+[node name="ChatPanel" type="PanelContainer" parent="." unique_id=652384361]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -150.0
+offset_right = 320.0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_chat")
+
+[node name="MarginContainer" type="MarginContainer" parent="ChatPanel" unique_id=586082435]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 8
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ChatPanel/MarginContainer" unique_id=93739484]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="ChatPanel/MarginContainer/VBoxContainer" unique_id=131961538]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Chat (Press T)"
+
+[node name="MessagesBox" type="VBoxContainer" parent="ChatPanel/MarginContainer/VBoxContainer" unique_id=2018104625]
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 2
+
+[node name="InputBox" type="LineEdit" parent="ChatPanel/MarginContainer/VBoxContainer" unique_id=381060659]
+custom_minimum_size = Vector2(345, 0)
+layout_mode = 2
+placeholder_text = "Type message (Enter to send, Esc to cancel)"

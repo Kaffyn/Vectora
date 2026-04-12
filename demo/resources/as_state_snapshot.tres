@@ -1,0 +1,17 @@
+[gd_resource type="ASStateSnapshot" format=3]
+
+[resource]
+tick = 2960
+attributes = {
+&"acceleration": 1000.0,
+&"air_resistance": 200.0,
+&"coyote_time": 0.15,
+&"friction": 1000.0,
+&"gravity_scale": 1.0,
+&"health": 100.0,
+&"jump_buffer_time": 0.1,
+&"jump_force": 500.0,
+&"max_speed": 230.0,
+&"stamina": 100.0,
+&"stamina_regen": 12.0
+}

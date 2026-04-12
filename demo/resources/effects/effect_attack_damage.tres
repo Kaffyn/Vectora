@@ -1,0 +1,9 @@
+[gd_resource type="ASEffect" format=3]
+[resource]
+effect_name = "AttackDamage"
+effect_tag = &"effect.damage"
+duration_policy = 0
+modifiers/0/attribute = &"health"
+modifiers/0/operation = 0
+modifiers/0/magnitude = -10.0
+modifiers/0/use_custom_magnitude = false

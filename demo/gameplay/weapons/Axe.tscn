@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3 uid="uid://btqr5vj4k9lpm"]
+
+[ext_resource type="Script" path="res://demo/gameplay/weapons/Axe.gd" id="1_p8f2k"]
+
+[node name="Axe" type="Node2D"]
+script = ExtResource("1_p8f2k")
+weapon_name = "Axe"
+damage = 15.0
+attack_speed = 0.7
+range_ = 80.0
+knockback = 250.0
+attack_duration = 0.5

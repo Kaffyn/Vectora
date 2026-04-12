@@ -1,0 +1,11 @@
+[gd_resource type="ASAbility" load_steps=2 format=3]
+[ext_resource type="ASCue" path="res://resources/cues/cue_hyperdash.tres" id="1"]
+[resource]
+ability_name = "HyperDash"
+ability_tag = &"state.hyperdash"
+activation_owned_tags = PackedStringArray("state.hyperdash")
+activation_blocked_any_tags = PackedStringArray("state.dead")
+activation_cancel_tags = PackedStringArray("state.idle", "state.walk", "state.run", "state.dash", "state.jump", "state.fall", "state.hurt")
+duration_policy = 1
+ability_duration = 0.6
+cues = [ExtResource("1")]

@@ -1,0 +1,6 @@
+[gd_resource type="ASPackage" load_steps=2 format=3]
+[ext_resource type="ASEffect" path="res://resources/effects/effect_attack_damage.tres" id="1"]
+[resource]
+package_tag = &"package.meleehit"
+effects = [ExtResource("1")]
+events_on_deliver = PackedStringArray("Event.Attack.Hit")

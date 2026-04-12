@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Hotbar" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://inventory/Hotbar.gd" id="1_hotbar"]
+[ext_resource type="Resource" path="res://player/resources/items/unarmed.tres" id="2_unarmed"]
+[ext_resource type="Resource" path="res://player/resources/items/katana.tres" id="3_katana"]
+[ext_resource type="Resource" path="res://player/resources/items/bow.tres" id="4_bow"]
+
+[resource]
+script = ExtResource("1_hotbar")
+items = Array[Resource]([ExtResource("2_unarmed"), ExtResource("3_katana"), ExtResource("4_bow")])
+selected_index = 0
+metadata/_custom_type_script = "uid://bm4pwydo041to"

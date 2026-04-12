@@ -1,0 +1,6 @@
+[gd_resource type="ASCueAnimation" format=3]
+[resource]
+cue_name = "Cue_Jump"
+cue_tag = &"jump.high"
+event_type = 1
+animation_name = "Jump"

@@ -1,0 +1,86 @@
+[gd_scene format=3 uid="uid://ftqrqf0w8sr2"]
+
+[ext_resource type="Script" uid="uid://yvm63v5fnktv" path="res://player/player.gd" id="1_eki5k"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_idle.tres" id="3_b8hi5"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_walk.tres" id="4_2uvqg"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_run.tres" id="5_1s1yo"]
+[ext_resource type="AnimationLibrary" path="res://player/animations/player_animations.tres" id="5_eki5k"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_dash.tres" id="6_5ejfk"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_jump.tres" id="7_jd2rm"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_fall.tres" id="8_q28gw"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_hurt.tres" id="9_ge24q"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_die.tres" id="10_pnw6m"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_hyperdash.tres" id="11_1so5t"]
+[ext_resource type="ASAbilityPhase" path="res://resources/abilities/ability_combo1.tres" id="12_55jnj"]
+[ext_resource type="ASAbilityPhase" path="res://resources/abilities/ability_combo2.tres" id="13_dx5ib"]
+[ext_resource type="ASAbilityPhase" path="res://resources/abilities/ability_combo3.tres" id="14_a2xo5"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_heavy.tres" id="15_art4l"]
+[ext_resource type="ASAbility" path="res://resources/abilities/ability_dash_attack.tres" id="16_fjxoa"]
+[ext_resource type="ASAttribute" path="res://resources/attributes/attr_health.tres" id="17_gswnw"]
+[ext_resource type="ASAttribute" path="res://resources/attributes/attr_stamina.tres" id="18_xcnuv"]
+[ext_resource type="ASAttribute" path="res://resources/attributes/attr_max_speed.tres" id="19_j55il"]
+[ext_resource type="ASAttribute" path="res://resources/attributes/attr_acceleration.tres" id="20_hjies"]
+[ext_resource type="ASAttribute" path="res://resources/attributes/attr_friction.tres" id="21_mmwog"]
+[ext_resource type="ASAttribute" path="res://resources/attributes/attr_air_resistance.tres" id="22_8pxes"]
+[ext_resource type="ASAttribute" path="res://resources/attributes/attr_jump_force.tres" id="23_fmu53"]
+[ext_resource type="ASAttribute" path="res://resources/attributes/attr_gravity_scale.tres" id="24_w7j2h"]
+[ext_resource type="ASAttribute" path="res://resources/attributes/attr_stamina_regen.tres" id="25_n0b8q"]
+[ext_resource type="ASAttribute" path="res://resources/attributes/attr_coyote_time.tres" id="26_jfgyi"]
+[ext_resource type="ASAttribute" path="res://resources/attributes/attr_jump_buffer.tres" id="27_237xx"]
+[ext_resource type="ASEffect" path="res://resources/effects/effect_attack_damage.tres" id="28_wpyo2"]
+[ext_resource type="ASEffect" path="res://resources/effects/effect_dash_cost.tres" id="29_7crtr"]
+[ext_resource type="ASPackage" path="res://resources/packages/package_melee_hit.tres" id="31_wpyo2"]
+
+[sub_resource type="ASAttributeSet" id="ASAttributeSet_1s1yo"]
+attribute_definitions = Array[ASAttribute]([ExtResource("17_gswnw"), ExtResource("18_xcnuv"), ExtResource("19_j55il"), ExtResource("20_hjies"), ExtResource("21_mmwog"), ExtResource("22_8pxes"), ExtResource("23_fmu53"), ExtResource("24_w7j2h"), ExtResource("25_n0b8q"), ExtResource("26_jfgyi"), ExtResource("27_237xx")])
+
+[sub_resource type="ASContainer" id="ASContainer_5ejfk"]
+abilities = Array[ASAbility]([ExtResource("3_b8hi5"), ExtResource("4_2uvqg"), ExtResource("5_1s1yo"), ExtResource("6_5ejfk"), ExtResource("7_jd2rm"), ExtResource("8_q28gw"), ExtResource("9_ge24q"), ExtResource("10_pnw6m"), ExtResource("11_1so5t"), ExtResource("12_55jnj"), ExtResource("13_dx5ib"), ExtResource("14_a2xo5"), ExtResource("15_art4l"), ExtResource("16_fjxoa")])
+attribute_set = SubResource("ASAttributeSet_1s1yo")
+effects = Array[ASEffect]([ExtResource("28_wpyo2"), ExtResource("29_7crtr")])
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
+size = Vector2(40, 40)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2jcct"]
+size = Vector2(50, 50)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1chnv"]
+size = Vector2(60, 60)
+
+[node name="Player" type="CharacterBody2D" unique_id=1283876318 node_paths=PackedStringArray("asc") groups=["Player"]]
+script = ExtResource("1_eki5k")
+asc = NodePath("ASComponent")
+
+[node name="ASComponent" type="ASComponent" parent="." unique_id=894956273]
+container = SubResource("ASContainer_5ejfk")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=57827139]
+shape = SubResource("RectangleShape2D_player")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1183196864]
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+color = Color(0.7850983, 0.7861089, 0.7607244, 1)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=2084530324]
+libraries/ = ExtResource("5_eki5k")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=837778900]
+
+[node name="Hitbox" type="Area2D" parent="." unique_id=46514287]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox" unique_id=1801274408]
+shape = SubResource("RectangleShape2D_2jcct")
+
+[node name="ASDelivery" type="ASDelivery" parent="Hitbox" unique_id=479657638]
+package = ExtResource("31_wpyo2")
+one_shot = true
+auto_connect = true
+
+[node name="Hurtbox" type="Area2D" parent="." unique_id=850690303]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=1531804218]
+shape = SubResource("RectangleShape2D_1chnv")

@@ -1,0 +1,11 @@
+[gd_resource type="ASAbilityPhase" load_steps=2 format=3]
+[ext_resource type="ASCue" path="res://resources/cues/cue_combo2.tres" id="1"]
+[resource]
+ability_name = "Combo2"
+ability_tag = &"attack.normal"
+activation_owned_tags = PackedStringArray("attack.normal")
+activation_blocked_any_tags = PackedStringArray("status.dead", "status.hurt")
+activation_cancel_tags = PackedStringArray("attack.fast", "attack.special", "attack.charged")
+duration_policy = 1
+ability_duration = 0.4
+cues = [ExtResource("1")]

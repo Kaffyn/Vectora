@@ -1,0 +1,10 @@
+[gd_resource type="ASEffect" format=3]
+[resource]
+effect_name = "Elemental Fire"
+effect_tag = &"effect.fire"
+activation_owned_tags = PackedStringArray("effect.fire")
+duration_policy = 1
+duration = 5.0
+period = 1.0
+period_execution = 1
+modifiers = [ { "attribute": "health", "magnitude": -10.0, "operation": 0 } ]

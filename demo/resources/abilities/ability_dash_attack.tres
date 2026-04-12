@@ -1,0 +1,11 @@
+[gd_resource type="ASAbility" load_steps=2 format=3]
+[ext_resource type="ASCue" path="res://resources/cues/cue_dash_attack.tres" id="1"]
+[resource]
+ability_name = "dash_attack"
+ability_tag = &"attack.dash_attack"
+activation_owned_tags = PackedStringArray("attack.dash_attack")
+activation_blocked_any_tags = PackedStringArray("state.dead", "state.hurt")
+activation_cancel_tags = PackedStringArray("attack.combo1", "attack.combo2", "attack.combo3", "attack.heavy")
+duration_policy = 1
+ability_duration = 0.5
+cues = [ExtResource("1")]

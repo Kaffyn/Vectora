@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="MoveData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/MoveData.gd" id="1_move_data"]
+
+[sub_resource type="Animation" id="Animation_0os66"]
+
+[resource]
+script = ExtResource("1_move_data")
+name = "Fall"
+animation_res = SubResource("Animation_0os66")
+debug_color = Color(0.8, 0.4, 0.4, 1)
+entry_requirements = {
+"attack": 0,
+"effect": 0,
+"jump": 4,
+"motion": 5,
+"physics": 2,
+"status": 1,
+}
+motion = 5
+jump = 4
+weapon = 0
+physics = 2
+status = 1

@@ -1,0 +1,11 @@
+[gd_resource type="ASAbility" load_steps=2 format=3]
+[ext_resource type="ASCue" path="res://resources/cues/cue_heavy.tres" id="1"]
+[resource]
+ability_name = "Heavy"
+ability_tag = &"attack.charged"
+activation_owned_tags = PackedStringArray("attack.charged")
+activation_blocked_any_tags = PackedStringArray("status.dead", "status.hurt")
+activation_cancel_tags = PackedStringArray("attack.fast", "attack.normal", "attack.special")
+duration_policy = 1
+ability_duration = 0.6
+cues = [ExtResource("1")]

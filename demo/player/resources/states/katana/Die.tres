@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MoveData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/MoveData.gd" id="1_move_data"]
+
+[resource]
+script = ExtResource("1_move_data")
+name = "Katana Die"
+debug_color = Color(0, 0, 0, 1)
+req_max_hp = 0.0
+entry_requirements = {
+"attack": 0,
+"effect": 0,
+"jump": 0,
+"motion": 0,
+"physics": 0,
+"status": 5,
+}
+weapon = 2
+status = 5

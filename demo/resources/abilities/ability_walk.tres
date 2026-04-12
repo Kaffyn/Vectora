@@ -1,0 +1,8 @@
+[gd_resource type="ASAbility" format=3]
+[resource]
+ability_name = "walk"
+ability_tag = &"motion.walk"
+activation_owned_tags = PackedStringArray("motion.walk")
+activation_blocked_any_tags = PackedStringArray("status.dead", "status.hurt")
+activation_cancel_tags = PackedStringArray("motion.idle", "motion.run", "motion.dash", "jump.high", "jump.fall")
+duration_policy = 2

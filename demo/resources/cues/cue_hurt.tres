@@ -1,0 +1,6 @@
+[gd_resource type="ASCueAnimation" format=3]
+[resource]
+cue_name = "Cue_Hurt"
+cue_tag = &"status.hurt"
+event_type = 1
+animation_name = "Hurt"

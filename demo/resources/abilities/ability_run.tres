@@ -1,0 +1,10 @@
+[gd_resource type="ASAbility" load_steps=2 format=3]
+[ext_resource type="ASCue" path="res://resources/cues/cue_run.tres" id="1"]
+[resource]
+ability_name = "run"
+ability_tag = &"motion.run"
+activation_owned_tags = PackedStringArray("motion.run")
+activation_blocked_any_tags = PackedStringArray("status.dead", "status.hurt")
+activation_cancel_tags = PackedStringArray("motion.idle", "motion.walk", "motion.dash", "jump.high", "jump.fall")
+duration_policy = 2
+cues = [ExtResource("1")]

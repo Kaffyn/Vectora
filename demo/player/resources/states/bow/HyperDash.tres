@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="MoveData" format=3]
+
+[ext_resource type="Script" path="res://gameplay/core/State.gd" id="1_1jb5m"]
+[ext_resource type="Script" path="res://gameplay/resources/MoveData.gd" id="1_move_data"]
+
+[sub_resource type="Animation" id="Animation_hyper"]
+resource_name = "Jump"
+
+[resource]
+script = ExtResource("1_move_data")
+name = "Bow HyperDash"
+animation_res = SubResource("Animation_hyper")
+debug_color = Color(0.8, 0.2, 0.8, 1)
+speed_multiplier = 2.5
+duration = 4.0
+lock_movement = true
+jump_force = 600.0
+cost_type = 1
+cost_amount = 15
+priority_override = 5
+entry_requirements = {
+"attack": 0,
+"effect": 0,
+"jump": 0,
+"motion": 4,
+"physics": 1,
+"status": 1
+}
+maintenance_requirements = {
+"physics": 5
+}

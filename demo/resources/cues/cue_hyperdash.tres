@@ -1,0 +1,6 @@
+[gd_resource type="ASCueAnimation" format=3]
+[resource]
+cue_name = "Cue_HyperDash"
+cue_tag = &"state.hyperdash"
+event_type = 1
+animation_name = "HyperDash"

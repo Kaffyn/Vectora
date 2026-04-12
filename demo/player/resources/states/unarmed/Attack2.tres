@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/AttackData.gd" id="1_attack_data"]
+[ext_resource type="Resource" path="res://player/resources/states/unarmed/Attack3.tres" id="2_next"]
+
+[resource]
+script = ExtResource("1_attack_data")
+name = "Combo 2"
+debug_color = Color(1, 0.3, 0, 1)
+duration = 0.4
+damage = 10
+area_pivot = Vector2(30, 0)
+area_size = Vector2(40, 40)
+combo_step = 2
+next_combo_state = ExtResource("2_next")
+combo_window_start = 0.4
+cancel_min_time = 0.1
+enable_buffering = true
+buffer_window_start = 0.4
+cost_type = 1
+cost_amount = 15
+entry_requirements = {
+"attack": 2,
+"effect": 0,
+"jump": 0,
+"motion": 0,
+"physics": 0,
+"status": 0
+}
+on_physics_change = 1
+on_weapon_change = 1
+on_take_damage = 1

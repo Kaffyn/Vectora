@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="AttackData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://gameplay/resources/AttackData.gd" id="1_attack_data"]
+[ext_resource type="PackedScene" path="res://player/resources/states/bow/projectiles/Arrow.tscn" id="2_arrow"]
+
+[resource]
+script = ExtResource("1_attack_data")
+name = "Bow Charged Shot"
+debug_color = Color(1, 0.5, 0, 1)
+damage = 40
+cooldown = 1.5
+projectile_scene = ExtResource("2_arrow")
+projectile_speed = 1200.0
+projectile_count = 1
+spawn_offset = Vector2(30, 0)
+is_charged = true
+min_charge_time = 0.5
+max_charge_time = 2.0
+fully_charged_damage_multiplier = 2.0
+entry_requirements = {
+"attack": 4,
+"effect": 0,
+"jump": 0,
+"motion": 0,
+"physics": 0,
+"status": 0,
+}
+attack = 4
+weapon = 3
+cancel_min_time = 0.5
+buffer_window_start = 0.5
+cost_type = 1
+cost_amount = 20
+on_physics_change = 1
+on_weapon_change = 1
+on_take_damage = 1

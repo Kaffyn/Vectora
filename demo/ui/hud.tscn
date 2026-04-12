@@ -1,0 +1,162 @@
+[gd_scene format=3 uid="uid://dbulkbuu6x32t"]
+
+[ext_resource type="Script" uid="uid://bk5h4lta5ps24" path="res://ui/hud.gd" id="1_hud"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health"]
+bg_color = Color(0.8, 0.2, 0.2, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_stamina"]
+bg_color = Color(0.9, 0.5, 0.1, 1)
+
+[node name="HUD" type="Control" unique_id=1596092351]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_hud")
+
+[node name="Panel" type="PanelContainer" parent="." unique_id=46602182]
+layout_mode = 1
+offset_right = 91.0
+offset_bottom = 50.0
+mouse_filter = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel" unique_id=69140482]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel/MarginContainer" unique_id=601346422]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="HealthBar" type="ProgressBar" parent="Panel/MarginContainer/VBoxContainer" unique_id=1790239165]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/fill = SubResource("StyleBoxFlat_health")
+value = 100.0
+show_percentage = false
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/VBoxContainer/HealthBar" unique_id=1302480247]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "100 / 100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StaminaBar" type="ProgressBar" parent="Panel/MarginContainer/VBoxContainer" unique_id=1609083005]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/fill = SubResource("StyleBoxFlat_stamina")
+value = 100.0
+show_percentage = false
+
+[node name="Label" type="Label" parent="Panel/MarginContainer/VBoxContainer/StaminaBar" unique_id=616034573]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "100 / 100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/VBoxContainer" unique_id=1426624549]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="LabelState" type="Label" parent="Panel/MarginContainer/VBoxContainer" unique_id=85649307]
+layout_mode = 2
+text = "State: None"
+
+[node name="LabelContext" type="Label" parent="Panel/MarginContainer/VBoxContainer" unique_id=774615657]
+layout_mode = 2
+text = "Context: ..."
+
+[node name="TimerContainer" type="MarginContainer" parent="." unique_id=847828427]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -100.0
+offset_right = 100.0
+offset_bottom = 54.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+
+[node name="TimerLabel" type="Label" parent="TimerContainer" unique_id=1876422408]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "00:00:00"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RespawnContainer" type="CenterContainer" parent="." unique_id=1873155080]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="RespawnLabel" type="Label" parent="RespawnContainer" unique_id=471953204]
+visible = false
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 64
+text = "Respawn in 3..."
+
+[node name="Panel2" type="PanelContainer" parent="." unique_id=152056584]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -111.0
+offset_bottom = 70.0
+grow_horizontal = 0
+mouse_filter = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel2" unique_id=1971127279]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel2/MarginContainer" unique_id=1699192421]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="LabelItem" type="Label" parent="Panel2/MarginContainer/VBoxContainer" unique_id=390798031]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Item: None"
+horizontal_alignment = 1
+
+[node name="LabelCompose" type="RichTextLabel" parent="Panel2/MarginContainer/VBoxContainer" unique_id=182916132]
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+bbcode_enabled = true
+text = "States: ..."
+fit_content = true
+autowrap_mode = 0

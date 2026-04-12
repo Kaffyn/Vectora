@@ -1,0 +1,6 @@
+[gd_resource type="ASCueAnimation" format=3]
+[resource]
+cue_name = "Cue_dash_attack"
+cue_tag = &"attack.dash_attack"
+event_type = 1
+animation_name = "dash_attack"
