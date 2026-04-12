@@ -1,0 +1,23 @@
+# Test Prompts for Vectora CLI Tests
+# One prompt per line
+
+What is Vectora and what can it do?
+Explain how AI agents work
+How does RAG (Retrieval Augmented Generation) improve LLM responses?
+What are the best practices for prompt engineering?
+Compare Claude, GPT-4, and Gemini models
+Explain vector embeddings and similarity search
+What is the purpose of MCP (Model Context Protocol)?
+How does streaming improve user experience in AI applications?
+Describe the architecture of a modern AI coding assistant
+What are the advantages of using local LLMs vs cloud APIs?
+How does caching improve performance in AI applications?
+Explain error recovery strategies in distributed systems
+What is operational transformation and when is it useful?
+How does offline-first design benefit user experience?
+Describe WCAG 2.1 AA accessibility standards
+What are the benefits of type-safe code?
+Explain the differences between REST and RPC protocols
+How does rate limiting protect APIs?
+What are the key components of a CI/CD pipeline?
+Describe the benefits of multi-language support in applications

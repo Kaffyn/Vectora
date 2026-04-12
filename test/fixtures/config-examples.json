@@ -1,0 +1,78 @@
+{
+  "test_configs": [
+    {
+      "name": "Default Config",
+      "description": "Standard Vectora configuration",
+      "settings": {
+        "provider": "gemini",
+        "model": "gemini-1.5-pro",
+        "temperature": 0.7,
+        "max_tokens": 2000,
+        "timeout": 30
+      }
+    },
+    {
+      "name": "Fast Config",
+      "description": "Optimized for speed",
+      "settings": {
+        "provider": "gemini",
+        "model": "gemini-1.5-flash",
+        "temperature": 0.5,
+        "max_tokens": 1000,
+        "timeout": 15
+      }
+    },
+    {
+      "name": "Creative Config",
+      "description": "High temperature for creative responses",
+      "settings": {
+        "provider": "gemini",
+        "model": "gemini-1.5-pro",
+        "temperature": 0.9,
+        "max_tokens": 3000,
+        "timeout": 45
+      }
+    },
+    {
+      "name": "OpenAI Config",
+      "description": "Using OpenAI as provider",
+      "settings": {
+        "provider": "openai",
+        "model": "gpt-4",
+        "temperature": 0.7,
+        "max_tokens": 2000,
+        "timeout": 30
+      }
+    }
+  ],
+  "test_scenarios": [
+    {
+      "id": "basic_chat",
+      "name": "Basic Chat",
+      "input": "Hello, how are you?",
+      "expected_response": "greeting|hello|hi",
+      "timeout": 10
+    },
+    {
+      "id": "code_generation",
+      "name": "Code Generation",
+      "input": "Write a Python function to calculate fibonacci",
+      "expected_response": "def|function|fibonacci",
+      "timeout": 15
+    },
+    {
+      "id": "question_answering",
+      "name": "Question Answering",
+      "input": "What is the capital of France?",
+      "expected_response": "Paris",
+      "timeout": 10
+    },
+    {
+      "id": "explanation",
+      "name": "Technical Explanation",
+      "input": "Explain how machine learning works",
+      "expected_response": "algorithm|training|data|model",
+      "timeout": 15
+    }
+  ]
+}
