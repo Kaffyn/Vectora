@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import { spawn } from "child_process";
-import { AcpClient } from "./client";
-import { ChatViewProvider } from "./chat-panel";
-import { BinaryManager } from "./binary-manager";
-import { VectoraInlineProvider } from "./inline-completion";
+import { AcpClient } from "./core/acpClient";
+import { ChatViewProvider } from "./core/providers/chatViewProvider";
+import { BinaryManager } from "./core/binaryManager";
+import { VectoraInlineProvider } from "./core/providers/inlineCompletionProvider";
 
 let coreClient: AcpClient | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;

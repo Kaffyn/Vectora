@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { AcpClient } from "./client";
-import type { SessionUpdate } from "./types";
+import { AcpClient } from "../acpClient";
+import type { SessionUpdate } from "../types";
 
 /**
  * ChatViewProvider manages the Sidebar Webview for Vectora chat.

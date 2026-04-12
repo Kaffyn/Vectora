@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { Client } from "./client";
-import { FSCompletionRequest, FSCompletionResponse } from "./types/client";
+import { Client } from "../acpClient";
+import { FSCompletionRequest, FSCompletionResponse } from "../types";
 
 export class VectoraInlineProvider implements vscode.InlineCompletionItemProvider {
   constructor(private client: Client) {}

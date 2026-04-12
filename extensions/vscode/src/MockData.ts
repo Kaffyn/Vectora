@@ -1,4 +1,4 @@
-import type { Message } from "./types";
+import type { Message } from "./core/types";
 
 export const MOCK_MESSAGES: Message[] = [
   {
