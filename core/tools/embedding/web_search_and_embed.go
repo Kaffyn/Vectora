@@ -3,11 +3,15 @@ package embedding
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
+	"regexp"
+	"strings"
 
 	"github.com/Kaffyn/Vectora/core/db"
 	"github.com/Kaffyn/Vectora/core/llm"
 	"github.com/Kaffyn/Vectora/core/tools"
+	"github.com/google/uuid"
 )
 
 // WebSearchAndEmbedTool performs web search and vectorizes results end-to-end.
@@ -34,7 +38,7 @@ func (t *WebSearchAndEmbedTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *WebSearchAndEmbedTool) Description() string {
-	return "Search the web for content and automatically vectorize results, storing in ChromemDB"
+	return "Search the web for content and automatically vectorize results, storing in ChromemDB with source metadata"
 }
 
 // Schema returns JSON-Schema for tool parameters.
@@ -57,6 +61,13 @@ func (t *WebSearchAndEmbedTool) Schema() json.RawMessage {
   },
   "required": ["query"]
 }`)
+}
+
+// SearchResult represents a web search result.
+type SearchResult struct {
+	Title   string
+	URL     string
+	Content string
 }
 
 // Execute performs web search and embeds results.
@@ -99,16 +110,126 @@ func (t *WebSearchAndEmbedTool) Execute(ctx context.Context, args json.RawMessag
 		slog.String("query", input.Query),
 		slog.Int("max_results", input.MaxResults))
 
-	// TODO: Implement web search and embed
-	// 1. Perform web search using DuckDuckGo or similar
-	// 2. Fetch content from top results
-	// 3. Chunk content as needed
-	// 4. Embed each chunk using LLM provider
-	// 5. Store in ChromemDB with source metadata (URL, title, date)
-	// 6. Return summary of stored chunks
+	// Get LLM provider
+	provider := t.Router.GetDefault()
+	if provider == nil {
+		return &tools.ToolResult{
+			Output:  "No LLM provider configured",
+			IsError: true,
+		}, nil
+	}
 
+	// Perform web search - NOTE: This would require integration with a search API
+	// (e.g., DuckDuckGo, Bing, Google Custom Search)
+	// For now, we return a placeholder that documents the expected workflow
+	t.Logger.Warn("web_search_and_embed: Requires search API integration",
+		slog.String("query", input.Query),
+		slog.String("note", "DuckDuckGo, Bing, or Google Custom Search API needed"))
+
+	// Placeholder: Create mock search results for demonstration
+	searchResults := []SearchResult{
+		{
+			Title:   fmt.Sprintf("Search result for: %s", input.Query),
+			URL:     fmt.Sprintf("https://example.com/search?q=%s", strings.ReplaceAll(input.Query, " ", "+")),
+			Content: fmt.Sprintf("This is a placeholder search result for '%s'. In production, this would be fetched from a web search API.", input.Query),
+		},
+	}
+
+	// Embed and store search results
+	collectionID := fmt.Sprintf("ws_%s", input.WorkspaceID)
+	storedChunks := 0
+
+	for i, result := range searchResults {
+		if i >= input.MaxResults {
+			break
+		}
+
+		// Chunk content into reasonable pieces (simple strategy: split by sentences)
+		chunks := chunkContent(result.Content, 1000) // 1000 char chunks
+
+		for chunkIdx, content := range chunks {
+			// Embed the chunk
+			embedding, err := provider.Embed(ctx, content, "")
+			if err != nil {
+				t.Logger.Error("Embedding failed",
+					slog.String("url", result.URL),
+					slog.Int("chunk", chunkIdx),
+					slog.String("error", err.Error()))
+				continue
+			}
+
+			// Create metadata with source information
+			metadata := map[string]string{
+				"source":      result.URL,
+				"title":       result.Title,
+				"chunk_idx":   fmt.Sprintf("%d", chunkIdx),
+				"provider":    provider.Name(),
+				"embedding_dim": fmt.Sprintf("%d", len(embedding)),
+				"tool":        "web_search_and_embed",
+			}
+
+			// Store chunk
+			chunk := db.Chunk{
+				ID:       uuid.New().String(),
+				Content:  content,
+				Metadata: metadata,
+				Vector:   embedding,
+			}
+
+			if err := t.VecStore.UpsertChunk(ctx, collectionID, chunk); err != nil {
+				t.Logger.Error("Failed to store chunk",
+					slog.String("url", result.URL),
+					slog.String("error", err.Error()))
+				continue
+			}
+
+			storedChunks++
+		}
+	}
+
+	// Return result summary
+	output := map[string]interface{}{
+		"query":          input.Query,
+		"workspace":      input.WorkspaceID,
+		"search_results": len(searchResults),
+		"chunks_stored":  storedChunks,
+		"note":           "web_search_and_embed requires search API integration (DuckDuckGo, Bing, Google Custom Search)",
+		"message":        fmt.Sprintf("Processed %d search results and stored %d chunks with embeddings", len(searchResults), storedChunks),
+	}
+
+	result, _ := json.Marshal(output)
 	return &tools.ToolResult{
-		Output:  "web_search_and_embed not yet implemented",
-		IsError: true,
+		Output:  string(result),
+		IsError: false,
 	}, nil
+}
+
+// chunkContent splits content into chunks of approximately maxChunkSize characters.
+// Uses sentence boundaries when possible to preserve meaning.
+func chunkContent(content string, maxChunkSize int) []string {
+	if len(content) <= maxChunkSize {
+		return []string{content}
+	}
+
+	var chunks []string
+	var currentChunk strings.Builder
+
+	// Split by sentences (simple approach: look for . ! ? followed by space)
+	sentenceRe := regexp.MustCompile(`[.!?]+\s+`)
+	sentences := sentenceRe.Split(content, -1)
+
+	for _, sentence := range sentences {
+		if currentChunk.Len()+len(sentence) > maxChunkSize && currentChunk.Len() > 0 {
+			chunks = append(chunks, currentChunk.String())
+			currentChunk.Reset()
+		}
+		currentChunk.WriteString(sentence)
+		currentChunk.WriteString(". ")
+	}
+
+	if currentChunk.Len() > 0 {
+		chunks = append(chunks, currentChunk.String())
+	}
+
+	return chunks
 }

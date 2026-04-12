@@ -3,6 +3,7 @@ package embedding
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 
 	"github.com/Kaffyn/Vectora/core/db"
@@ -34,7 +35,7 @@ func (t *SearchDatabaseTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *SearchDatabaseTool) Description() string {
-	return "Perform semantic search in ChromemDB vector database with metadata filtering support"
+	return "Perform semantic search in ChromemDB vector database with metadata filtering and similarity scoring"
 }
 
 // Schema returns JSON-Schema for tool parameters.
@@ -44,7 +45,7 @@ func (t *SearchDatabaseTool) Schema() json.RawMessage {
   "properties": {
     "query": {
       "type": "string",
-      "description": "Text query to search for (will be embedded)"
+      "description": "Text query to search for (will be embedded using LLM provider)"
     },
     "workspace_id": {
       "type": "string",
@@ -56,7 +57,7 @@ func (t *SearchDatabaseTool) Schema() json.RawMessage {
     },
     "metadata_filter": {
       "type": "object",
-      "description": "Optional metadata filters (e.g., {\"source\": \"file.txt\"})",
+      "description": "Optional metadata filters for exact matching (e.g., {\"source\": \"file.txt\", \"provider\": \"claude\"})",
       "additionalProperties": {"type": "string"}
     }
   },
@@ -101,16 +102,88 @@ func (t *SearchDatabaseTool) Execute(ctx context.Context, args json.RawMessage) 
 		input.TopK = 100
 	}
 
-	t.Logger.Debug("Searching database", slog.String("query", input.Query), slog.Int("top_k", input.TopK))
+	t.Logger.Debug("Searching database",
+		slog.String("query", input.Query),
+		slog.String("workspace_id", input.WorkspaceID),
+		slog.Int("top_k", input.TopK))
 
-	// TODO: Implement semantic search
-	// 1. Embed query using LLM provider
-	// 2. Query ChromemDB with vector + topK
-	// 3. Apply metadata filters if provided
-	// 4. Return results with similarity scores
+	// Get default LLM provider to embed the query
+	provider := t.Router.GetDefault()
+	if provider == nil {
+		return &tools.ToolResult{
+			Output:  "No LLM provider configured",
+			IsError: true,
+		}, nil
+	}
 
+	// Embed the query using the same provider
+	queryEmbedding, err := provider.Embed(ctx, input.Query, "")
+	if err != nil {
+		return &tools.ToolResult{
+			Output:  fmt.Sprintf("Query embedding failed: %v", err),
+			IsError: true,
+		}, nil
+	}
+
+	// Perform semantic search in ChromemDB
+	collectionID := fmt.Sprintf("ws_%s", input.WorkspaceID)
+	results, err := t.VecStore.Query(ctx, collectionID, queryEmbedding, input.TopK)
+	if err != nil {
+		return &tools.ToolResult{
+			Output:  fmt.Sprintf("Database query failed: %v", err),
+			IsError: true,
+		}, nil
+	}
+
+	// Filter results by metadata if provided
+	var filteredResults []db.ScoredChunk
+	if len(input.MetadataFilter) > 0 {
+		for _, result := range results {
+			if matchesAllFilters(result.Chunk.Metadata, input.MetadataFilter) {
+				filteredResults = append(filteredResults, result)
+			}
+		}
+	} else {
+		filteredResults = results
+	}
+
+	t.Logger.Info("Search complete",
+		slog.Int("total_results", len(results)),
+		slog.Int("filtered_results", len(filteredResults)))
+
+	// Format results
+	output := map[string]interface{}{
+		"query":       input.Query,
+		"workspace":   input.WorkspaceID,
+		"results_count": len(filteredResults),
+		"results":     make([]map[string]interface{}, 0),
+	}
+
+	resultsList := output["results"].([]map[string]interface{})
+	for _, result := range filteredResults {
+		resultsList = append(resultsList, map[string]interface{}{
+			"chunk_id":     result.ID,
+			"content":      result.Content,
+			"similarity":   fmt.Sprintf("%.4f", result.Score),
+			"metadata":     result.Metadata,
+			"embedding_dim": len(result.Vector),
+		})
+	}
+	output["results"] = resultsList
+
+	result, _ := json.Marshal(output)
 	return &tools.ToolResult{
-		Output:  "search_database not yet implemented",
-		IsError: true,
+		Output:  string(result),
+		IsError: false,
 	}, nil
+}
+
+// matchesAllFilters checks if metadata contains all filter key-value pairs.
+func matchesAllFilters(metadata map[string]string, filters map[string]string) bool {
+	for key, filterValue := range filters {
+		if metaValue, exists := metadata[key]; !exists || metaValue != filterValue {
+			return false
+		}
+	}
+	return true
 }
