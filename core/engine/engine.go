@@ -189,11 +189,12 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 				return
 			}
 
-			// Add assistant message (including tool calls) to history
+			// Add assistant message (including tool calls and metadata) to history
 			messages = append(messages, llm.Message{
 				Role:      llm.RoleAssistant,
 				Content:   resp.Content,
 				ToolCalls: resp.ToolCalls,
+				Metadata:  resp.Metadata,
 			})
 
 			if len(resp.ToolCalls) == 0 {
@@ -218,6 +219,7 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 					Role:       llm.RoleTool,
 					Content:    output,
 					ToolCallID: tc.ID,
+					Metadata:   resp.Metadata, // Pass thought signature to tool response turn if needed
 				})
 			}
 		}

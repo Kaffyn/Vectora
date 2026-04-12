@@ -14,9 +14,12 @@ const (
 
 // ChatMessage represents a single entry in the conversation.
 type ChatMessage struct {
-	Role      Role      `json:"role"`
-	Content   string    `json:"content"`
-	Timestamp time.Time `json:"timestamp"`
+	Role       Role           `json:"role"`
+	Content    string         `json:"content"`
+	ToolCalls  []ToolCall     `json:"tool_calls,omitempty"`
+	ToolCallID string         `json:"tool_call_id,omitempty"`
+	Metadata   map[string]any `json:"metadata,omitempty"`
+	Timestamp  time.Time      `json:"timestamp"`
 }
 
 // Conversation represents the full history of a chat.

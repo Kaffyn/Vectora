@@ -50,6 +50,18 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 		role := "user"
 		if m.Role == RoleAssistant {
 			role = "model"
+
+			// NEW: If we have raw Gemini content in metadata, use it as is
+			if rawContent, ok := m.Metadata["gemini_content"]; ok {
+				if contentBytes, err := json.Marshal(rawContent); err == nil {
+					var gContent genai.Content
+					if err := json.Unmarshal(contentBytes, &gContent); err == nil {
+						contents = append(contents, &gContent)
+						continue
+					}
+				}
+			}
+
 			var parts []*genai.Part
 			if m.Content != "" {
 				parts = append(parts, &genai.Part{Text: m.Content})
@@ -141,6 +153,9 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 	return CompletionResponse{
 		Content:   content,
 		ToolCalls: tCalls,
+		Metadata: map[string]any{
+			"gemini_content": resp.Candidates[0].Content,
+		},
 		Usage: TokenUsage{
 			PromptTokens:     int(resp.UsageMetadata.PromptTokenCount),
 			CompletionTokens: int(resp.UsageMetadata.CandidatesTokenCount),

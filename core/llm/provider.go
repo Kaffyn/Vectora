@@ -6,10 +6,11 @@ import (
 )
 
 type Message struct {
-	Role       Role       `json:"role"`
-	Content    string     `json:"content"`
-	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
-	ToolCallID string     `json:"tool_call_id,omitempty"`
+	Role       Role           `json:"role"`
+	Content    string         `json:"content"`
+	ToolCalls  []ToolCall     `json:"tool_calls,omitempty"`
+	ToolCallID string         `json:"tool_call_id,omitempty"`
+	Metadata   map[string]any `json:"metadata,omitempty"` // For thought_signature, etc.
 }
 
 type ToolDefinition struct {
@@ -41,9 +42,10 @@ type CompletionRequest struct {
 }
 
 type CompletionResponse struct {
-	Content   string     `json:"content"`
-	ToolCalls []ToolCall `json:"tool_calls,omitempty"`
-	Usage     TokenUsage `json:"usage"`
+	Content   string         `json:"content"`
+	ToolCalls []ToolCall     `json:"tool_calls,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
+	Usage     TokenUsage     `json:"usage"`
 }
 
 // Provider abstracts any LLM Backend (Qwen/Gemini/OpenAI) under Vectora's unified interface.
