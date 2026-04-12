@@ -1,7 +1,15 @@
 import * as cp from "child_process";
 import * as vscode from "vscode";
+import {
+  createMessageConnection,
+  MessageConnection,
+  StreamMessageReader,
+  StreamMessageWriter,
+  NotificationType,
+  RequestType,
+} from "vscode-jsonrpc/node";
 
-// JSON-RPC 2.0 Base Types
+// Legacy JSON-RPC 2.0 types for backward compatibility
 export interface JsonRpcRequest {
   jsonrpc: "2.0";
   id?: number | string;
@@ -30,20 +38,14 @@ const DEFAULT_TIMEOUT_MS = 60000;
 
 /**
  * Unified Client for JSON-RPC 2.0 over Stdio.
- * Used for both Vectora Core (ACP/IPC) and external MCP Servers.
+ * Now uses official vscode-jsonrpc library for robust transport and message handling.
+ *
+ * Maintains backward compatibility with old interface while using modern library internally.
  */
 export class Client {
   private process: cp.ChildProcess | null = null;
-  private buffer = "";
+  private connection: MessageConnection | null = null;
   private nextId = 0;
-  private pendingRequests = new Map<
-    number | string,
-    {
-      resolve: (value: any) => void;
-      reject: (reason: any) => void;
-      timeout: NodeJS.Timeout;
-    }
-  >();
   private _isDisposed = false;
 
   public readonly onNotification = new vscode.EventEmitter<JsonRpcNotification>();
@@ -61,11 +63,11 @@ export class Client {
   ) {}
 
   public get isRunning(): boolean {
-    return this.process !== null && !this._isDisposed;
+    return this.process !== null && !this._isDisposed && this.connection !== null;
   }
 
   /**
-   * Spawns the child process and attaches listeners.
+   * Spawns the child process and establishes JSON-RPC connection.
    */
   public async start(): Promise<void> {
     if (this._isDisposed) throw new Error(`${this.name} client has been disposed.`);
@@ -82,24 +84,44 @@ export class Client {
         this.process.on("error", (err) => {
           const msg = `Failed to start ${this.name}: ${err.message}`;
           this.onError.fire(msg);
+          this._isDisposed = true;
           reject(new Error(msg));
         });
 
         this.process.on("exit", (code) => {
           this._isDisposed = true;
-          this.cleanupPendingRequests(`Process ${this.name} exited with code ${code}`);
+          if (this.connection) {
+            this.connection.dispose();
+            this.connection = null;
+          }
           this.onExit.fire(code);
         });
 
-        this.process.stdout!.on("data", (data: Buffer) => this.onData(data));
+        // Setup JSON-RPC connection using vscode-jsonrpc
+        const reader = new StreamMessageReader(this.process.stdout!);
+        const writer = new StreamMessageWriter(this.process.stdin!);
+        this.connection = createMessageConnection(reader, writer);
+
+        // Listen for notifications
+        this.connection.onNotification((method, params) => {
+          this.onNotification.fire({
+            jsonrpc: "2.0",
+            method,
+            params,
+          });
+        });
+
+        // Handle stderr
         this.process.stderr!.on("data", (data: Buffer) => {
           const stderr = data.toString().trim();
           if (stderr) console.error(`[${this.name} Stderr]: ${stderr}`);
         });
 
-        // Resolve once process is successfully spawned
+        // Start connection and resolve
+        this.connection.listen();
         resolve();
       } catch (err: any) {
+        this._isDisposed = true;
         reject(err);
       }
     });
@@ -107,6 +129,7 @@ export class Client {
 
   /**
    * Sends a JSON-RPC request and waits for a response.
+   * Maintains backward-compatible interface while using vscode-jsonrpc internally.
    */
   public async request<TParams = any, TResult = any>(
     method: string,
@@ -114,20 +137,31 @@ export class Client {
     timeoutMs: number = DEFAULT_TIMEOUT_MS,
   ): Promise<TResult> {
     if (!this.isRunning) throw new Error(`${this.name} is not running`);
+    if (!this.connection) throw new Error(`${this.name} connection not established`);
 
-    return new Promise<TResult>((resolve, reject) => {
-      const id = this.nextId++;
-      const timeout = setTimeout(() => {
-        if (this.pendingRequests.has(id)) {
-          this.pendingRequests.delete(id);
-          reject(new Error(`Request '${method}' to ${this.name} timed out after ${timeoutMs}ms`));
-        }
-      }, timeoutMs);
+    try {
+      // Create request type dynamically
+      const requestType = new RequestType<TParams, TResult, any>(method);
 
-      this.pendingRequests.set(id, { resolve, reject, timeout });
-      const msg: JsonRpcRequest = { jsonrpc: "2.0", id, method, params };
-      this.sendRaw(msg);
-    });
+      // Send request with timeout
+      const result = await Promise.race([
+        this.connection.sendRequest(requestType, params),
+        new Promise<TResult>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`Request '${method}' timed out after ${timeoutMs}ms`)),
+            timeoutMs,
+          ),
+        ),
+      ]);
+
+      return result;
+    } catch (err: any) {
+      // Convert vscode-jsonrpc errors to standard format
+      if (err.code !== undefined) {
+        throw new Error(`JSON-RPC error ${err.code}: ${err.message}`);
+      }
+      throw err;
+    }
   }
 
   /**
@@ -135,69 +169,37 @@ export class Client {
    */
   public notify<TParams = any>(method: string, params: TParams): void {
     if (!this.isRunning) return;
-    const msg: JsonRpcNotification = { jsonrpc: "2.0", method, params };
-    this.sendRaw(msg);
+    if (!this.connection) return;
+
+    try {
+      const notificationType = new NotificationType<TParams>(method);
+      this.connection.sendNotification(notificationType, params);
+    } catch (err) {
+      console.error(`Failed to send notification '${method}':`, err);
+    }
   }
 
   /**
-   * Low-level write to stdin.
+   * Stops the connection and process.
    */
-  protected sendRaw(msg: any): void {
-    if (this.process?.stdin?.writable) {
-      this.process.stdin.write(JSON.stringify(msg) + "\n");
-    }
-  }
-
-  private onData(chunk: Buffer): void {
-    this.buffer += chunk.toString();
-    let idx = this.buffer.indexOf("\n");
-    while (idx !== -1) {
-      const line = this.buffer.substring(0, idx).trim();
-      this.buffer = this.buffer.substring(idx + 1);
-      if (!line) continue;
-
-      try {
-        const msg = JSON.parse(line);
-        this.handleMessage(msg);
-      } catch (err) {
-        console.warn(`[${this.name}] Failed to parse JSON-RPC line: ${line}`);
-      }
-      idx = this.buffer.indexOf("\n");
-    }
-  }
-
-  private handleMessage(msg: any): void {
-    if ("id" in msg && msg.id !== undefined && msg.id !== null) {
-      // Response handler
-      const pending = this.pendingRequests.get(msg.id);
-      if (pending) {
-        clearTimeout(pending.timeout);
-        this.pendingRequests.delete(msg.id);
-        if (msg.error) {
-          pending.reject(new Error(msg.error.message || "Unknown JSON-RPC error"));
-        } else {
-          pending.resolve(msg.result);
-        }
-      }
-    } else if ("method" in msg) {
-      // Notification handler
-      this.onNotification.fire(msg as JsonRpcNotification);
-    }
-  }
-
-  private cleanupPendingRequests(reason: string): void {
-    this.pendingRequests.forEach((p) => {
-      clearTimeout(p.timeout);
-      p.reject(new Error(reason));
-    });
-    this.pendingRequests.clear();
-  }
-
   public stop(): void {
     this._isDisposed = true;
-    this.cleanupPendingRequests("Client stopped manually");
+
+    if (this.connection) {
+      try {
+        this.connection.dispose();
+      } catch {
+        /* ignore */
+      }
+      this.connection = null;
+    }
+
     if (this.process) {
-      this.process.kill();
+      try {
+        this.process.kill();
+      } catch {
+        /* ignore */
+      }
       this.process = null;
     }
   }
