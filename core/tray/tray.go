@@ -168,31 +168,23 @@ var ProviderModels = map[string][]string{
 // without requiring a full daemon restart.
 func ReloadActiveProvider() {
 	cfg := infra.LoadConfig()
+	prefs := infra.LoadPreferences()
 
-	// Load active model from config
-	ActiveModel = cfg.GeminiFallbackModel // Default to Gemini fallback if nothing else
-	if cfg.ActiveModel != "" {
-		ActiveModel = cfg.ActiveModel
+	// Load active model and provider from preferences
+	ActiveModel = prefs.ActiveModel
+	if ActiveModel == "" {
+		ActiveModel = cfg.GeminiFallbackModel // Default to Gemini fallback if nothing else
 	}
 
-	// If we already have an active provider ID, try to refresh it
-	if ActiveProviderID != "" {
-		for _, prov := range AllProviders {
-			if prov.ID == ActiveProviderID {
-				key := prov.GetKey(cfg)
-				if key != "" {
-					setProvider(prov, key, cfg)
-					updateLabels()
-					return
-				}
-			}
-		}
+	activeProvID := prefs.DefaultProvider
+	if activeProvID == "" {
+		activeProvID = ActiveProviderID
 	}
 
-	// Otherwise, fallback to DEFAULT_PROVIDER
-	if cfg.DefaultProvider != "" {
+	// Try to refresh the preferred provider
+	if activeProvID != "" {
 		for _, prov := range AllProviders {
-			if prov.ID == cfg.DefaultProvider {
+			if prov.ID == activeProvID {
 				key := prov.GetKey(cfg)
 				if key != "" {
 					ActiveProviderID = prov.ID
@@ -204,6 +196,7 @@ func ReloadActiveProvider() {
 		}
 	}
 
+	// Fallback logic
 	for _, prov := range AllProviders {
 		key := prov.GetKey(cfg)
 		if key != "" {
@@ -262,7 +255,7 @@ func onReady() {
 	mEs = mLang.AddSubMenuItemCheckbox("Español", "", false)
 	mFr = mLang.AddSubMenuItemCheckbox("Français", "", false)
 
-	switch i18n.GetCurrentLang() {
+	switch infra.LoadPreferences().Language {
 	case "en":
 		mEn.Check()
 	case "pt":
@@ -294,6 +287,9 @@ func onReady() {
 				mEs.Uncheck()
 				mFr.Uncheck()
 				i18n.SetLanguage("en")
+				p := infra.LoadPreferences()
+				p.Language = "en"
+				infra.SavePreferences(p)
 				updateLabels()
 			case <-mPt.ClickedCh:
 				mPt.Check()
@@ -301,6 +297,9 @@ func onReady() {
 				mEs.Uncheck()
 				mFr.Uncheck()
 				i18n.SetLanguage("pt")
+				p := infra.LoadPreferences()
+				p.Language = "pt"
+				infra.SavePreferences(p)
 				updateLabels()
 			case <-mEs.ClickedCh:
 				mEs.Check()
@@ -308,6 +307,9 @@ func onReady() {
 				mPt.Uncheck()
 				mFr.Uncheck()
 				i18n.SetLanguage("es")
+				p := infra.LoadPreferences()
+				p.Language = "es"
+				infra.SavePreferences(p)
 				updateLabels()
 			case <-mFr.ClickedCh:
 				mFr.Check()
@@ -315,6 +317,9 @@ func onReady() {
 				mPt.Uncheck()
 				mEs.Uncheck()
 				i18n.SetLanguage("fr")
+				p := infra.LoadPreferences()
+				p.Language = "fr"
+				infra.SavePreferences(p)
 				updateLabels()
 
 			// Dynamic provider selection
@@ -323,7 +328,6 @@ func onReady() {
 				for id, item := range providerItems {
 					select {
 					case <-item.ClickedCh:
-						// Find the provider info
 						var selectedProv ProviderInfo
 						for _, p := range AllProviders {
 							if p.ID == id {
@@ -333,8 +337,9 @@ func onReady() {
 						}
 
 						ActiveProviderID = id
-						cfg.DefaultProvider = id
-						infra.SaveConfig(cfg)
+						p := infra.LoadPreferences()
+						p.DefaultProvider = id
+						infra.SavePreferences(p)
 						
 						key := selectedProv.GetKey(cfg)
 						setProvider(selectedProv, key, cfg)
@@ -348,9 +353,9 @@ func onReady() {
 					select {
 					case <-item.ClickedCh:
 						ActiveModel = model
-						cfg.ActiveModel = model
-						cfg.DefaultModel = model
-						infra.SaveConfig(cfg)
+						p := infra.LoadPreferences()
+						p.ActiveModel = model
+						infra.SavePreferences(p)
 						updateLabels()
 						infra.NotifyOS("Vectora", "Model "+model+" selected.")
 					default:

@@ -54,10 +54,7 @@ type Config struct {
 	ZhipuAPIKey           string
 	ZhipuBaseURL          string
 	DefaultEmbeddingModel string
-	DefaultModel          string
-	DefaultProvider       string
 	DefaultFallbackProvider string
-	ActiveModel           string
 
 	// Fallback models per provider
 	GeminiFallbackModel   string
@@ -142,8 +139,6 @@ func LoadConfig() *Config {
 		ZhipuAPIKey:           os.Getenv("ZHIPU_API_KEY"),
 		ZhipuBaseURL:          os.Getenv("ZHIPU_BASE_URL"),
 		DefaultEmbeddingModel: os.Getenv("DEFAULT_EMBEDDING_MODEL"),
-		DefaultModel:          os.Getenv("DEFAULT_MODEL"),
-		DefaultProvider:       os.Getenv("DEFAULT_PROVIDER"),
 		DefaultFallbackProvider: os.Getenv("DEFAULT_FALLBACK_PROVIDER"),
 
 		GeminiFallbackModel:   os.Getenv("GEMINI_FALLBACK_MODEL"),
@@ -157,7 +152,6 @@ func LoadConfig() *Config {
 		MetaAPIKey:            os.Getenv("META_API_KEY"),
 		MetaBaseURL:           os.Getenv("META_BASE_URL"),
 		MetaFallbackModel:     os.Getenv("META_FALLBACK_MODEL"),
-		ActiveModel:           os.Getenv("ACTIVE_MODEL"),
 	}
 }
 
@@ -221,12 +215,6 @@ func SaveConfig(cfg *Config) error {
 	if cfg.DefaultEmbeddingModel != "" {
 		content += fmt.Sprintf("DEFAULT_EMBEDDING_MODEL=%s\n", cfg.DefaultEmbeddingModel)
 	}
-	if cfg.DefaultModel != "" {
-		content += fmt.Sprintf("DEFAULT_MODEL=%s\n", cfg.DefaultModel)
-	}
-	if cfg.DefaultProvider != "" {
-		content += fmt.Sprintf("DEFAULT_PROVIDER=%s\n", cfg.DefaultProvider)
-	}
 	if cfg.DefaultFallbackProvider != "" {
 		content += fmt.Sprintf("DEFAULT_FALLBACK_PROVIDER=%s\n", cfg.DefaultFallbackProvider)
 	}
@@ -264,9 +252,6 @@ func SaveConfig(cfg *Config) error {
 	}
 	if cfg.MetaFallbackModel != "" {
 		content += fmt.Sprintf("META_FALLBACK_MODEL=%s\n", cfg.MetaFallbackModel)
-	}
-	if cfg.ActiveModel != "" {
-		content += fmt.Sprintf("ACTIVE_MODEL=%s\n", cfg.ActiveModel)
 	}
 
 	return os.WriteFile(envPath, []byte(content), 0600)

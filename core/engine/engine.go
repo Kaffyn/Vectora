@@ -9,6 +9,7 @@ import (
 
 	"github.com/Kaffyn/Vectora/core/api/acp"
 	"github.com/Kaffyn/Vectora/core/db"
+	"github.com/Kaffyn/Vectora/core/infra"
 	"github.com/Kaffyn/Vectora/core/ingestion"
 	"github.com/Kaffyn/Vectora/core/llm"
 	"github.com/Kaffyn/Vectora/core/policies"
@@ -105,6 +106,12 @@ func (e *Engine) StreamQuery(ctx context.Context, query string, workspaceID stri
 
 	go func() {
 		defer close(ch)
+
+		// Use preferences for model if not specified
+		if model == "" {
+			prefs := infra.LoadPreferences()
+			model = prefs.ActiveModel
+		}
 
 		provider := e.LLM.GetDefault()
 

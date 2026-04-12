@@ -504,6 +504,7 @@ func initCoreClientEngine(ctx context.Context, workspace string, vecStore *db.Ch
 	}
 
 	cfg := infra.LoadConfig()
+	prefs := infra.LoadPreferences()
 	llmRouter := llm.NewRouter()
 	llmRouter.SetFallbackProvider("gemini")
 	if cfg.DefaultFallbackProvider != "" {
@@ -524,33 +525,35 @@ func initCoreClientEngine(ctx context.Context, workspace string, vecStore *db.Ch
 		llmRouter.SetFallbackModel("qwen", cfg.QwenFallbackModel)
 	}
 
+	// Use preference for default provider if available
+	defaultProv := prefs.DefaultProvider
 
 	// Register Native Providers
 	if cfg.GeminiAPIKey != "" {
 		p, _ := llm.NewGeminiProvider(ctx, cfg.GeminiAPIKey)
-		llmRouter.RegisterProvider("gemini", p, cfg.DefaultProvider == "gemini")
+		llmRouter.RegisterProvider("gemini", p, defaultProv == "gemini")
 	}
 	if cfg.ClaudeAPIKey != "" {
 		p, _ := llm.NewClaudeProvider(ctx, cfg.ClaudeAPIKey)
-		llmRouter.RegisterProvider("claude", p, cfg.DefaultProvider == "claude")
+		llmRouter.RegisterProvider("claude", p, defaultProv == "claude")
 	}
 	if cfg.OpenAIAPIKey != "" {
 		p := llm.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.OpenAIBaseURL, "openai")
-		llmRouter.RegisterProvider("openai", p, cfg.DefaultProvider == "openai")
+		llmRouter.RegisterProvider("openai", p, defaultProv == "openai")
 	}
 	if cfg.QwenAPIKey != "" {
 		p := llm.NewOpenAIProvider(cfg.QwenAPIKey, cfg.QwenBaseURL, "qwen")
-		llmRouter.RegisterProvider("qwen", p, cfg.DefaultProvider == "qwen")
+		llmRouter.RegisterProvider("qwen", p, defaultProv == "qwen")
 	}
 
 	// Register Gateway Providers
 	if cfg.OpenRouterAPIKey != "" {
 		p := llm.NewGatewayProvider(cfg.OpenRouterAPIKey, "https://openrouter.ai/api/v1", "openrouter")
-		llmRouter.RegisterProvider("openrouter", p, cfg.DefaultProvider == "openrouter")
+		llmRouter.RegisterProvider("openrouter", p, defaultProv == "openrouter")
 	}
 	if cfg.AnannasAPIKey != "" {
 		p := llm.NewGatewayProvider(cfg.AnannasAPIKey, "https://api.anannas.ai/v1", "anannas")
-		llmRouter.RegisterProvider("anannas", p, cfg.DefaultProvider == "anannas")
+		llmRouter.RegisterProvider("anannas", p, defaultProv == "anannas")
 	}
 
 	guardian := policies.NewGuardian(absPath)
@@ -708,6 +711,7 @@ func initEngine(ctx context.Context, workspace string) (*engine.Engine, func(), 
 	}
 
 	cfg := infra.LoadConfig()
+	prefs := infra.LoadPreferences()
 
 	kvStore, err := db.NewKVStore()
 	if err != nil {
@@ -750,33 +754,35 @@ func initEngine(ctx context.Context, workspace string) (*engine.Engine, func(), 
 		llmRouter.SetFallbackModel("qwen", cfg.QwenFallbackModel)
 	}
 
+	// Use preference for default provider
+	defaultProv := prefs.DefaultProvider
 
 	// Register Native Providers
 	if cfg.GeminiAPIKey != "" {
 		p, _ := llm.NewGeminiProvider(ctx, cfg.GeminiAPIKey)
-		llmRouter.RegisterProvider("gemini", p, cfg.DefaultProvider == "gemini")
+		llmRouter.RegisterProvider("gemini", p, defaultProv == "gemini")
 	}
 	if cfg.ClaudeAPIKey != "" {
 		p, _ := llm.NewClaudeProvider(ctx, cfg.ClaudeAPIKey)
-		llmRouter.RegisterProvider("claude", p, cfg.DefaultProvider == "claude")
+		llmRouter.RegisterProvider("claude", p, defaultProv == "claude")
 	}
 	if cfg.OpenAIAPIKey != "" {
 		p := llm.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.OpenAIBaseURL, "openai")
-		llmRouter.RegisterProvider("openai", p, cfg.DefaultProvider == "openai")
+		llmRouter.RegisterProvider("openai", p, defaultProv == "openai")
 	}
 	if cfg.QwenAPIKey != "" {
 		p := llm.NewOpenAIProvider(cfg.QwenAPIKey, cfg.QwenBaseURL, "qwen")
-		llmRouter.RegisterProvider("qwen", p, cfg.DefaultProvider == "qwen")
+		llmRouter.RegisterProvider("qwen", p, defaultProv == "qwen")
 	}
 
 	// Register Gateway Providers
 	if cfg.OpenRouterAPIKey != "" {
 		p := llm.NewGatewayProvider(cfg.OpenRouterAPIKey, "https://openrouter.ai/api/v1", "openrouter")
-		llmRouter.RegisterProvider("openrouter", p, cfg.DefaultProvider == "openrouter")
+		llmRouter.RegisterProvider("openrouter", p, defaultProv == "openrouter")
 	}
 	if cfg.AnannasAPIKey != "" {
 		p := llm.NewGatewayProvider(cfg.AnannasAPIKey, "https://api.anannas.ai/v1", "anannas")
-		llmRouter.RegisterProvider("anannas", p, cfg.DefaultProvider == "anannas")
+		llmRouter.RegisterProvider("anannas", p, defaultProv == "anannas")
 	}
 
 	guardian := policies.NewGuardian(absPath)
