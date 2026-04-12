@@ -241,20 +241,42 @@ Write-Host ""
 Write-Host "${YELLOW}[PHASE 3] Building Extensions...${NC}"
 
 # 3.1 VS Code Extension
-Write-Host "  Packaging VS Code Extension..." -NoNewline
+Write-Host "  Building VS Code Extension..." -NoNewline
 Push-Location "extensions/vscode"
 $oldEAP = $ErrorActionPreference
 $ErrorActionPreference = "Continue" # Allow warnings
-& npm install --no-audit --no-fund 2>$null | Out-Null
-& npx vsce package --out "../../bin/vectora-vscode.vsix" 2>$null | Out-Null
-$ErrorActionPreference = $oldEAP
-if (Test-Path "../../bin/vectora-vscode.vsix") {
-    Write-Host " ${GREEN}OK${NC} (.vsix generated)"
-    Write-Host "  Installing extension to VS Code..." -NoNewline
-    & code --install-extension "../../bin/vectora-vscode.vsix" --force 2>$null | Out-Null
-    Write-Host " ${GREEN}OK${NC}"
+
+# Try to compile first
+Write-Host ""
+Write-Host "    Installing dependencies..." -NoNewline
+& npm install --no-audit --no-fund 2>&1 | Out-Null
+Write-Host " ${GREEN}OK${NC}"
+
+Write-Host "    Compiling TypeScript/React..." -NoNewline
+& npm run compile 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host " ${YELLOW}WARN${NC} (compilation skipped)"
 } else {
-    Write-Host " ${RED}FAIL${NC}"
+    Write-Host " ${GREEN}OK${NC}"
+}
+
+Write-Host "    Packaging extension..." -NoNewline
+& npx vsce package --out "../../bin/vectora-vscode.vsix" 2>&1 | Out-Null
+$ErrorActionPreference = $oldEAP
+
+if (Test-Path "../../bin/vectora-vscode.vsix") {
+    $vsixSize = (Get-Item "../../bin/vectora-vscode.vsix").Length / 1KB
+    Write-Host " ${GREEN}OK${NC} ($([Math]::Round($vsixSize, 2)) KB)"
+    Write-Host "  Installing extension to VS Code..." -NoNewline
+    $installResult = & code --install-extension "../../bin/vectora-vscode.vsix" --force 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host " ${GREEN}OK${NC}"
+    } else {
+        Write-Host " ${YELLOW}WARN${NC} (code CLI may not be available)"
+    }
+} else {
+    Write-Host " ${RED}FAIL${NC} - Extension could not be packaged"
+    Write-Host "    Check extensions/vscode/package.json for missing dependencies"
 }
 Pop-Location
 
