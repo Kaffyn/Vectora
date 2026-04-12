@@ -56,14 +56,39 @@ func (a *VectoraAgent) RegisterEmbeddingTools(router *llm.Router) {
 		a.logger,
 	)
 
+	// Phase 4I: Analysis Tools
+	// Analyze code patterns tool - pattern detection via embeddings
+	patternsAnalysisTool := embedding.NewAnalyzeCodePatternsTool(
+		router,
+		a.vecStore,
+		a.logger,
+	)
+
+	// Knowledge graph analysis tool - entity relationship extraction
+	knowledgeGraphTool := embedding.NewKnowledgeGraphAnalysisTool(
+		router,
+		a.vecStore,
+		a.logger,
+	)
+
+	// Documentation coverage analysis tool - doc quality metrics
+	docCoverageTool := embedding.NewDocCoverageAnalysisTool(
+		router,
+		a.vecStore,
+		a.logger,
+	)
+
 	// Store tools for ACP agent use
 	a.embeddingTools = map[string]interface{}{
-		"embed":                 embedTool,
-		"search_database":       searchTool,
-		"web_search_and_embed":  webSearchTool,
-		"web_fetch_and_embed":   webFetchTool,
-		"plan_mode":             planTool,
-		"refactor_with_context": refactorTool,
+		"embed":                   embedTool,
+		"search_database":         searchTool,
+		"web_search_and_embed":    webSearchTool,
+		"web_fetch_and_embed":     webFetchTool,
+		"plan_mode":               planTool,
+		"refactor_with_context":   refactorTool,
+		"analyze_code_patterns":   patternsAnalysisTool,
+		"knowledge_graph_analysis": knowledgeGraphTool,
+		"doc_coverage_analysis":   docCoverageTool,
 	}
 }
 

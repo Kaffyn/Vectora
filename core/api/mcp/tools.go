@@ -53,15 +53,40 @@ func RegisterEmbeddingTools(vectoraMCPServer *VectoraMCPServer, router *llm.Rout
 		vectoraMCPServer.logger,
 	)
 
+	// Phase 4I: Analysis Tools
+	// Analyze code patterns tool - pattern detection via embeddings
+	patternsAnalysisTool := embedding.NewAnalyzeCodePatternsTool(
+		router,
+		vectoraMCPServer.vecStore,
+		vectoraMCPServer.logger,
+	)
+
+	// Knowledge graph analysis tool - entity relationship extraction
+	knowledgeGraphTool := embedding.NewKnowledgeGraphAnalysisTool(
+		router,
+		vectoraMCPServer.vecStore,
+		vectoraMCPServer.logger,
+	)
+
+	// Documentation coverage analysis tool - doc quality metrics
+	docCoverageTool := embedding.NewDocCoverageAnalysisTool(
+		router,
+		vectoraMCPServer.vecStore,
+		vectoraMCPServer.logger,
+	)
+
 	// Store tools in MCP server for exposure via tools/list and tools/call
 	// These will be returned by listTools() and invoked by callTool()
 	vectoraMCPServer.embeddingTools = map[string]interface{}{
-		"embed":                   embedTool,
-		"search_database":         searchTool,
-		"web_search_and_embed":    webSearchTool,
-		"web_fetch_and_embed":     webFetchTool,
-		"plan_mode":               planTool,
-		"refactor_with_context":   refactorTool,
+		"embed":                     embedTool,
+		"search_database":           searchTool,
+		"web_search_and_embed":      webSearchTool,
+		"web_fetch_and_embed":       webFetchTool,
+		"plan_mode":                 planTool,
+		"refactor_with_context":     refactorTool,
+		"analyze_code_patterns":     patternsAnalysisTool,
+		"knowledge_graph_analysis":  knowledgeGraphTool,
+		"doc_coverage_analysis":     docCoverageTool,
 	}
 }
 
