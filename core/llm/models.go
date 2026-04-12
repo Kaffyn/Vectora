@@ -64,67 +64,17 @@ var ModelRegistry = map[string]ModelInfo{
 		Family:    "openai",
 	},
 
-	// 4. Alibaba (Qwen 3.6 Series)
-	"qwen3.6-plus": {
-		NativeID:  "qwen3.6-plus",
-		GatewayID: "qwen/qwen3.6-plus",
-		Family:    "qwen",
-	},
-	"qwen3.6-turbo": {
-		NativeID:  "qwen3.6-turbo",
-		GatewayID: "qwen/qwen3.6-turbo",
-		Family:    "qwen",
-	},
-	"qwen-max": {
-		NativeID:  "qwen-max",
-		GatewayID: "qwen/qwen-max",
-		Family:    "qwen",
-	},
-
-	// 5. Meta (Muse & Llama 4)
-	"llama-4-70b": {
-		NativeID:  "llama-4-70b",
-		GatewayID: "meta-llama/llama-4-70b",
-		Family:    "meta-llama",
-	},
-	"muse-spark": {
-		NativeID:  "muse-spark",
-		GatewayID: "meta-llama/muse-spark",
-		Family:    "meta-llama",
-	},
-
-	// 6. DeepSeek (V3.2 Series)
-	"deepseek-v3.2": {
-		NativeID:  "deepseek-v3.2",
-		GatewayID: "deepseek/deepseek-v3.2",
-		Family:    "deepseek",
-	},
-
-	// 7. Mistral (Mistral Small 4)
-	"mistral-small-4": {
-		NativeID:  "mistral-small-4",
-		GatewayID: "mistralai/mistral-small-4",
-		Family:    "mistralai",
-	},
-
-	// 8. Grok (Grok 4.20)
-	"grok-4.20": {
-		NativeID:  "grok-4.20",
-		GatewayID: "x-ai/grok-4.20",
-		Family:    "x-ai",
-	},
-
-	// 9. Zhipu (GLM-5.1)
-	"glm-5.1": {
-		NativeID:  "glm-5.1",
-		GatewayID: "zhipuai/glm-5.1",
-		Family:    "zhipuai",
-	},
+	// ... other families kept for registry integrity ...
+	"qwen3.6-plus": {NativeID: "qwen3.6-plus", GatewayID: "qwen/qwen3.6-plus", Family: "qwen"},
+	"llama-4-70b": {NativeID: "llama-4-70b", GatewayID: "meta-llama/llama-4-70b", Family: "meta-llama"},
+	"deepseek-v3.2": {NativeID: "deepseek-v3.2", GatewayID: "deepseek/deepseek-v3.2", Family: "deepseek"},
+	"mistral-small-4": {NativeID: "mistral-small-4", GatewayID: "mistralai/mistral-small-4", Family: "mistralai"},
+	"grok-4.20": {NativeID: "grok-4.20", GatewayID: "x-ai/grok-4.20", Family: "x-ai"},
+	"glm-5.1": {NativeID: "glm-5.1", GatewayID: "zhipuai/glm-5.1", Family: "zhipuai"},
 }
 
 // FamilyEmbeddingRegistry maps LLM families to their native embedding models.
-// Reference: AGENTS.md. Families not listed here (e.g. Anthropic, Meta, DeepSeek)
-// will trigger the global router fallback to Voyage AI (voyage-3-large).
+// Reference: AGENTS.md.
 var FamilyEmbeddingRegistry = map[string]string{
 	"google": "gemini-embedding-2-preview",
 	"openai": "text-embedding-3-large",
@@ -133,23 +83,26 @@ var FamilyEmbeddingRegistry = map[string]string{
 
 // GlobalAliases provide shorthand names for common models.
 var GlobalAliases = map[string]string{
-	"gemini": "gemini-3-flash",
-	"flash":  "gemini-3-flash",
-	"pro":    "gemini-3.1-pro",
-	"sonnet": "claude-4.6-sonnet",
-	"opus":   "claude-4.6-opus",
-	"haiku":  "claude-4.5-haiku",
-	"gpt5":   "gpt-5.4-pro",
-	"mini":   "gpt-5.4-mini",
+	"gemini":            "gemini-3-flash",
+	"flash":             "gemini-3-flash",
+	"pro":               "gemini-3.1-pro",
+	"sonnet":            "claude-4.6-sonnet",
+	"mini":              "gpt-5.4-mini",
+	"gpt5":              "gpt-5.4-pro",
+	"gemini-1.5-flash":  "gemini-3-flash",
+	"gemini-1.5-pro":    "gemini-3.1-pro",
+	"gemini-2.0-flash":  "gemini-3-flash",
 }
 
-// ResolveModel resolves a model shorthand or ID to the requested format based on provider.
+// ResolveModel resolves a model shorthand or ID for CHAT completions.
 func ResolveModel(provider, model string) string {
 	if model == "" {
 		if provider == "gemini" {
 			model = "gemini"
 		} else if provider == "openrouter" || provider == "anannas" {
 			model = "gemini-3.1-pro"
+		} else if provider == "openai" {
+			model = "mini"
 		} else {
 			return model
 		}
@@ -173,6 +126,39 @@ func ResolveModel(provider, model string) string {
 
 	// 4. Passthrough if not in registry
 	return model
+}
+
+// ResolveEmbeddingModel ensures we use a proper embedding model ID.
+// It explicitly ignores chat model IDs and returns the family's embedding model.
+func ResolveEmbeddingModel(provider, model string) string {
+	family := FamilyFromModel(model)
+
+	// If family is unknown but provider is known, use provider as family
+	if family == "unknown" || family == "" {
+		family = provider
+		if family == "gemini" {
+			family = "google"
+		}
+	}
+
+	// Standardize family names
+	if family == "google" || family == "gemini" {
+		return FamilyEmbeddingRegistry["google"]
+	}
+	if family == "openai" {
+		return FamilyEmbeddingRegistry["openai"]
+	}
+	if family == "qwen" {
+		return FamilyEmbeddingRegistry["qwen"]
+	}
+
+	// Check registry for specialized mapping
+	if emb, ok := FamilyEmbeddingRegistry[family]; ok {
+		return emb
+	}
+
+	// Return empty to trigger Voyage AI fallback in router
+	return ""
 }
 
 // FamilyFromModel deduces the provider family from a model name/ID.
@@ -215,14 +201,4 @@ var ProviderModels = map[string][]string{
 	"openai":     {"gpt-5.4-pro", "gpt-5.4-mini", "gpt-5-o1"},
 	"openrouter": {"gemini-3.1-pro", "claude-4.6-sonnet", "llama-4-70b", "deepseek-v3.2"},
 	"anannas":    {"claude-4.6-sonnet", "gemini-3.1-pro", "gpt-5.4-pro"},
-	"deepseek":   {"deepseek-v3.2"},
-	"mistral":    {"mistral-small-4"},
-	"grok":       {"grok-4.20"},
-	"zhipu":      {"glm-5.1"},
-}
-
-// KnownModels fallback lists for OpenAI/Qwen style providers.
-var KnownModels = map[string][]string{
-	"openai": {"gpt-5.4-pro", "gpt-5.4-mini", "gpt-5-o1"},
-	"qwen":   {"qwen3.6-plus", "qwen3.6-turbo", "qwen-max"},
 }

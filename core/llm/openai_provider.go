@@ -234,21 +234,10 @@ func (p *OpenAIProvider) StreamComplete(ctx context.Context, req CompletionReque
 }
 
 func (p *OpenAIProvider) Embed(ctx context.Context, input string, model string) ([]float32, error) {
-	embeddingModel := "text-embedding-3-small" // Default
-
-	// Family detection for gateways or custom endpoints
-	lowerModel := strings.ToLower(model)
-	if strings.Contains(lowerModel, "qwen") {
-		embeddingModel = "qwen3-embedding-8b"
-	} else if strings.Contains(lowerModel, "gpt") || strings.Contains(lowerModel, "openai") {
-		embeddingModel = "text-embedding-3-large"
-	} else if strings.Contains(lowerModel, "llama") || strings.Contains(lowerModel, "phi") ||
-		strings.Contains(lowerModel, "mistral") || strings.Contains(lowerModel, "deepseek") ||
-		strings.Contains(lowerModel, "grok") || strings.Contains(lowerModel, "glm") ||
-		strings.Contains(lowerModel, "muse") {
+	embeddingModel := ResolveEmbeddingModel(p.name, model)
+	if embeddingModel == "" {
 		embeddingModel = "text-embedding-3-large"
 	}
-	// Fallback natural da OpenAI já é text-embedding-3-large se nada for detectado
 
 	params := openai.EmbeddingNewParams{
 		Model: openai.EmbeddingModel(embeddingModel),

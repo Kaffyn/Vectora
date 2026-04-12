@@ -113,7 +113,7 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 
 	resp, err := p.client.Models.GenerateContent(ctx, modelID, contents, config)
 	if err != nil {
-		// ... existing error handling ...
+		// Attempting once a fallback if permitted
 		fallbackModel := req.FallbackModel
 		if fallbackModel == "" {
 			fallbackModel = "gemini-3-flash-preview"
@@ -259,7 +259,11 @@ func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionReque
 }
 
 func (p *GeminiProvider) Embed(ctx context.Context, input string, model string) ([]float32, error) {
-	embeddingModel := ResolveModel("gemini", model)
+	// Specialized resolution for embeddings to avoid 404/NOT_FOUND with chat models
+	embeddingModel := ResolveEmbeddingModel("google", model)
+	if embeddingModel == "" {
+		embeddingModel = "gemini-embedding-2-preview"
+	}
 
 	// Add Task Instructions for Gemini 2.0 (improves retrieval quality)
 	// Reference: https://ai.google.dev/gemini-api/docs/models/gemini/embedding-2
