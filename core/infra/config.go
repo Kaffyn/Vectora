@@ -53,8 +53,10 @@ type Config struct {
 	GrokBaseURL           string
 	ZhipuAPIKey           string
 	ZhipuBaseURL          string
-	DefaultEmbeddingModel string
+	DefaultEmbeddingModel   string
 	DefaultFallbackProvider string
+	// Gateway routing: "openrouter", "anannas", or "" (direct/none)
+	ActiveGateway           string
 
 	// Fallback models per provider
 	GeminiFallbackModel   string
@@ -138,8 +140,9 @@ func LoadConfig() *Config {
 		GrokBaseURL:           os.Getenv("GROK_BASE_URL"),
 		ZhipuAPIKey:           os.Getenv("ZHIPU_API_KEY"),
 		ZhipuBaseURL:          os.Getenv("ZHIPU_BASE_URL"),
-		DefaultEmbeddingModel: os.Getenv("DEFAULT_EMBEDDING_MODEL"),
+		DefaultEmbeddingModel:   os.Getenv("DEFAULT_EMBEDDING_MODEL"),
 		DefaultFallbackProvider: os.Getenv("DEFAULT_FALLBACK_PROVIDER"),
+		ActiveGateway:           os.Getenv("ACTIVE_GATEWAY"),
 
 		GeminiFallbackModel:   os.Getenv("GEMINI_FALLBACK_MODEL"),
 		ClaudeFallbackModel:   os.Getenv("CLAUDE_FALLBACK_MODEL"),
@@ -218,6 +221,8 @@ func SaveConfig(cfg *Config) error {
 	if cfg.DefaultFallbackProvider != "" {
 		content += fmt.Sprintf("DEFAULT_FALLBACK_PROVIDER=%s\n", cfg.DefaultFallbackProvider)
 	}
+	// ACTIVE_GATEWAY é sempre salvo (mesmo "none") para ser explícito
+	content += fmt.Sprintf("ACTIVE_GATEWAY=%s\n", cfg.ActiveGateway)
 
 	// Fallback models
 	if cfg.GeminiFallbackModel != "" {

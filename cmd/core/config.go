@@ -144,7 +144,6 @@ func stringsContains(s, substr string) bool {
 func runConfigInteractive() {
 	cfg := infra.LoadConfig()
 
-	// Helper to format provider label with masked key
 	formatLabel := func(base, key string) string {
 		if key == "" {
 			return base + " (not set)"
@@ -156,7 +155,23 @@ func runConfigInteractive() {
 		return fmt.Sprintf("%s (%s...)", base, key[:prefixLen])
 	}
 
+	gatewayLabel := func(name, key string) string {
+		active := cfg.ActiveGateway == name
+		label := formatLabel(name, key)
+		if active {
+			label += " ★ ativo"
+		}
+		return label
+	}
+
 	options := []string{
+		// ── GATEWAY (camada de roteamento, opcional) ──────────────────
+		"── Gateway ──────────────────────────────────",
+		gatewayLabel("Nenhum (direto)", ""),
+		gatewayLabel("OpenRouter", cfg.OpenRouterAPIKey),
+		gatewayLabel("Anannas", cfg.AnannasAPIKey),
+		// ── PROVIDERS NATIVOS ─────────────────────────────────────────
+		"── Providers ───────────────────────────────",
 		formatLabel("Google Gemini", cfg.GeminiAPIKey),
 		formatLabel("Anthropic Claude", cfg.ClaudeAPIKey),
 		formatLabel("OpenAI", cfg.OpenAIAPIKey),
@@ -165,68 +180,104 @@ func runConfigInteractive() {
 		formatLabel("xAI Grok", cfg.GrokAPIKey),
 		formatLabel("Alibaba Qwen", cfg.QwenAPIKey),
 		formatLabel("Zhipu GLM-5", cfg.ZhipuAPIKey),
+		// ── EMBEDDING ─────────────────────────────────────────────────
+		"── Embedding only ──────────────────────────",
 		formatLabel("Voyage AI", cfg.VoyageAPIKey),
-		formatLabel("OpenRouter", cfg.OpenRouterAPIKey),
-		"---",
+		// ── CONFIGURAÇÕES ─────────────────────────────────────────────
+		"── Configurações ───────────────────────────",
 		"Set Default Provider",
 		"Set Default Model",
 		"Set Fallback Provider",
-		"Set Fallback Model",
 		"Cancel",
 	}
 
 	var choice string
 	prompt := &survey.Select{
-		Message: "Vectora configuration dashboard:",
+		Message: "Vectora — configuração:",
 		Options: options,
 	}
 	err := survey.AskOne(prompt, &choice)
-	if err != nil || choice == "Cancel" || choice == "---" {
+	if err != nil || choice == "Cancel" {
 		return
 	}
 
-	// Extract the base name (before the parenthesis) for the switch
+	// Ignorar separadores (linhas que começam com "──")
+	if len(choice) >= 3 && choice[:3] == "── " {
+		return
+	}
+
+	// Extrai base sem sufixos " (..." e " ★ ativo"
 	baseChoice := choice
 	if idx := stringsIndexOf(choice, " ("); idx != -1 {
 		baseChoice = choice[:idx]
 	}
+	if idx := stringsIndexOf(baseChoice, " ★"); idx != -1 {
+		baseChoice = baseChoice[:idx]
+	}
 
 	switch baseChoice {
+	// ── Gateway
+	case "Nenhum (direto)":
+		saveEnvKey("ACTIVE_GATEWAY", "")
+		fmt.Println("Gateway desativado — conexão direta com providers.")
+	case "OpenRouter":
+		promptKeyAndSave("OPENROUTER_API_KEY", "OpenRouter API Key:", true)
+		saveEnvKey("ACTIVE_GATEWAY", "openrouter")
+		fmt.Println("Gateway definido: OpenRouter. Todos os requests serão roteados por ele.")
+	case "Anannas":
+		promptKeyAndSave("ANANNAS_API_KEY", "Anannas API Key:", true)
+		saveEnvKey("ACTIVE_GATEWAY", "anannas")
+		fmt.Println("Gateway definido: Anannas.")
+
+	// ── Providers nativos
 	case "Google Gemini":
 		promptKeyAndSave("GEMINI_API_KEY", "Gemini API Key:", true)
 	case "Anthropic Claude":
 		promptKeyAndSave("ANTHROPIC_API_KEY", "Anthropic/Claude API Key:", true)
 	case "OpenAI":
 		promptKeyAndSave("OPENAI_API_KEY", "OpenAI API Key:", true)
-		promptKeyAndSave("OPENAI_BASE_URL", "OpenAI Base URL (optional):", false)
+		promptKeyAndSave("OPENAI_BASE_URL", "OpenAI Base URL (opcional):", false)
 	case "DeepSeek":
 		promptKeyAndSave("DEEPSEEK_API_KEY", "DeepSeek API Key:", true)
-		promptKeyAndSave("DEEPSEEK_BASE_URL", "DeepSeek Base URL (optional):", false)
+		promptKeyAndSave("DEEPSEEK_BASE_URL", "DeepSeek Base URL (opcional):", false)
 	case "Mistral":
 		promptKeyAndSave("MISTRAL_API_KEY", "Mistral API Key:", true)
-		promptKeyAndSave("MISTRAL_BASE_URL", "Mistral Base URL (optional):", false)
+		promptKeyAndSave("MISTRAL_BASE_URL", "Mistral Base URL (opcional):", false)
 	case "xAI Grok":
 		promptKeyAndSave("GROK_API_KEY", "xAI Grok API Key:", true)
-		promptKeyAndSave("GROK_BASE_URL", "xAI Grok Base URL (optional):", false)
+		promptKeyAndSave("GROK_BASE_URL", "xAI Grok Base URL (opcional):", false)
 	case "Alibaba Qwen":
 		promptKeyAndSave("QWEN_API_KEY", "Qwen API Key:", true)
-		promptKeyAndSave("QWEN_BASE_URL", "Qwen Base URL (optional):", false)
+		promptKeyAndSave("QWEN_BASE_URL", "Qwen Base URL (opcional):", false)
 	case "Zhipu GLM-5":
 		promptKeyAndSave("ZHIPU_API_KEY", "Zhipu AI / GLM API Key:", true)
-		promptKeyAndSave("ZHIPU_BASE_URL", "Zhipu Base URL (optional):", false)
+		promptKeyAndSave("ZHIPU_BASE_URL", "Zhipu Base URL (opcional):", false)
+
+	// ── Embedding
 	case "Voyage AI":
 		promptKeyAndSave("VOYAGE_API_KEY", "Voyage AI API Key (voyage-3, voyage-code-3 — embeddings only):", true)
-	case "OpenRouter":
-		promptKeyAndSave("OPENROUTER_API_KEY", "OpenRouter API Key:", true)
+
+	// ── Configurações
 	case "Set Default Provider":
-		selectAndSave("DEFAULT_PROVIDER", "Default provider:", []string{"gemini", "claude", "openai", "deepseek", "mistral", "grok", "qwen", "voyage"})
+		selectAndSave("DEFAULT_PROVIDER", "Provider padrão (usado sem gateway):",
+			[]string{"gemini", "claude", "openai", "deepseek", "mistral", "grok", "qwen", "zhipu", "voyage"})
 	case "Set Default Model":
-		promptKeyAndSave("DEFAULT_MODEL", "Default model ID:", false)
+		promptKeyAndSave("DEFAULT_MODEL", "Model ID padrão (ex: gemini-3-flash-preview):", false)
 	case "Set Fallback Provider":
-		selectAndSave("DEFAULT_FALLBACK_PROVIDER", "Fallback provider:", []string{"gemini", "claude", "openai", "voyage"})
-	case "Set Fallback Model":
-		promptKeyAndSave("GEMINI_FALLBACK_MODEL", "Gemini fallback model (e.g. gemini-3-flash-preview):", false)
+		selectAndSave("DEFAULT_FALLBACK_PROVIDER", "Provider de fallback:",
+			[]string{"gemini", "claude", "openai", "voyage"})
 	}
+}
+
+// saveEnvKey persiste uma chave no .env sem prompt interativo.
+func saveEnvKey(key, value string) {
+	envPath := getConfigPath()
+	envMap, _ := godotenv.Read(envPath)
+	if envMap == nil {
+		envMap = make(map[string]string)
+	}
+	envMap[key] = value
+	_ = godotenv.Write(envMap, envPath)
 }
 
 func stringsIndexOf(s, sep string) int {

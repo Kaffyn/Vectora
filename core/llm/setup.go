@@ -36,6 +36,14 @@ func SetupRouter(ctx context.Context, cfg *infra.Config, prefs *infra.UserPrefer
 	// Use preference for default provider if available
 	defaultProv := prefs.DefaultProvider
 
+	// Se há um gateway ativo, ele se torna o provider padrão para completion
+	// Os providers nativos ainda são registrados para embeddings
+	if cfg.ActiveGateway == "openrouter" && cfg.OpenRouterAPIKey != "" {
+		defaultProv = "openrouter"
+	} else if cfg.ActiveGateway == "anannas" && cfg.AnannasAPIKey != "" {
+		defaultProv = "anannas"
+	}
+
 	// Register Native Providers
 	if cfg.GeminiAPIKey != "" {
 		p, _ := NewGeminiProvider(ctx, cfg.GeminiAPIKey)

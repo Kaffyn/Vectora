@@ -65,12 +65,18 @@ var ModelRegistry = map[string]ModelInfo{
 	},
 
 	// ... other families kept for registry integrity ...
-	"qwen3.6-plus": {NativeID: "qwen3.6-plus", GatewayID: "qwen/qwen3.6-plus", Family: "qwen"},
-	"llama-4-70b": {NativeID: "llama-4-70b", GatewayID: "meta-llama/llama-4-70b", Family: "meta-llama"},
-	"deepseek-v3.2": {NativeID: "deepseek-v3.2", GatewayID: "deepseek/deepseek-v3.2", Family: "deepseek"},
+	"qwen3.6-plus":    {NativeID: "qwen3.6-plus", GatewayID: "qwen/qwen3.6-plus", Family: "qwen"},
+	"llama-4-70b":     {NativeID: "llama-4-70b", GatewayID: "meta-llama/llama-4-70b", Family: "meta-llama"},
+	"deepseek-v3.2":   {NativeID: "deepseek-v3.2", GatewayID: "deepseek/deepseek-v3.2", Family: "deepseek"},
 	"mistral-small-4": {NativeID: "mistral-small-4", GatewayID: "mistralai/mistral-small-4", Family: "mistralai"},
-	"grok-4.20": {NativeID: "grok-4.20", GatewayID: "x-ai/grok-4.20", Family: "x-ai"},
-	"glm-5.1": {NativeID: "glm-5.1", GatewayID: "zhipuai/glm-5.1", Family: "zhipuai"},
+	"grok-4.20":       {NativeID: "grok-4.20", GatewayID: "x-ai/grok-4.20", Family: "x-ai"},
+	"glm-5.1":         {NativeID: "glm-5.1", GatewayID: "zhipuai/glm-5.1", Family: "zhipuai"},
+
+	// Free models via OpenRouter (gateway required)
+	"gemma-4-26b-free":     {NativeID: "google/gemma-4-26b-a4b-it:free", GatewayID: "google/gemma-4-26b-a4b-it:free", Family: "free"},
+	"dolphin-mistral-free": {NativeID: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free", GatewayID: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free", Family: "free"},
+	"nemotron-120b-free":   {NativeID: "nvidia/nemotron-3-super-120b-a12b:free", GatewayID: "nvidia/nemotron-3-super-120b-a12b:free", Family: "free"},
+	"glm-4.5-air-free":     {NativeID: "z-ai/glm-4.5-air:free", GatewayID: "z-ai/glm-4.5-air:free", Family: "free"},
 }
 
 // FamilyEmbeddingRegistry maps LLM families to their native embedding models.
@@ -201,4 +207,20 @@ var ProviderModels = map[string][]string{
 	"openai":     {"gpt-5.4-pro", "gpt-5.4-mini", "gpt-5-o1"},
 	"openrouter": {"gemini-3.1-pro", "claude-4.6-sonnet", "llama-4-70b", "deepseek-v3.2"},
 	"anannas":    {"claude-4.6-sonnet", "gemini-3.1-pro", "gpt-5.4-pro"},
+	// Free models via OpenRouter gateway
+	"free": {
+		"google/gemma-4-26b-a4b-it:free",
+		"cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
+		"nvidia/nemotron-3-super-120b-a12b:free",
+		"z-ai/glm-4.5-air:free",
+	},
+}
+
+// FreeModels is the explicit list of free OpenRouter models.
+// These require ACTIVE_GATEWAY=openrouter to function.
+var FreeModels = []string{
+	"google/gemma-4-26b-a4b-it:free",
+	"cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
+	"nvidia/nemotron-3-super-120b-a12b:free",
+	"z-ai/glm-4.5-air:free",
 }
