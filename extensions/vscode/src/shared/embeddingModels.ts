@@ -33,10 +33,10 @@ export const EMBEDDING_MODEL_PROFILES: EmbeddingModelProfiles = {
 		},
 	},
 	gemini: {
-		"gemini-embedding-001": { dimension: 3072, scoreThreshold: 0.4 },
-		// Deprecated: text-embedding-004 is migrated to gemini-embedding-001 in GeminiEmbedder
+		"gemini-embedding-2-preview": { dimension: 3072, scoreThreshold: 0.4 },
+		// Deprecated: gemini-embedding-2-preview is migrated to gemini-embedding-2-preview in GeminiEmbedder
 		// Kept here for backward-compatible dimension lookup in createVectorStore()
-		"text-embedding-004": { dimension: 3072, scoreThreshold: 0.4 },
+		"gemini-embedding-2-preview": { dimension: 3072, scoreThreshold: 0.4 },
 	},
 	mistral: {
 		"codestral-embed-2505": { dimension: 1536, scoreThreshold: 0.4 },
@@ -49,7 +49,7 @@ export const EMBEDDING_MODEL_PROFILES: EmbeddingModelProfiles = {
 		// Cohere models
 		"cohere/embed-v4.0": { dimension: 1024, scoreThreshold: 0.4 },
 		// Google models
-		"google/gemini-embedding-001": { dimension: 3072, scoreThreshold: 0.4 },
+		"google/gemini-embedding-2-preview": { dimension: 3072, scoreThreshold: 0.4 },
 		"google/text-embedding-005": { dimension: 768, scoreThreshold: 0.4 },
 		"google/text-multilingual-embedding-002": { dimension: 768, scoreThreshold: 0.4 },
 		// Amazon models
@@ -77,7 +77,7 @@ export const EMBEDDING_MODEL_PROFILES: EmbeddingModelProfiles = {
 		"openai/text-embedding-3-large": { dimension: 3072, scoreThreshold: 0.4 },
 		"openai/text-embedding-ada-002": { dimension: 1536, scoreThreshold: 0.4 },
 		// Google models via OpenRouter
-		"google/gemini-embedding-001": { dimension: 3072, scoreThreshold: 0.4 },
+		"google/gemini-embedding-2-preview": { dimension: 3072, scoreThreshold: 0.4 },
 		// Mistral models via OpenRouter
 		"mistralai/mistral-embed-2312": { dimension: 1024, scoreThreshold: 0.4 },
 		"mistralai/codestral-embed-2505": { dimension: 1536, scoreThreshold: 0.4 },
@@ -171,7 +171,7 @@ export function getDefaultModelId(provider: EmbedderProvider): string {
 		}
 
 		case "gemini":
-			return "gemini-embedding-001"
+			return "gemini-embedding-2-preview"
 
 		case "mistral":
 			return "codestral-embed-2505"

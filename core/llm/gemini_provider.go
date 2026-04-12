@@ -232,7 +232,7 @@ func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionReque
 				var tCalls []ToolCall
 				for _, part := range resp.Candidates[0].Content.Parts {
 					if part.Text != "" {
-						content = part.Text
+						content += part.Text
 					}
 					if part.FunctionCall != nil {
 						fc := part.FunctionCall
@@ -247,6 +247,9 @@ func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionReque
 				respChan <- CompletionResponse{
 					Content:   content,
 					ToolCalls: tCalls,
+					Metadata: map[string]any{
+						"gemini_content": resp.Candidates[0].Content,
+					},
 				}
 			}
 		}
