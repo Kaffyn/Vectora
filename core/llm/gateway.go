@@ -55,6 +55,9 @@ func (p *GatewayProvider) ListModels(ctx context.Context) ([]string, error) {
 func (p *GatewayProvider) Embed(ctx context.Context, input string, model string) ([]float32, error) {
 	// EmbeddingModelForGateway uses the shared family-detection logic from gateway_models.go.
 	embeddingModel := EmbeddingModelForGateway(model)
+	if embeddingModel == "" {
+		return nil, fmt.Errorf("no native embedding for %s family, router should fallback", FamilyFromModel(model))
+	}
 
 	params := openai.EmbeddingNewParams{
 		Model: openai.EmbeddingModel(embeddingModel),

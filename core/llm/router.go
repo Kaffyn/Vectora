@@ -6,36 +6,36 @@ import (
 )
 
 type Router struct {
-	providers        map[string]Provider
-	defaultProvider  string
-	fallbackProvider string
-	fallbackModels   map[string]string
+	Providers        map[string]Provider
+	DefaultProvider  string
+	FallbackProvider string
+	FallbackModels   map[string]string
 }
 
 func NewRouter() *Router {
 	return &Router{
-		providers:      make(map[string]Provider),
-		fallbackModels: make(map[string]string),
+		Providers:      make(map[string]Provider),
+		FallbackModels: make(map[string]string),
 	}
 }
 
 func (r *Router) RegisterProvider(name string, p Provider, asDefault bool) {
-	r.providers[name] = p
-	if asDefault || r.defaultProvider == "" {
-		r.defaultProvider = name
+	r.Providers[name] = p
+	if asDefault || r.DefaultProvider == "" {
+		r.DefaultProvider = name
 	}
 }
 
 func (r *Router) SetFallbackProvider(name string) {
-	r.fallbackProvider = name
+	r.FallbackProvider = name
 }
 
 func (r *Router) SetFallbackModel(providerName, model string) {
-	r.fallbackModels[providerName] = model
+	r.FallbackModels[providerName] = model
 }
 
 func (r *Router) GetFallbackModel(providerName string) string {
-	return r.fallbackModels[providerName]
+	return r.FallbackModels[providerName]
 }
 
 func (r *Router) ListModels(ctx context.Context, providerName string) ([]string, error) {
@@ -55,17 +55,17 @@ func (r *Router) ListModels(ctx context.Context, providerName string) ([]string,
 }
 
 func (r *Router) GetProvider(name string) (Provider, error) {
-	if p, ok := r.providers[name]; ok {
+	if p, ok := r.Providers[name]; ok {
 		return p, nil
 	}
 	return nil, fmt.Errorf("provider %s not found", name)
 }
 
 func (r *Router) GetDefault() Provider {
-	if r.defaultProvider == "" {
+	if r.DefaultProvider == "" {
 		return nil
 	}
-	return r.providers[r.defaultProvider]
+	return r.Providers[r.DefaultProvider]
 }
 
 func (r *Router) Complete(ctx context.Context, req CompletionRequest) (CompletionResponse, error) {
@@ -75,9 +75,9 @@ func (r *Router) Complete(ctx context.Context, req CompletionRequest) (Completio
 	}
 
 	res, err := p.Complete(ctx, req)
-	if err != nil && r.fallbackProvider != "" && r.fallbackProvider != r.defaultProvider {
+	if err != nil && r.FallbackProvider != "" && r.FallbackProvider != r.DefaultProvider {
 		// Try fallback provider (e.g., Gemini)
-		fp, ok := r.providers[r.fallbackProvider]
+		fp, ok := r.Providers[r.FallbackProvider]
 		if ok && fp.IsConfigured() {
 			// Optional: log that we are falling back
 			return fp.Complete(ctx, req)

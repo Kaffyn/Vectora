@@ -22,20 +22,20 @@ import (
 // Communicates via newline-delimited JSON-RPC 2.0 messages.
 type StdioServer struct {
 	Engine *engine.Engine
-	logger *slog.Logger
+	Logger *slog.Logger
 
-	reader *bufio.Reader
-	writer io.Writer
-	mu     sync.Mutex
+	Reader *bufio.Reader
+	Writer io.Writer
+	Mu     sync.Mutex
 }
 
 // NewStdioServer creates a new MCP server that communicates via stdin/stdout.
 func NewStdioServer(eng *engine.Engine, logger *slog.Logger) *StdioServer {
 	return &StdioServer{
 		Engine: eng,
-		logger: logger,
-		reader: bufio.NewReader(os.Stdin),
-		writer: os.Stdout,
+		Logger: logger,
+		Reader: bufio.NewReader(os.Stdin),
+		Writer: os.Stdout,
 	}
 }
 
@@ -69,7 +69,7 @@ func NewStdioServerFromMCP(
 // Messages are newline-delimited JSON-RPC 2.0.
 // This function blocks until context is cancelled or an error occurs.
 func (s *StdioServer) Start(ctx context.Context) error {
-	s.logger.Info("MCP Server started via stdio")
+	s.Logger.Info("MCP Server started via stdio")
 
 	for {
 		select {
@@ -79,13 +79,13 @@ func (s *StdioServer) Start(ctx context.Context) error {
 		}
 
 		// Read a line from stdin (newline-delimited JSON).
-		line, err := s.reader.ReadString('\n')
+		line, err := s.Reader.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {
-				s.logger.Info("MCP Server: stdin closed")
+				s.Logger.Info("MCP Server: stdin closed")
 				return nil
 			}
-			s.logger.Error("MCP Server: read error", slog.Any("error", err))
+			s.Logger.Error("MCP Server: read error", slog.Any("error", err))
 			return err
 		}
 
@@ -98,23 +98,23 @@ func (s *StdioServer) Start(ctx context.Context) error {
 		}
 
 		if err := json.Unmarshal([]byte(line), &req); err != nil {
-			s.writeError(-32700, "Parse error", nil)
+			s.WriteError(-32700, "Parse error", nil)
 			continue
 		}
 
 		// Validate JSON-RPC version.
 		if req.JSONRPC != "2.0" {
-			s.writeError(-32600, "Invalid Request (jsonrpc must be 2.0)", req.ID)
+			s.WriteError(-32600, "Invalid Request (jsonrpc must be 2.0)", req.ID)
 			continue
 		}
 
 		// Process the request.
-		s.handleRequest(ctx, req.Method, req.Params, req.ID)
+		s.HandleRequest(ctx, req.Method, req.Params, req.ID)
 	}
 }
 
-// handleRequest processes a single JSON-RPC 2.0 request method.
-func (s *StdioServer) handleRequest(ctx context.Context, method string, params json.RawMessage, id any) {
+// HandleRequest processes a single JSON-RPC 2.0 request method.
+func (s *StdioServer) HandleRequest(ctx context.Context, method string, params json.RawMessage, id any) {
 	var result any
 	var err error
 
@@ -134,32 +134,32 @@ func (s *StdioServer) handleRequest(ctx context.Context, method string, params j
 
 	case "tools/list":
 		// List all available tools.
-		result = s.listTools()
+		result = s.ListTools()
 
 	case "tools/call":
 		// Execute a tool.
-		result, err = s.callTool(ctx, params)
+		result, err = s.CallTool(ctx, params)
 
 	case "completion/complete":
 		// Optional: text completion (not implemented yet).
 		err = fmt.Errorf("method not implemented: %s", method)
 
 	default:
-		s.writeError(-32601, fmt.Sprintf("Method not found: %s", method), id)
+		s.WriteError(-32601, fmt.Sprintf("Method not found: %s", method), id)
 		return
 	}
 
 	if err != nil {
-		s.writeError(-32000, fmt.Sprintf("Server error: %v", err), id)
+		s.WriteError(-32000, fmt.Sprintf("Server error: %v", err), id)
 		return
 	}
 
-	s.writeResponse(result, id)
+	s.WriteResponse(result, id)
 }
 
-// listTools returns only embedding-related tools in MCP format.
+// ListTools returns only embedding-related tools in MCP format.
 // This prevents duplication of file system tools when Vectora is as a sub-agent.
-func (s *StdioServer) listTools() map[string]any {
+func (s *StdioServer) ListTools() map[string]any {
 	allTools := s.Engine.Tools.GetAll()
 	mcpTools := make([]map[string]any, 0)
 
@@ -194,8 +194,8 @@ func (s *StdioServer) listTools() map[string]any {
 	}
 }
 
-// callTool executes a tool by name with the given arguments.
-func (s *StdioServer) callTool(ctx context.Context, params json.RawMessage) (any, error) {
+// CallTool executes a tool by name with the given arguments.
+func (s *StdioServer) CallTool(ctx context.Context, params json.RawMessage) (any, error) {
 	var req struct {
 		Name  string                 `json:"name"`
 		Input map[string]interface{} `json:"input"`
@@ -218,10 +218,10 @@ func (s *StdioServer) callTool(ctx context.Context, params json.RawMessage) (any
 	}, nil
 }
 
-// writeResponse writes a successful JSON-RPC 2.0 response to stdout.
-func (s *StdioServer) writeResponse(result any, id any) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// WriteResponse writes a successful JSON-RPC 2.0 response to stdout.
+func (s *StdioServer) WriteResponse(result any, id any) {
+	s.Mu.Lock()
+	defer s.Mu.Unlock()
 
 	response := map[string]any{
 		"jsonrpc": "2.0",
@@ -230,13 +230,13 @@ func (s *StdioServer) writeResponse(result any, id any) {
 	}
 
 	data, _ := json.Marshal(response)
-	fmt.Fprintf(s.writer, "%s\n", data)
+	fmt.Fprintf(s.Writer, "%s\n", data)
 }
 
-// writeError writes a JSON-RPC 2.0 error response to stdout.
-func (s *StdioServer) writeError(code int, message string, id any) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+// WriteError writes a JSON-RPC 2.0 error response to stdout.
+func (s *StdioServer) WriteError(code int, message string, id any) {
+	s.Mu.Lock()
+	defer s.Mu.Unlock()
 
 	response := map[string]any{
 		"jsonrpc": "2.0",
@@ -248,5 +248,5 @@ func (s *StdioServer) writeError(code int, message string, id any) {
 	}
 
 	data, _ := json.Marshal(response)
-	fmt.Fprintf(s.writer, "%s\n", data)
+	fmt.Fprintf(s.Writer, "%s\n", data)
 }

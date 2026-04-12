@@ -109,7 +109,7 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 	}
 
 	// Resolve model alias to canonical Gemini API model ID with "-preview" suffix
-	modelID := ResolveGeminiModel(req.Model)
+	modelID := ResolveModel("gemini", req.Model)
 
 	resp, err := p.client.Models.GenerateContent(ctx, modelID, contents, config)
 	if err != nil {
@@ -219,7 +219,7 @@ func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionReque
 		}
 
 		// Resolve model alias to canonical Gemini API model ID with "-preview" suffix
-		modelID := ResolveGeminiModel(req.Model)
+		modelID := ResolveModel("gemini", req.Model)
 
 		iter := p.client.Models.GenerateContentStream(ctx, modelID, contents, config)
 		for resp, err := range iter {
@@ -259,7 +259,7 @@ func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionReque
 }
 
 func (p *GeminiProvider) Embed(ctx context.Context, input string, model string) ([]float32, error) {
-	embeddingModel := "gemini-embedding-2-preview"
+	embeddingModel := ResolveModel("gemini", model)
 
 	// Add Task Instructions for Gemini 2.0 (improves retrieval quality)
 	// Reference: https://ai.google.dev/gemini-api/docs/models/gemini/embedding-2
@@ -276,8 +276,6 @@ func (p *GeminiProvider) Embed(ctx context.Context, input string, model string) 
 	if err != nil {
 		// If we hit a rate limit (429), try once more after a short wait or just wrap it
 		if strings.Contains(err.Error(), "429") || strings.Contains(err.Error(), "RESOURCE_EXHAUSTED") {
-			// For embeddings, we don't have a clear "flash" alternative yet in the SDK,
-			// so we just ensure the error is clear so the engine can report it.
 			return nil, fmt.Errorf("gemini_embedding_quota_exceeded: %w", err)
 		}
 		return nil, p.wrapError(err)
