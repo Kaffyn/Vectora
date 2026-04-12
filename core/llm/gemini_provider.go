@@ -50,7 +50,44 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 		role := "user"
 		if m.Role == RoleAssistant {
 			role = "model"
+			var parts []*genai.Part
+			if m.Content != "" {
+				parts = append(parts, &genai.Part{Text: m.Content})
+			}
+			for _, tc := range m.ToolCalls {
+				// Reconstruct function call for history
+				var args map[string]any
+				_ = json.Unmarshal([]byte(tc.Args), &args)
+				parts = append(parts, &genai.Part{
+					FunctionCall: &genai.FunctionCall{
+						Name: tc.Name,
+						Args: args,
+					},
+				})
+			}
+			contents = append(contents, &genai.Content{
+				Role:  role,
+				Parts: parts,
+			})
+			continue
 		}
+		if m.Role == RoleTool {
+			// Tool results (FunctionResponse) must be in a "function" role or similar context depending on SDK
+			// In genai SDK, we're likely using contents with FunctionResponse parts
+			contents = append(contents, &genai.Content{
+				Role: "function",
+				Parts: []*genai.Part{
+					{
+						FunctionResponse: &genai.FunctionResponse{
+							Name:     m.ToolCallID, // In Vectora, we sometimes use name as ID for Gemini
+							Response: map[string]any{"result": m.Content},
+						},
+					},
+				},
+			})
+			continue
+		}
+
 		contents = append(contents, &genai.Content{
 			Role: role,
 			Parts: []*genai.Part{
@@ -64,16 +101,16 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 
 	resp, err := p.client.Models.GenerateContent(ctx, modelID, contents, config)
 	if err != nil {
+		// ... existing error handling ...
 		fallbackModel := req.FallbackModel
 		if fallbackModel == "" {
-			fallbackModel = "gemini-3-flash-preview" // As per user instruction
+			fallbackModel = "gemini-3-flash-preview"
 		}
 
 		if fallbackModel != req.Model {
-			// Try fallback model
 			fallbackReq := req
 			fallbackReq.Model = fallbackModel
-			fallbackReq.FallbackModel = "" // Avoid infinite recursion
+			fallbackReq.FallbackModel = ""
 			return p.Complete(ctx, fallbackReq)
 		}
 		return CompletionResponse{}, p.wrapError(err)
@@ -83,10 +120,23 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 		return CompletionResponse{}, errors.New("gemini_no_content_returned")
 	}
 
-	content := resp.Candidates[0].Content.Parts[0].Text
-
+	var content string
 	var tCalls []ToolCall
-	// Parse tools from Gemini parts in future phases
+
+	for _, part := range resp.Candidates[0].Content.Parts {
+		if part.Text != "" {
+			content += part.Text
+		}
+		if part.FunctionCall != nil {
+			fc := part.FunctionCall
+			argsJSON, _ := json.Marshal(fc.Args)
+			tCalls = append(tCalls, ToolCall{
+				ID:   fc.Name, // Gemini uses name as the link for function responses
+				Name: fc.Name,
+				Args: string(argsJSON),
+			})
+		}
+	}
 
 	return CompletionResponse{
 		Content:   content,
@@ -113,6 +163,39 @@ func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionReque
 			role := "user"
 			if m.Role == RoleAssistant {
 				role = "model"
+				var parts []*genai.Part
+				if m.Content != "" {
+					parts = append(parts, &genai.Part{Text: m.Content})
+				}
+				for _, tc := range m.ToolCalls {
+					var args map[string]any
+					_ = json.Unmarshal([]byte(tc.Args), &args)
+					parts = append(parts, &genai.Part{
+						FunctionCall: &genai.FunctionCall{
+							Name: tc.Name,
+							Args: args,
+						},
+					})
+				}
+				contents = append(contents, &genai.Content{
+					Role:  role,
+					Parts: parts,
+				})
+				continue
+			}
+			if m.Role == RoleTool {
+				contents = append(contents, &genai.Content{
+					Role: "function",
+					Parts: []*genai.Part{
+						{
+							FunctionResponse: &genai.FunctionResponse{
+								Name:     m.ToolCallID,
+								Response: map[string]any{"result": m.Content},
+							},
+						},
+					},
+				})
+				continue
 			}
 			contents = append(contents, &genai.Content{
 				Role:  role,
@@ -130,8 +213,25 @@ func (p *GeminiProvider) StreamComplete(ctx context.Context, req CompletionReque
 				return
 			}
 			if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
+				var content string
+				var tCalls []ToolCall
+				for _, part := range resp.Candidates[0].Content.Parts {
+					if part.Text != "" {
+						content = part.Text
+					}
+					if part.FunctionCall != nil {
+						fc := part.FunctionCall
+						argsJSON, _ := json.Marshal(fc.Args)
+						tCalls = append(tCalls, ToolCall{
+							ID:   fc.Name,
+							Name: fc.Name,
+							Args: string(argsJSON),
+						})
+					}
+				}
 				respChan <- CompletionResponse{
-					Content: resp.Candidates[0].Content.Parts[0].Text,
+					Content:   content,
+					ToolCalls: tCalls,
 				}
 			}
 		}
