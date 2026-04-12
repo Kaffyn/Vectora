@@ -12,6 +12,8 @@ import (
 
 	"github.com/Kaffyn/Vectora/core/db"
 	"github.com/Kaffyn/Vectora/core/engine"
+	"time"
+
 	"github.com/Kaffyn/Vectora/core/llm"
 	"github.com/Kaffyn/Vectora/core/policies"
 	"github.com/Kaffyn/Vectora/core/tools"
@@ -255,8 +257,9 @@ func (s *StdioServer) ListTools() map[string]any {
 // Returns detailed error information to help with debugging.
 func (s *StdioServer) CallTool(ctx context.Context, params json.RawMessage) (any, error) {
 	var req struct {
-		Name  string                 `json:"name"`
-		Input map[string]interface{} `json:"input"`
+		Name      string                 `json:"name"`
+		Arguments map[string]interface{} `json:"arguments"` // MCP spec usa "arguments"
+		Input     map[string]interface{} `json:"input"`     // fallback legado
 	}
 
 	if err := json.Unmarshal(params, &req); err != nil {
@@ -268,9 +271,15 @@ func (s *StdioServer) CallTool(ctx context.Context, params json.RawMessage) (any
 		return nil, fmt.Errorf("invalid tool call: name is required")
 	}
 
+	// MCP spec usa "arguments"; fallback para "input" (legado)
+	toolArgs := req.Arguments
+	if len(toolArgs) == 0 {
+		toolArgs = req.Input
+	}
+
 	s.Logger.Debug("MCP: executing tool",
 		slog.String("tool_name", req.Name),
-		slog.Any("input_keys", getMapKeys(req.Input)),
+		slog.Any("input_keys", getMapKeys(toolArgs)),
 	)
 
 	// Check if tool exists before attempting execution
@@ -292,10 +301,10 @@ func (s *StdioServer) CallTool(ctx context.Context, params json.RawMessage) (any
 	}
 
 	// Execute tool via engine with timeout context
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*60) // 5 minute timeout
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
-	result, err := s.Engine.ExecuteTool(ctxWithTimeout, req.Name, req.Input)
+	result, err := s.Engine.ExecuteTool(ctxWithTimeout, req.Name, toolArgs)
 	if err != nil {
 		s.Logger.Error("MCP: tool execution error",
 			slog.String("tool_name", req.Name),
