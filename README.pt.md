@@ -284,8 +284,6 @@ O Vectora Core é o alicerce de um ecossistema maior focado em RAG híbrido e de
 - Suporte a modelos **Qwen 3.5** e **Qwen 3.6**
 - **TurboQuant:** Compressão extrema de KV Cache permitindo o processamento de contextos massivos (até 1M de tokens) 100% localmente.
 
----
-
 **Evolução do Motor de Recuperação:**
 
 - Aprimoramento do grafo da codebase (relações mais ricas)
