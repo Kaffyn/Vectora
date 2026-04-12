@@ -187,6 +187,7 @@ vectora ask "Como funciona a autenticação?"
 
 - **Linguagem:** Go 1.23+ (Golang)
 - **Arquitetura:** Daemon Singleton com Multi-Tenancy Protocol (MTP)
+- **Interface:** **Cobra CLI** (Terminal) & **Systray** (Desktop)
 - **Vector DB:** **chromem-go** (Motor RAG local-first)
 - **Metadata Store:** **BBolt** (Persistência ACID para histórico e logs)
 - **Modelos (Default):** Gemini 3.1 Pro (Reasoning) & Gemini Embedding 2 (RAG)

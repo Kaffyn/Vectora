@@ -219,6 +219,7 @@ MIT
 
 - **Language:** Go 1.23+ (Golang)
 - **Architecture:** Singleton Daemon with Multi-Tenancy Protocol (MTP)
+- **Interface:** **Cobra CLI** (Terminal) & **Systray** (Desktop)
 - **Vector DB:** **chromem-go** (Local-first RAG engine)
 - **Metadata Store:** **BBolt** (ACID persistence for history and logs)
 - **Models (Default):** Gemini 3.1 Pro (Reasoning) & Gemini Embedding 2 (RAG)
