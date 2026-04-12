@@ -24,7 +24,6 @@ const PopoverContent = React.forwardRef<
         "bg-popover",
         "border border-vscode-focusBorder",
         "text-popover-foreground",
-        className,
       )}
       {...props}
     />

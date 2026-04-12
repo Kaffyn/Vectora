@@ -30,7 +30,6 @@ export const LucideIconButton = forwardRef<HTMLButtonElement, LucideIconButtonPr
             "active:bg-[rgba(255,255,255,0.1)]",
             !disabled && "cursor-pointer hover:opacity-100 hover:bg-[rgba(255,255,255,0.03)]",
             disabled && "cursor-not-allowed opacity-40 hover:bg-transparent active:bg-transparent",
-            className,
           )}
           disabled={disabled}
           onClick={!disabled ? onClick : undefined}

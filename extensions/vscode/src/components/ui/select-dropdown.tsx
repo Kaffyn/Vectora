@@ -5,7 +5,6 @@ import { Fzf } from "fzf";
 import { useTranslation, Trans } from "@src/i18n/TranslationContext";
 
 import { cn } from "@/lib/utils";
-import { useRooPortal } from "./hooks/useRooPortal";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui";
 import { StandardTooltip } from "@/components/ui";
 
@@ -44,10 +43,6 @@ export interface SelectDropdownProps {
 export const SelectDropdown = React.memo(
   React.forwardRef<React.ElementRef<typeof PopoverTrigger>, SelectDropdownProps>(
     (
-      {
-        value,
-        options,
-        onChange,
         disabled = false,
         title = "",
         triggerClassName = "",
@@ -57,16 +52,13 @@ export const SelectDropdown = React.memo(
         align = "start",
         placeholder = "",
         shortcutText = "",
-        renderItem,
         disableSearch = false,
       },
-      ref,
     ) => {
       const { t } = useTranslation();
       const [open, setOpen] = React.useState(false);
       const [searchValue, setSearchValue] = React.useState("");
       const searchInputRef = React.useRef<HTMLInputElement>(null);
-      const portalContainer = useRooPortal("roo-portal");
 
       // Memoize the selected option to prevent unnecessary calculations
       const selectedOption = React.useMemo(() => options.find((option) => option.value === value), [options, value]);
@@ -193,7 +185,6 @@ export const SelectDropdown = React.memo(
             disabled
               ? "opacity-50 cursor-not-allowed"
               : "opacity-90 hover:opacity-100 hover:bg-[rgba(255,255,255,0.03)] hover:border-[rgba(255,255,255,0.15)] cursor-pointer",
-            triggerClassName,
           )}
         >
           <CaretUpIcon className="pointer-events-none opacity-80 flex-shrink-0 size-3" />
@@ -275,7 +266,6 @@ export const SelectDropdown = React.memo(
                             option.value === value
                               ? "bg-vscode-list-activeSelectionBackground text-vscode-list-activeSelectionForeground"
                               : "",
-                            itemClassName,
                           )}
                           data-testid="dropdown-item"
                         >

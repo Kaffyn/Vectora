@@ -1,13 +1,5 @@
 import * as cp from "child_process";
 import * as vscode from "vscode";
-import {
-  createMessageConnection,
-  MessageConnection,
-  StreamMessageReader,
-  StreamMessageWriter,
-  NotificationType,
-  RequestType,
-} from "vscode-jsonrpc/node";
 
 // Legacy JSON-RPC 2.0 types for backward compatibility
 export interface JsonRpcRequest {
@@ -106,8 +98,6 @@ export class Client {
         this.connection.onNotification((method, params) => {
           this.onNotification.fire({
             jsonrpc: "2.0",
-            method,
-            params,
           });
         });
 
@@ -149,7 +139,6 @@ export class Client {
         new Promise<TResult>((_, reject) =>
           setTimeout(
             () => reject(new Error(`Request '${method}' timed out after ${timeoutMs}ms`)),
-            timeoutMs,
           ),
         ),
       ]);

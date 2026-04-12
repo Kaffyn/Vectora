@@ -4,20 +4,6 @@ import { useTranslation, Trans } from "@src/i18n/TranslationContext";
 import deepEqual from "fast-deep-equal";
 import { VSCodeBadge } from "@vscode/webview-ui-toolkit/react";
 
-import type {
-  ClineMessage,
-  FollowUpData,
-  SuggestionItem,
-  ClineApiReqInfo,
-  ClineAskUseMcpServer,
-  ClineSayTool,
-} from "@roo-code/types";
-
-import { Mode } from "@roo/modes";
-
-import { COMMAND_OUTPUT_STRING } from "@roo/combineCommandSequences";
-import { safeJsonParse } from "@roo/core";
-
 import { useExtensionState } from "@context/ExtensionStateContext";
 const vscode = (window as any).acquireVsCodeApi();
 
@@ -44,13 +30,10 @@ import McpResourceRow from "../mcp/McpResourceRow";
 import { Mention } from "./Mention";
 // import { CheckpointSaved } from "./checkpoints/CheckpointSaved";
 import { FollowUpSuggest } from "./FollowUpSuggest";
-import { BatchFilePermission } from "./BatchFilePermission";
-import { BatchDiffApproval } from "./BatchDiffApproval";
 import { ProgressIndicator } from "./ProgressIndicator";
 import { Markdown } from "./Markdown";
 import { CommandExecution } from "./CommandExecution";
 import { CommandExecutionError } from "./CommandExecutionError";
-import { AutoApprovedRequestLimitWarning } from "./AutoApprovedRequestLimitWarning";
 import { InProgressRow, CondensationResultRow, CondensationErrorRow, TruncationResultRow } from "./context-management";
 import CodebaseSearchResultsDisplay from "./CodebaseSearchResultsDisplay";
 import { appendImages } from "@src/utils/imageUtils";
@@ -58,31 +41,12 @@ import { appendImages } from "@src/utils/imageUtils";
 import { ChatTextArea } from "./ChatTextArea";
 import { MAX_IMAGES_PER_MESSAGE } from "./ChatView";
 import { useSelectedModel } from "../ui/hooks/useSelectedModel";
-import {
-  Eye,
-  FileDiff,
-  ListTree,
-  User,
-  Edit,
-  Trash2,
-  MessageCircleQuestion,
-  SquareArrowOutUpRight,
-  FileCode2,
-  PocketKnife,
-  FolderTree,
-  TerminalSquare,
-  MessageCircle,
-  Repeat2,
-  Split,
-  ArrowRight,
-  Check,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PathTooltip } from "../ui/PathTooltip";
 import { OpenMarkdownPreviewButton } from "./OpenMarkdownPreviewButton";
 
 // Helper function to get previous todos before a specific message
-function getPreviousTodos(messages: ClineMessage[], currentMessageTs: number): any[] {
+function getPreviousTodos(messages: VectoraMessage[], currentMessageTs: number): any[] {
   // Find the previous updateTodoList message before the current one
   const previousUpdateIndex = messages
     .slice()
@@ -115,8 +79,8 @@ function getPreviousTodos(messages: ClineMessage[], currentMessageTs: number): a
 }
 
 interface ChatRowProps {
-  message: ClineMessage;
-  lastModifiedMessage?: ClineMessage;
+  message: VectoraMessage;
+  lastModifiedMessage?: VectoraMessage;
   isExpanded: boolean;
   isLast: boolean;
   isStreaming: boolean;
@@ -165,23 +129,11 @@ const ChatRow = memo(
     return chatrow;
   },
   // memo does shallow comparison of props, so we need to do deep comparison of arrays/objects whose properties might change
-  deepEqual,
 );
 
 export default ChatRow;
 
 export const ChatRowContent = ({
-  message,
-  lastModifiedMessage,
-  isExpanded,
-  isLast,
-  isStreaming,
-  onToggleExpand,
-  onSuggestionClick,
-  onFollowUpUnmount,
-  onBatchFileResponse,
-  isFollowUpAnswered,
-  isFollowUpAutoApprovalPaused,
 }: ChatRowContentProps) => {
   const { t, i18n } = useTranslation();
 
@@ -366,15 +318,6 @@ export const ChatRowContent = ({
         return [null, null];
     }
   }, [
-    type,
-    isCommandExecuting,
-    message,
-    isMcpServerResponding,
-    apiReqCancelReason,
-    cost,
-    apiRequestFailedMessage,
-    t,
-    isLast,
   ]);
 
   const headerStyle: React.CSSProperties = {
@@ -439,7 +382,6 @@ export const ChatRowContent = ({
                 <FileDiff className="w-4 shrink-0" aria-label="Batch diff icon" />
                 <span style={{ fontWeight: "bold" }}>{t("chat:fileOperations.wantsToApplyBatchChanges")}</span>
               </div>
-              <BatchDiffApproval files={tool.batchDiffs} ts={message.ts} />
             </>
           );
         }
@@ -557,13 +499,6 @@ export const ChatRowContent = ({
                 <Eye className="w-4 shrink-0" aria-label="View files icon" />
                 <span style={{ fontWeight: "bold" }}>{t("chat:fileOperations.wantsToReadMultiple")}</span>
               </div>
-              <BatchFilePermission
-                files={tool.batchFiles || []}
-                onPermissionResponse={(response) => {
-                  onBatchFileResponse?.(response);
-                }}
-                ts={message?.ts}
-              />
             </>
           );
         }
@@ -1562,7 +1497,6 @@ export const ChatRowContent = ({
           // Create the useMcpServer object with the response field
           const useMcpServer: ClineAskUseMcpServer = {
             ...mcpServerRequest,
-            response,
           };
 
           if (!useMcpServer) {
@@ -1623,7 +1557,6 @@ export const ChatRowContent = ({
             </>
           );
         case "auto_approval_max_req_reached": {
-          return <AutoApprovedRequestLimitWarning message={message} />;
         }
         default:
           return null;

@@ -1,4 +1,3 @@
-import type { AssertEqual, Equals, Keys, Values, ExperimentId, Experiments } from "@roo-code/types"
 
 export const EXPERIMENT_IDS = {
 	PREVENT_FOCUS_DISRUPTION: "preventFocusDisruption",

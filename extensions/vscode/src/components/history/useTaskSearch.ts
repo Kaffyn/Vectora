@@ -80,14 +80,5 @@ export const useTaskSearch = () => {
   }, [presentableTasks, searchQuery, fzf, sortOption]);
 
   return {
-    tasks,
-    searchQuery,
-    setSearchQuery,
-    sortOption,
-    setSortOption,
-    lastNonRelevantSort,
-    setLastNonRelevantSort,
-    showAllWorkspaces,
-    setShowAllWorkspaces,
   };
 };

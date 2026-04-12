@@ -5,12 +5,10 @@ import { Dropdown, DropdownItem } from "./Dropdown";
 export type ModeItem = { id: string; name: string; description: string };
 
 export const MODES: ModeItem[] = [
-  {
     id: "planning",
     name: "Planning",
     description: "Agent can plan before executing tasks. Use for deep research, complex tasks, or collaborative work",
   },
-  {
     id: "fast",
     name: "Fast",
     description: "Agent will execute tasks directly. Use for simple tasks that can be completed faster",

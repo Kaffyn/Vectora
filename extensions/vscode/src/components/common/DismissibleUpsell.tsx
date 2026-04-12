@@ -2,7 +2,6 @@ import { memo, ReactNode, useEffect, useState, useRef } from "react";
 import { vscode } from "@src/utils/vscode";
 import { useAppTranslation } from "@src/i18n/TranslationContext";
 import { telemetryClient } from "@src/utils/TelemetryClient";
-import { TelemetryEventName } from "@roo-code/types";
 
 interface DismissibleUpsellProps {
   /** Required unique identifier for this upsell */
@@ -36,13 +35,7 @@ const DismissIcon = () => (
 
 const DismissibleUpsell = memo(
   ({
-    upsellId,
-    className,
-    icon,
-    children,
     variant = "default",
-    onDismiss,
-    onClick,
     dismissOnClick = false,
   }: DismissibleUpsellProps) => {
     const { t } = useAppTranslation();
@@ -120,7 +113,6 @@ const DismissibleUpsell = memo(
       "text-sm",
       variants[variant].container,
       onClick && "cursor-pointer hover:opacity-90 transition-opacity duration-200",
-      className,
     ]
       .filter(Boolean)
       .join(" ");

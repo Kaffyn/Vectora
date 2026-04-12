@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback } from "react";
 import { Fzf } from "fzf";
 
 import { cn } from "@/lib/utils";
-import { useRooPortal } from "@/components/ui/hooks/useRooPortal";
 import { Popover, PopoverContent, PopoverTrigger, StandardTooltip } from "@/components/ui";
 import { useAppTranslation } from "@/i18n/TranslationContext";
 import { vscode } from "@/utils/vscode";
@@ -25,22 +24,12 @@ interface ApiConfigSelectorProps {
 }
 
 export const ApiConfigSelector = ({
-  value,
-  displayName,
   disabled = false,
-  title,
-  onChange,
   triggerClassName = "",
-  listApiConfigMeta,
-  pinnedApiConfigs,
-  togglePinnedApiConfig,
-  lockApiConfigAcrossModes,
-  onToggleLockApiConfig,
 }: ApiConfigSelectorProps) => {
   const { t } = useAppTranslation();
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const portalContainer = useRooPortal("roo-portal");
 
   // Create searchable items for fuzzy search.
   const searchableItems = useMemo(
@@ -160,7 +149,6 @@ export const ApiConfigSelector = ({
             disabled
               ? "opacity-50 cursor-not-allowed"
               : "opacity-90 hover:opacity-100 hover:bg-[rgba(255,255,255,0.03)] hover:border-[rgba(255,255,255,0.15)] cursor-pointer",
-            triggerClassName,
           )}
         >
           <span className="truncate">{displayName}</span>

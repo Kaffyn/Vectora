@@ -12,6 +12,10 @@ No MVP, o Vectora era posicionado como uma ferramenta de RAG híbrido para codeb
 
 > **NotebookLM responde perguntas. O Vectora entende sistemas.**
 
+- [TurboQuant: Redefining AI Efficiency with Extreme Compression](https://research.google/blog/turboquant-redefining-ai-efficiency-with-extreme-compression/)
+- [TurboQuant Paper (arXiv 2502.02617)](https://arxiv.org/abs/2502.02617)
+- [TurboQuant Update (arXiv 2504.19874)](https://arxiv.org/abs/2504.19874)
+
 O Vectora não opera apenas sobre documentos isolados. Ele combina busca semântica, estrutura real de código (arquivos, funções, dependências), grafo de relações e raciocínio multi-hop para entregar respostas e ações baseadas no funcionamento real do seu conhecimento — não em fragmentos isolados.
 
 ---
@@ -235,9 +239,36 @@ Diferente do RAG tradicional que busca fragmentos de texto, o Vectora recupera *
 - **Grafo da Codebase:** O projeto é modelado como um grafo de relações entre entidades (arquivos, funções, imports), permitindo entender como módulos distantes se conectam.
 - **Multi-hop Reasoning:** Consultas navegam por múltiplos pontos do sistema — seguindo dependências e fluxos de execução — para responder perguntas que exigem visão global do projeto.
 
----
 
-## Documentação e Diagramação
-
+ ---
+ 
+-## Documentação e Diagramação
++## TurboQuant: Extreme Compression Efficiency
++
++**TurboQuant** (Google Research, 2025/2026) represents the state-of-the-art in inference efficiency for long-context models. It solves the "Memory Wall" of the **KV Cache**, allowing Vectora to operate on massive codebases 100% locally.
++
++### The KV Cache Problem
++In general-purpose models with contexts of 100k+ tokens, the cost of storing activations for previous tokens (KV Cache) exceeds the size of the model's own weights. Without compression, a long context would require datacenter-grade hardware (H100/H200).
++
++### The Technology: A Two-Stage Pipeline
++TurboQuant utilizes an innovative mathematical approach to reduce the KV Cache to just **3 to 3.5 bits per value** with near-zero accuracy loss:
++
++1.  **Stage 1: PolarQuant (The Compressor)**
++    - **Random Preconditioning:** Uses random rotation matrices to "smear" outliers, making the data distribution more homogeneous.
++    - **Polar Coordinates:** Transforms traditional Cartesian vectors into magnitudes and angles. Angles are inherently more stable and easier to quantize without the need for complex scale factors.
++
++2.  **Stage 2: QJL Corrector (The Stabilizer)**
++    - **Quantized Johnson-Lindenstrauss:** A 1-bit mathematical corrector that compensates for the bias introduced in the first stage.
++    - **Result:** Ensures that Dot-Product calculations (Attention) remain unbiased, preserving the model's original intelligence even under extreme compression.
++
++### Impact on Vectora Dream
++- **Massive Local Context:** Enables consumer GPUs and Apple Silicon chips to process context windows from 128k to 1M tokens, keeping the entire project in the agent's "working memory."
++- **Gateway Independence:** Eliminates the cost and latency of sending large volumes of context to cloud APIs.
++- **Response Speed:** Reduces the required memory throughput, resulting in faster responses and lower energy consumption.
++
++---
++
++## Documentação e Diagramação
++
 - **Diagramas Mermaid:** Inclusão de visualizações técnicas do fluxo de recuperação multi-workspace diretamente nos READMEs, renderizados nativamente pelo GitHub.
 - **Posicionamento Explícito:** Comparação direta com NotebookLM para comunicar claramente que o Vectora é um motor de conhecimento, não apenas um RAG para código.

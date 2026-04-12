@@ -33,7 +33,6 @@ const SubtaskCollapsibleRow = ({ count, isExpanded, onToggle, className }: Subta
         "hover:text-vscode-descriptionForeground",
         isExpanded ? "text-vscode-descriptionForeground" : "text-vscode-descriptionForeground/80",
         "transition-colors",
-        className,
       )}
       onClick={(e) => {
         e.stopPropagation();

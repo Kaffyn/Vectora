@@ -17,6 +17,4 @@ export const createHash = (algorithm: string) => ({
 });
 
 export default {
-  randomBytes,
-  createHash,
 };

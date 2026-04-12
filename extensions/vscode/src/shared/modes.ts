@@ -1,13 +1,10 @@
 import * as vscode from "vscode"
 
-import {
 	type GroupEntry,
 	type ModeConfig,
 	type CustomModePrompts,
 	type ToolGroup,
 	type PromptComponent,
-	DEFAULT_MODES,
-} from "@roo-code/types"
 
 import { addCustomInstructions } from "../core/prompts/sections/custom-instructions"
 
@@ -147,7 +144,6 @@ export const defaultPrompts: Readonly<CustomModePrompts> = Object.freeze(
 	Object.fromEntries(
 		modes.map((mode) => [
 			mode.slug,
-			{
 				roleDefinition: mode.roleDefinition,
 				whenToUse: mode.whenToUse,
 				customInstructions: mode.customInstructions,
@@ -198,10 +194,8 @@ export async function getFullModeDetails(
 	let fullCustomInstructions = baseCustomInstructions
 	if (options?.cwd) {
 		fullCustomInstructions = await addCustomInstructions(
-			baseCustomInstructions,
 			options.globalCustomInstructions || "",
 			options.cwd,
-			modeSlug,
 			{ language: options.language },
 		)
 	}

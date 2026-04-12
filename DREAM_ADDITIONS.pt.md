@@ -12,6 +12,10 @@ No MVP, o Vectora era posicionado como uma ferramenta de RAG híbrido para codeb
 
 > **NotebookLM responde perguntas. O Vectora entende sistemas.**
 
+- [TurboQuant: Redefining AI Efficiency with Extreme Compression](https://research.google/blog/turboquant-redefining-ai-efficiency-with-extreme-compression/)
+- [TurboQuant Paper (arXiv 2502.02617)](https://arxiv.org/abs/2502.02617)
+- [TurboQuant Update (arXiv 2504.19874)](https://arxiv.org/abs/2504.19874)
+
 O Vectora não opera apenas sobre documentos isolados. Ele combina busca semântica, estrutura real de código (arquivos, funções, dependências), grafo de relações e raciocínio multi-hop para entregar respostas e ações baseadas no funcionamento real do seu conhecimento — não em fragmentos isolados.
 
 ---
@@ -234,6 +238,31 @@ Diferente do RAG tradicional que busca fragmentos de texto, o Vectora recupera *
 - **RAG Híbrido:** Integra embeddings semânticos (chromem-go) com análise estrutural (AST e símbolos de código) para resultados precisos.
 - **Grafo da Codebase:** O projeto é modelado como um grafo de relações entre entidades (arquivos, funções, imports), permitindo entender como módulos distantes se conectam.
 - **Multi-hop Reasoning:** Consultas navegam por múltiplos pontos do sistema — seguindo dependências e fluxos de execução — para responder perguntas que exigem visão global do projeto.
+
+---
+
+## TurboQuant: Eficiência em Compressão Extrema
+
+O **TurboQuant** (Google Research, 2025/2026) representa o estado da arte em eficiência de inferência para modelos de contexto longo. Ele resolve o "Muro de Memória" do **KV Cache**, permitindo que o Vectora opere sobre codebases massivas 100% localmente.
+
+### O Problema do KV Cache
+Em modelos generalistas com contextos de 100k+ tokens, o custo de armazenamento das ativações dos tokens anteriores (KV Cache) supera o tamanho dos pesos do próprio modelo. Sem compressão, um contexto longo exigiria hardware de nível datacenter (H100/H200).
+
+### A Tecnologia: Pipeline de Duas Etapas
+O TurboQuant utiliza uma abordagem matemática inovadora para reduzir o KV Cache para apenas **3 a 3.5 bits por valor** com perda de acurácia próxima de zero:
+
+1.  **Stage 1: PolarQuant (O Compressor)**
+    - **Precondicionamento Aleatório:** Utiliza matrizes de rotação aleatória para "esvalhar" valores extremos (*outliers*), tornando a distribuição de dados mais homogênea.
+    - **Coordenadas Polares:** Transforma vetores cartesianos tradicionais em magnitudes e ângulos. Os ângulos são inerentemente mais estáveis e fáceis de quantizar sem necessidade de parâmetros de escala (*scale factors*) complexos.
+
+2.  **Stage 2: QJL Corrector (O Estabilizador)**
+    - **Quantized Johnson-Lindenstrauss:** Um corretor matemático de 1-bit que compensa o viés (bias) introduzido na primeira etapa.
+    - **Resultado:** Garante que o cálculo de Dot-Product (Atenção) seja imparcial, mantendo a inteligência original do modelo mesmo sob compressão extrema.
+
+### Impacto no Vectora Dream
+- **Contexto Local Massivo:** Permite que GPUs de consumo e chips Apple Silicon processem janelas de contexto de 128k a 1M de tokens, mantendo o projeto inteiro na "memória de trabalho" do agente.
+- **Independência de Gateway:** Elimina o custo e a latência de enviar grandes volumes de contexto para APIs de nuvem.
+- **Velocidade de Resposta:** Reduz o throughput de memória necessário, resultando em respostas mais rápidas e menor consumo energético.
 
 ---
 

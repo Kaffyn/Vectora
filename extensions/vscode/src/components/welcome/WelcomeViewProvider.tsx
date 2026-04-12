@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  VSCodeLink,
-  VSCodeProgressRing,
-  VSCodeRadio,
-  VSCodeRadioGroup,
-  VSCodeTextField,
-} from "@vscode/webview-ui-toolkit/react";
 
-import type { ProviderSettings } from "@roo-code/types";
 
 import { useExtensionState } from "@context/ExtensionStateContext";
 import { validateApiConfiguration } from "@src/utils/validate";
@@ -18,7 +10,6 @@ import { Button } from "@src/components/ui";
 import ApiOptions from "../settings/ApiOptions";
 import { Tab, TabContent } from "../common/Tab";
 
-import RooHero from "./RooHero";
 import { useTranslation, Trans } from "@src/i18n/TranslationContext";
 import { ArrowLeft, ArrowRight, BadgeInfo, Brain, TriangleAlert } from "lucide-react";
 import { buildDocLink } from "@/utils/docLinks";
@@ -28,12 +19,6 @@ type AuthOrigin = "landing" | "providerSelection";
 
 const WelcomeViewProvider = () => {
   const {
-    apiConfiguration,
-    currentApiConfigName,
-    setApiConfiguration,
-    uriScheme,
-    cloudIsAuthenticated,
-    cloudAuthSkipModel,
   } = useExtensionState();
   const { t } = useAppTranslation();
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
@@ -284,7 +269,6 @@ const WelcomeViewProvider = () => {
     return (
       <Tab>
         <TabContent className="relative flex flex-col gap-4 p-6 justify-center">
-          <RooHero />
           <h2 className="mt-0 mb-0 text-xl">{t("welcome:landing.greeting")}</h2>
 
           <div className="space-y-4 leading-normal">

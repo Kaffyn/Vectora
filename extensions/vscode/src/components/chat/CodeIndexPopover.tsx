@@ -1,51 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useTranslation, Trans } from "@src/i18n/TranslationContext";
 import { z } from "zod";
-import {
-  VSCodeButton,
-  VSCodeTextField,
-  VSCodeDropdown,
-  VSCodeOption,
-  VSCodeLink,
-  VSCodeCheckbox,
-} from "@vscode/webview-ui-toolkit/react";
 import * as ProgressPrimitive from "@radix-ui/react-progress";
 import { AlertTriangle } from "lucide-react";
 
-import { type IndexingStatus, type EmbedderProvider, CODEBASE_INDEX_DEFAULTS } from "@roo-code/types";
 
 import { vscode } from "@src/utils/vscode";
 import { useExtensionState } from "@context/ExtensionStateContext";
 import { useAppTranslation } from "@src/i18n/TranslationContext";
 import { buildDocLink } from "@src/utils/docLinks";
 import { cn } from "@src/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-  Popover,
-  PopoverContent,
-  Slider,
-  StandardTooltip,
-  Button,
-} from "@src/components/ui";
-import { useRooPortal } from "@src/components/ui/hooks/useRooPortal";
 import { useEscapeKey } from "@src/hooks/useEscapeKey";
-import {
-  useOpenRouterModelProviders,
-  OPENROUTER_DEFAULT_PROVIDER_NAME,
-} from "@src/components/ui/hooks/useOpenRouterModelProviders";
 
 // Default URLs for providers
 const DEFAULT_QDRANT_URL = "http://localhost:6333";
@@ -166,7 +131,6 @@ const createValidationSchema = (provider: EmbedderProvider, t: any) => {
 };
 
 export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
-  children,
   indexingStatus: externalIndexingStatus,
 }) => {
   const SECRET_PLACEHOLDER = "••••••••••••••••";
@@ -561,15 +525,12 @@ export const CodeIndexPopover: React.FC<CodeIndexPopoverProps> = ({
     currentSettings.codebaseIndexEmbedderProvider === "openrouter"
       ? currentSettings.codebaseIndexEmbedderModelId
       : undefined,
-    undefined,
-    {
       enabled:
         currentSettings.codebaseIndexEmbedderProvider === "openrouter" &&
         !!currentSettings.codebaseIndexEmbedderModelId,
     },
   );
 
-  const portalContainer = useRooPortal("roo-portal");
 
   return (
     <>

@@ -10,8 +10,6 @@ interface UseAutosizeTextAreaProps {
 }
 
 export const useAutosizeTextArea = ({
-  textAreaRef,
-  triggerAutoSize,
   maxHeight = Number.MAX_SAFE_INTEGER,
   minHeight = 0,
 }: UseAutosizeTextAreaProps) => {
@@ -68,17 +66,12 @@ export const AutosizeTextarea = React.forwardRef<AutosizeTextAreaRef, AutosizeTe
     const [triggerAutoSize, setTriggerAutoSize] = React.useState("");
 
     useAutosizeTextArea({
-      textAreaRef,
       triggerAutoSize: triggerAutoSize,
-      maxHeight,
-      minHeight,
     });
 
     React.useImperativeHandle(ref, () => ({
       textArea: textAreaRef.current as HTMLTextAreaElement,
       focus: () => textAreaRef?.current?.focus(),
-      maxHeight,
-      minHeight,
     }));
 
     React.useEffect(() => {
@@ -95,7 +88,6 @@ export const AutosizeTextarea = React.forwardRef<AutosizeTextAreaRef, AutosizeTe
           "border-[var(--vscode-input-border,var(--vscode-input-background))] focus-visible:border-vscode-focusBorder",
           "bg-vscode-input-background",
           "text-vscode-input-foreground",
-          className,
         )}
         onChange={(e) => {
           setTriggerAutoSize(e.target.value);

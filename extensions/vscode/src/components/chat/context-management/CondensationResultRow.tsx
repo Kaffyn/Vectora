@@ -3,7 +3,6 @@ import { useTranslation, Trans } from "@src/i18n/TranslationContext";
 import { VSCodeBadge } from "@vscode/webview-ui-toolkit/react";
 import { FoldVertical } from "lucide-react";
 
-import type { ContextCondense } from "@roo-code/types";
 
 import { Markdown } from "../Markdown";
 

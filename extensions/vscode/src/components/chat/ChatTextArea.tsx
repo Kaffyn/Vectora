@@ -3,23 +3,13 @@ import { useEvent } from "react-use";
 import DynamicTextArea from "react-textarea-autosize";
 import { VolumeX, Image, WandSparkles, SendHorizontal, X, ListEnd, Square } from "lucide-react";
 
-import type { ExtensionMessage } from "@roo-code/types";
 
 import { mentionRegex, mentionRegexGlobal, commandRegexGlobal, unescapeSpaces } from "@roo/context-mentions";
 import { WebviewMessage } from "@roo/WebviewMessage";
-import { Mode, getAllModes } from "@roo/modes";
 
 import { vscode } from "@src/utils/vscode";
 import { useExtensionState } from "@context/ExtensionStateContext";
 import { useAppTranslation } from "@src/i18n/TranslationContext";
-import {
-  ContextMenuOptionType,
-  getContextMenuOptions,
-  insertMention,
-  removeMention,
-  shouldShowContextMenu,
-  SearchResult,
-} from "@src/utils/context-mentions";
 import { cn } from "@src/lib/utils";
 import { convertToMentionPath } from "@src/utils/path-mentions";
 import { StandardTooltip } from "@src/components/ui";
@@ -27,7 +17,6 @@ import { StandardTooltip } from "@src/components/ui";
 import Thumbnails from "../common/Thumbnails";
 import { ModeSelector } from "./ModeSelector";
 import { ApiConfigSelector } from "./ApiConfigSelector";
-import { AutoApproveDropdown } from "./AutoApproveDropdown";
 import { MAX_IMAGES_PER_MESSAGE } from "./ChatView";
 import ContextMenu from "./ContextMenu";
 import { IndexingStatusBadge } from "./IndexingStatusBadge";
@@ -60,45 +49,12 @@ interface ChatTextAreaProps {
 
 export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
   (
-    {
-      inputValue,
-      setInputValue,
-      selectApiConfigDisabled,
-      placeholderText,
-      selectedImages,
-      setSelectedImages,
-      onSend,
-      onSelectImages,
-      shouldDisableImages,
-      onHeightChange,
-      mode,
-      setMode,
-      modeShortcutText,
       isEditMode = false,
-      onCancel,
       isStreaming = false,
-      onStop,
-      onEnqueueMessage,
     },
-    ref,
   ) => {
     const { t } = useAppTranslation();
     const {
-      filePaths,
-      openedTabs,
-      currentApiConfigName,
-      listApiConfigMeta,
-      customModes,
-      customModePrompts,
-      cwd,
-      pinnedApiConfigs,
-      togglePinnedApiConfig,
-      taskHistory,
-      clineMessages,
-      commands,
-      cloudUserInfo,
-      enterBehavior,
-      lockApiConfigAcrossModes,
     } = useExtensionState();
 
     // Find the ID and display text for the currently selected API configuration.
@@ -222,11 +178,6 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 
     // Use custom hook for prompt history navigation
     const { handleHistoryNavigation, resetHistoryNavigation, resetOnInputChange } = usePromptHistory({
-      clineMessages,
-      taskHistory,
-      cwd,
-      inputValue,
-      setInputValue,
     });
 
     // Fetch git commits when Git is selected or when typing a hash.
@@ -380,9 +331,6 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 
           const { newValue, mentionIndex } = insertMention(
             textAreaRef.current.value,
-            cursorPosition,
-            insertValue,
-            isSlashCommand,
           );
 
           setInputValue(newValue);
@@ -417,12 +365,6 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
             setSelectedMenuIndex((prevIndex) => {
               const direction = event.key === "ArrowUp" ? -1 : 1;
               const options = getContextMenuOptions(
-                searchQuery,
-                selectedType,
-                queryItems,
-                fileSearchResults,
-                allModes,
-                commands,
               );
               const optionsLength = options.length;
 
@@ -452,12 +394,6 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
           if ((event.key === "Enter" || event.key === "Tab") && selectedMenuIndex !== -1) {
             event.preventDefault();
             const selectedOption = getContextMenuOptions(
-              searchQuery,
-              selectedType,
-              queryItems,
-              fileSearchResults,
-              allModes,
-              commands,
             )[selectedMenuIndex];
             if (
               selectedOption &&
@@ -543,23 +479,6 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         }
       },
       [
-        onSend,
-        showContextMenu,
-        searchQuery,
-        selectedMenuIndex,
-        handleMentionSelect,
-        selectedType,
-        inputValue,
-        cursorPosition,
-        setInputValue,
-        justDeletedSpaceAfterMention,
-        queryItems,
-        allModes,
-        fileSearchResults,
-        handleHistoryNavigation,
-        resetHistoryNavigation,
-        commands,
-        enterBehavior,
       ],
     );
 
@@ -888,15 +807,6 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
         }
       },
       [
-        cursorPosition,
-        cwd,
-        inputValue,
-        setInputValue,
-        setCursorPosition,
-        setIntendedCursorPosition,
-        shouldDisableImages,
-        setSelectedImages,
-        t,
       ],
     );
 
@@ -1314,7 +1224,6 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
               lockApiConfigAcrossModes={!!lockApiConfigAcrossModes}
               onToggleLockApiConfig={handleToggleLockApiConfig}
             />
-            <AutoApproveDropdown triggerClassName="min-w-[28px] text-ellipsis overflow-hidden flex-shrink" />
           </div>
           <div
             className={cn(

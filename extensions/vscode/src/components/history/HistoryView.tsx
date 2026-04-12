@@ -6,16 +6,6 @@ import { Virtuoso } from "react-virtuoso";
 
 import { VSCodeTextField } from "@vscode/webview-ui-toolkit/react";
 
-import {
-  Button,
-  Checkbox,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  StandardTooltip,
-} from "@/components/ui";
 import { useAppTranslation } from "@/i18n/TranslationContext";
 
 import { Tab, TabContent, TabHeader } from "../common/Tab";
@@ -33,14 +23,6 @@ type SortOption = "newest" | "oldest" | "mostExpensive" | "mostTokens" | "mostRe
 
 const HistoryView = ({ onDone }: HistoryViewProps) => {
   const {
-    tasks,
-    searchQuery,
-    setSearchQuery,
-    sortOption,
-    setSortOption,
-    setLastNonRelevantSort,
-    showAllWorkspaces,
-    setShowAllWorkspaces,
   } = useTaskSearch();
   const { t } = useAppTranslation();
 

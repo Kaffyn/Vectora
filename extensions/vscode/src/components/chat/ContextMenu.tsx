@@ -3,14 +3,7 @@ import { getIconForFilePath, getIconUrlByName, getIconForDirectoryPath } from "v
 import { useTranslation, Trans } from "@src/i18n/TranslationContext";
 import { Settings } from "lucide-react";
 
-import type { ModeConfig, Command } from "@roo-code/types";
 
-import {
-  ContextMenuOptionType,
-  ContextMenuQueryItem,
-  getContextMenuOptions,
-  SearchResult,
-} from "@src/utils/context-mentions";
 import { removeLeadingNonAlphanumeric } from "@src/utils/removeLeadingNonAlphanumeric";
 import { vscode } from "@src/utils/vscode";
 
@@ -32,14 +25,6 @@ interface ContextMenuProps {
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({
-  onSelect,
-  searchQuery,
-  onMouseDown,
-  selectedIndex,
-  setSelectedIndex,
-  selectedType,
-  queryItems,
-  modes,
   dynamicSearchResults = [],
   commands = [],
 }) => {

@@ -18,11 +18,6 @@ interface CommandPatternSelectorProps {
 }
 
 export const CommandPatternSelector: React.FC<CommandPatternSelectorProps> = ({
-  patterns,
-  allowedCommands,
-  deniedCommands,
-  onAllowPatternChange,
-  onDenyPatternChange,
 }) => {
   const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);

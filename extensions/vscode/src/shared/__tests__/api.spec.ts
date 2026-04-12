@@ -1,4 +1,3 @@
-import { type ModelInfo, type ProviderSettings, ANTHROPIC_DEFAULT_MAX_TOKENS } from "@roo-code/types"
 
 import { getModelMaxOutputTokens, shouldUseReasoningBudget, shouldUseReasoningEffort } from "../api"
 
@@ -19,7 +18,6 @@ describe("getModelMaxOutputTokens", () => {
 		const result = getModelMaxOutputTokens({
 			modelId: "claude-3-5-sonnet-20241022",
 			model: mockModel,
-			settings,
 		})
 
 		expect(result).toBe(8192)
@@ -41,7 +39,6 @@ describe("getModelMaxOutputTokens", () => {
 		const result = getModelMaxOutputTokens({
 			modelId: "claude-3-7-sonnet-20250219",
 			model: reasoningModel,
-			settings,
 		})
 
 		expect(result).toBe(32000)
@@ -111,8 +108,6 @@ describe("getModelMaxOutputTokens", () => {
 
 		const result = getModelMaxOutputTokens({
 			modelId: "gpt-4",
-			model,
-			settings,
 			format: "openai",
 		})
 		// Should clamp to 20% of context window: 100_000 * 0.2 = 20_000
@@ -132,8 +127,6 @@ describe("getModelMaxOutputTokens", () => {
 
 		const result = getModelMaxOutputTokens({
 			modelId: "claude-3-5-sonnet-20241022",
-			model,
-			settings,
 		})
 		// Should clamp to 20% of context window: 100_000 * 0.2 = 20_000
 		expect(result).toBe(20_000)
@@ -152,8 +145,6 @@ describe("getModelMaxOutputTokens", () => {
 
 		const result = getModelMaxOutputTokens({
 			modelId: "gpt-4",
-			model,
-			settings,
 			format: "openai",
 		})
 		expect(result).toBe(20_000) // Should use model.maxTokens since it's exactly at 20%
@@ -175,9 +166,6 @@ describe("getModelMaxOutputTokens", () => {
 
 		gpt5ModelIds.forEach((modelId) => {
 			const result = getModelMaxOutputTokens({
-				modelId,
-				model,
-				settings,
 				format: "openai",
 			})
 			// Should use full 128k tokens, not capped to 20% (40k)
@@ -201,9 +189,6 @@ describe("getModelMaxOutputTokens", () => {
 
 		nonGpt5ModelIds.forEach((modelId) => {
 			const result = getModelMaxOutputTokens({
-				modelId,
-				model,
-				settings,
 				format: "openai",
 			})
 			// Should be capped to 20% of context window: 200_000 * 0.2 = 40_000
@@ -213,17 +198,14 @@ describe("getModelMaxOutputTokens", () => {
 
 	test("should handle GPT-5 models with various max token configurations", () => {
 		const testCases = [
-			{
 				maxTokens: 128_000,
 				contextWindow: 200_000,
 				expected: 128_000, // Uses full 128k
 			},
-			{
 				maxTokens: 64_000,
 				contextWindow: 200_000,
 				expected: 64_000, // Uses configured 64k
 			},
-			{
 				maxTokens: 256_000,
 				contextWindow: 400_000,
 				expected: 256_000, // Uses full 256k even though it's 64% of context
@@ -232,14 +214,11 @@ describe("getModelMaxOutputTokens", () => {
 
 		testCases.forEach(({ maxTokens, contextWindow, expected }) => {
 			const model: ModelInfo = {
-				contextWindow,
 				supportsPromptCache: false,
-				maxTokens,
 			}
 
 			const result = getModelMaxOutputTokens({
 				modelId: "gpt-5-turbo",
-				model,
 				settings: { apiProvider: "openai" },
 				format: "openai",
 			})

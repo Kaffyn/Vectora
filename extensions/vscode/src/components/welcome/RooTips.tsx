@@ -5,13 +5,11 @@ import { buildDocLink } from "@src/utils/docLinks";
 import { ReplaceAll, Users } from "lucide-react";
 
 const tips = [
-  {
     icon: <Users className="size-4 shrink-0 mt-0.5" />,
     href: buildDocLink("basic-usage/using-modes", "tips"),
     titleKey: "rooTips.customizableModes.title",
     descriptionKey: "rooTips.customizableModes.description",
   },
-  {
     icon: <ReplaceAll className="size-4 shrink-0 mt-0.5" />,
     href: buildDocLink("getting-started/connecting-api-provider", "tips"),
     titleKey: "rooTips.modelAgnostic.title",
@@ -19,7 +17,6 @@ const tips = [
   },
 ];
 
-const RooTips = () => {
   const { t } = useTranslation("chat");
 
   return (
@@ -52,4 +49,3 @@ const RooTips = () => {
   );
 };
 
-export default RooTips;

@@ -1,4 +1,3 @@
-import type { PromptComponent } from "@roo-code/types"
 
 import { getModeSelection, modes } from "../modes"
 

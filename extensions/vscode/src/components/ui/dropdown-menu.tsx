@@ -29,7 +29,6 @@ const DropdownMenuContent = React.forwardRef<
         "border border-vscode-focusBorder",
         "bg-vscode-dropdown-background bg-opacity-100",
         "text-vscode-dropdown-foreground",
-        className,
       )}
       {...props}
     />
@@ -51,7 +50,6 @@ const DropdownMenuItem = React.forwardRef<
       "text-vscode-dropdown-foreground text-sm",
       "rounded-xs active:opacity-90 cursor-pointer",
       inset && "pl-8",
-      className,
     )}
     {...props}
   />
@@ -67,7 +65,6 @@ const DropdownMenuCheckboxItem = React.forwardRef<
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       "focus:bg-vscode-list-activeSelectionBackground focus:text-vscode-list-activeSelectionForeground",
-      className,
     )}
     checked={checked}
     {...props}
@@ -90,7 +87,6 @@ const DropdownMenuRadioItem = React.forwardRef<
     ref={ref}
     className={cn(
       "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-vscode-list-activeSelectionBackground focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      className,
     )}
     {...props}
   >
@@ -136,16 +132,4 @@ const DropdownMenuShortcut = ({ className, ...props }: React.HTMLAttributes<HTML
 DropdownMenuShortcut.displayName = "DropdownMenuShortcut";
 
 export {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuCheckboxItem,
-  DropdownMenuRadioItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuGroup,
-  DropdownMenuPortal,
-  DropdownMenuRadioGroup,
 };

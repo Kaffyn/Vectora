@@ -1,6 +1,5 @@
 // npx vitest run shared/__tests__/modes.spec.ts
 
-import type { ModeConfig, PromptComponent } from "@roo-code/types"
 
 // Mock setup must come before imports
 vi.mock("vscode")
@@ -15,19 +14,16 @@ import { addCustomInstructions } from "../../core/prompts/sections/custom-instru
 
 describe("isToolAllowedForMode", () => {
 	const customModes: ModeConfig[] = [
-		{
 			slug: "markdown-editor",
 			name: "Markdown Editor",
 			roleDefinition: "You are a markdown editor",
 			groups: ["read", ["edit", { fileRegex: "\\.md$" }]],
 		},
-		{
 			slug: "css-editor",
 			name: "CSS Editor",
 			roleDefinition: "You are a CSS editor",
 			groups: ["read", ["edit", { fileRegex: "\\.css$" }]],
 		},
-		{
 			slug: "test-exp-mode",
 			name: "Test Exp Mode",
 			roleDefinition: "You are an experimental tester",
@@ -146,7 +142,6 @@ describe("isToolAllowedForMode", () => {
 
 		it("uses description in file restriction error for custom modes", () => {
 			const customModesWithDescription: ModeConfig[] = [
-				{
 					slug: "docs-editor",
 					name: "Documentation Editor",
 					roleDefinition: "You are a documentation editor",
@@ -273,12 +268,8 @@ describe("isToolAllowedForMode", () => {
 			const patchResult = isToolAllowedForMode(
 				"apply_patch",
 				"markdown-editor",
-				customModes,
-				undefined,
-				{
 					patch: "*** Begin Patch\n*** Update File: test.md\n@@ \n-old\n+new\n*** End Patch",
 				},
-				undefined,
 				["apply_patch"], // Include custom tool
 			)
 			expect(patchResult).toBe(true)
@@ -288,12 +279,8 @@ describe("isToolAllowedForMode", () => {
 				isToolAllowedForMode(
 					"apply_patch",
 					"markdown-editor",
-					customModes,
-					undefined,
-					{
 						patch: "*** Begin Patch\n*** Update File: test.js\n@@ \n-old\n+new\n*** End Patch",
 					},
-					undefined,
 					["apply_patch"], // Include custom tool
 				),
 			).toThrow(FileRestrictionError)
@@ -301,12 +288,8 @@ describe("isToolAllowedForMode", () => {
 				isToolAllowedForMode(
 					"apply_patch",
 					"markdown-editor",
-					customModes,
-					undefined,
-					{
 						patch: "*** Begin Patch\n*** Update File: test.js\n@@ \n-old\n+new\n*** End Patch",
 					},
-					undefined,
 					["apply_patch"], // Include custom tool
 				),
 			).toThrow(/\\.md\$/)
@@ -317,14 +300,10 @@ describe("isToolAllowedForMode", () => {
 			const searchReplaceResult = isToolAllowedForMode(
 				"search_replace",
 				"markdown-editor",
-				customModes,
-				undefined,
-				{
 					file_path: "test.md",
 					old_string: "old text",
 					new_string: "new text",
 				},
-				undefined,
 				["search_replace"], // Include custom tool
 			)
 			expect(searchReplaceResult).toBe(true)
@@ -334,14 +313,10 @@ describe("isToolAllowedForMode", () => {
 				isToolAllowedForMode(
 					"search_replace",
 					"markdown-editor",
-					customModes,
-					undefined,
-					{
 						file_path: "test.js",
 						old_string: "old text",
 						new_string: "new text",
 					},
-					undefined,
 					["search_replace"], // Include custom tool
 				),
 			).toThrow(FileRestrictionError)
@@ -349,14 +324,10 @@ describe("isToolAllowedForMode", () => {
 				isToolAllowedForMode(
 					"search_replace",
 					"markdown-editor",
-					customModes,
-					undefined,
-					{
 						file_path: "test.js",
 						old_string: "old text",
 						new_string: "new text",
 					},
-					undefined,
 					["search_replace"], // Include custom tool
 				),
 			).toThrow(/\\.md\$/)
@@ -367,14 +338,10 @@ describe("isToolAllowedForMode", () => {
 			const editFileResult = isToolAllowedForMode(
 				"edit_file",
 				"markdown-editor",
-				customModes,
-				undefined,
-				{
 					file_path: "test.md",
 					old_string: "old text",
 					new_string: "new text",
 				},
-				undefined,
 				["edit_file"], // Include custom tool
 			)
 			expect(editFileResult).toBe(true)
@@ -384,14 +351,10 @@ describe("isToolAllowedForMode", () => {
 				isToolAllowedForMode(
 					"edit_file",
 					"markdown-editor",
-					customModes,
-					undefined,
-					{
 						file_path: "test.js",
 						old_string: "old text",
 						new_string: "new text",
 					},
-					undefined,
 					["edit_file"], // Include custom tool
 				),
 			).toThrow(FileRestrictionError)
@@ -399,14 +362,10 @@ describe("isToolAllowedForMode", () => {
 				isToolAllowedForMode(
 					"edit_file",
 					"markdown-editor",
-					customModes,
-					undefined,
-					{
 						file_path: "test.js",
 						old_string: "old text",
 						new_string: "new text",
 					},
-					undefined,
 					["edit_file"], // Include custom tool
 				),
 			).toThrow(/\\.md\$/)
@@ -420,11 +379,8 @@ describe("isToolAllowedForMode", () => {
 					"apply_patch",
 					"architect",
 					[],
-					undefined,
-					{
 						patch: "*** Begin Patch\n*** Update File: test.md\n@@ \n-old\n+new\n*** End Patch",
 					},
-					undefined,
 					["apply_patch"], // Include custom tool
 				),
 			).toBe(true)
@@ -434,11 +390,8 @@ describe("isToolAllowedForMode", () => {
 					"apply_patch",
 					"architect",
 					[],
-					undefined,
-					{
 						patch: "*** Begin Patch\n*** Update File: test.js\n@@ \n-old\n+new\n*** End Patch",
 					},
-					undefined,
 					["apply_patch"], // Include custom tool
 				),
 			).toThrow(FileRestrictionError)
@@ -449,13 +402,10 @@ describe("isToolAllowedForMode", () => {
 					"search_replace",
 					"architect",
 					[],
-					undefined,
-					{
 						file_path: "test.md",
 						old_string: "old text",
 						new_string: "new text",
 					},
-					undefined,
 					["search_replace"], // Include custom tool
 				),
 			).toBe(true)
@@ -465,13 +415,10 @@ describe("isToolAllowedForMode", () => {
 					"search_replace",
 					"architect",
 					[],
-					undefined,
-					{
 						file_path: "test.js",
 						old_string: "old text",
 						new_string: "new text",
 					},
-					undefined,
 					["search_replace"], // Include custom tool
 				),
 			).toThrow(FileRestrictionError)
@@ -482,13 +429,10 @@ describe("isToolAllowedForMode", () => {
 					"edit_file",
 					"architect",
 					[],
-					undefined,
-					{
 						file_path: "test.md",
 						old_string: "old text",
 						new_string: "new text",
 					},
-					undefined,
 					["edit_file"], // Include custom tool
 				),
 			).toBe(true)
@@ -498,13 +442,10 @@ describe("isToolAllowedForMode", () => {
 					"edit_file",
 					"architect",
 					[],
-					undefined,
-					{
 						file_path: "test.js",
 						old_string: "old text",
 						new_string: "new text",
 					},
-					undefined,
 					["edit_file"], // Include custom tool
 				),
 			).toThrow(FileRestrictionError)
@@ -525,7 +466,6 @@ describe("isToolAllowedForMode", () => {
 
 	describe("customTools (opt-in tools)", () => {
 		const customModesWithEditGroup: ModeConfig[] = [
-			{
 				slug: "test-custom-tools",
 				name: "Test Custom Tools Mode",
 				roleDefinition: "You are a test mode",
@@ -536,7 +476,6 @@ describe("isToolAllowedForMode", () => {
 		it("disallows customTools by default (not in includedTools)", () => {
 			// search_and_replace is a customTool in the edit group, should be disallowed by default
 			expect(isToolAllowedForMode("search_and_replace", "test-custom-tools", customModesWithEditGroup)).toBe(
-				false,
 			)
 		})
 
@@ -546,10 +485,6 @@ describe("isToolAllowedForMode", () => {
 				isToolAllowedForMode(
 					"search_and_replace",
 					"test-custom-tools",
-					customModesWithEditGroup,
-					undefined,
-					undefined,
-					undefined,
 					["search_and_replace"],
 				),
 			).toBe(true)
@@ -557,7 +492,6 @@ describe("isToolAllowedForMode", () => {
 
 		it("disallows customTools even in includedTools if mode doesn't have the group", () => {
 			const customModesWithoutEdit: ModeConfig[] = [
-				{
 					slug: "no-edit-mode",
 					name: "No Edit Mode",
 					roleDefinition: "You have no edit powers",
@@ -570,10 +504,6 @@ describe("isToolAllowedForMode", () => {
 				isToolAllowedForMode(
 					"search_and_replace",
 					"no-edit-mode",
-					customModesWithoutEdit,
-					undefined,
-					undefined,
-					undefined,
 					["search_and_replace"],
 				),
 			).toBe(false)
@@ -639,7 +569,6 @@ describe("FileRestrictionError", () => {
 
 		it("applies custom mode overrides", async () => {
 			const customModes: ModeConfig[] = [
-				{
 					slug: "debug",
 					name: "Custom Debug",
 					roleDefinition: "Custom debug role",
@@ -722,14 +651,12 @@ describe("FileRestrictionError", () => {
 describe("getModeSelection", () => {
 	const builtInAskMode = modes.find((m) => m.slug === "ask")!
 	const customModesList: ModeConfig[] = [
-		{
 			slug: "code", // Override
 			name: "Custom Code Mode",
 			roleDefinition: "Custom Code Role",
 			customInstructions: "Custom Code Instructions",
 			groups: ["read"],
 		},
-		{
 			slug: "new-custom",
 			name: "New Custom Mode",
 			roleDefinition: "New Custom Role",
@@ -803,7 +730,6 @@ describe("getModeSelection", () => {
 		const selection = getModeSelection(
 			"code",
 			{ roleDefinition: "Prompt Role Only", customInstructions: "Prompt Instructions Only" },
-			customModesList,
 		)
 		const customCodeMode = customModesList.find((m) => m.slug === "code")!
 		expect(selection.roleDefinition).toBe(customCodeMode.roleDefinition) // Takes from customCodeMode
@@ -812,7 +738,6 @@ describe("getModeSelection", () => {
 
 	test("handles undefined customInstructions in customMode gracefully", () => {
 		const modesWithoutCustomInstructions: ModeConfig[] = [
-			{
 				slug: "no-instr",
 				name: "No Instructions Mode",
 				roleDefinition: "Role for no instructions",
@@ -827,7 +752,6 @@ describe("getModeSelection", () => {
 
 	test("handles empty or undefined roleDefinition in customMode gracefully", () => {
 		const modesWithEmptyRoleDef: ModeConfig[] = [
-			{
 				slug: "empty-role",
 				name: "Empty Role Mode",
 				roleDefinition: "",
@@ -840,7 +764,6 @@ describe("getModeSelection", () => {
 		expect(selection.baseInstructions).toBe("Instructions for empty role")
 
 		const modesWithUndefinedRoleDef: ModeConfig[] = [
-			{
 				slug: "undefined-role",
 				name: "Undefined Role Mode",
 				roleDefinition: "", // Test undefined explicitly by using an empty string
@@ -856,7 +779,6 @@ describe("getModeSelection", () => {
 	test("customMode's defined properties take precedence, undefined ones in customMode result in ''", () => {
 		const customModeRoleOnlyList: ModeConfig[] = [
 			// Renamed for clarity
-			{
 				slug: "role-custom",
 				name: "Role Custom",
 				roleDefinition: "Custom Role Only",
@@ -874,7 +796,6 @@ describe("getModeSelection", () => {
 	test("customMode's defined properties take precedence, empty string ones in customMode are used", () => {
 		const customModeInstrOnlyList: ModeConfig[] = [
 			// Renamed for clarity
-			{
 				slug: "instr-custom",
 				name: "Instr Custom",
 				roleDefinition: "", // Explicitly empty

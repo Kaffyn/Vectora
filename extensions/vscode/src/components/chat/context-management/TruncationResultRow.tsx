@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useTranslation, Trans } from "@src/i18n/TranslationContext";
 import { FoldVertical } from "lucide-react";
 
-import type { ContextTruncation } from "@roo-code/types";
 
 interface TruncationResultRowProps {
   data: ContextTruncation;

@@ -1,5 +1,4 @@
 import React from "react";
-import type { HistoryItem } from "@roo-code/types";
 import { formatTimeAgo } from "@/utils/format";
 import { CopyButton } from "./CopyButton";
 import { ExportButton } from "./ExportButton";
@@ -17,11 +16,8 @@ export interface TaskItemFooterProps {
 }
 
 const TaskItemFooter: React.FC<TaskItemFooterProps> = ({
-  item,
-  variant,
   isSelectionMode = false,
   isSubtask = false,
-  onDelete,
 }) => {
   const { t } = useAppTranslation();
 

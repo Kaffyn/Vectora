@@ -13,16 +13,4 @@ export const networkInterfaces = () => ({});
 export const EOL = "\n";
 
 export default {
-  homedir,
-  platform,
-  arch,
-  release,
-  type,
-  uptime,
-  loadavg,
-  totalmem,
-  freemem,
-  cpus,
-  networkInterfaces,
-  EOL,
 };

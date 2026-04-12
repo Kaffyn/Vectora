@@ -14,13 +14,4 @@ export const delimiter = ":";
 export const isAbsolute = (p: string) => p.startsWith("/");
 
 export default {
-  join,
-  dirname,
-  basename,
-  extname,
-  resolve,
-  relative,
-  sep,
-  delimiter,
-  isAbsolute,
 };

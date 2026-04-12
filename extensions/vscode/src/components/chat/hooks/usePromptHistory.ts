@@ -1,8 +1,7 @@
-import { ClineMessage, HistoryItem } from "@roo-code/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 interface UsePromptHistoryProps {
-  clineMessages: ClineMessage[] | undefined;
+  clineMessages: VectoraMessage[] | undefined;
   taskHistory: HistoryItem[] | undefined;
   cwd: string | undefined;
   inputValue: string;
@@ -25,11 +24,6 @@ export interface UsePromptHistoryReturn {
 }
 
 export const usePromptHistory = ({
-  clineMessages,
-  taskHistory,
-  cwd,
-  inputValue,
-  setInputValue,
 }: UsePromptHistoryProps): UsePromptHistoryReturn => {
   // Maximum number of prompts to keep in history for memory management
   const MAX_PROMPT_HISTORY_SIZE = 100;
@@ -176,13 +170,5 @@ export const usePromptHistory = ({
   }, []);
 
   return {
-    historyIndex,
-    setHistoryIndex,
-    tempInput,
-    setTempInput,
-    promptHistory,
-    handleHistoryNavigation,
-    resetHistoryNavigation,
-    resetOnInputChange,
   };
 };

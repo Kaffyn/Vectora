@@ -4,10 +4,8 @@ import { useTranslation, Trans } from "@src/i18n/TranslationContext";
 const { t } = { t: (key, opts) => (window as any).translate(key, opts) }; // Polyfill for direct t usage
 import { ChevronDown, OctagonX } from "lucide-react";
 
-import { type ExtensionMessage, type CommandExecutionStatus, commandExecutionStatusSchema } from "@roo-code/types";
 
 import { safeJsonParse } from "@roo/core";
-import { COMMAND_OUTPUT_STRING } from "@roo/combineCommandSequences";
 import { parseCommand } from "@roo/parse-command";
 
 import { vscode } from "@src/utils/vscode";
@@ -38,8 +36,6 @@ export const CommandExecution = ({ executionId, text, icon, title }: CommandExec
     terminalShellIntegrationDisabled = false,
     allowedCommands = [],
     deniedCommands = [],
-    setAllowedCommands,
-    setDeniedCommands,
   } = useExtensionState();
 
   const { command, output: parsedOutput } = useMemo(() => parseCommandAndOutput(text), [text]);
@@ -77,7 +73,6 @@ export const CommandExecution = ({ executionId, text, icon, title }: CommandExec
     });
 
     return Array.from(allPatterns).map((pattern) => ({
-      pattern,
     }));
   }, [command]);
 

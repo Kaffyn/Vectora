@@ -23,10 +23,8 @@ interface CircularProgressProps {
  * ```
  */
 export const CircularProgress = memo(function CircularProgress({
-  percentage,
   size = 16,
   strokeWidth = 2,
-  className,
 }: CircularProgressProps) {
   // Clamp percentage between 0 and 100
   const clampedPercentage = Math.max(0, Math.min(100, percentage));

@@ -1,12 +1,7 @@
-import {
 	type ModelInfo,
 	type ProviderSettings,
 	type DynamicProvider,
 	type LocalProvider,
-	ANTHROPIC_DEFAULT_MAX_TOKENS,
-	isDynamicProvider,
-	isLocalProvider,
-} from "@roo-code/types"
 
 // ApiHandlerOptions
 // Extend ProviderSettings (minus apiProvider) with handler-specific toggles.
@@ -42,16 +37,12 @@ export function toRouterName(value?: string): RouterName {
 // Reasoning
 
 export const shouldUseReasoningBudget = ({
-	model,
-	settings,
 }: {
 	model: ModelInfo
 	settings?: ProviderSettings
 }): boolean => !!model.requiredReasoningBudget || (!!model.supportsReasoningBudget && !!settings?.enableReasoningEffort)
 
 export const shouldUseReasoningEffort = ({
-	model,
-	settings,
 }: {
 	model: ModelInfo
 	settings?: ProviderSettings
@@ -103,10 +94,6 @@ export const GEMINI_25_PRO_MIN_THINKING_TOKENS = 128
 // Max Tokens
 
 export const getModelMaxOutputTokens = ({
-	modelId,
-	model,
-	settings,
-	format,
 }: {
 	modelId: string
 	model: ModelInfo

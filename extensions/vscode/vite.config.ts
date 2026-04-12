@@ -35,11 +35,8 @@ export default defineConfig({
       { find: /^child_process$/, replacement: resolve(__dirname, "./src/stubs/child_process.ts") },
       { find: /^readline$/, replacement: resolve(__dirname, "./src/stubs/readline.ts") },
       { find: /^crypto$/, replacement: resolve(__dirname, "./src/stubs/crypto.ts") },
-      { find: "@roo-code/types", replacement: resolve(__dirname, "./src/types/roo") },
-      { find: "@roo-code/core/browser", replacement: resolve(__dirname, "./src/roo-internal/core/src/browser.ts") },
-      { find: "@roo-code/core", replacement: resolve(__dirname, "./src/roo-internal/core/src/index.ts") },
-      { find: "@roo-code/ipc", replacement: resolve(__dirname, "./src/roo-internal/ipc/src/index.ts") },
       { find: "@roo", replacement: resolve(__dirname, "./src/shared") },
+      { find: "@types", replacement: resolve(__dirname, "./src/types") },
       { find: "@core", replacement: resolve(__dirname, "./src/core") },
       { find: "@shared", replacement: resolve(__dirname, "./src/shared") },
       {

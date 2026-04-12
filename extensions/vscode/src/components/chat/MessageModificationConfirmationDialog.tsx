@@ -1,15 +1,5 @@
 import React from "react";
 import { useAppTranslation } from "@src/i18n/TranslationContext";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@src/components/ui";
 
 interface MessageModificationConfirmationDialogProps {
   open: boolean;
@@ -19,10 +9,6 @@ interface MessageModificationConfirmationDialogProps {
 }
 
 export const MessageModificationConfirmationDialog: React.FC<MessageModificationConfirmationDialogProps> = ({
-  open,
-  onOpenChange,
-  onConfirm,
-  type,
 }) => {
   const { t } = useAppTranslation();
 

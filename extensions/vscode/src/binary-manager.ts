@@ -118,7 +118,6 @@ export class BinaryManager {
     const downloadUrl = `https://github.com/Kaffyn/Vectora/releases/download/${version}/${fileName}`;
 
     return vscode.window.withProgress(
-      {
         location: vscode.ProgressLocation.Notification,
         title: "Downloading Vectora Core...",
         cancellable: false,

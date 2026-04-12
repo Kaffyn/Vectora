@@ -73,21 +73,13 @@ const StyledMarkdown = styled.div`
     var(--vscode-font-family),
     system-ui,
     -apple-system,
-    BlinkMacSystemFont,
     "Segoe UI",
-    Roboto,
-    Oxygen,
-    Ubuntu,
-    Cantarell,
     "Open Sans",
     "Helvetica Neue",
     sans-serif;
 
   font-size: var(--vscode-font-size, 13px);
 
-  p,
-  li,
-  ol,
   ul {
     line-height: 1.35em;
   }
@@ -96,7 +88,6 @@ const StyledMarkdown = styled.div`
     margin: 0.5em 0;
   }
 
-  ol,
   ul {
     padding-left: 2em;
     margin-left: 0;
@@ -179,7 +170,6 @@ const StyledMarkdown = styled.div`
     margin: 1em 0;
   }
 
-  th,
   td {
     border: 1px solid var(--vscode-panel-border);
     padding: 8px 12px;
@@ -243,7 +233,6 @@ const MarkdownBlock = memo(({ markdown }: MarkdownBlockProps) => {
           vscode.postMessage({
             type: "openFile",
             text: filePath,
-            values,
           });
         };
 
@@ -307,8 +296,6 @@ const MarkdownBlock = memo(({ markdown }: MarkdownBlockProps) => {
     <StyledMarkdown>
       <ReactMarkdown
         remarkPlugins={[
-          remarkGfm,
-          remarkMath,
           () => {
             return (tree: any) => {
               visit(tree, "code", (node: any) => {

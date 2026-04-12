@@ -1,4 +1,3 @@
-import type { ProviderSettings, OrganizationAllowList } from "@roo-code/types"
 
 export class ProfileValidator {
 	public static isProfileAllowed(profile: ProviderSettings, allowList: OrganizationAllowList): boolean {

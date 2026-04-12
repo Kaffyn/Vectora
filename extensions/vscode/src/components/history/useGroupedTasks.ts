@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback } from "react";
-import type { HistoryItem } from "@roo-code/types";
 import type { DisplayHistoryItem, SubtaskTreeNode, TaskGroup, GroupedTasksResult } from "./types";
 
 /**
@@ -113,9 +112,5 @@ export function useGroupedTasks(tasks: HistoryItem[], searchQuery: string): Grou
   }, []);
 
   return {
-    groups,
-    flatTasks,
-    toggleExpand,
-    isSearchMode,
   };
 }

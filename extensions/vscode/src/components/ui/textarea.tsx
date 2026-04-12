@@ -11,7 +11,6 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, React.ComponentProps<"tex
           "border border-[var(--vscode-input-border,var(--vscode-input-background))] focus-visible:border-vscode-focusBorder",
           "bg-vscode-input-background",
           "text-vscode-input-foreground",
-          className,
         )}
         ref={ref}
         {...props}

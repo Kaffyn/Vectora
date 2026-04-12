@@ -15,7 +15,6 @@ const Command = React.forwardRef<
     ref={ref}
     className={cn(
       "flex h-full w-full flex-col overflow-hidden rounded-xs bg-popover text-popover-foreground",
-      className,
     )}
     {...props}
   />
@@ -45,7 +44,6 @@ const CommandInput = React.forwardRef<
       ref={ref}
       className={cn(
         "flex h-10 w-full rounded-xs bg-transparent py-3 text-base outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50",
-        className,
       )}
       {...props}
     />
@@ -97,7 +95,6 @@ const CommandGroup = React.forwardRef<
     ref={ref}
     className={cn(
       "overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
-      className,
     )}
     {...props}
   />
@@ -124,7 +121,6 @@ const CommandItem = React.forwardRef<
       "data-[selected=true]:bg-vscode-list-activeSelectionBackground data-[selected=true]:text-vscode-list-activeSelectionForeground",
       "text-vscode-dropdown-foreground text-sm",
       "rounded-xs active:opacity-90 cursor-pointer",
-      className,
     )}
     {...props}
   />
@@ -138,13 +134,4 @@ const CommandShortcut = ({ className, ...props }: React.HTMLAttributes<HTMLSpanE
 CommandShortcut.displayName = "CommandShortcut";
 
 export {
-  Command,
-  CommandDialog,
-  CommandInput,
-  CommandList,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandShortcut,
-  CommandSeparator,
 };

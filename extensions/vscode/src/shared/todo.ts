@@ -1,6 +1,5 @@
-import { ClineMessage } from "@roo-code/types"
 
-export function getLatestTodo(clineMessages: ClineMessage[]) {
+export function getLatestTodo(clineMessages: VectoraMessage[]) {
 	const todos = clineMessages
 		.filter(
 			(msg) =>

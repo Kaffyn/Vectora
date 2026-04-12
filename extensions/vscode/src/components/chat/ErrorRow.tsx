@@ -76,18 +76,9 @@ export interface ErrorRowProps {
  */
 export const ErrorRow = memo(
   ({
-    type,
-    title,
-    message,
     showCopyButton = false,
     expandable = false,
     defaultExpanded = false,
-    additionalContent,
-    headerClassName,
-    messageClassName,
-    docsURL,
-    code,
-    errorDetails,
   }: ErrorRowProps) => {
     const { t } = useTranslation();
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -123,8 +114,6 @@ export const ErrorRow = memo(
           type: "downloadErrorDiagnostics",
           values: {
             timestamp: new Date().toISOString(),
-            version,
-            provider,
             model: modelId,
             details: errorDetails || "",
           },

@@ -3,7 +3,6 @@ import { useDeepCompareEffect, useEvent } from "react-use";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import removeMd from "remove-markdown";
 import { VSCodeLink } from "@vscode/webview-ui-toolkit/react";
-import useSound from "use-sound";
 import { LRUCache } from "lru-cache";
 import { useTranslation, Trans } from "@src/i18n/TranslationContext";
 
@@ -12,17 +11,7 @@ import { appendImages } from "@src/utils/imageUtils";
 import { getCostBreakdownIfNeeded } from "@src/utils/costFormatting";
 import { batchConsecutive } from "@src/utils/batchConsecutive";
 
-import type { ClineAsk, ClineSayTool, ClineMessage, ExtensionMessage, AudioType } from "@roo-code/types";
-import { isRetiredProvider } from "@roo-code/types";
-
-import { findLast } from "@roo/array";
-import { SuggestionItem } from "@roo-code/types";
-import { combineApiRequests } from "@roo/combineApiRequests";
-import { combineCommandSequences } from "@roo/combineCommandSequences";
-import { getApiMetrics } from "@roo/getApiMetrics";
-import { getAllModes } from "@roo/modes";
-import { ProfileValidator } from "@roo/ProfileValidator";
-import { getLatestTodo } from "@roo/todo";
+import type { VectoraMessage } from "@/types/vectora";
 
 import { vscode } from "@src/utils/vscode";
 import { useAppTranslation } from "@src/i18n/TranslationContext";
@@ -34,8 +23,6 @@ import { ChatTextArea } from "./ChatTextArea";
 import HistoryPreview from "../history/HistoryPreview";
 import { StandardTooltip, Button } from "@src/components/ui";
 import TaskHeader from "./TaskHeader";
-import ProfileViolationWarning from "./ProfileViolationWarning";
-import { CheckpointWarning } from "./CheckpointWarning";
 import { QueuedMessages } from "./QueuedMessages";
 import { WorktreeSelector } from "./WorktreeSelector";
 import FileChangesPanel from "./FileChangesPanel";
@@ -60,7 +47,6 @@ const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 
 const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewProps> = (
   { isHidden, showAnnouncement, hideAnnouncement },
-  ref,
 ) => {
   const [audioBaseUri] = useState(() => {
     return (window as unknown as { AUDIO_BASE_URI?: string }).AUDIO_BASE_URI || "";
@@ -73,21 +59,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
   const {
     clineMessages: messages,
-    currentTaskItem,
-    currentTaskTodos,
-    taskHistory,
-    apiConfiguration,
-    organizationAllowList,
-    mode,
-    setMode,
-    alwaysAllowModeSwitch,
-    customModes,
-    telemetrySetting,
-    soundEnabled,
-    soundVolume,
-    cloudIsAuthenticated,
     messageQueue = [],
-    showWorktreesInHomeScreen,
   } = useExtensionState();
 
   // Show a WarningRow when the user sends a message with a retired provider.
@@ -152,9 +124,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastTtsRef = useRef<string>("");
   const [wasStreaming, setWasStreaming] = useState<boolean>(false);
-  const [checkpointWarning, setCheckpointWarning] = useState<
-    { type: "WAIT_TIMEOUT" | "INIT_TIMEOUT"; timeout: number } | undefined
-  >(undefined);
   const [isCondensing, setIsCondensing] = useState<boolean>(false);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const everVisibleMessagesTsRef = useRef<LRUCache<number, boolean>>(
@@ -166,16 +135,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
   const autoApproveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const userRespondedRef = useRef<boolean>(false);
   const [currentFollowUpTs, setCurrentFollowUpTs] = useState<number | null>(null);
-  const [aggregatedCostsMap, setAggregatedCostsMap] = useState<
-    Map<
-      string,
-      {
-        totalCost: number;
-        ownCost: number;
-        childrenCost: number;
-      }
-    >
-  >(new Map());
 
   const clineAskRef = useRef(clineAsk);
   useEffect(() => {
@@ -184,9 +143,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
   const {
     isOpen: isUpsellOpen,
-    openUpsell,
-    closeUpsell,
-    handleConnect,
   } = useCloudUpsell({
     autoOpenOnAuth: false,
   });
@@ -223,9 +179,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
   const secondLastMessage = useMemo(() => messages.at(-2), [messages]);
 
   const volume = typeof soundVolume === "number" ? soundVolume : 0.5;
-  const [playNotification] = useSound(`${audioBaseUri}/notification.wav`, { volume, soundEnabled, interrupt: true });
-  const [playCelebration] = useSound(`${audioBaseUri}/celebration.wav`, { volume, soundEnabled, interrupt: true });
-  const [playProgressLoop] = useSound(`${audioBaseUri}/progress_loop.wav`, { volume, soundEnabled, interrupt: true });
 
   const lastPlayedRef = useRef<Record<string, number>>({});
 
@@ -534,8 +487,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
       return true;
     } else {
       const lastApiReqStarted = findLast(
-        modifiedMessages,
-        (message: ClineMessage) => message.say === "api_req_started",
+        (message: VectoraMessage) => message.say === "api_req_started",
       );
 
       if (
@@ -556,7 +508,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
   }, [modifiedMessages, clineAsk, enableButtons, primaryButtonText]);
 
   const markFollowUpAsAnswered = useCallback(() => {
-    const lastFollowUpMessage = messagesRef.current.findLast((msg: ClineMessage) => msg.ask === "followup");
+    const lastFollowUpMessage = messagesRef.current.findLast((msg: VectoraMessage) => msg.ask === "followup");
     if (lastFollowUpMessage) {
       setCurrentFollowUpTs(lastFollowUpMessage.ts);
     }
@@ -642,8 +594,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
               vscode.postMessage({
                 type: "askResponse",
                 askResponse: "messageResponse",
-                text,
-                images,
               });
               break;
             // There is no other case that a textfield should be enabled.
@@ -657,10 +607,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
       }
     },
     [
-      handleChatReset,
-      markFollowUpAsAnswered,
-      sendingDisabled,
-      isStreaming,
       messageQueue.length,
       apiConfiguration?.apiProvider,
     ], // messagesRef and clineAskRef are stable
@@ -698,7 +644,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
     if (text || selectedImages.length > 0) {
       vscode.postMessage({
         type: "queueMessage",
-        text,
         images: selectedImages,
       });
       setInputValue("");
@@ -903,7 +848,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
           }
           break;
         case "checkpointInitWarning":
-          setCheckpointWarning(message.checkpointWarning);
           break;
         case "interactionRequired":
           playSound("notification");
@@ -923,17 +867,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
       // not using its value but its reference.
     },
     [
-      isCondensing,
-      isHidden,
-      sendingDisabled,
-      enableButtons,
-      handleChatReset,
-      handleSendMessage,
-      handleSetChatBoxMessage,
-      handlePrimaryButtonClick,
-      handleSecondaryButtonClick,
-      setCheckpointWarning,
-      playSound,
     ],
   );
 
@@ -1026,7 +959,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
     const viewportStart = Math.max(0, newVisibleMessages.length - 100);
     newVisibleMessages
       .slice(viewportStart)
-      .forEach((msg: ClineMessage) => everVisibleMessagesTsRef.current.set(msg.ts, true));
+      .forEach((msg: VectoraMessage) => everVisibleMessagesTsRef.current.set(msg.ts, true));
 
     return newVisibleMessages;
   }, [modifiedMessages]);
@@ -1034,9 +967,9 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
   useEffect(() => {
     const cleanupInterval = setInterval(() => {
       const cache = everVisibleMessagesTsRef.current;
-      const currentMessageIds = new Set(modifiedMessages.map((m: ClineMessage) => m.ts));
+      const currentMessageIds = new Set(modifiedMessages.map((m: VectoraMessage) => m.ts));
       const viewportMessages = visibleMessages.slice(Math.max(0, visibleMessages.length - 100));
-      const viewportMessageIds = new Set(viewportMessages.map((m: ClineMessage) => m.ts));
+      const viewportMessageIds = new Set(viewportMessages.map((m: VectoraMessage) => m.ts));
 
       cache.forEach((_value: boolean, key: number) => {
         if (!currentMessageIds.has(key) && !viewportMessageIds.has(key)) {
@@ -1092,10 +1025,10 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
   }, [isStreaming, lastMessage, wasStreaming, messages.length]);
 
   const groupedMessages = useMemo(() => {
-    const filtered: ClineMessage[] = visibleMessages;
+    const filtered: VectoraMessage[] = visibleMessages;
 
     // Helper to check if a message is a read_file ask that should be batched
-    const isReadFileAsk = (msg: ClineMessage): boolean => {
+    const isReadFileAsk = (msg: VectoraMessage): boolean => {
       if (msg.type !== "ask" || msg.ask !== "tool") return false;
       try {
         const tool = JSON.parse(msg.text || "{}");
@@ -1106,7 +1039,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
     };
 
     // Helper to check if a message is a list_files ask that should be batched
-    const isListFilesAsk = (msg: ClineMessage): boolean => {
+    const isListFilesAsk = (msg: VectoraMessage): boolean => {
       if (msg.type !== "ask" || msg.ask !== "tool") return false;
       try {
         const tool = JSON.parse(msg.text || "{}");
@@ -1128,7 +1061,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
     ]);
 
     // Helper to check if a message is a file-edit ask that should be batched
-    const isEditFileAsk = (msg: ClineMessage): boolean => {
+    const isEditFileAsk = (msg: VectoraMessage): boolean => {
       if (msg.type !== "ask" || msg.ask !== "tool") return false;
       try {
         const tool = JSON.parse(msg.text || "{}");
@@ -1139,7 +1072,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
     };
 
     // Synthesize a batch of consecutive read_file asks into a single message
-    const synthesizeReadFileBatch = (batch: ClineMessage[]): ClineMessage => {
+    const synthesizeReadFileBatch = (batch: VectoraMessage[]): VectoraMessage => {
       const batchFiles = batch.map((batchMsg) => {
         try {
           const tool = JSON.parse(batchMsg.text || "{}");
@@ -1168,7 +1101,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
     };
 
     // Synthesize a batch of consecutive list_files asks into a single message
-    const synthesizeListFilesBatch = (batch: ClineMessage[]): ClineMessage => {
+    const synthesizeListFilesBatch = (batch: VectoraMessage[]): VectoraMessage => {
       const batchDirs = batch.map((batchMsg) => {
         try {
           const tool = JSON.parse(batchMsg.text || "{}");
@@ -1196,7 +1129,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
     };
 
     // Synthesize a batch of consecutive file-edit asks into a single message
-    const synthesizeEditFileBatch = (batch: ClineMessage[]): ClineMessage => {
+    const synthesizeEditFileBatch = (batch: VectoraMessage[]): VectoraMessage => {
       const batchDiffs = batch.map((batchMsg) => {
         try {
           const tool = JSON.parse(batchMsg.text || "{}");
@@ -1235,7 +1168,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
         say: "condense_context",
         ts: Date.now(),
         partial: true,
-      } as ClineMessage);
+      } as VectoraMessage);
     }
     return result;
   }, [isCondensing, visibleMessages]);
@@ -1243,21 +1176,8 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
   // Scroll lifecycle is managed by a dedicated hook to keep ChatView focused
   // on message handling and UI orchestration.
   const {
-    showScrollToBottom,
-    handleRowHeightChange,
-    handleScrollToBottomClick,
-    enterUserBrowsingHistory,
-    followOutputCallback,
-    atBottomStateChangeCallback,
-    scrollToBottomAuto,
-    isAtBottomRef,
-    scrollPhaseRef,
   } = useScrollLifecycle({
-    virtuosoRef,
-    scrollContainerRef,
     taskTs: task?.ts,
-    isStreaming,
-    isHidden,
     hasTask: !!task,
   });
 
@@ -1306,7 +1226,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
   // Effect to clear checkpoint warning when messages appear or task changes
   useEffect(() => {
     if (isHidden || !task) {
-      setCheckpointWarning(undefined);
     }
   }, [modifiedMessages.length, isStreaming, isHidden, task]);
 
@@ -1374,7 +1293,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
   }, []);
 
   const itemContent = useCallback(
-    (index: number, messageOrGroup: ClineMessage) => {
+    (index: number, messageOrGroup: VectoraMessage) => {
       const hasCheckpoint = modifiedMessages.some((message) => message.say === "checkpoint_saved");
 
       // regular message
@@ -1413,19 +1332,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
       );
     },
     [
-      expandedRows,
-      toggleRowExpansion,
-      modifiedMessages,
       groupedMessages.length,
-      handleRowHeightChange,
-      isStreaming,
-      handleSuggestionClickInRow,
-      handleBatchFileResponse,
-      handleFollowUpUnmount,
-      currentFollowUpTs,
-      isFollowUpAutoApprovalPaused,
-      enableButtons,
-      primaryButtonText,
     ],
   );
 
@@ -1546,7 +1453,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
           {checkpointWarning && (
             <div className="px-3">
-              <CheckpointWarning warning={checkpointWarning} />
             </div>
           )}
         </>
@@ -1712,7 +1618,6 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 
       {isProfileDisabled && (
         <div className="px-3">
-          <ProfileViolationWarning />
         </div>
       )}
 

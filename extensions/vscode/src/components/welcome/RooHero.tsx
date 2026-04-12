@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-const RooHero = () => {
   const [imagesBaseUri] = useState(() => {
     const w = window as any;
     return w.IMAGES_BASE_URI || "";
@@ -41,4 +40,3 @@ const RooHero = () => {
   );
 };
 
-export default RooHero;

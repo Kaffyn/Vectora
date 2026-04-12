@@ -2,7 +2,6 @@ import axios from "axios";
 import { z } from "zod";
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 
-import type { ModelInfo } from "@roo-code/types";
 
 import { parseApiPrice } from "@roo/cost";
 
@@ -75,11 +74,6 @@ async function getOpenRouterProvidersForModel(modelId: string, baseUrl?: string)
         contextWindow: endpoint.context_length,
         supportsImages: architecture?.input_modalities?.includes("image") ?? false,
         supportsPromptCache: typeof cacheReadsPrice !== "undefined",
-        cacheReadsPrice,
-        cacheWritesPrice,
-        inputPrice,
-        outputPrice,
-        description,
         label: providerName,
       };
 

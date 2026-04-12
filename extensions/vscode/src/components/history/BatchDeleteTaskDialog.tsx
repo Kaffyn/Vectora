@@ -1,16 +1,5 @@
 import { useCallback } from "react";
 import { useAppTranslation } from "@/i18n/TranslationContext";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  Button,
-} from "@/components/ui";
 import { vscode } from "@/utils/vscode";
 import { AlertDialogProps } from "@radix-ui/react-alert-dialog";
 

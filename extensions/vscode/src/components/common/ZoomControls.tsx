@@ -15,15 +15,9 @@ interface ZoomControlsProps {
 }
 
 export function ZoomControls({
-  zoomLevel,
-  zoomInTitle,
-  zoomOutTitle,
   useContinuousZoom = false,
-  adjustZoom,
   zoomInStep = 0.1,
   zoomOutStep = -0.1,
-  onZoomIn,
-  onZoomOut,
 }: ZoomControlsProps) {
   const zoomIntervalRef = useRef<NodeJS.Timeout | null>(null);
 

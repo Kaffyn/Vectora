@@ -58,7 +58,6 @@ function VSCodeTextFieldWithNodesInner(
         `relative flex items-center cursor-text`,
         `bg-[var(--input-background)] text-[var(--input-foreground)]`,
         `rounded-[calc(var(--corner-radius-round)*1px)]`,
-        className,
       )}
       style={style}
       onMouseDown={focusInput}

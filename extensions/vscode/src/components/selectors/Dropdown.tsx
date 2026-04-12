@@ -10,10 +10,6 @@ interface DropdownProps {
 }
 
 export const Dropdown: React.FC<DropdownProps> = ({
-  trigger,
-  children,
-  className,
-  contentClassName,
   align = "left",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -45,7 +41,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
           className={cn(
             "absolute bottom-full mb-2 z-50 min-w-[180px] rounded-lg border border-vscode-border/20 bg-vscode-editor-background shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-200 overflow-hidden backdrop-blur-md",
             align === "left" ? "left-0" : "right-0",
-            contentClassName,
           )}
         >
           {children}
@@ -71,7 +66,6 @@ export const DropdownItem: React.FC<{
       active
         ? "bg-vscode-button-background text-vscode-button-foreground"
         : "hover:bg-vscode-toolbar-hoverBackground text-vscode-descriptionForeground hover:text-vscode-editor-foreground",
-      className,
     )}
   >
     {children}

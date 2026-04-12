@@ -1,5 +1,3 @@
-import type { ModelInfo } from "@roo-code/types"
-import type { ServiceTier } from "@roo-code/types"
 
 export interface ApiCostResult {
 	totalInputTokens: number
@@ -55,9 +53,6 @@ function calculateApiCostInternal(
 	const totalCost = cacheWritesCost + cacheReadsCost + baseInputCost + outputCost
 
 	return {
-		totalInputTokens,
-		totalOutputTokens,
-		totalCost,
 	}
 }
 
@@ -78,13 +73,6 @@ export function calculateApiCostAnthropic(
 	const totalInputTokens = inputTokens + cacheCreation + cacheRead
 
 	return calculateApiCostInternal(
-		modelInfo,
-		inputTokens,
-		outputTokens,
-		cacheCreation,
-		cacheRead,
-		totalInputTokens,
-		outputTokens,
 	)
 }
 
@@ -105,13 +93,6 @@ export function calculateApiCostOpenAI(
 	// For OpenAI: inputTokens ALREADY includes all tokens (cached + non-cached)
 	// So we pass the original inputTokens as the total
 	return calculateApiCostInternal(
-		effectiveModelInfo,
-		nonCachedInputTokens,
-		outputTokens,
-		cacheCreationInputTokensNum,
-		cacheReadInputTokensNum,
-		inputTokens,
-		outputTokens,
 	)
 }
 

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Database } from "lucide-react";
 
-import type { IndexingStatus, IndexingStatusUpdateMessage } from "@roo-code/types";
 
 import { cn } from "@src/lib/utils";
 import { vscode } from "@src/utils/vscode";
@@ -96,14 +95,12 @@ export const IndexingStatusBadge: React.FC<IndexingStatusBadgeProps> = ({ classN
               "text-vscode-foreground opacity-85",
               "hover:opacity-100 hover:bg-[rgba(255,255,255,0.03)]",
               "focus:outline-none focus-visible:ring-1 focus-visible:ring-vscode-focusBorder",
-              className,
             )}
           >
             <Database className="w-4 h-4" />
             <span
               className={cn(
                 "absolute top-0 right-0 w-1.5 h-1.5 rounded-full transition-colors duration-200",
-                statusColorClass,
               )}
             />
           </Button>

@@ -11,14 +11,7 @@ interface IconButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
 }
 
 export const IconButton: React.FC<IconButtonProps> = ({
-  iconClass,
-  title,
-  className,
-  disabled,
   tooltip = true,
-  isLoading,
-  onClick,
-  style,
   ...props
 }) => (
   <StandardTooltip content={tooltip ? title : undefined}>
@@ -36,7 +29,6 @@ export const IconButton: React.FC<IconButtonProps> = ({
         !disabled && "cursor-pointer",
         disabled &&
           "opacity-40 cursor-not-allowed grayscale-[30%] hover:bg-transparent hover:border-[rgba(255,255,255,0.08)] active:bg-transparent",
-        className,
       )}
       disabled={disabled}
       onClick={!disabled ? onClick : undefined}

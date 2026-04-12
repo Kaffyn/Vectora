@@ -5,19 +5,16 @@ import { Dropdown, DropdownItem } from "./Dropdown";
 export type PolicyItem = { id: string; name: string; description: string; icon: React.ReactNode };
 
 export const POLICIES: PolicyItem[] = [
-  {
     id: "ask",
     name: "Ask before edits",
     description: "Based on diffs, where you must accept changes",
     icon: <Edit3 size={14} />,
   },
-  {
     id: "automatic",
     name: "Edit automatically",
     description: "Can edit files, but terminal/search/embed need auth",
     icon: <Terminal size={14} />,
   },
-  {
     id: "yolo",
     name: "YOLO",
     description: "Full autonomous mode, everything allowed",

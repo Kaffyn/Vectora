@@ -1,24 +1,19 @@
 // npx vitest run src/shared/__tests__/combineApiRequests.spec.ts
 
-import type { ClineMessage, ClineSay } from "@roo-code/types"
 
 import { combineApiRequests } from "../combineApiRequests"
 
 describe("combineApiRequests", () => {
 	// Helper function to create a basic api_req_started message
-	const createStartMessage = (text: string = '{"request":"GET /api/data"}', ts: number = 1000): ClineMessage => ({
+	const createStartMessage = (text: string = '{"request":"GET /api/data"}', ts: number = 1000): VectoraMessage => ({
 		type: "say",
 		say: "api_req_started",
-		text,
-		ts,
 	})
 
 	// Helper function to create a basic api_req_finished message
-	const createFinishMessage = (text: string = '{"cost":0.005}', ts: number = 1001): ClineMessage => ({
+	const createFinishMessage = (text: string = '{"cost":0.005}', ts: number = 1001): VectoraMessage => ({
 		type: "say",
 		say: "api_req_finished",
-		text,
-		ts,
 	})
 
 	// Helper function to create a non-API message
@@ -26,11 +21,11 @@ describe("combineApiRequests", () => {
 		say: ClineSay = "text",
 		text: string = "Hello world",
 		ts: number = 999,
-	): ClineMessage => ({ type: "say", say, text, ts })
+	): VectoraMessage => ({ type: "say", say, text, ts })
 
 	describe("Basic functionality", () => {
 		it("should combine a pair of api_req_started and api_req_finished messages", () => {
-			const messages: ClineMessage[] = [createStartMessage(), createFinishMessage()]
+			const messages: VectoraMessage[] = [createStartMessage(), createFinishMessage()]
 
 			const result = combineApiRequests(messages)
 
@@ -51,7 +46,7 @@ describe("combineApiRequests", () => {
 		})
 
 		it("should handle multiple pairs of API request messages", () => {
-			const messages: ClineMessage[] = [
+			const messages: VectoraMessage[] = [
 				createStartMessage('{"request":"GET /api/data1"}', 1000),
 				createFinishMessage('{"cost":0.005}', 1001),
 				createStartMessage('{"request":"GET /api/data2"}', 2000),
@@ -80,7 +75,7 @@ describe("combineApiRequests", () => {
 
 		it("should preserve non-API messages", () => {
 			const otherMessage = createOtherMessage()
-			const messages: ClineMessage[] = [otherMessage, createStartMessage(), createFinishMessage()]
+			const messages: VectoraMessage[] = [otherMessage, createStartMessage(), createFinishMessage()]
 
 			const result = combineApiRequests(messages)
 
@@ -95,11 +90,9 @@ describe("combineApiRequests", () => {
 			const otherMessage1 = createOtherMessage("text", "Message 1", 999)
 			const otherMessage2 = createOtherMessage("text", "Message 2", 1500)
 
-			const messages: ClineMessage[] = [
-				otherMessage1,
+			const messages: VectoraMessage[] = [
 				createStartMessage('{"request":"GET /api/data1"}', 1000),
 				createFinishMessage('{"cost":0.005}', 1001),
-				otherMessage2,
 				createStartMessage('{"request":"GET /api/data2"}', 2000),
 				createFinishMessage('{"cost":0.007}', 2001),
 			]
@@ -135,7 +128,7 @@ describe("combineApiRequests", () => {
 		})
 
 		it("should return original array when no API request messages exist", () => {
-			const messages: ClineMessage[] = [
+			const messages: VectoraMessage[] = [
 				createOtherMessage("text", "Message 1", 999),
 				createOtherMessage("text", "Task message", 1000),
 				createOtherMessage("error", "Error message", 1001),
@@ -151,7 +144,7 @@ describe("combineApiRequests", () => {
 
 		it("should keep api_req_started message if no matching api_req_finished is found", () => {
 			const startMessage = createStartMessage()
-			const messages: ClineMessage[] = [startMessage]
+			const messages: VectoraMessage[] = [startMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -161,7 +154,7 @@ describe("combineApiRequests", () => {
 		})
 
 		it("should handle missing text field in api_req_started", () => {
-			const startMessage: ClineMessage = {
+			const startMessage: VectoraMessage = {
 				type: "say",
 				say: "api_req_started",
 				ts: 1000,
@@ -169,7 +162,7 @@ describe("combineApiRequests", () => {
 			}
 			const finishMessage = createFinishMessage()
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -185,14 +178,14 @@ describe("combineApiRequests", () => {
 
 		it("should handle missing text field in api_req_finished", () => {
 			const startMessage = createStartMessage()
-			const finishMessage: ClineMessage = {
+			const finishMessage: VectoraMessage = {
 				type: "say",
 				say: "api_req_finished",
 				ts: 1001,
 				// text field is missing
 			}
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -207,7 +200,7 @@ describe("combineApiRequests", () => {
 		})
 
 		it("should use the first api_req_finished message if multiple matches exist", () => {
-			const messages: ClineMessage[] = [
+			const messages: VectoraMessage[] = [
 				createStartMessage('{"request":"GET /api/data"}', 1000),
 				createFinishMessage('{"cost":0.005}', 1001),
 				createFinishMessage('{"cost":0.007}', 1002), // This should be ignored
@@ -227,7 +220,7 @@ describe("combineApiRequests", () => {
 		})
 
 		it("should handle multiple start messages with some missing finish messages", () => {
-			const messages: ClineMessage[] = [
+			const messages: VectoraMessage[] = [
 				createStartMessage('{"request":"GET /api/data1"}', 1000),
 				createFinishMessage('{"cost":0.005}', 1001),
 				createStartMessage('{"request":"GET /api/data2"}', 2000),
@@ -255,7 +248,7 @@ describe("combineApiRequests", () => {
 		})
 
 		it("should preserve additional properties in the messages", () => {
-			const startMessage: ClineMessage = {
+			const startMessage: VectoraMessage = {
 				type: "say",
 				say: "api_req_started",
 				text: '{"request":"GET /api/data"}',
@@ -264,14 +257,14 @@ describe("combineApiRequests", () => {
 				partial: false,
 			}
 
-			const finishMessage: ClineMessage = {
+			const finishMessage: VectoraMessage = {
 				type: "say",
 				say: "api_req_finished",
 				text: '{"cost":0.005}',
 				ts: 1001,
 			}
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -284,7 +277,7 @@ describe("combineApiRequests", () => {
 		})
 
 		it("should handle invalid JSON in api_req_started message", () => {
-			const startMessage: ClineMessage = {
+			const startMessage: VectoraMessage = {
 				type: "say",
 				say: "api_req_started",
 				text: "This is not valid JSON",
@@ -292,7 +285,7 @@ describe("combineApiRequests", () => {
 			}
 			const finishMessage = createFinishMessage('{"cost":0.005}', 1001)
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -308,14 +301,14 @@ describe("combineApiRequests", () => {
 
 		it("should handle invalid JSON in api_req_finished message", () => {
 			const startMessage = createStartMessage('{"request":"GET /api/data"}', 1000)
-			const finishMessage: ClineMessage = {
+			const finishMessage: VectoraMessage = {
 				type: "say",
 				say: "api_req_finished",
 				text: "This is not valid JSON",
 				ts: 1001,
 			}
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -330,7 +323,7 @@ describe("combineApiRequests", () => {
 		})
 
 		it("should handle non-object JSON in api_req_started message", () => {
-			const startMessage: ClineMessage = {
+			const startMessage: VectoraMessage = {
 				type: "say",
 				say: "api_req_started",
 				text: '"just a string"', // Valid JSON, but not an object
@@ -338,7 +331,7 @@ describe("combineApiRequests", () => {
 			}
 			const finishMessage = createFinishMessage('{"cost":0.005}', 1001)
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -356,14 +349,14 @@ describe("combineApiRequests", () => {
 
 		it("should handle non-object JSON in api_req_finished message", () => {
 			const startMessage = createStartMessage('{"request":"GET /api/data"}', 1000)
-			const finishMessage: ClineMessage = {
+			const finishMessage: VectoraMessage = {
 				type: "say",
 				say: "api_req_finished",
 				text: '"just a string"', // Valid JSON, but not an object
 				ts: 1001,
 			}
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -389,7 +382,7 @@ describe("combineApiRequests", () => {
 				1001,
 			)
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -419,7 +412,7 @@ describe("combineApiRequests", () => {
 				1001,
 			)
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -448,7 +441,7 @@ describe("combineApiRequests", () => {
 
 		it("should handle api_req_started and api_req_finished messages that are out of order", () => {
 			// The finish message appears before the start message in the array
-			const messages: ClineMessage[] = [
+			const messages: VectoraMessage[] = [
 				createFinishMessage('{"cost":0.005}', 1001),
 				createStartMessage('{"request":"GET /api/data"}', 1000),
 			]
@@ -470,7 +463,7 @@ describe("combineApiRequests", () => {
 			const startMessage = createStartMessage("{}", 1000)
 			const finishMessage = createFinishMessage("{}", 1001)
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -484,14 +477,14 @@ describe("combineApiRequests", () => {
 
 		it("should handle undefined text field", () => {
 			const startMessage = createStartMessage('{"request":"GET /api/data"}', 1000)
-			const finishMessage: ClineMessage = {
+			const finishMessage: VectoraMessage = {
 				type: "say",
 				say: "api_req_finished",
 				text: undefined, // undefined text field
 				ts: 1001,
 			}
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -515,7 +508,7 @@ describe("combineApiRequests", () => {
 			const startMessage2 = createStartMessage('{"request":"GET /api/data2"}', 2000)
 			// No finish message for the second start
 
-			const messages: ClineMessage[] = [otherMessage, startMessage1, finishMessage1, startMessage2]
+			const messages: VectoraMessage[] = [otherMessage, startMessage1, finishMessage1, startMessage2]
 
 			const result = combineApiRequests(messages)
 
@@ -539,7 +532,7 @@ describe("combineApiRequests", () => {
 		})
 
 		it("should filter out all api_req_finished messages", () => {
-			const messages: ClineMessage[] = [
+			const messages: VectoraMessage[] = [
 				createOtherMessage(),
 				createStartMessage(),
 				createFinishMessage(),
@@ -556,7 +549,7 @@ describe("combineApiRequests", () => {
 		})
 
 		it("should handle multiple finish messages for each start message correctly", () => {
-			const messages: ClineMessage[] = [
+			const messages: VectoraMessage[] = [
 				createStartMessage('{"request":"GET /api/data1"}', 1000),
 				createFinishMessage('{"cost":0.005}', 1001),
 				createFinishMessage('{"duration":150}', 1002), // Should be ignored
@@ -592,7 +585,7 @@ describe("combineApiRequests", () => {
 			const startMessage = createStartMessage('{"request":"GET /api/data", "cost": 0.001}', 1000)
 			const finishMessage = createFinishMessage('{"cost":0.005, "request": "OVERWRITTEN"}', 1001)
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 
@@ -611,7 +604,7 @@ describe("combineApiRequests", () => {
 			const startMessage = createStartMessage('{"request":"GET /api/data", "tags": ["api", "get"]}', 1000)
 			const finishMessage = createFinishMessage('{"cost":0.005, "results": [1, 2, 3]}', 1001)
 
-			const messages: ClineMessage[] = [startMessage, finishMessage]
+			const messages: VectoraMessage[] = [startMessage, finishMessage]
 
 			const result = combineApiRequests(messages)
 

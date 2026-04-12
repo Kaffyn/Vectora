@@ -32,12 +32,10 @@ describe("Code Action Prompts", () => {
 
 		it("should format fix prompt with diagnostics", () => {
 			const diagnostics = [
-				{
 					source: "eslint",
 					message: "Missing semicolon",
 					code: "semi",
 				},
-				{
 					message: "Unused variable",
 					severity: 1,
 				},
@@ -46,7 +44,6 @@ describe("Code Action Prompts", () => {
 			const prompt = supportPrompt.create("FIX", {
 				filePath: testFilePath,
 				selectedText: testCode,
-				diagnostics,
 			})
 
 			expect(prompt).toContain("Current problems detected:")
@@ -108,7 +105,6 @@ describe("Code Action Prompts", () => {
 				selectedText: testCode,
 				startLine: "10",
 				endLine: "20",
-				diagnostics,
 			})
 			const expected = `${testFilePath}:10-20\n\`\`\`\n${testCode}\n\`\`\``
 			expect(prompt).toBe(expected)
@@ -236,11 +232,9 @@ describe("Code Action Prompts", () => {
 
 			const prompt = supportPrompt.create(
 				"EXPLAIN",
-				{
 					filePath: testFilePath,
 					selectedText: testCode,
 				},
-				customSupportPrompts,
 			)
 
 			expect(prompt).toContain(`Custom template for ${testFilePath}`)
@@ -254,11 +248,9 @@ describe("Code Action Prompts", () => {
 
 			const prompt = supportPrompt.create(
 				"EXPLAIN",
-				{
 					filePath: testFilePath,
 					selectedText: testCode,
 				},
-				customSupportPrompts,
 			)
 
 			expect(prompt).toContain("Other template")

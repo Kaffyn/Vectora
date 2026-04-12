@@ -26,7 +26,6 @@ function SelectTrigger({ className, children, ...props }: React.ComponentProps<t
         "border border-vscode-dropdown-border aria-expanded:border-vscode-focusBorder focus-visible:border-vscode-focusBorder",
         "bg-vscode-dropdown-background hover:bg-transparent",
         "text-vscode-dropdown-foreground",
-        className,
       )}
       {...props}
     >
@@ -39,10 +38,7 @@ function SelectTrigger({ className, children, ...props }: React.ComponentProps<t
 }
 
 function SelectContent({
-  className,
-  children,
   position = "popper",
-  container,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content> & Pick<PortalProps, "container">) {
   return (
@@ -56,7 +52,6 @@ function SelectContent({
           "text-popover-foreground",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
-          className,
         )}
         position={position}
         {...props}
@@ -83,7 +78,6 @@ function SelectLabel({ className, ...props }: React.ComponentProps<typeof Select
       data-slot="select-label"
       className={cn(
         "px-2 py-1.5 text-xs font-semibold text-vscode-descriptionForeground uppercase tracking-wide",
-        className,
       )}
       {...props}
     />
@@ -99,7 +93,6 @@ function SelectItem({ className, children, ...props }: React.ComponentProps<type
         "focus:bg-vscode-list-activeSelectionBackground focus:text-vscode-list-activeSelectionForeground",
         "text-vscode-dropdown-foreground text-sm",
         "rounded-xs active:opacity-90 cursor-pointer",
-        className,
       )}
       {...props}
     >
@@ -136,7 +129,6 @@ function SelectScrollUpButton({ className, ...props }: React.ComponentProps<type
 }
 
 function SelectScrollDownButton({
-  className,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
   return (
@@ -151,14 +143,4 @@ function SelectScrollDownButton({
 }
 
 export {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectScrollDownButton,
-  SelectScrollUpButton,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
 };

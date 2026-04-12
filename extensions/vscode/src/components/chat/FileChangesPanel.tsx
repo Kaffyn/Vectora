@@ -3,7 +3,6 @@ import { useTranslation, Trans } from "@src/i18n/TranslationContext";
 import { ChevronDown, ChevronRight, FileDiff } from "lucide-react";
 import { createTwoFilesPatch } from "diff";
 
-import type { ClineMessage, ExtensionMessage } from "@roo-code/types";
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui";
 import { cn } from "@/lib/utils";
@@ -13,7 +12,7 @@ import { fileChangesFromMessages, type FileChangeEntry } from "./utils/fileChang
 import CodeAccordion from "../common/CodeAccordion";
 
 interface FileChangesPanelProps {
-  clineMessages: ClineMessage[] | undefined;
+  clineMessages: VectoraMessage[] | undefined;
   className?: string;
 }
 

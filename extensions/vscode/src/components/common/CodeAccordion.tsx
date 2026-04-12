@@ -1,6 +1,5 @@
 import { memo, useMemo } from "react";
 import { VSCodeProgressRing } from "@vscode/webview-ui-toolkit/react";
-import { type ToolProgressStatus } from "@roo-code/types";
 import { getLanguageFromPath } from "@src/utils/getLanguageFromPath";
 import { formatPathTooltip } from "@src/utils/formatPathTooltip";
 
@@ -25,17 +24,7 @@ interface CodeAccordionProps {
 }
 
 const CodeAccordion = ({
-  path,
   code = "",
-  language,
-  progressStatus,
-  isLoading,
-  isExpanded,
-  isFeedback,
-  onToggleExpand,
-  header,
-  onJumpToFile,
-  diffStats,
 }: CodeAccordionProps) => {
   const inferredLanguage = useMemo(() => language ?? (path ? getLanguageFromPath(path) : "txt"), [path, language]);
   const source = useMemo(() => code.trim(), [code]);

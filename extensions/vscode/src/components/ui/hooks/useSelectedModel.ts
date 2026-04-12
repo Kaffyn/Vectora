@@ -1,82 +1,14 @@
-import {
-  type ProviderName,
-  type ProviderSettings,
-  type ModelInfo,
-  type ModelRecord,
-  type RouterModels,
-  anthropicModels,
-  bedrockModels,
-  deepSeekModels,
-  moonshotModels,
-  minimaxModels,
-  geminiModels,
-  mistralModels,
-  openAiModelInfoSaneDefaults,
-  openAiNativeModels,
-  vertexModels,
-  xaiModels,
-  vscodeLlmModels,
-  vscodeLlmDefaultModelId,
-  openAiCodexModels,
-  sambaNovaModels,
-  internationalZAiModels,
-  mainlandZAiModels,
-  fireworksModels,
-  basetenModels,
-  qwenCodeModels,
-  litellmDefaultModelInfo,
-  lMStudioDefaultModelInfo,
-  BEDROCK_1M_CONTEXT_MODEL_IDS,
-  VERTEX_1M_CONTEXT_MODEL_IDS,
-  isDynamicProvider,
-  isRetiredProvider,
-  getProviderDefaultModelId,
-} from "@roo-code/types";
-
-import { useRouterModels } from "./useRouterModels";
-import { useOpenRouterModelProviders } from "./useOpenRouterModelProviders";
-import { useLmStudioModels } from "./useLmStudioModels";
-import { useOllamaModels } from "./useOllamaModels";
-
 /**
- * Helper to get a validated model ID for dynamic providers.
- * Returns the configured model ID if it exists in the available models, otherwise returns the default.
+ * Hook para seleção de modelo
+ * Placeholder para Phase 2
  */
-function getValidatedModelId(
-  configuredId: string | undefined,
-  availableModels: ModelRecord | undefined,
-  defaultModelId: string,
-): string {
-  return configuredId && availableModels?.[configuredId] ? configuredId : defaultModelId;
-}
 
-export const useSelectedModel = (apiConfiguration?: ProviderSettings) => {
-  const provider = apiConfiguration?.apiProvider || "anthropic";
-  const activeProvider: ProviderName | undefined = isRetiredProvider(provider) ? undefined : provider;
-  const dynamicProvider = activeProvider && isDynamicProvider(activeProvider) ? activeProvider : undefined;
-  const openRouterModelId = activeProvider === "openrouter" ? apiConfiguration?.openRouterModelId : undefined;
-  const lmStudioModelId = activeProvider === "lmstudio" ? apiConfiguration?.lmStudioModelId : undefined;
-  const ollamaModelId = activeProvider === "ollama" ? apiConfiguration?.ollamaModelId : undefined;
-
-  // Only fetch router models for dynamic providers
-  const shouldFetchRouterModels = !!dynamicProvider;
-  const routerModels = useRouterModels({
-    provider: dynamicProvider,
-    enabled: shouldFetchRouterModels,
-  });
-
-  const openRouterModelProviders = useOpenRouterModelProviders(openRouterModelId);
-  const lmStudioModels = useLmStudioModels(lmStudioModelId);
-  const ollamaModels = useOllamaModels(ollamaModelId);
-
-  // Compute readiness only for the data actually needed for the selected provider
-  const needRouterModels = shouldFetchRouterModels;
-  const needOpenRouterProviders = activeProvider === "openrouter";
-  const needLmStudio = typeof lmStudioModelId !== "undefined";
-  const needOllama = typeof ollamaModelId !== "undefined";
-
-  const hasValidRouterData =
-    needRouterModels && dynamicProvider
+export const useSelectedModel = (apiConfiguration?: any) => {
+  return {
+    selectedModel: null,
+    setSelectedModel: () => {},
+  };
+};
       ? routerModels.data &&
         routerModels.data[dynamicProvider] !== undefined &&
         typeof routerModels.data[dynamicProvider] === "object" &&
@@ -93,7 +25,6 @@ export const useSelectedModel = (apiConfiguration?: ProviderSettings) => {
     apiConfiguration && isReady && activeProvider
       ? getSelectedModel({
           provider: activeProvider,
-          apiConfiguration,
           routerModels: (routerModels.data || {}) as RouterModels,
           openRouterModelProviders: (openRouterModelProviders.data || {}) as Record<string, ModelInfo>,
           lmStudioModels: (lmStudioModels.data || undefined) as ModelRecord | undefined,
@@ -102,9 +33,6 @@ export const useSelectedModel = (apiConfiguration?: ProviderSettings) => {
       : { id: getProviderDefaultModelId(activeProvider ?? "anthropic"), info: undefined };
 
   return {
-    provider,
-    id,
-    info,
     isLoading:
       (needRouterModels && routerModels.isLoading) ||
       (needOpenRouterProviders && openRouterModelProviders.isLoading) ||
@@ -119,12 +47,6 @@ export const useSelectedModel = (apiConfiguration?: ProviderSettings) => {
 };
 
 function getSelectedModel({
-  provider,
-  apiConfiguration,
-  routerModels,
-  openRouterModelProviders,
-  lmStudioModels,
-  ollamaModels,
 }: {
   provider: ProviderName;
   apiConfiguration: ProviderSettings;
@@ -186,7 +108,6 @@ function getSelectedModel({
       // Special case for custom ARN.
       if (id === "custom-arn") {
         return {
-          id,
           info: { maxTokens: 5000, contextWindow: 128_000, supportsPromptCache: true, supportsImages: true },
         };
       }
@@ -280,7 +201,6 @@ function getSelectedModel({
           : info;
 
       return {
-        id,
         info: adjustedInfo || undefined,
       };
     }
@@ -288,7 +208,6 @@ function getSelectedModel({
       const id = apiConfiguration.lmStudioModelId ?? "";
       const modelInfo = lmStudioModels && lmStudioModels[apiConfiguration.lmStudioModelId!];
       return {
-        id,
         info: modelInfo ? { ...lMStudioDefaultModelInfo, ...modelInfo } : undefined,
       };
     }
@@ -334,7 +253,6 @@ function getSelectedModel({
       const id = getValidatedModelId(
         apiConfiguration.vercelAiGatewayModelId,
         routerModels["vercel-ai-gateway"],
-        defaultModelId,
       );
       const info = routerModels["vercel-ai-gateway"]?.[id];
       return { id, info };

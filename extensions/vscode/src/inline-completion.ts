@@ -69,8 +69,6 @@ export class VectoraInlineProvider implements vscode.InlineCompletionItemProvide
       const resp = await this.client.request<FSCompletionRequest, FSCompletionResponse>("fs/completion", {
         sessionId: this.client.sessionId,
         path: vscode.window.activeTextEditor?.document.uri.fsPath || "",
-        prefix,
-        suffix,
         language: lang,
       });
       const suggestion = resp.content;

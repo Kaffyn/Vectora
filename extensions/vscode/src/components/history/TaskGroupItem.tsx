@@ -34,16 +34,9 @@ interface TaskGroupItemProps {
  * When expanded, shows recursively nested subtask rows.
  */
 const TaskGroupItem = ({
-  group,
-  variant,
   showWorkspace = false,
   isSelectionMode = false,
   isSelected = false,
-  onToggleSelection,
-  onDelete,
-  onToggleExpand,
-  onToggleSubtaskExpand,
-  className,
 }: TaskGroupItemProps) => {
   const { parent, subtasks, isExpanded } = group;
   const hasSubtasks = subtasks.length > 0;

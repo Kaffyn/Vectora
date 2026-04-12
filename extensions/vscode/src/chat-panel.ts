@@ -1,15 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import { Client } from "./client";
-import {
-  SessionUpdate,
-  InitializeRequest,
-  InitializeResponse,
-  SessionNewRequest,
-  SessionNewResponse,
-  SessionPromptRequest,
-  PromptResponse,
-} from "./types/client";
 
 /**
  * ChatViewProvider manages the Sidebar Webview for Vectora chat.

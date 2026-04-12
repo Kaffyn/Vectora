@@ -22,15 +22,10 @@ interface TaskItemProps {
 }
 
 const TaskItem = ({
-  item,
-  variant,
   showWorkspace = false,
   hasSubtasks = false,
   isSelectionMode = false,
   isSelected = false,
-  onToggleSelection,
-  onDelete,
-  className,
 }: TaskItemProps) => {
   const handleClick = () => {
     if (isSelectionMode && onToggleSelection) {
@@ -50,7 +45,6 @@ const TaskItem = ({
         "cursor-pointer group relative overflow-hidden",
         "text-vscode-foreground/80 hover:text-vscode-foreground transition-colors",
         hasSubtasks ? "rounded-t-xl" : "rounded-xl",
-        className,
       )}
       onClick={handleClick}
     >
@@ -77,7 +71,6 @@ const TaskItem = ({
               <div
                 className={cn(
                   "flex-1 min-w-0 overflow-hidden whitespace-pre-wrap font-light text-ellipsis line-clamp-3",
-                  {
                     "text-base": !isCompact,
                   },
                   !isCompact && isSelectionMode ? "mb-1" : "",
@@ -89,7 +82,6 @@ const TaskItem = ({
               <div
                 className={cn(
                   "flex-1 min-w-0 overflow-hidden whitespace-pre-wrap font-light text-ellipsis line-clamp-3",
-                  {
                     "text-base": !isCompact,
                   },
                   !isCompact && isSelectionMode ? "mb-1" : "",

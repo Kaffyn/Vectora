@@ -48,7 +48,6 @@ export const TabContent = forwardRef<HTMLDivElement, TabProps>(({ className, chi
 TabContent.displayName = "TabContent";
 
 export const TabList = forwardRef<
-  HTMLDivElement,
   HTMLAttributes<HTMLDivElement> & {
     value: string;
     onValueChange: (value: string) => void;
@@ -70,7 +69,6 @@ export const TabList = forwardRef<
 });
 
 export const TabTrigger = forwardRef<
-  HTMLButtonElement,
   React.ButtonHTMLAttributes<HTMLButtonElement> & {
     value: string;
     isSelected?: boolean;

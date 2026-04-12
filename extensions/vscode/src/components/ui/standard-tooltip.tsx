@@ -50,14 +50,10 @@ interface StandardTooltipProps {
  * @note Do not nest StandardTooltip components as this can cause UI issues.
  */
 export function StandardTooltip({
-  children,
-  content,
   side = "top",
   align = "center",
   sideOffset = 4,
-  className,
   asChild = true,
-  maxWidth,
   delay = STANDARD_TOOLTIP_DELAY,
 }: StandardTooltipProps) {
   // Don't render tooltip if content is empty or only whitespace.

@@ -12,12 +12,6 @@ interface IconButtonProps {
 }
 
 export function IconButton({
-  icon,
-  onClick,
-  onMouseDown,
-  onMouseUp,
-  onMouseLeave,
-  title,
   size = "medium",
   variant = "default",
 }: IconButtonProps) {

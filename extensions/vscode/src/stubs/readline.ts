@@ -5,5 +5,4 @@ export const createInterface = () => ({
 });
 
 export default {
-  createInterface,
 };

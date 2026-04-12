@@ -10,8 +10,4 @@ export const execSync = () => "";
 export const fork = () => {};
 
 export default {
-  spawn,
-  exec,
-  execSync,
-  fork,
 };

@@ -6,7 +6,6 @@ import DismissibleUpsell from "@src/components/common/DismissibleUpsell";
 import { ChevronUp, ChevronDown, HardDriveDownload, HardDriveUpload, FoldVertical, ArrowLeft } from "lucide-react";
 import prettyBytes from "pretty-bytes";
 
-import type { ClineMessage } from "@roo-code/types";
 
 import { getModelMaxOutputTokens } from "@roo/api";
 import { findLastIndex } from "@roo/array";
@@ -27,7 +26,7 @@ import { TodoListDisplay } from "./TodoListDisplay";
 import { LucideIconButton } from "./LucideIconButton";
 
 export interface TaskHeaderProps {
-  task: ClineMessage;
+  task: VectoraMessage;
   tokensIn: number;
   tokensOut: number;
   cacheWrites?: number;
@@ -44,20 +43,6 @@ export interface TaskHeaderProps {
 }
 
 const TaskHeader = ({
-  task,
-  tokensIn,
-  tokensOut,
-  cacheWrites,
-  cacheReads,
-  totalCost,
-  aggregatedCost,
-  hasSubtasks,
-  parentTaskId,
-  costBreakdown,
-  contextTokens,
-  buttonsDisabled,
-  handleCondenseContext,
-  todos,
 }: TaskHeaderProps) => {
   const { t } = useTranslation();
   const { apiConfiguration, currentTaskItem, clineMessages } = useExtensionState();
@@ -73,7 +58,6 @@ const TaskHeader = ({
     clineMessages && clineMessages.length > 0
       ? (() => {
           const lastRelevantIndex = findLastIndex(
-            clineMessages,
             (m) => !(m.ask === "resume_task" || m.ask === "resume_completed_task"),
           );
           return lastRelevantIndex !== -1 ? clineMessages[lastRelevantIndex]?.ask === "completion_result" : false;
@@ -99,8 +83,6 @@ const TaskHeader = ({
     () =>
       model
         ? getModelMaxOutputTokens({
-            modelId,
-            model,
             settings: apiConfiguration,
           })
         : 0,

@@ -118,10 +118,7 @@ const DiffView = memo(({ source, filePath }: DiffViewProps) => {
           const highlighted = await highlightHunks(
             hunk.oldText,
             hunk.newText,
-            normalizedLang,
             isLightTheme ? "light" : "dark",
-            i,
-            filePath,
           );
           processed.push({
             ...hunk,

@@ -130,14 +130,6 @@ function parseCommandLine(command: string): string[] {
 		// Restore all placeholders for each command
 		return fallbackCommands.map((cmd) =>
 			restorePlaceholders(
-				cmd,
-				quotes,
-				redirections,
-				arrayIndexing,
-				arithmeticExpressions,
-				parameterExpansions,
-				variables,
-				subshells,
 			),
 		)
 	}
@@ -180,14 +172,6 @@ function parseCommandLine(command: string): string[] {
 	// Restore quotes and redirections
 	return commands.map((cmd) =>
 		restorePlaceholders(
-			cmd,
-			quotes,
-			redirections,
-			arrayIndexing,
-			arithmeticExpressions,
-			parameterExpansions,
-			variables,
-			subshells,
 		),
 	)
 }

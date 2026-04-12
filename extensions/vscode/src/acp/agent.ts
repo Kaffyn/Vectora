@@ -57,8 +57,6 @@ export class VectoraACPClient extends EventEmitter {
       const id = ++this.messageId;
       const message = {
         jsonrpc: '2.0',
-        id,
-        method,
         params
       };
 
@@ -144,7 +142,6 @@ export class VectoraACPClient extends EventEmitter {
       const response = await this.sendRequest('session/prompt', {
         sessionId: this.sessionId,
         prompt: [
-          {
             type: 'text',
             text: prompt
           }

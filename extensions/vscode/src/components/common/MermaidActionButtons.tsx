@@ -18,16 +18,7 @@ interface MermaidActionButtonsProps {
 }
 
 export const MermaidActionButtons: React.FC<MermaidActionButtonsProps> = ({
-  onZoom,
-  onZoomIn,
-  onZoomOut,
-  onCopy,
-  onSave,
-  onViewCode,
-  onClose,
-  copyFeedback,
   showZoomControls = false,
-  zoomLevel,
 }) => {
   const { t } = useAppTranslation();
 

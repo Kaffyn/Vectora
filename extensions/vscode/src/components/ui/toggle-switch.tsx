@@ -10,8 +10,6 @@ export interface ToggleSwitchProps {
 }
 
 export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
-  checked,
-  onChange,
   disabled = false,
   size = "small",
   "aria-label": ariaLabel,

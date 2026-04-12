@@ -136,7 +136,6 @@ export const StyledPre = styled.div<{
     box-sizing: border-box;
   }
 
-  pre,
   code {
     /* Undefined wordwrap defaults to true (pre-wrap) behavior. */
     white-space: ${({ wordwrap }) => (wordwrap === "false" ? "pre" : "pre-wrap")};
@@ -167,13 +166,8 @@ export const StyledPre = styled.div<{
 
 const CodeBlock = memo(
   ({
-    source,
-    rawSource,
-    language,
-    preStyle,
     initialWordWrap = true,
     initialWindowShade = true,
-    collapsedHeight,
   }: CodeBlockProps) => {
     // Use word wrap from props, default to true
     const wordWrap = initialWordWrap;
@@ -218,7 +212,6 @@ const CodeBlock = memo(
           lang: currentLanguage || "txt",
           theme: document.body.className.toLowerCase().includes("light") ? "github-light" : "github-dark",
           transformers: [
-            {
               pre(node) {
                 node.properties.style = "padding: 0; margin: 0;";
                 return node;
@@ -243,9 +236,6 @@ const CodeBlock = memo(
         // while maintaining the exact same visual output and syntax highlighting
         try {
           const reactElement = toJsxRuntime(hast, {
-            Fragment,
-            jsx,
-            jsxs,
             // Don't override components - let them render as-is to maintain exact output
           });
 
@@ -672,13 +662,6 @@ const MemoizedCodeContent = memo(({ children }: { children: React.ReactNode }) =
 // Memoized StyledPre component
 const MemoizedStyledPre = memo(
   ({
-    preRef,
-    preStyle,
-    wordWrap,
-    windowShade,
-    collapsedHeight,
-    highlightedCode,
-    updateCodeBlockButtonPosition,
   }: {
     preRef: React.RefObject<HTMLDivElement>;
     preStyle?: React.CSSProperties;

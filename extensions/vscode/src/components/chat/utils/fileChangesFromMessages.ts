@@ -1,4 +1,3 @@
-import type { ClineMessage, ClineSayTool } from "@roo-code/types";
 import { safeJsonParse } from "@roo/core";
 
 /** File-edit tool names from ClineSayTool["tool"] (packages/types). */
@@ -18,7 +17,7 @@ export interface FileChangeEntry {
  * - type "say" + say "tool" (applied tool results, if any are ever pushed that way)
  * - type "ask" + ask "tool" (tool approval messages; after approval the message stays as ask, so this is where file edits appear in the UI)
  */
-export function fileChangesFromMessages(messages: ClineMessage[] | undefined): FileChangeEntry[] {
+export function fileChangesFromMessages(messages: VectoraMessage[] | undefined): FileChangeEntry[] {
   if (!messages?.length) return [];
 
   const entries: FileChangeEntry[] = [];
@@ -56,7 +55,6 @@ export function fileChangesFromMessages(messages: ClineMessage[] | undefined): F
     if (diff) {
       entries.push({
         path: tool.path,
-        diff,
         diffStats: tool.diffStats,
         originalContent: tool.originalContent,
       });

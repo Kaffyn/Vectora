@@ -1,18 +1,6 @@
 import * as React from "react";
 import { Check, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Button,
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui";
 import { useEscapeKey } from "@/hooks/useEscapeKey";
 
 export interface SearchableSelectOption {
@@ -37,14 +25,6 @@ interface SearchableSelectProps {
 }
 
 export function SearchableSelect({
-  value,
-  onValueChange,
-  options,
-  placeholder,
-  searchPlaceholder,
-  emptyMessage,
-  className,
-  disabled,
   maxDisplayItems = 50,
   "data-testid": dataTestId,
 }: SearchableSelectProps) {
@@ -147,7 +127,6 @@ export function SearchableSelect({
             "focus-visible:border-vscode-focusBorder",
             "aria-expanded:border-vscode-focusBorder",
             !selectedOption && "text-muted-foreground",
-            className,
           )}
           data-testid={dataTestId}
         >

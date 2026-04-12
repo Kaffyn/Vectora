@@ -21,8 +21,6 @@ export interface ImageViewerProps {
 }
 
 export function ImageViewer({
-  imageUri,
-  imagePath,
   alt = "Generated image",
   showControls = true,
   className = "",

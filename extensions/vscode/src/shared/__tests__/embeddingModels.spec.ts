@@ -1,10 +1,4 @@
 import { describe, it, expect } from "vitest"
-import {
-	getModelDimension,
-	getModelScoreThreshold,
-	getDefaultModelId,
-	EMBEDDING_MODEL_PROFILES,
-} from "../embeddingModels"
 
 describe("embeddingModels", () => {
 	describe("EMBEDDING_MODEL_PROFILES", () => {

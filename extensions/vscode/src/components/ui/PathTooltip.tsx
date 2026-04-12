@@ -32,8 +32,6 @@ interface PathTooltipProps {
  * </PathTooltip>
  */
 export function PathTooltip({
-  content,
-  children,
   side = "top",
   align = "start",
   sideOffset = 4,

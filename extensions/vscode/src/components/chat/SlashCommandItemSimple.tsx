@@ -1,6 +1,5 @@
 import React from "react";
 
-import type { Command } from "@roo-code/types";
 
 interface SlashCommandItemSimpleProps {
   command: Command;

@@ -19,23 +19,5 @@ export const chmodSync = () => {};
 export const constants = {};
 
 export default {
-  readFile,
-  writeFile,
-  stat,
-  readdir,
-  readlink,
-  lstat,
-  mkdir,
-  rm,
-  access,
-  existsSync,
-  lstatSync,
-  readFileSync,
-  mkdirSync,
-  writeFileSync,
-  readdirSync,
-  unlinkSync,
-  statSync,
   chmodSync: () => {},
-  constants,
 };
