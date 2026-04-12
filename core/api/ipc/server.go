@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -133,6 +134,15 @@ func (s *Server) generateToken() error {
 
 func (s *Server) StartDevHTTP(port int) {
 	mux := http.NewServeMux()
+
+	// Register pprof endpoints for CPU/memory profiling (localhost only, dev mode)
+	// Access via:
+	// - http://localhost:{port}/debug/pprof/ (profile index)
+	// - http://localhost:{port}/debug/pprof/heap (memory allocation)
+	// - http://localhost:{port}/debug/pprof/goroutine (goroutines)
+	// - http://localhost:{port}/debug/pprof/profile?seconds=30 (CPU profile)
+	// Download: go tool pprof http://localhost:{port}/debug/pprof/heap
+	mux.Handle("/debug/pprof/", http.DefaultServeMux)
 
 	mux.HandleFunc("/api/v1/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
