@@ -1,12 +1,11 @@
 import * as vscode from "vscode";
 import { spawn } from "child_process";
-import { Client } from "./client";
+import { AcpClient } from "./client";
 import { ChatViewProvider } from "./chat-panel";
 import { BinaryManager } from "./binary-manager";
 import { VectoraInlineProvider } from "./inline-completion";
-import { InitializeRequest, InitializeResponse } from "./types/client";
 
-let coreClient: Client | undefined;
+let coreClient: AcpClient | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
 let chatProvider: ChatViewProvider | undefined;
 let backgroundProcessPid: number | undefined;
@@ -31,7 +30,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // Register Commands
   context.subscriptions.push(
     vscode.commands.registerCommand("vectora.toggleStatus", async () => {
-      if (coreClient && coreClient.isRunning) {
+      if (coreClient && coreClient.isConnected) {
         await stopVectora();
       } else {
         await startVectora(context);
@@ -71,6 +70,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         }
       }
     }),
+
+    vscode.commands.registerCommand("vectora.selectProvider", async () => {
+      const providers = [
+        { label: "🔵 Gemini", value: "gemini" },
+        { label: "🅰️ Claude", value: "claude" },
+        { label: "🔴 OpenAI", value: "openai" },
+      ];
+
+      const selected = await vscode.window.showQuickPick(providers, {
+        title: "Select AI Provider",
+        placeHolder: "Choose a provider...",
+      });
+
+      if (selected) {
+        const config = vscode.workspace.getConfiguration("vectora");
+        await config.update("defaultProvider", selected.value, vscode.ConfigurationTarget.Global);
+        vscode.window.showInformationMessage(`Provider changed to ${selected.label}`);
+      }
+    }),
   );
 
   // Initial attempt
@@ -80,7 +98,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 async function startVectora(context: vscode.ExtensionContext) {
   if (!statusBarItem) return;
 
-  if (coreClient && coreClient.isRunning) {
+  if (coreClient && coreClient.isConnected) {
     return;
   }
 
@@ -99,13 +117,13 @@ async function startVectora(context: vscode.ExtensionContext) {
     bgProcess.unref();
 
     // Now connect via 'acp' bridge which talks to the background core
-    coreClient = new Client("Vectora Core", binPath, ["acp"]);
+    coreClient = new AcpClient("Vectora Core", binPath, ["acp"]);
 
     // Wait a bit for the core tray process to open the socket
     let connected = false;
     for (let i = 0; i < 10; i++) {
       try {
-        await coreClient.start();
+        await coreClient.connect();
         connected = true;
         break;
       } catch {
@@ -114,20 +132,6 @@ async function startVectora(context: vscode.ExtensionContext) {
     }
 
     if (!connected) throw new Error("Core background service didn't start in time.");
-
-    // Initialize with Core
-    await coreClient.request<InitializeRequest, InitializeResponse>("initialize", {
-      protocolVersion: 1,
-      clientCapabilities: {
-        fs: { readTextFile: true, writeTextFile: true },
-        terminal: true,
-      },
-      clientInfo: {
-        name: "vectora-vscode",
-        title: "Vectora VS Code",
-        version: "0.1.0",
-      },
-    });
 
     if (chatProvider) {
       chatProvider.setClient(coreClient);
@@ -139,14 +143,13 @@ async function startVectora(context: vscode.ExtensionContext) {
       vscode.languages.registerInlineCompletionItemProvider({ pattern: "**" }, inlineProvider),
     );
 
-    statusBarItem.text = "$(check) Vectora: Ready";
-    statusBarItem.tooltip = "Vectora is running. Click to Stop.";
-    statusBarItem.color = new vscode.ThemeColor("statusBarItem.prominentForeground");
-    statusBarItem.backgroundColor = undefined;
+    updateStatusRunning();
 
-    // Monitor for unexpected exit
-    coreClient.onExit.event(() => {
-      updateStatusStopped();
+    // Monitor for unexpected disconnection
+    coreClient.onConnectionChange.event((isConnected) => {
+      if (!isConnected) {
+        updateStatusStopped();
+      }
     });
   } catch (err: any) {
     statusBarItem.text = `$(error) Vectora: Error`;
@@ -162,7 +165,7 @@ async function startVectora(context: vscode.ExtensionContext) {
 
 async function stopVectora() {
   if (coreClient) {
-    coreClient.stop();
+    coreClient.disconnect();
     coreClient = undefined;
   }
 
@@ -197,17 +200,36 @@ async function stopVectora() {
   updateStatusStopped();
 }
 
+function updateStatusRunning() {
+  if (statusBarItem) {
+    const config = vscode.workspace.getConfiguration("vectora");
+    const provider = config.get<string>("defaultProvider") || "gemini";
+    const providerEmoji = {
+      gemini: "🔵",
+      claude: "🅰️",
+      openai: "🔴",
+    }[provider] || "🤖";
+
+    statusBarItem.text = `${providerEmoji} Vectora: Running`;
+    statusBarItem.tooltip = `Connected to ${provider}. Click to select provider.`;
+    statusBarItem.command = "vectora.selectProvider";
+    statusBarItem.color = new vscode.ThemeColor("statusBar.foreground");
+    statusBarItem.backgroundColor = undefined;
+  }
+}
+
 function updateStatusStopped() {
   if (statusBarItem) {
     statusBarItem.text = "$(circle-outline) Vectora: Stopped";
     statusBarItem.tooltip = "Vectora is offline. Click to Start.";
+    statusBarItem.command = "vectora.toggleStatus";
     statusBarItem.color = undefined;
     statusBarItem.backgroundColor = undefined;
   }
 }
 
 export function deactivate(): void {
-  if (coreClient) coreClient.stop();
+  if (coreClient) coreClient.disconnect();
   if (backgroundProcessPid) {
     try {
       const isWin = process.platform === "win32";

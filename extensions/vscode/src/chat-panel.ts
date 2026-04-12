@@ -65,6 +65,15 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  public async sendMessage(text: string): Promise<void> {
+    if (this._view) {
+      this._view.show?.(true);
+      this._view.webview.postMessage({ type: "inject_message", text });
+    } else {
+      vscode.commands.executeCommand("vectora.chatView.focus");
+    }
+  }
+
   public async clearChat(): Promise<void> {
     this._view?.webview.postMessage({ type: "clear_chat" });
     this.sessionId = undefined;
@@ -95,9 +104,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       }
 
       try {
+        const config = vscode.workspace.getConfiguration("vectora");
+        const provider = config.get<string>("defaultProvider") || "gemini";
+
         const resp = await this.client.createSession({
           workspaceId: workspacePath,
-          provider: "gemini", // TODO: Get from settings/state
+          provider,
         });
         this.sessionId = resp.sessionId;
       } catch (err: any) {
