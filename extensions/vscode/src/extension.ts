@@ -9,6 +9,7 @@ import { InitializeRequest, InitializeResponse } from "./types/client";
 let coreClient: Client | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
 let chatProvider: ChatViewProvider | undefined;
+let backgroundProcessPid: number | undefined;
 const binaryManager = new BinaryManager();
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
@@ -93,7 +94,9 @@ async function startVectora(context: vscode.ExtensionContext) {
 
     // To show the Tray, we need the background core started.
     // We'll run 'vectora start' which is detached.
-    spawn(binPath, ["start"], { detached: true, stdio: "ignore" }).unref();
+    const bgProcess = spawn(binPath, ["start"], { detached: true, stdio: "ignore" });
+    backgroundProcessPid = bgProcess.pid;
+    bgProcess.unref();
 
     // Now connect via 'acp' bridge which talks to the background core
     coreClient = new Client("Vectora Core", binPath, ["acp"]);
@@ -162,6 +165,35 @@ async function stopVectora() {
     coreClient.stop();
     coreClient = undefined;
   }
+
+  // Kill the background process if we stored its PID
+  if (backgroundProcessPid) {
+    try {
+      // On Windows: use taskkill; on Unix: use process.kill()
+      const isWin = process.platform === "win32";
+      if (isWin) {
+        // Kill by PID on Windows
+        spawn("taskkill", ["/PID", String(backgroundProcessPid), "/F"], {
+          stdio: "ignore"
+        }).unref();
+      } else {
+        // On Unix, kill the process group (negative PID kills entire group)
+        process.kill(-backgroundProcessPid, "SIGTERM");
+      }
+    } catch (err) {
+      // Ignore errors if process already terminated
+    }
+    backgroundProcessPid = undefined;
+  }
+
+  // As fallback, kill any remaining vectora processes by name
+  // (handles case where PID tracking failed or process renamed)
+  try {
+    await binaryManager.killAllVectoraProcesses();
+  } catch {
+    // Ignore errors — process might not exist
+  }
+
   updateStatusStopped();
 }
 
@@ -176,5 +208,19 @@ function updateStatusStopped() {
 
 export function deactivate(): void {
   if (coreClient) coreClient.stop();
+  if (backgroundProcessPid) {
+    try {
+      const isWin = process.platform === "win32";
+      if (isWin) {
+        spawn("taskkill", ["/PID", String(backgroundProcessPid), "/F"], {
+          stdio: "ignore"
+        }).unref();
+      } else {
+        process.kill(-backgroundProcessPid, "SIGTERM");
+      }
+    } catch {
+      // Ignore errors
+    }
+  }
   if (statusBarItem) statusBarItem.dispose();
 }

@@ -213,4 +213,26 @@ export class BinaryManager {
       return null;
     }
   }
+
+  /**
+   * Kills all vectora processes (as fallback when PID tracking fails).
+   * Supports both canonical (vectora.exe) and release (vectora-windows-amd64.exe) names.
+   */
+  public async killAllVectoraProcesses(): Promise<void> {
+    const isWin = os.platform() === "win32";
+    const processNames = [this.binaryName, this.releaseBinaryName];
+
+    for (const name of processNames) {
+      try {
+        const cmd = isWin
+          ? `taskkill /IM ${name} /F`
+          : `pkill -f "${name.replace(".exe", "")}"`;
+        await new Promise<void>((resolve) => {
+          cp.exec(cmd, () => resolve()); // Ignore errors — process might not exist
+        });
+      } catch {
+        // Silently ignore — process might not be running
+      }
+    }
+  }
 }

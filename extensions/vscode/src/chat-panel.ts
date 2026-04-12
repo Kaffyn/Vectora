@@ -46,6 +46,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     };
 
     webviewView.webview.html = this.getHtml(webviewView.webview);
+
+    // Show connecting state if client is not ready
+    if (!this.client || !this.client.isRunning) {
+      webviewView.webview.postMessage({ type: "connecting", message: "Vectora is connecting..." });
+    }
+
     this.sendTranslations();
 
     webviewView.webview.onDidReceiveMessage(async (msg) => {
