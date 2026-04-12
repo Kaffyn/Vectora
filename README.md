@@ -126,18 +126,18 @@ The Core natively implements complex parsers (streaming, tool calls) in Go throu
 
 Vectora is designed to work with the 10 most powerful AI families on the market:
 
-| Family | Frontier Models (2026) |
-| :--- | :--- |
-| **OpenAI** | GPT-5.4 Pro, GPT-5-o1 |
-| **Anthropic** | Claude 4.6 Sonnet/Opus, Claude 4.5 Haiku |
-| **Google** | Gemini 3.1 Pro, Gemini 3 Flash, Gemma 4 |
-| **Meta** | Muse Spark, Llama 4 (Scout/Maverick) |
-| **Alibaba** | Qwen 3.6-Plus, Qwen 3.6-Turbo, Qwen-Max |
-| **Microsoft** | Phi-4-Reasoning-Vision, Phi-4-Medium |
-| **DeepSeek** | DeepSeek-V3.2, V3.2-Speciale |
-| **Mistral AI** | Mistral Small 4, Mistral Large 3 |
-| **xAI** | Grok 4.20, Grok 4.1 |
-| **Zhipu AI** | GLM-5.1, GLM-5-Flash |
+| Family         | Frontier Models (2026)                   |
+| :------------- | :--------------------------------------- |
+| **OpenAI**     | GPT-5.4 Pro, GPT-5-o1                    |
+| **Anthropic**  | Claude 4.6 Sonnet/Opus, Claude 4.5 Haiku |
+| **Google**     | Gemini 3.1 Pro, Gemini 3 Flash, Gemma 4  |
+| **Meta**       | Muse Spark, Llama 4 (Scout/Maverick)     |
+| **Alibaba**    | Qwen 3.6-Plus, Qwen 3.6-Turbo, Qwen-Max  |
+| **Microsoft**  | Phi-4-Reasoning-Vision, Phi-4-Medium     |
+| **DeepSeek**   | DeepSeek-V3.2, V3.2-Speciale             |
+| **Mistral AI** | Mistral Small 4, Mistral Large 3         |
+| **xAI**        | Grok 4.20, Grok 4.1                      |
+| **Zhipu AI**   | GLM-5.1, GLM-5-Flash                     |
 
 > [!TIP]
 > For deep technical verification, official documentation links, and search terms for each model, see **[AGENTS.md](file:///c:/Users/bruno/Desktop/Vectora/AGENTS.md)**.
@@ -314,9 +314,12 @@ Vectora Core is the foundation of a larger ecosystem focused on hybrid RAG and A
 - Native integration with **llama.cpp**
 - Complete offline execution (including embeddings)
 - Support for **Qwen 3.5** and **Qwen 3.6** models
-- **TurboQuant:** Extreme KV Cache compression allowing processing of massive contexts (up to 1M tokens) 100% locally.
 
----
+**TurboQuant (Extreme Efficiency):**
+
+- Extreme KV Cache compression (3 to 3.5 bits per value)
+- Processing of massive contexts (128k to 1M tokens) 100% locally
+- Near-zero accuracy loss with PolarQuant and QJL Corrector technology
 
 **Recovery Engine Evolution:**
 
@@ -324,22 +327,16 @@ Vectora Core is the foundation of a larger ecosystem focused on hybrid RAG and A
 - More efficient multi-hop with lower latency
 - Hybrid ranking (semantic + structural + relational)
 
----
-
 **Vectora Assets:**
 
 - Vector knowledge base marketplace
 - Official documentations, tech specs, and curated datasets
 - Instant download and indexing
 
----
-
 **Advanced Interfaces:**
 
 - **Vectora Desktop (Fyne):** Native UI for workspace management and graph navigation
 - **Vectora TUI (Bubbletea):** Optimized terminal interface for productivity
-
----
 
 **Cloud Services:**
 
