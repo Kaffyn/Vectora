@@ -290,28 +290,24 @@ O Vectora Core é o alicerce de um ecossistema maior focado em RAG híbrido e de
 - Multi-hop mais eficiente e com menor latência
 - Ranking híbrido (semântico + estrutural + relacional)
 
----
-
 **Vectora Assets:**
 
 - Marketplace de bases de conhecimento vetoriais
 - Documentações oficiais, specs técnicas e datasets curados
 - Download e indexação instantânea
 
----
-
 **Interfaces Avançadas:**
 
 - **Vectora Desktop (Fyne):** UI nativa para gestão de workspaces e navegação no grafo
 - **Vectora TUI (Bubbletea):** Interface de terminal otimizada para produtividade
-
----
 
 **Serviços Cloud:**
 
 - **Vectora Web:** acesso remoto ao seu workspace
 - **Vectora Auth:** autenticação e controle de acesso (RBAC)
 - **Colaboração:** compartilhamento seguro de conhecimento entre equipes
+
+**TurboQuant:**
 
 ---
 
