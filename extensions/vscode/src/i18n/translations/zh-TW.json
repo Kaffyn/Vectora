@@ -1,0 +1,91 @@
+{
+  "common": {
+    "cancel": "取消",
+    "confirm": "確認",
+    "ok": "確定",
+    "close": "關閉",
+    "save": "保存",
+    "delete": "刪除",
+    "edit": "編輯",
+    "loading": "載入中...",
+    "error": "錯誤",
+    "warning": "警告",
+    "success": "成功",
+    "info": "資訊",
+    "yes": "是",
+    "no": "否",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "search": "搜尋",
+    "settings": "設定",
+    "about": "關於",
+    "help": "說明"
+  },
+  "chat": {
+    "title": "Vectora 聊天",
+    "placeholder": "在此輸入您的訊息...",
+    "send": "傳送",
+    "sendMessage": "傳送訊息 (Ctrl+Enter)",
+    "clear": "清空歷史紀錄",
+    "clearConfirm": "確定要清空歷史紀錄嗎?",
+    "noMessages": "還沒有訊息。開始一個對話!",
+    "thinking": "思考中...",
+    "userLabel": "您",
+    "assistantLabel": "助手",
+    "errorSending": "傳送訊息出錯",
+    "connectionError": "與伺服器連線錯誤",
+    "messageNotSent": "訊息未傳送"
+  },
+  "settings": {
+    "title": "設定",
+    "language": "語言",
+    "theme": "佈景主題",
+    "darkMode": "深色模式",
+    "lightMode": "淺色模式",
+    "highContrast": "高對比度",
+    "fontSize": "字型大小",
+    "fontSizeSmall": "小",
+    "fontSizeMedium": "中",
+    "fontSizeLarge": "大",
+    "provider": "AI 提供者",
+    "autoSave": "自動儲存",
+    "accessibility": "無障礙",
+    "keyboardShortcuts": "鍵盤快速鍵"
+  },
+  "accessibility": {
+    "title": "無障礙",
+    "keyboard": "鍵盤導覽",
+    "screenReader": "螢幕助讀程式",
+    "contrast": "對比度",
+    "focusIndicator": "焦點指示符",
+    "skipToContent": "跳至主要內容",
+    "keyboardShortcutsHelp": "按 \"?\" 檢視鍵盤快速鍵"
+  },
+  "errors": {
+    "genericError": "出錯了。請重試。",
+    "networkError": "網路錯誤。請檢查連線。",
+    "timeoutError": "要求逾時。請重試。",
+    "validationError": "資料無效。請檢查輸入。",
+    "notFound": "找不到",
+    "unauthorized": "未授權"
+  },
+  "apiConfig": {
+    "title": "API 設定",
+    "apiKey": "API 金鑰",
+    "apiKeyPlaceholder": "輸入您的 API 金鑰",
+    "provider": "提供者",
+    "model": "模型",
+    "baseUrl": "基礎 URL",
+    "testConnection": "測試連線",
+    "connectionSuccess": "連線成功!",
+    "connectionFailed": "連線失敗"
+  },
+  "commands": {
+    "explainCode": "說明程式碼",
+    "refactorCode": "重構程式碼",
+    "generateTests": "產生測試",
+    "addComments": "新增註解",
+    "optimizePerformance": "最佳化效能"
+  }
+}

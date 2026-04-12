@@ -1,0 +1,91 @@
+{
+  "common": {
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "ok": "OK",
+    "close": "Schließen",
+    "save": "Speichern",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "loading": "Wird geladen...",
+    "error": "Fehler",
+    "warning": "Warnung",
+    "success": "Erfolg",
+    "info": "Information",
+    "yes": "Ja",
+    "no": "Nein",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Zurück",
+    "search": "Suchen",
+    "settings": "Einstellungen",
+    "about": "Über",
+    "help": "Hilfe"
+  },
+  "chat": {
+    "title": "Vectora Chat",
+    "placeholder": "Geben Sie Ihre Nachricht hier ein...",
+    "send": "Senden",
+    "sendMessage": "Nachricht senden (Ctrl+Eingabe)",
+    "clear": "Verlauf löschen",
+    "clearConfirm": "Möchten Sie den Verlauf wirklich löschen?",
+    "noMessages": "Noch keine Nachrichten. Starten Sie ein Gespräch!",
+    "thinking": "Nachdenken...",
+    "userLabel": "Sie",
+    "assistantLabel": "Assistent",
+    "errorSending": "Fehler beim Senden der Nachricht",
+    "connectionError": "Verbindungsfehler zum Server",
+    "messageNotSent": "Nachricht nicht gesendet"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "language": "Sprache",
+    "theme": "Design",
+    "darkMode": "Dunkler Modus",
+    "lightMode": "Heller Modus",
+    "highContrast": "Hoher Kontrast",
+    "fontSize": "Schriftgröße",
+    "fontSizeSmall": "Klein",
+    "fontSizeMedium": "Mittel",
+    "fontSizeLarge": "Groß",
+    "provider": "KI-Anbieter",
+    "autoSave": "Automatisches Speichern",
+    "accessibility": "Barrierefreiheit",
+    "keyboardShortcuts": "Tastaturkürzel"
+  },
+  "accessibility": {
+    "title": "Barrierefreiheit",
+    "keyboard": "Tastaturnavigation",
+    "screenReader": "Bildschirmleser",
+    "contrast": "Kontrast",
+    "focusIndicator": "Fokus-Indikator",
+    "skipToContent": "Zum Hauptinhalt springen",
+    "keyboardShortcutsHelp": "Drücken Sie \"?\", um Tastaturkürzel anzuzeigen"
+  },
+  "errors": {
+    "genericError": "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
+    "networkError": "Netzwerkfehler. Überprüfen Sie Ihre Verbindung.",
+    "timeoutError": "Anfrage abgelaufen. Bitte versuchen Sie es erneut.",
+    "validationError": "Ungültige Daten. Bitte überprüfen Sie Ihre Eingabe.",
+    "notFound": "Nicht gefunden",
+    "unauthorized": "Nicht autorisiert"
+  },
+  "apiConfig": {
+    "title": "API-Konfiguration",
+    "apiKey": "API-Schlüssel",
+    "apiKeyPlaceholder": "Geben Sie Ihren API-Schlüssel ein",
+    "provider": "Anbieter",
+    "model": "Modell",
+    "baseUrl": "Basis-URL",
+    "testConnection": "Verbindung testen",
+    "connectionSuccess": "Verbindung erfolgreich!",
+    "connectionFailed": "Verbindung fehlgeschlagen"
+  },
+  "commands": {
+    "explainCode": "Code erklären",
+    "refactorCode": "Code umgestalten",
+    "generateTests": "Tests generieren",
+    "addComments": "Kommentare hinzufügen",
+    "optimizePerformance": "Leistung optimieren"
+  }
+}

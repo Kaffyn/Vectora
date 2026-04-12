@@ -1,0 +1,91 @@
+{
+  "common": {
+    "cancel": "منسوخ کریں",
+    "confirm": "تصدیق کریں",
+    "ok": "ٹھیک ہے",
+    "close": "بند کریں",
+    "save": "محفوظ کریں",
+    "delete": "حذف کریں",
+    "edit": "ترمیم کریں",
+    "loading": "لوڈ ہو رہا ہے...",
+    "error": "خرابی",
+    "warning": "انتباہ",
+    "success": "کامیابی",
+    "info": "معلومات",
+    "yes": "جی",
+    "no": "نہیں",
+    "back": "واپس",
+    "next": "اگلا",
+    "previous": "پچھلا",
+    "search": "تلاش کریں",
+    "settings": "سیٹنگز",
+    "about": "کے بارے میں",
+    "help": "مدد"
+  },
+  "chat": {
+    "title": "Vectora چیٹ",
+    "placeholder": "یہاں اپنا پیغام ٹائپ کریں...",
+    "send": "بھیجیں",
+    "sendMessage": "پیغام بھیجیں (Ctrl+Enter)",
+    "clear": "ہسٹری صاف کریں",
+    "clearConfirm": "کیا آپ واقعی ہسٹری صاف کرنا چاہتے ہیں؟",
+    "noMessages": "ابھی کوئی پیغام نہیں۔ بات چیت شروع کریں!",
+    "thinking": "سوچ رہا ہے...",
+    "userLabel": "آپ",
+    "assistantLabel": "معاون",
+    "errorSending": "پیغام بھیجنے میں خرابی",
+    "connectionError": "سرور سے رابطے میں خرابی",
+    "messageNotSent": "پیغام نہیں بھیجا گیا"
+  },
+  "settings": {
+    "title": "سیٹنگز",
+    "language": "زبان",
+    "theme": "تھیم",
+    "darkMode": "سیاہ موڈ",
+    "lightMode": "روشن موڈ",
+    "highContrast": "زیادہ کنٹراسٹ",
+    "fontSize": "فانٹ کی سائز",
+    "fontSizeSmall": "چھوٹا",
+    "fontSizeMedium": "درمیانہ",
+    "fontSizeLarge": "بڑا",
+    "provider": "AI فراہم کار",
+    "autoSave": "خود کار محفوظ کریں",
+    "accessibility": "رسائی",
+    "keyboardShortcuts": "کی بورڈ شارٹ کٹس"
+  },
+  "accessibility": {
+    "title": "رسائی",
+    "keyboard": "کی بورڈ ہجی",
+    "screenReader": "اسکرین ریڈر",
+    "contrast": "کنٹراسٹ",
+    "focusIndicator": "توجہ کا اشارہ",
+    "skipToContent": "مرکزی مواد پر جائیں",
+    "keyboardShortcutsHelp": "کی بورڈ شارٹ کٹس دیکھنے کے لیے \"?\" دبائیں"
+  },
+  "errors": {
+    "genericError": "کچھ غلط ہوگیا۔ دوبارہ کوشش کریں۔",
+    "networkError": "نیٹ ورک کی خرابی۔ اپنی رابطہ کی جانچ کریں۔",
+    "timeoutError": "درخواست کا وقت ختم ہو گیا۔ دوبارہ کوشش کریں۔",
+    "validationError": "غلط ڈیٹا۔ اپنی ان پٹ کی جانچ کریں۔",
+    "notFound": "نہیں ملا",
+    "unauthorized": "غیر مجاز"
+  },
+  "apiConfig": {
+    "title": "API ترتیب",
+    "apiKey": "API کلید",
+    "apiKeyPlaceholder": "اپنی API کلید درج کریں",
+    "provider": "فراہم کار",
+    "model": "ماڈل",
+    "baseUrl": "بنیادی URL",
+    "testConnection": "کنکشن کو آزمائیں",
+    "connectionSuccess": "کامیاب رابطہ!",
+    "connectionFailed": "ناکام رابطہ"
+  },
+  "commands": {
+    "explainCode": "کوڈ کی وضاحت کریں",
+    "refactorCode": "کوڈ کو دوبارہ بنائیں",
+    "generateTests": "ٹیسٹ بنائیں",
+    "addComments": "تبصرے شامل کریں",
+    "optimizePerformance": "کارکردگی کو بہتر بنائیں"
+  }
+}

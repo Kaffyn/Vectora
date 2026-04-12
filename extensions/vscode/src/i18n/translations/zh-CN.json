@@ -1,0 +1,91 @@
+{
+  "common": {
+    "cancel": "取消",
+    "confirm": "确认",
+    "ok": "确定",
+    "close": "关闭",
+    "save": "保存",
+    "delete": "删除",
+    "edit": "编辑",
+    "loading": "加载中...",
+    "error": "错误",
+    "warning": "警告",
+    "success": "成功",
+    "info": "信息",
+    "yes": "是",
+    "no": "否",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "search": "搜索",
+    "settings": "设置",
+    "about": "关于",
+    "help": "帮助"
+  },
+  "chat": {
+    "title": "Vectora 聊天",
+    "placeholder": "在此输入您的消息...",
+    "send": "发送",
+    "sendMessage": "发送消息 (Ctrl+Enter)",
+    "clear": "清空历史记录",
+    "clearConfirm": "确定要清空历史记录吗?",
+    "noMessages": "还没有消息。开始一个对话!",
+    "thinking": "思考中...",
+    "userLabel": "您",
+    "assistantLabel": "助手",
+    "errorSending": "发送消息出错",
+    "connectionError": "与服务器连接错误",
+    "messageNotSent": "消息未发送"
+  },
+  "settings": {
+    "title": "设置",
+    "language": "语言",
+    "theme": "主题",
+    "darkMode": "深色模式",
+    "lightMode": "浅色模式",
+    "highContrast": "高对比度",
+    "fontSize": "字体大小",
+    "fontSizeSmall": "小",
+    "fontSizeMedium": "中",
+    "fontSizeLarge": "大",
+    "provider": "AI提供商",
+    "autoSave": "自动保存",
+    "accessibility": "无障碍",
+    "keyboardShortcuts": "键盘快捷方式"
+  },
+  "accessibility": {
+    "title": "无障碍",
+    "keyboard": "键盘导航",
+    "screenReader": "屏幕阅读器",
+    "contrast": "对比度",
+    "focusIndicator": "焦点指示符",
+    "skipToContent": "跳至主要内容",
+    "keyboardShortcutsHelp": "按 \"?\" 查看键盘快捷方式"
+  },
+  "errors": {
+    "genericError": "出错了。请重试。",
+    "networkError": "网络错误。请检查连接。",
+    "timeoutError": "请求超时。请重试。",
+    "validationError": "数据无效。请检查输入。",
+    "notFound": "未找到",
+    "unauthorized": "未授权"
+  },
+  "apiConfig": {
+    "title": "API配置",
+    "apiKey": "API密钥",
+    "apiKeyPlaceholder": "输入您的API密钥",
+    "provider": "提供商",
+    "model": "模型",
+    "baseUrl": "基础URL",
+    "testConnection": "测试连接",
+    "connectionSuccess": "连接成功!",
+    "connectionFailed": "连接失败"
+  },
+  "commands": {
+    "explainCode": "解释代码",
+    "refactorCode": "重构代码",
+    "generateTests": "生成测试",
+    "addComments": "添加注释",
+    "optimizePerformance": "优化性能"
+  }
+}

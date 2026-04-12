@@ -1,0 +1,91 @@
+{
+  "common": {
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "ok": "OK",
+    "close": "Fermer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "warning": "Avertissement",
+    "success": "Succès",
+    "info": "Information",
+    "yes": "Oui",
+    "no": "Non",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "search": "Rechercher",
+    "settings": "Paramètres",
+    "about": "À propos",
+    "help": "Aide"
+  },
+  "chat": {
+    "title": "Vectora Chat",
+    "placeholder": "Tapez votre message ici...",
+    "send": "Envoyer",
+    "sendMessage": "Envoyer le message (Ctrl+Entrée)",
+    "clear": "Effacer l'historique",
+    "clearConfirm": "Êtes-vous sûr de vouloir effacer l'historique ?",
+    "noMessages": "Pas encore de messages. Commencez une conversation !",
+    "thinking": "Réflexion...",
+    "userLabel": "Vous",
+    "assistantLabel": "Assistant",
+    "errorSending": "Erreur lors de l'envoi du message",
+    "connectionError": "Erreur de connexion avec le serveur",
+    "messageNotSent": "Message non envoyé"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "language": "Langue",
+    "theme": "Thème",
+    "darkMode": "Mode sombre",
+    "lightMode": "Mode clair",
+    "highContrast": "Contraste élevé",
+    "fontSize": "Taille de la police",
+    "fontSizeSmall": "Petit",
+    "fontSizeMedium": "Moyen",
+    "fontSizeLarge": "Grand",
+    "provider": "Fournisseur IA",
+    "autoSave": "Sauvegarde automatique",
+    "accessibility": "Accessibilité",
+    "keyboardShortcuts": "Raccourcis clavier"
+  },
+  "accessibility": {
+    "title": "Accessibilité",
+    "keyboard": "Navigation au clavier",
+    "screenReader": "Lecteur d'écran",
+    "contrast": "Contraste",
+    "focusIndicator": "Indicateur de focus",
+    "skipToContent": "Accéder au contenu principal",
+    "keyboardShortcutsHelp": "Appuyez sur \"?\" pour afficher les raccourcis clavier"
+  },
+  "errors": {
+    "genericError": "Une erreur est survenue. Veuillez réessayer.",
+    "networkError": "Erreur réseau. Vérifiez votre connexion.",
+    "timeoutError": "La demande a expiré. Veuillez réessayer.",
+    "validationError": "Données invalides. Veuillez vérifier votre entrée.",
+    "notFound": "Non trouvé",
+    "unauthorized": "Non autorisé"
+  },
+  "apiConfig": {
+    "title": "Configuration de l'API",
+    "apiKey": "Clé API",
+    "apiKeyPlaceholder": "Entrez votre clé API",
+    "provider": "Fournisseur",
+    "model": "Modèle",
+    "baseUrl": "URL de base",
+    "testConnection": "Tester la connexion",
+    "connectionSuccess": "Connexion réussie !",
+    "connectionFailed": "Échec de la connexion"
+  },
+  "commands": {
+    "explainCode": "Expliquer le code",
+    "refactorCode": "Refactoriser le code",
+    "generateTests": "Générer des tests",
+    "addComments": "Ajouter des commentaires",
+    "optimizePerformance": "Optimiser les performances"
+  }
+}

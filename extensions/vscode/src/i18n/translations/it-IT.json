@@ -1,0 +1,91 @@
+{
+  "common": {
+    "cancel": "Annulla",
+    "confirm": "Conferma",
+    "ok": "OK",
+    "close": "Chiudi",
+    "save": "Salva",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "loading": "Caricamento...",
+    "error": "Errore",
+    "warning": "Avvertenza",
+    "success": "Successo",
+    "info": "Informazioni",
+    "yes": "Sì",
+    "no": "No",
+    "back": "Indietro",
+    "next": "Avanti",
+    "previous": "Precedente",
+    "search": "Cerca",
+    "settings": "Impostazioni",
+    "about": "Informazioni",
+    "help": "Aiuto"
+  },
+  "chat": {
+    "title": "Vectora Chat",
+    "placeholder": "Digita il tuo messaggio qui...",
+    "send": "Invia",
+    "sendMessage": "Invia messaggio (Ctrl+Invio)",
+    "clear": "Cancella cronologia",
+    "clearConfirm": "Sei sicuro di voler cancellare la cronologia?",
+    "noMessages": "Nessun messaggio ancora. Avvia una conversazione!",
+    "thinking": "Pensando...",
+    "userLabel": "Tu",
+    "assistantLabel": "Assistente",
+    "errorSending": "Errore nell'invio del messaggio",
+    "connectionError": "Errore di connessione con il server",
+    "messageNotSent": "Messaggio non inviato"
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "language": "Lingua",
+    "theme": "Tema",
+    "darkMode": "Modalità scura",
+    "lightMode": "Modalità chiara",
+    "highContrast": "Contrasto elevato",
+    "fontSize": "Dimensione carattere",
+    "fontSizeSmall": "Piccolo",
+    "fontSizeMedium": "Medio",
+    "fontSizeLarge": "Grande",
+    "provider": "Provider IA",
+    "autoSave": "Salvataggio automatico",
+    "accessibility": "Accessibilità",
+    "keyboardShortcuts": "Scorciatoie da tastiera"
+  },
+  "accessibility": {
+    "title": "Accessibilità",
+    "keyboard": "Navigazione da tastiera",
+    "screenReader": "Lettore schermo",
+    "contrast": "Contrasto",
+    "focusIndicator": "Indicatore di focus",
+    "skipToContent": "Salta al contenuto principale",
+    "keyboardShortcutsHelp": "Premi \"?\" per visualizzare le scorciatoie da tastiera"
+  },
+  "errors": {
+    "genericError": "Qualcosa è andato storto. Riprova.",
+    "networkError": "Errore di rete. Controlla la tua connessione.",
+    "timeoutError": "Richiesta scaduta. Riprova.",
+    "validationError": "Dati non validi. Controlla il tuo input.",
+    "notFound": "Non trovato",
+    "unauthorized": "Non autorizzato"
+  },
+  "apiConfig": {
+    "title": "Configurazione API",
+    "apiKey": "Chiave API",
+    "apiKeyPlaceholder": "Inserisci la tua chiave API",
+    "provider": "Provider",
+    "model": "Modello",
+    "baseUrl": "URL base",
+    "testConnection": "Testa connessione",
+    "connectionSuccess": "Connessione riuscita!",
+    "connectionFailed": "Connessione fallita"
+  },
+  "commands": {
+    "explainCode": "Spiega codice",
+    "refactorCode": "Refactor codice",
+    "generateTests": "Genera test",
+    "addComments": "Aggiungi commenti",
+    "optimizePerformance": "Ottimizza prestazioni"
+  }
+}

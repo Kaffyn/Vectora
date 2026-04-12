@@ -1,0 +1,91 @@
+{
+  "common": {
+    "cancel": "لغو",
+    "confirm": "تایید",
+    "ok": "تایید",
+    "close": "بستن",
+    "save": "ذخیره",
+    "delete": "حذف",
+    "edit": "ویرایش",
+    "loading": "در حال بارگزاری...",
+    "error": "خطا",
+    "warning": "هشدار",
+    "success": "موفق",
+    "info": "اطلاعات",
+    "yes": "بله",
+    "no": "خیر",
+    "back": "بازگشت",
+    "next": "بعدی",
+    "previous": "قبلی",
+    "search": "جستجو",
+    "settings": "تنظیمات",
+    "about": "درباره",
+    "help": "راهنما"
+  },
+  "chat": {
+    "title": "Vectora گفتگو",
+    "placeholder": "پیام خود را اینجا بنویسید...",
+    "send": "ارسال",
+    "sendMessage": "ارسال پیام (Ctrl+Enter)",
+    "clear": "پاک کردن تاریخ",
+    "clearConfirm": "آیا مطمئن هستید که می‌خواهید تاریخ را پاک کنید؟",
+    "noMessages": "هنوز پیامی نیست. یک گفتگو شروع کنید!",
+    "thinking": "در حال فکر کردن...",
+    "userLabel": "شما",
+    "assistantLabel": "دستیار",
+    "errorSending": "خطا در ارسال پیام",
+    "connectionError": "خطا در اتصال به سرور",
+    "messageNotSent": "پیام ارسال نشد"
+  },
+  "settings": {
+    "title": "تنظیمات",
+    "language": "زبان",
+    "theme": "تم",
+    "darkMode": "حالت تیره",
+    "lightMode": "حالت روشن",
+    "highContrast": "کنتراست بالا",
+    "fontSize": "اندازه فونت",
+    "fontSizeSmall": "کوچک",
+    "fontSizeMedium": "متوسط",
+    "fontSizeLarge": "بزرگ",
+    "provider": "فراهم‌کننده هوش مصنوعی",
+    "autoSave": "ذخیره خودکار",
+    "accessibility": "دسترسی‌پذیری",
+    "keyboardShortcuts": "میانبرهای صفحه کلید"
+  },
+  "accessibility": {
+    "title": "دسترسی‌پذیری",
+    "keyboard": "ناوبری صفحه کلید",
+    "screenReader": "خواننده صفحه",
+    "contrast": "کنتراست",
+    "focusIndicator": "شاخص فوکوس",
+    "skipToContent": "رفتن به محتوای اصلی",
+    "keyboardShortcutsHelp": "برای مشاهده میانبرهای صفحه کلید \"?\" را فشار دهید"
+  },
+  "errors": {
+    "genericError": "مشکلی پیش آمد. دوباره سعی کنید.",
+    "networkError": "خطا در شبکه. اتصال خود را بررسی کنید.",
+    "timeoutError": "درخواست منقضی شد. دوباره سعی کنید.",
+    "validationError": "داده نامعتبر است. ورودی خود را بررسی کنید.",
+    "notFound": "یافت نشد",
+    "unauthorized": "غیرمجاز"
+  },
+  "apiConfig": {
+    "title": "تنظیم API",
+    "apiKey": "کلید API",
+    "apiKeyPlaceholder": "کلید API خود را وارد کنید",
+    "provider": "فراهم‌کننده",
+    "model": "مدل",
+    "baseUrl": "URL پایه",
+    "testConnection": "تست اتصال",
+    "connectionSuccess": "اتصال موفق!",
+    "connectionFailed": "اتصال ناموفق"
+  },
+  "commands": {
+    "explainCode": "توضیح کد",
+    "refactorCode": "بازسازی کد",
+    "generateTests": "ایجاد تست‌ها",
+    "addComments": "افزودن نظرات",
+    "optimizePerformance": "بهینه‌سازی عملکرد"
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "common": {
+    "cancel": "إلغاء",
+    "confirm": "تأكيد",
+    "ok": "حسناً",
+    "close": "إغلاق",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تحرير",
+    "loading": "جاري التحميل...",
+    "error": "خطأ",
+    "warning": "تحذير",
+    "success": "نجح",
+    "info": "معلومات",
+    "yes": "نعم",
+    "no": "لا",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "search": "بحث",
+    "settings": "الإعدادات",
+    "about": "حول",
+    "help": "مساعدة"
+  },
+  "chat": {
+    "title": "Vectora دردشة",
+    "placeholder": "اكتب رسالتك هنا...",
+    "send": "إرسال",
+    "sendMessage": "إرسال الرسالة (Ctrl+Enter)",
+    "clear": "مسح السجل",
+    "clearConfirm": "هل تريد بالفعل مسح السجل؟",
+    "noMessages": "لا توجد رسائل حتى الآن. ابدأ محادثة!",
+    "thinking": "جاري التفكير...",
+    "userLabel": "أنت",
+    "assistantLabel": "المساعد",
+    "errorSending": "خطأ في إرسال الرسالة",
+    "connectionError": "خطأ في الاتصال بالخادم",
+    "messageNotSent": "لم يتم إرسال الرسالة"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "language": "اللغة",
+    "theme": "المظهر",
+    "darkMode": "الوضع الداكن",
+    "lightMode": "الوضع الفاتح",
+    "highContrast": "تباين عالي",
+    "fontSize": "حجم الخط",
+    "fontSizeSmall": "صغير",
+    "fontSizeMedium": "متوسط",
+    "fontSizeLarge": "كبير",
+    "provider": "موفر الذكاء الاصطناعي",
+    "autoSave": "الحفظ التلقائي",
+    "accessibility": "إمكانية الوصول",
+    "keyboardShortcuts": "اختصارات لوحة المفاتيح"
+  },
+  "accessibility": {
+    "title": "إمكانية الوصول",
+    "keyboard": "التنقل بلوحة المفاتيح",
+    "screenReader": "قارئ الشاشة",
+    "contrast": "التباين",
+    "focusIndicator": "مؤشر التركيز",
+    "skipToContent": "انتقل إلى المحتوى الرئيسي",
+    "keyboardShortcutsHelp": "اضغط على \"?\" لعرض اختصارات لوحة المفاتيح"
+  },
+  "errors": {
+    "genericError": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    "networkError": "خطأ في الشبكة. تحقق من اتصالك.",
+    "timeoutError": "انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.",
+    "validationError": "بيانات غير صحيحة. يرجى التحقق من إدخالك.",
+    "notFound": "لم يتم العثور عليه",
+    "unauthorized": "غير مصرح"
+  },
+  "apiConfig": {
+    "title": "إعدادات API",
+    "apiKey": "مفتاح API",
+    "apiKeyPlaceholder": "أدخل مفتاح API الخاص بك",
+    "provider": "الموفر",
+    "model": "النموذج",
+    "baseUrl": "عنوان URL الأساسي",
+    "testConnection": "اختبر الاتصال",
+    "connectionSuccess": "نجح الاتصال!",
+    "connectionFailed": "فشل الاتصال"
+  },
+  "commands": {
+    "explainCode": "شرح الكود",
+    "refactorCode": "إعادة هيكلة الكود",
+    "generateTests": "توليد الاختبارات",
+    "addComments": "إضافة تعليقات",
+    "optimizePerformance": "تحسين الأداء"
+  }
+}

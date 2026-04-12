@@ -1,0 +1,91 @@
+{
+  "common": {
+    "cancel": "ביטול",
+    "confirm": "אישור",
+    "ok": "אישור",
+    "close": "סגור",
+    "save": "שמור",
+    "delete": "מחק",
+    "edit": "עריכה",
+    "loading": "בטעינה...",
+    "error": "שגיאה",
+    "warning": "אזהרה",
+    "success": "הצליח",
+    "info": "מידע",
+    "yes": "כן",
+    "no": "לא",
+    "back": "חזור",
+    "next": "הבא",
+    "previous": "הקודם",
+    "search": "חפש",
+    "settings": "הגדרות",
+    "about": "אודות",
+    "help": "עזרה"
+  },
+  "chat": {
+    "title": "Vectora צ'ט",
+    "placeholder": "הקלד את הודעתך כאן...",
+    "send": "שלח",
+    "sendMessage": "שלח הודעה (Ctrl+Enter)",
+    "clear": "נקה היסטוריה",
+    "clearConfirm": "האם אתה בטוח שברצונך לנקות את ההיסטוריה?",
+    "noMessages": "אין הודעות עדיין. התחל שיחה!",
+    "thinking": "מחשבת...",
+    "userLabel": "אתה",
+    "assistantLabel": "עוזר",
+    "errorSending": "שגיאה בשליחת הודעה",
+    "connectionError": "שגיאת חיבור לשרת",
+    "messageNotSent": "ההודעה לא נשלחה"
+  },
+  "settings": {
+    "title": "הגדרות",
+    "language": "שפה",
+    "theme": "ערכת נושא",
+    "darkMode": "מצב אפל",
+    "lightMode": "מצב בהיר",
+    "highContrast": "ניגודיות גבוהה",
+    "fontSize": "גודל גופן",
+    "fontSizeSmall": "קטן",
+    "fontSizeMedium": "בינוני",
+    "fontSizeLarge": "גדול",
+    "provider": "ספק בינה מלאכותית",
+    "autoSave": "שמירה אוטומטית",
+    "accessibility": "נגישות",
+    "keyboardShortcuts": "קיצורי מקלדת"
+  },
+  "accessibility": {
+    "title": "נגישות",
+    "keyboard": "ניווט במקלדת",
+    "screenReader": "קורא מסך",
+    "contrast": "ניגודיות",
+    "focusIndicator": "מחוון מיקוד",
+    "skipToContent": "דלג לתוכן ראשי",
+    "keyboardShortcutsHelp": "לחץ על \"?\" כדי להציג קיצורי מקלדת"
+  },
+  "errors": {
+    "genericError": "משהו השתבש. בחן שוב.",
+    "networkError": "שגיאת רשת. בדוק את החיבור שלך.",
+    "timeoutError": "פג תוקף הבקשה. בחן שוב.",
+    "validationError": "נתונים לא תקינים. בדוק את הקלט שלך.",
+    "notFound": "לא נמצא",
+    "unauthorized": "לא מורשה"
+  },
+  "apiConfig": {
+    "title": "תצורת API",
+    "apiKey": "מפתח API",
+    "apiKeyPlaceholder": "הזן את מפתח ה-API שלך",
+    "provider": "ספק",
+    "model": "מודל",
+    "baseUrl": "כתובת URL בסיסית",
+    "testConnection": "בדוק חיבור",
+    "connectionSuccess": "החיבור הצליח!",
+    "connectionFailed": "החיבור נכשל"
+  },
+  "commands": {
+    "explainCode": "הסבר קוד",
+    "refactorCode": "עדכן קוד",
+    "generateTests": "צור בדיקות",
+    "addComments": "הוסף הערות",
+    "optimizePerformance": "אופטימיזציה של ביצועים"
+  }
+}

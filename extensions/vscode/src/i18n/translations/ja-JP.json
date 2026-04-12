@@ -1,0 +1,91 @@
+{
+  "common": {
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "ok": "OK",
+    "close": "閉じる",
+    "save": "保存",
+    "delete": "削除",
+    "edit": "編集",
+    "loading": "読み込み中...",
+    "error": "エラー",
+    "warning": "警告",
+    "success": "成功",
+    "info": "情報",
+    "yes": "はい",
+    "no": "いいえ",
+    "back": "戻る",
+    "next": "次へ",
+    "previous": "前へ",
+    "search": "検索",
+    "settings": "設定",
+    "about": "について",
+    "help": "ヘルプ"
+  },
+  "chat": {
+    "title": "Vectora チャット",
+    "placeholder": "ここにメッセージを入力してください...",
+    "send": "送信",
+    "sendMessage": "メッセージを送信 (Ctrl+Enter)",
+    "clear": "履歴をクリア",
+    "clearConfirm": "履歴をクリアしてもよろしいですか?",
+    "noMessages": "メッセージはまだありません。会話を始めてください!",
+    "thinking": "考え中...",
+    "userLabel": "あなた",
+    "assistantLabel": "アシスタント",
+    "errorSending": "メッセージ送信エラー",
+    "connectionError": "サーバーとの接続エラー",
+    "messageNotSent": "メッセージが送信されませんでした"
+  },
+  "settings": {
+    "title": "設定",
+    "language": "言語",
+    "theme": "テーマ",
+    "darkMode": "ダークモード",
+    "lightMode": "ライトモード",
+    "highContrast": "高コントラスト",
+    "fontSize": "フォントサイズ",
+    "fontSizeSmall": "小",
+    "fontSizeMedium": "中",
+    "fontSizeLarge": "大",
+    "provider": "AIプロバイダー",
+    "autoSave": "自動保存",
+    "accessibility": "アクセシビリティ",
+    "keyboardShortcuts": "キーボードショートカット"
+  },
+  "accessibility": {
+    "title": "アクセシビリティ",
+    "keyboard": "キーボードナビゲーション",
+    "screenReader": "スクリーンリーダー",
+    "contrast": "コントラスト",
+    "focusIndicator": "フォーカスインジケータ",
+    "skipToContent": "メインコンテンツへスキップ",
+    "keyboardShortcutsHelp": "\"?\" を押すとキーボードショートカットが表示されます"
+  },
+  "errors": {
+    "genericError": "エラーが発生しました。もう一度お試しください。",
+    "networkError": "ネットワークエラー。接続を確認してください。",
+    "timeoutError": "リクエストがタイムアウトしました。もう一度お試しください。",
+    "validationError": "無効なデータです。入力を確認してください。",
+    "notFound": "見つかりません",
+    "unauthorized": "許可されていません"
+  },
+  "apiConfig": {
+    "title": "API設定",
+    "apiKey": "APIキー",
+    "apiKeyPlaceholder": "APIキーを入力してください",
+    "provider": "プロバイダー",
+    "model": "モデル",
+    "baseUrl": "ベースURL",
+    "testConnection": "接続をテスト",
+    "connectionSuccess": "接続成功!",
+    "connectionFailed": "接続失敗"
+  },
+  "commands": {
+    "explainCode": "コード説明",
+    "refactorCode": "コードリファクタリング",
+    "generateTests": "テスト生成",
+    "addComments": "コメント追加",
+    "optimizePerformance": "パフォーマンス最適化"
+  }
+}
