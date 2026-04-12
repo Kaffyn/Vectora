@@ -11,7 +11,171 @@ import {
   TranslationNamespace,
   TranslationOptions,
   NamespaceLoader,
+  LanguageMetadata,
+  RTLAPI,
 } from "./types";
+import { RTLManager, initRTLManager } from "./rtl/rtlManager";
+import { isRTLLanguage } from "./rtl/rtlDetector";
+
+/**
+ * Language Metadata Database
+ */
+const languageMetadata: Record<SupportedLanguage, LanguageMetadata> = {
+  "en-US": {
+    code: "en-US",
+    nativeName: "English",
+    englishName: "English",
+    region: "United States",
+    direction: "ltr",
+    dateFormat: "MM/DD/YYYY",
+    timeFormat: "12h",
+    numberFormat: { decimal: ".", thousands: "," },
+    alternativeLanguages: undefined,
+  },
+  "pt-BR": {
+    code: "pt-BR",
+    nativeName: "Português",
+    englishName: "Portuguese",
+    region: "Brazil",
+    direction: "ltr",
+    dateFormat: "DD/MM/YYYY",
+    timeFormat: "24h",
+    numberFormat: { decimal: ",", thousands: "." },
+  },
+  "pt-PT": {
+    code: "pt-PT",
+    nativeName: "Português",
+    englishName: "Portuguese",
+    region: "Portugal",
+    direction: "ltr",
+    dateFormat: "DD/MM/YYYY",
+    timeFormat: "24h",
+    numberFormat: { decimal: ",", thousands: "." },
+    alternativeLanguages: ["pt-BR"],
+  },
+  "es-ES": {
+    code: "es-ES",
+    nativeName: "Español",
+    englishName: "Spanish",
+    region: "Spain",
+    direction: "ltr",
+    dateFormat: "DD/MM/YYYY",
+    timeFormat: "24h",
+    numberFormat: { decimal: ",", thousands: "." },
+  },
+  "fr-FR": {
+    code: "fr-FR",
+    nativeName: "Français",
+    englishName: "French",
+    region: "France",
+    direction: "ltr",
+    dateFormat: "DD/MM/YYYY",
+    timeFormat: "24h",
+    numberFormat: { decimal: ",", thousands: " " },
+  },
+  "de-DE": {
+    code: "de-DE",
+    nativeName: "Deutsch",
+    englishName: "German",
+    region: "Germany",
+    direction: "ltr",
+    dateFormat: "DD.MM.YYYY",
+    timeFormat: "24h",
+    numberFormat: { decimal: ",", thousands: "." },
+  },
+  "it-IT": {
+    code: "it-IT",
+    nativeName: "Italiano",
+    englishName: "Italian",
+    region: "Italy",
+    direction: "ltr",
+    dateFormat: "DD/MM/YYYY",
+    timeFormat: "24h",
+    numberFormat: { decimal: ",", thousands: "." },
+  },
+  "ja-JP": {
+    code: "ja-JP",
+    nativeName: "日本語",
+    englishName: "Japanese",
+    region: "Japan",
+    direction: "ltr",
+    dateFormat: "YYYY/MM/DD",
+    timeFormat: "24h",
+    numberFormat: { decimal: ".", thousands: "," },
+  },
+  "zh-CN": {
+    code: "zh-CN",
+    nativeName: "简体中文",
+    englishName: "Chinese",
+    region: "China",
+    direction: "ltr",
+    dateFormat: "YYYY-MM-DD",
+    timeFormat: "24h",
+    numberFormat: { decimal: ".", thousands: "," },
+    alternativeLanguages: ["zh-TW"],
+  },
+  "zh-TW": {
+    code: "zh-TW",
+    nativeName: "繁體中文",
+    englishName: "Chinese",
+    region: "Taiwan",
+    direction: "ltr",
+    dateFormat: "YYYY-MM-DD",
+    timeFormat: "24h",
+    numberFormat: { decimal: ".", thousands: "," },
+    alternativeLanguages: ["zh-CN"],
+  },
+  "ko-KR": {
+    code: "ko-KR",
+    nativeName: "한국어",
+    englishName: "Korean",
+    region: "South Korea",
+    direction: "ltr",
+    dateFormat: "YYYY-MM-DD",
+    timeFormat: "24h",
+    numberFormat: { decimal: ".", thousands: "," },
+  },
+  "ar-SA": {
+    code: "ar-SA",
+    nativeName: "العربية",
+    englishName: "Arabic",
+    region: "Saudi Arabia",
+    direction: "rtl",
+    dateFormat: "DD/MM/YYYY",
+    timeFormat: "24h",
+    numberFormat: { decimal: ",", thousands: "." },
+  },
+  "he-IL": {
+    code: "he-IL",
+    nativeName: "עברית",
+    englishName: "Hebrew",
+    region: "Israel",
+    direction: "rtl",
+    dateFormat: "DD.MM.YYYY",
+    timeFormat: "24h",
+    numberFormat: { decimal: ".", thousands: "," },
+  },
+  "fa-IR": {
+    code: "fa-IR",
+    nativeName: "فارسی",
+    englishName: "Persian",
+    region: "Iran",
+    direction: "rtl",
+    dateFormat: "YYYY/MM/DD",
+    timeFormat: "24h",
+    numberFormat: { decimal: "/", thousands: "," },
+  },
+  "ur-PK": {
+    code: "ur-PK",
+    nativeName: "اردو",
+    englishName: "Urdu",
+    region: "Pakistan",
+    direction: "rtl",
+    dateFormat: "DD/MM/YYYY",
+    timeFormat: "24h",
+    numberFormat: { decimal: ".", thousands: "," },
+  },
+};
 
 class I18nEngine implements I18nAPI {
   private currentLanguage: SupportedLanguage;
@@ -20,6 +184,7 @@ class I18nEngine implements I18nAPI {
   private namespaces: Map<string, Map<SupportedLanguage, TranslationNamespace>>;
   private loaders: Map<string, NamespaceLoader>;
   private loadingPromises: Map<string, Promise<void>>;
+  private rtlManager: RTLManager | null;
 
   constructor(config: I18nConfig) {
     this.currentLanguage = config.defaultLanguage;
@@ -32,10 +197,17 @@ class I18nEngine implements I18nAPI {
       keySeparator: config.keySeparator || ".",
       interpolationPrefix: config.interpolationPrefix || "{{",
       interpolationSuffix: config.interpolationSuffix || "}}",
+      rtl: config.rtl || { enabled: true },
     };
     this.namespaces = new Map();
     this.loaders = new Map();
     this.loadingPromises = new Map();
+    this.rtlManager = null;
+
+    // Initialize RTL manager
+    if (this.config.rtl.enabled) {
+      this.rtlManager = initRTLManager(this.currentLanguage, this.config.rtl);
+    }
   }
 
   /**
@@ -59,14 +231,25 @@ class I18nEngine implements I18nAPI {
    * Check if a language is supported
    */
   isLanguageSupported(lang: string): boolean {
-    return ["en-US", "pt-BR", "es-ES"].includes(lang);
+    const supportedLanguages = [
+      "en-US", "pt-BR", "pt-PT", "es-ES",
+      "fr-FR", "de-DE", "it-IT",
+      "ja-JP", "zh-CN", "zh-TW", "ko-KR",
+      "ar-SA", "he-IL", "fa-IR", "ur-PK"
+    ];
+    return supportedLanguages.includes(lang);
   }
 
   /**
    * Get available languages
    */
   getAvailableLanguages(): SupportedLanguage[] {
-    return ["en-US", "pt-BR", "es-ES"];
+    return [
+      "en-US", "pt-BR", "pt-PT", "es-ES",
+      "fr-FR", "de-DE", "it-IT",
+      "ja-JP", "zh-CN", "zh-TW", "ko-KR",
+      "ar-SA", "he-IL", "fa-IR", "ur-PK"
+    ];
   }
 
   /**
@@ -80,6 +263,11 @@ class I18nEngine implements I18nAPI {
 
     this.currentLanguage = lang;
 
+    // Update RTL direction
+    if (this.rtlManager && this.config.rtl.enabled) {
+      this.rtlManager.applyDirection(lang);
+    }
+
     // Load all registered namespaces for the new language
     const promises = Array.from(this.loaders.entries()).map(([ns]) =>
       this.loadNamespace(ns, lang),
@@ -90,6 +278,37 @@ class I18nEngine implements I18nAPI {
     if (this.config.debug) {
       console.log(`[i18n] Language changed to: ${lang}`);
     }
+  }
+
+  /**
+   * Check if current language is RTL
+   */
+  isRTL(): boolean {
+    return isRTLLanguage(this.currentLanguage);
+  }
+
+  /**
+   * Get language metadata
+   */
+  getLanguageMetadata(language: SupportedLanguage): LanguageMetadata | null {
+    return languageMetadata[language] || null;
+  }
+
+  /**
+   * Get all languages metadata
+   */
+  getAllLanguagesMetadata(): LanguageMetadata[] {
+    return Object.values(languageMetadata);
+  }
+
+  /**
+   * Get RTL API
+   */
+  get rtl(): RTLAPI {
+    if (!this.rtlManager) {
+      throw new Error("RTL manager not initialized. Enable RTL in config.");
+    }
+    return this.rtlManager;
   }
 
   /**
