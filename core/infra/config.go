@@ -57,6 +57,7 @@ type Config struct {
 	DefaultModel          string
 	DefaultProvider       string
 	DefaultFallbackProvider string
+	ActiveModel           string
 
 	// Fallback models per provider
 	GeminiFallbackModel   string
@@ -156,6 +157,7 @@ func LoadConfig() *Config {
 		MetaAPIKey:            os.Getenv("META_API_KEY"),
 		MetaBaseURL:           os.Getenv("META_BASE_URL"),
 		MetaFallbackModel:     os.Getenv("META_FALLBACK_MODEL"),
+		ActiveModel:           os.Getenv("ACTIVE_MODEL"),
 	}
 }
 
@@ -262,6 +264,9 @@ func SaveConfig(cfg *Config) error {
 	}
 	if cfg.MetaFallbackModel != "" {
 		content += fmt.Sprintf("META_FALLBACK_MODEL=%s\n", cfg.MetaFallbackModel)
+	}
+	if cfg.ActiveModel != "" {
+		content += fmt.Sprintf("ACTIVE_MODEL=%s\n", cfg.ActiveModel)
 	}
 
 	return os.WriteFile(envPath, []byte(content), 0600)
