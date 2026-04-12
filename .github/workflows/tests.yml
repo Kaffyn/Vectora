@@ -1,18 +1,13 @@
 name: Command & Integration Tests
 
 on:
-  push:
-    branches:
-      - master
-      - develop
-    paths-ignore:
-      - "README.md"
-      - "README.pt.md"
-      - "docs/**"
-  pull_request:
-    branches:
-      - master
-      - develop
+  workflow_call:
+    inputs:
+      full_test:
+        description: "Run full test suite (including slow tests)"
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       full_test:

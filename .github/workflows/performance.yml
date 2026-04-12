@@ -1,18 +1,7 @@
 name: Performance & Bundle Monitoring
 
 on:
-  push:
-    branches:
-      - master
-      - develop
-    paths-ignore:
-      - "README.md"
-      - "README.pt.md"
-      - "docs/**"
-  pull_request:
-    branches:
-      - master
-      - develop
+  workflow_call:   # Chamado apenas pelo ci.yml
   workflow_dispatch:
 
 permissions:

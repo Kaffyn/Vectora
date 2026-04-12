@@ -1,17 +1,7 @@
 name: Extension — Claude Code
 
 on:
-  push:
-    branches: [master, develop]
-    paths:
-      - "extensions/claude-code/**"
-      - ".github/workflows/extension-claude-code.yml"
-    tags:
-      - "ext-claude-code-v*"
-  pull_request:
-    branches: [master, develop]
-    paths:
-      - "extensions/claude-code/**"
+  workflow_call:   # Chamado apenas pelo ci.yml
   workflow_dispatch:
 
 jobs:

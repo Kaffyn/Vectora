@@ -1,324 +1,178 @@
-name: CI/CD Pipeline (Main Orchestrator)
+name: 🚀 Pipeline Principal
 
 on:
   push:
-    branches:
-      - master
-      - develop
+    branches: [master, develop]
     tags:
       - "v*"
-    paths-ignore:
-      - "README.md"
-      - "README.pt.md"
-      - "docs/**"
+      - "ext-claude-code-v*"
   pull_request:
-    branches:
-      - master
-      - develop
+    branches: [master, develop]
   workflow_dispatch:
+    inputs:
+      full_test:
+        description: "Rodar suite completa de testes (incluindo lentos)"
+        required: false
+        default: "false"
+        type: boolean
 
-permissions:
-  contents: read
+# Cancela runs anteriores do mesmo PR/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  # ============================================================================
-  # ORCHESTRATION JOB - Controls the entire pipeline
-  # ============================================================================
-  orchestrate:
-    name: Pipeline Orchestrator
+  # ─────────────────────────────────────────────
+  # Detecta o que mudou para acionar só o necessário
+  # ─────────────────────────────────────────────
+  detect:
+    name: Detectar mudanças
     runs-on: ubuntu-latest
     outputs:
-      should-test: ${{ steps.conditions.outputs.should-test }}
-      should-build: ${{ steps.conditions.outputs.should-build }}
-      should-release: ${{ steps.conditions.outputs.should-release }}
-      version: ${{ steps.version.outputs.version }}
+      core:           ${{ steps.changes.outputs.core }}
+      ext_vscode:     ${{ steps.changes.outputs.ext_vscode }}
+      ext_geminicli:  ${{ steps.changes.outputs.ext_geminicli }}
+      ext_claudecode: ${{ steps.changes.outputs.ext_claudecode }}
+      is_release:     ${{ steps.changes.outputs.is_release }}
+      is_ext_release: ${{ steps.changes.outputs.is_ext_release }}
 
     steps:
-      - name: Determine pipeline conditions
-        id: conditions
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detectar arquivos alterados
+        id: changes
         run: |
-          # Determine which stages should run
-          SHOULD_TEST="true"
-          SHOULD_BUILD="false"
-          SHOULD_RELEASE="false"
-
-          if [[ "${{ github.event_name }}" == "push" && ! "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-            # Regular push (not a tag)
-            SHOULD_BUILD="true"
-          fi
-
+          # Tag de release do core
           if [[ "${{ github.ref }}" =~ ^refs/tags/v ]]; then
-            # Version tag detected
-            SHOULD_RELEASE="true"
-            SHOULD_BUILD="false"  # Release will build itself
-          fi
-
-          echo "should-test=$SHOULD_TEST" >> $GITHUB_OUTPUT
-          echo "should-build=$SHOULD_BUILD" >> $GITHUB_OUTPUT
-          echo "should-release=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
-
-      - name: Extract version
-        id: version
-        run: |
-          VERSION="${{ github.ref }}"
-          VERSION="${VERSION#refs/tags/}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Display pipeline configuration
-        run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║           GitHub Actions CI/CD Pipeline                   ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "📋 Pipeline Configuration:"
-          echo "  Event:    ${{ github.event_name }}"
-          echo "  Ref:      ${{ github.ref }}"
-          echo "  Commit:   ${{ github.sha }}"
-          echo ""
-          echo "🔄 Scheduled Stages:"
-          echo "  ✓ Tests:    ${{ steps.conditions.outputs.should-test }}"
-          echo "  ✓ Build:    ${{ steps.conditions.outputs.should-build }}"
-          echo "  ✓ Release:  ${{ steps.conditions.outputs.should-release }}"
-          if [[ "${{ steps.conditions.outputs.should-release }}" == "true" ]]; then
-            echo ""
-            echo "🎉 Version: ${{ steps.version.outputs.version }}"
-          fi
-
-  # ============================================================================
-  # STAGE 1: TESTS - Required for all pushes and PRs
-  # ============================================================================
-  tests:
-    name: Tests - Required
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: "1.22"
-          cache: true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Run unit tests
-        run: go test -v -race -coverprofile=coverage.out ./...
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage.out
-          flags: unittests
-          name: codecov-ubuntu
-
-      - name: Run linter
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: latest
-          args: --timeout=5m
-
-      - name: Check go fmt
-        run: |
-          if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-            echo "❌ Files need formatting"
-            gofmt -s -d .
-            exit 1
-          fi
-          echo "✅ All files properly formatted"
-
-      - name: Run go vet
-        run: go vet ./...
-
-      - name: Lint TypeScript (VS Code Extension)
-        working-directory: extensions/vscode
-        run: npm ci && npm run lint
-        continue-on-error: true
-
-      - name: Type check TypeScript
-        working-directory: extensions/vscode
-        run: npx tsc --noEmit
-        continue-on-error: true
-
-      - name: Build VS Code Extension
-        working-directory: extensions/vscode
-        run: npm run compile
-        continue-on-error: true
-
-      - name: Build Gemini CLI Extension
-        working-directory: extensions/geminicli
-        run: npm ci && npm run build
-        continue-on-error: true
-
-      - name: Test Summary
-        if: always()
-        run: |
-          echo "✅ Tests completed"
-
-  # ============================================================================
-  # STAGE 2: BUILD - Runs after tests, only on commits (not on tags or PRs)
-  # ============================================================================
-  build:
-    name: Build - Cross-Platform
-    needs: tests
-    runs-on: ubuntu-latest
-    if: |
-      github.event_name == 'push' &&
-      !startsWith(github.ref, 'refs/tags/') &&
-      github.ref != 'refs/heads/main'
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: "1.22"
-          cache: true
-
-      - name: Build all binaries
-        run: bash build.sh
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: vectora-build-${{ github.run_id }}
-          path: bin/
-          retention-days: 7
-
-      - name: Build Summary
-        run: |
-          echo "✅ Build completed successfully"
-          echo "📦 Artifacts available for 7 days"
-
-  # ============================================================================
-  # STAGE 3: RELEASE - Runs only on version tags, depends on tests
-  # ============================================================================
-  release:
-    name: Release - Create GitHub Release
-    needs: tests
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Extract version from tag
-        id: version
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/}
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "version_number=${VERSION#v}" >> $GITHUB_OUTPUT
-
-      - name: Get current date
-        id: date
-        run: echo "date=$(date -u +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
-      - name: Get commit range
-        id: commits
-        run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$LAST_TAG" ]; then
-            echo "range=<first release>" >> $GITHUB_OUTPUT
-            echo "url=https://github.com/Kaffyn/Vectora/commits/${{ github.sha }}" >> $GITHUB_OUTPUT
+            echo "is_release=true" >> $GITHUB_OUTPUT
           else
-            echo "range=$LAST_TAG..HEAD" >> $GITHUB_OUTPUT
-            echo "url=https://github.com/Kaffyn/Vectora/compare/$LAST_TAG...HEAD" >> $GITHUB_OUTPUT
+            echo "is_release=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Prepare release notes
-        id: release_notes
+          # Tag de release da extensão claude-code
+          if [[ "${{ github.ref }}" =~ ^refs/tags/ext-claude-code-v ]]; then
+            echo "is_ext_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_ext_release=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Detecta mudanças por path (PR e push de branch)
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE=${{ github.event.pull_request.base.sha }}
+            HEAD=${{ github.event.pull_request.head.sha }}
+          else
+            BASE=${{ github.event.before }}
+            HEAD=${{ github.sha }}
+          fi
+
+          changed=$(git diff --name-only $BASE $HEAD 2>/dev/null || git diff --name-only HEAD~1 HEAD)
+
+          check() { echo "$changed" | grep -qE "$1" && echo "true" || echo "false"; }
+
+          echo "core=$(check           '^(cmd|core|internal)/|^go\.(mod|sum)$')" >> $GITHUB_OUTPUT
+          echo "ext_vscode=$(check     '^extensions/vscode/')"                   >> $GITHUB_OUTPUT
+          echo "ext_geminicli=$(check  '^extensions/geminicli/')"                >> $GITHUB_OUTPUT
+          echo "ext_claudecode=$(check '^extensions/claude-code/')"              >> $GITHUB_OUTPUT
+
+      - name: Resumo de detecção
         run: |
-          {
-            echo "## 🎉 Vectora ${{ steps.version.outputs.version_number }}"
-            echo ""
-            echo "**Release Date:** ${{ steps.date.outputs.date }}"
-            echo ""
-            echo "### 📦 What's Included"
-            echo "- 🖥️ **Core** - Local AI assistant service"
-            echo "- 💻 **TUI** - Terminal user interface"
-            echo "- 📦 **LPM** - Llama package manager"
-            echo "- 🤖 **MPM** - Model package manager"
-            echo "- 🔧 **Setup** - Installation utility"
-            echo ""
-            echo "### 🔗 Changes"
-            echo "View commits: [${{ steps.commits.outputs.range }}](${{ steps.commits.outputs.url }})"
-          } > release_notes.md
-          cat release_notes.md
+          echo "### Mudanças detectadas" >> $GITHUB_STEP_SUMMARY
+          echo "| Componente       | Alterado |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------------|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Core (Go)        | ${{ steps.changes.outputs.core }} |"           >> $GITHUB_STEP_SUMMARY
+          echo "| Ext. VS Code     | ${{ steps.changes.outputs.ext_vscode }} |"     >> $GITHUB_STEP_SUMMARY
+          echo "| Ext. Gemini CLI  | ${{ steps.changes.outputs.ext_geminicli }} |"  >> $GITHUB_STEP_SUMMARY
+          echo "| Ext. Claude Code | ${{ steps.changes.outputs.ext_claudecode }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Release Core     | ${{ steps.changes.outputs.is_release }} |"    >> $GITHUB_STEP_SUMMARY
+          echo "| Release Ext CC   | ${{ steps.changes.outputs.is_ext_release }} |" >> $GITHUB_STEP_SUMMARY
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.version.outputs.version }}
-          body_path: release_notes.md
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # ─────────────────────────────────────────────
+  # Testes do Core (Go)
+  # ─────────────────────────────────────────────
+  tests:
+    name: Testes Core
+    needs: detect
+    if: needs.detect.outputs.core == 'true' || needs.detect.outputs.is_release == 'true' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/tests.yml
+    with:
+      full_test: ${{ github.event.inputs.full_test == 'true' }}
 
-      - name: Release Summary
-        run: |
-          echo "✅ Release created successfully!"
-          echo "🎉 Version: ${{ steps.version.outputs.version }}"
-          echo "📦 Release: https://github.com/Kaffyn/Vectora/releases/${{ steps.version.outputs.version }}"
+  # ─────────────────────────────────────────────
+  # Build cross-platform (somente em commits, não em tags)
+  # ─────────────────────────────────────────────
+  build:
+    name: Build Core
+    needs: [detect, tests]
+    if: |
+      (needs.detect.outputs.core == 'true' || github.event_name == 'workflow_dispatch') &&
+      !startsWith(github.ref, 'refs/tags/')
+    uses: ./.github/workflows/build.yml
 
-  # ============================================================================
-  # FINAL: Pipeline Summary
-  # ============================================================================
-  pipeline-summary:
-    name: Pipeline Summary
+  # ─────────────────────────────────────────────
+  # Segurança (roda junto com testes se core mudou)
+  # ─────────────────────────────────────────────
+  security:
+    name: Segurança
+    needs: detect
+    if: needs.detect.outputs.core == 'true' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/security.yml
+
+  # ─────────────────────────────────────────────
+  # Extensão VS Code
+  # ─────────────────────────────────────────────
+  ext-vscode:
+    name: Extensão VS Code
+    needs: detect
+    if: needs.detect.outputs.ext_vscode == 'true' || startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/extension-vscode.yml
+
+  # ─────────────────────────────────────────────
+  # Extensão Gemini CLI
+  # ─────────────────────────────────────────────
+  ext-geminicli:
+    name: Extensão Gemini CLI
+    needs: detect
+    if: needs.detect.outputs.ext_geminicli == 'true' || startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/extension-geminicli.yml
+
+  # ─────────────────────────────────────────────
+  # Extensão Claude Code
+  # ─────────────────────────────────────────────
+  ext-claudecode:
+    name: Extensão Claude Code
+    needs: detect
+    if: needs.detect.outputs.ext_claudecode == 'true' || needs.detect.outputs.is_ext_release == 'true'
+    uses: ./.github/workflows/extension-claude-code.yml
+
+  # ─────────────────────────────────────────────
+  # Release do Core (apenas em tags v*)
+  # ─────────────────────────────────────────────
+  release:
+    name: Release Core
+    needs: [detect, tests]
+    if: needs.detect.outputs.is_release == 'true'
+    uses: ./.github/workflows/release.yml
+
+  # ─────────────────────────────────────────────
+  # Resumo final
+  # ─────────────────────────────────────────────
+  summary:
+    name: Resumo do Pipeline
     runs-on: ubuntu-latest
-    needs: [orchestrate, tests, build, release]
+    needs: [detect, tests, build, security, ext-vscode, ext-geminicli, ext-claudecode, release]
     if: always()
-    permissions:
-      contents: read
-
     steps:
-      - name: Display pipeline results
+      - name: Resultado
         run: |
-          echo "╔════════════════════════════════════════════════════════════╗"
-          echo "║              🎯 Pipeline Execution Summary                 ║"
-          echo "╚════════════════════════════════════════════════════════════╝"
-          echo ""
-          echo "📊 Stage Results:"
-          echo "  Tests:     ${{ needs.tests.result }}"
-          echo "  Build:     ${{ needs.build.result }}"
-          echo "  Release:   ${{ needs.release.result }}"
-          echo ""
-          echo "📋 Configuration:"
-          echo "  Event:     ${{ github.event_name }}"
-          echo "  Branch:    ${{ github.ref_name }}"
-          echo "  Commit:    ${{ github.sha }}"
-          echo ""
-
-      - name: Pipeline failed
-        if: failure()
-        run: |
-          echo "❌ Pipeline failed!"
-          exit 1
-
-      - name: Pipeline succeeded
-        if: success()
-        run: |
-          echo "✅ Pipeline completed successfully!"
-          echo ""
-          echo "📚 Next Steps:"
-          echo "  • Tests passed ✓"
-          if [[ "${{ needs.build.result }}" == "success" ]]; then
-            echo "  • Build completed ✓"
-          fi
-          if [[ "${{ needs.release.result }}" == "success" ]]; then
-            echo "  • Release published ✓"
-          fi
+          echo "### 🎯 Pipeline concluído" >> $GITHUB_STEP_SUMMARY
+          echo "| Job              | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Testes           | ${{ needs.tests.result }} |"        >> $GITHUB_STEP_SUMMARY
+          echo "| Build            | ${{ needs.build.result }} |"        >> $GITHUB_STEP_SUMMARY
+          echo "| Segurança        | ${{ needs.security.result }} |"     >> $GITHUB_STEP_SUMMARY
+          echo "| Ext. VS Code     | ${{ needs.ext-vscode.result }} |"   >> $GITHUB_STEP_SUMMARY
+          echo "| Ext. Gemini CLI  | ${{ needs.ext-geminicli.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Ext. Claude Code | ${{ needs.ext-claudecode.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Release          | ${{ needs.release.result }} |"      >> $GITHUB_STEP_SUMMARY

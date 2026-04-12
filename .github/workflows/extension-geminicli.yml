@@ -1,9 +1,7 @@
 name: Release Gemini CLI Extension
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_call:   # Chamado apenas pelo ci.yml
   workflow_dispatch:
 
 jobs:
