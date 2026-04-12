@@ -1,8 +1,3 @@
-	type ModelInfo,
-	type ProviderSettings,
-	type DynamicProvider,
-	type LocalProvider,
-
 // ApiHandlerOptions
 // Extend ProviderSettings (minus apiProvider) with handler-specific toggles.
 export type ApiHandlerOptions = Omit<ProviderSettings, "apiProvider"> & {

@@ -1,10 +1,5 @@
 import * as vscode from "vscode"
 
-	type GroupEntry,
-	type ModeConfig,
-	type CustomModePrompts,
-	type ToolGroup,
-	type PromptComponent,
 
 import { addCustomInstructions } from "../core/prompts/sections/custom-instructions"
 

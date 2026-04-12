@@ -212,6 +212,7 @@ const CodeBlock = memo(
           lang: currentLanguage || "txt",
           theme: document.body.className.toLowerCase().includes("light") ? "github-light" : "github-dark",
           transformers: [
+            {
               pre(node) {
                 node.properties.style = "padding: 0; margin: 0;";
                 return node;

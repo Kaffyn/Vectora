@@ -1,4 +1,4 @@
-import { safeJsonParse } from "@roo/core";
+import { safeJsonParse } from "@src/utils/command-parser";
 
 /** File-edit tool names from ClineSayTool["tool"] (packages/types). */
 const FILE_EDIT_TOOLS = new Set<string>(["editedExistingFile", "appliedDiff", "newFileCreated"]);

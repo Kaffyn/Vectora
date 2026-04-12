@@ -28,6 +28,9 @@ var geminiAliases = map[string]string{
 // ResolveGeminiModel resolves a model alias to the canonical Gemini API model ID.
 // If the model is not found in aliases, returns it as-is (assuming it's already correct).
 func ResolveGeminiModel(model string) string {
+	if model == "" {
+		model = "gemini"
+	}
 	if resolved, ok := geminiAliases[model]; ok {
 		return resolved
 	}

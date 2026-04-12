@@ -71,8 +71,7 @@ const TaskItem = ({
               <div
                 className={cn(
                   "flex-1 min-w-0 overflow-hidden whitespace-pre-wrap font-light text-ellipsis line-clamp-3",
-                    "text-base": !isCompact,
-                  },
+                  !isCompact ? "text-base" : "",
                   !isCompact && isSelectionMode ? "mb-1" : "",
                 )}
                 data-testid="task-content"
@@ -82,8 +81,7 @@ const TaskItem = ({
               <div
                 className={cn(
                   "flex-1 min-w-0 overflow-hidden whitespace-pre-wrap font-light text-ellipsis line-clamp-3",
-                    "text-base": !isCompact,
-                  },
+                  !isCompact ? "text-base" : "",
                   !isCompact && isSelectionMode ? "mb-1" : "",
                 )}
                 data-testid="task-content"

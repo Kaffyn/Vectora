@@ -5,8 +5,7 @@ const { t } = { t: (key, opts) => (window as any).translate(key, opts) }; // Pol
 import { ChevronDown, OctagonX } from "lucide-react";
 
 
-import { safeJsonParse } from "@roo/core";
-import { parseCommand } from "@roo/parse-command";
+import { safeJsonParse, parseCommand } from "@src/utils/command-parser";
 
 import { vscode } from "@src/utils/vscode";
 import { extractPatternsFromCommand } from "@src/utils/command-parser";

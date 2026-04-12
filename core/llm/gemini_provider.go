@@ -61,6 +61,7 @@ func (p *GeminiProvider) Complete(ctx context.Context, req CompletionRequest) (C
 
 	// Resolve model alias to canonical Gemini API model ID with "-preview" suffix
 	modelID := ResolveGeminiModel(req.Model)
+	fmt.Printf("[DEBUG] Gemini modelID: '%s'\n", modelID)
 
 	resp, err := p.client.Models.GenerateContent(ctx, modelID, contents, config)
 	if err != nil {

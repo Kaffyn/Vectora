@@ -28,8 +28,14 @@ var chatCmd = &cobra.Command{
 		}
 		defer client.Close()
 
-		// Derive stable session from cwd (same as `vectora ask`)
+		// Initialize workspace (Required for activeTenant check in Phase 13)
 		cwd, _ := os.Getwd()
+		if _, err := initWorkspace(client, cwd); err != nil {
+			fmt.Printf("Error: %v\n", err)
+			return
+		}
+
+		// Derive stable session from cwd (same as `vectora ask`)
 		absCwd, _ := filepath.Abs(cwd)
 		conversationID := workspaceConversationID(absCwd)
 

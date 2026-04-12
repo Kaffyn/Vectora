@@ -53,7 +53,6 @@ export const SelectDropdown = React.memo(
         placeholder = "",
         shortcutText = "",
         disableSearch = false,
-      },
     ) => {
       const { t } = useTranslation();
       const [open, setOpen] = React.useState(false);

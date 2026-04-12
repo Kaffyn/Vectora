@@ -266,28 +266,17 @@ func runEmbed(rootPath string) error {
 	fmt.Printf("Scanning: %s\n", absPath)
 	fmt.Println()
 
-	client, err := ipc.NewClient()
-	if err != nil || client.Connect() != nil {
-		fmt.Println("Vectora Core not running. Starting in background...")
-		if err := spawnDetached(); err != nil {
-			return fmt.Errorf("failed to start background core: %v", err)
-		}
-
-		// Poll until connected
-		retries := 10
-		connected := false
-		for i := 0; i < retries; i++ {
-			time.Sleep(500 * time.Millisecond)
-			if client.Connect() == nil {
-				connected = true
-				break
-			}
-		}
-		if !connected {
-			return fmt.Errorf("could not connect to Vectora Core after starting it")
-		}
+	client, err := ensureCoreConnected()
+	if err != nil {
+		return err
 	}
 	defer client.Close()
+
+	// Initializar o workspace no Core antes de qualquer comando (Phase 13 MTP)
+	_, err = initWorkspace(client, absPath)
+	if err != nil {
+		return err
+	}
 
 	if !embedDetached {
 		client.OnEvent = func(method string, payload json.RawMessage) {
@@ -455,6 +444,13 @@ func runModelsList() error {
 	}
 	defer client.Close()
 
+	// Initialize workspace (Required for activeTenant check in Phase 13)
+	cwd, _ := os.Getwd()
+	_, err = initWorkspace(client, cwd)
+	if err != nil {
+		return err
+	}
+
 	var resp struct {
 		Models []string `json:"models"`
 	}
@@ -577,6 +573,26 @@ func ensureCoreConnected() (*ipc.Client, error) {
 	return nil, fmt.Errorf("core failed to start in time")
 }
 
+func initWorkspace(client *ipc.Client, rootPath string) (string, error) {
+	absPath, err := filepath.Abs(rootPath)
+	if err != nil {
+		return "", fmt.Errorf("invalid path: %w", err)
+	}
+
+	var resp ipc.WorkspaceInitResponse
+	req := ipc.WorkspaceInitRequest{
+		WorkspaceRoot: absPath,
+		ProjectName:   filepath.Base(absPath),
+	}
+
+	err = client.Send(context.Background(), "workspace.init", req, &resp)
+	if err != nil {
+		return "", fmt.Errorf("workspace initialization failed: %w", err)
+	}
+
+	return resp.WorkspaceID, nil
+}
+
 func runStop() {
 	if os.Getenv("OS") == "Windows_NT" {
 		myPid := fmt.Sprintf("PID ne %d", os.Getpid())
@@ -614,6 +630,13 @@ func runAsk(query string) error {
 		return err
 	}
 	defer client.Close()
+
+	// Initialize workspace (Required for activeTenant check in Phase 13)
+	_, err = initWorkspace(client, absCwd)
+	if err != nil {
+		fmt.Printf("\rError: %v\n", err)
+		return err
+	}
 
 	// Persist user message
 	appendConversationEntry(conversationID, "user", query)

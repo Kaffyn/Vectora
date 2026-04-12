@@ -13,7 +13,6 @@ const formatPathTooltip = (path?: string, reason?: string) => {
 };
 
 import { ToolUseBlock, ToolUseBlockHeader } from "../common/ToolUseBlock";
-import UpdateTodoListToolBlock from "./UpdateTodoListToolBlock";
 import { TodoChangeDisplay } from "./TodoChangeDisplay";
 import CodeAccordion from "../common/CodeAccordion";
 import MarkdownBlock from "../common/MarkdownBlock";
@@ -1301,7 +1300,6 @@ export const ChatRowContent = ({
 
           return <CodebaseSearchResultsDisplay results={results} />;
         case "user_edit_todos":
-          return <UpdateTodoListToolBlock userEdited onChange={() => {}} />;
         case "tool" as any:
           // Handle say tool messages
           const sayTool = safeJsonParse<ClineSayTool>(message.text);
