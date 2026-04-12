@@ -36,7 +36,7 @@ func (t *PlanModeTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *PlanModeTool) Description() string {
-	return "Create structured implementation plans with context awareness using vector search for similar patterns"
+	return "Break down complex problems into structured, step-by-step implementation plans. Analyzes codebase patterns and constraints to create realistic, phased plans with task dependencies, effort estimates, and risk assessments."
 }
 
 // Schema returns JSON-Schema for tool parameters.

@@ -36,7 +36,7 @@ func (t *DocCoverageAnalysisTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *DocCoverageAnalysisTool) Description() string {
-	return "Analyze documentation coverage and quality metrics"
+	return "Measure and analyze documentation completeness and quality. Identifies undocumented functions, classes, and modules. Detects outdated or incomplete documentation, and suggests improvements for better code clarity."
 }
 
 // Schema returns JSON-Schema for tool parameters.

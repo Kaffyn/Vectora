@@ -35,7 +35,7 @@ func (t *SearchDatabaseTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *SearchDatabaseTool) Description() string {
-	return "Perform semantic search in ChromemDB vector database with metadata filtering and similarity scoring"
+	return "Perform semantic search across indexed codebase or documents. Finds code/text similar to your query using vector embeddings. Use this to discover patterns, find implementations, or locate related code without knowing exact names. Returns relevant code snippets with similarity scores."
 }
 
 // Schema returns JSON-Schema for tool parameters.

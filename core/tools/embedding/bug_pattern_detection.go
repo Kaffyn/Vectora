@@ -36,7 +36,7 @@ func (t *BugPatternDetectionTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *BugPatternDetectionTool) Description() string {
-	return "Detect potential bugs by matching against known bug patterns"
+	return "Scan code for potential bugs, security vulnerabilities, and performance issues. Detects SQL injection, race conditions, memory leaks, null pointer dereferences, and hardcoded secrets. Provides severity levels and recommended fixes."
 }
 
 // Schema returns JSON-Schema for tool parameters.

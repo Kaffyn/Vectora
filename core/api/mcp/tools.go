@@ -2,13 +2,16 @@ package mcp
 
 import (
 	"github.com/Kaffyn/Vectora/core/llm"
+	"github.com/Kaffyn/Vectora/core/tools"
 	"github.com/Kaffyn/Vectora/core/tools/embedding"
 )
 
 // RegisterEmbeddingTools registers all embedding tools for MCP exposure.
 // These tools are unique to Vectora and not duplicated in other agents.
 // They leverage Vectora's RAG capabilities (ChromemDB + vector search + LLM).
-func RegisterEmbeddingTools(vectoraMCPServer *VectoraMCPServer, router *llm.Router) {
+// The registry parameter is the Engine's tool registry that needs to be updated
+// so tools are discoverable via tools/list and executable via tools/call.
+func RegisterEmbeddingTools(vectoraMCPServer *VectoraMCPServer, router *llm.Router, toolsRegistry interface{}) {
 	// Phase 4G: Core Embedding Tools
 	// Embed tool - convert text to embeddings using Vectora's LLM
 	embedTool := embedding.NewEmbedTool(
@@ -104,6 +107,22 @@ func RegisterEmbeddingTools(vectoraMCPServer *VectoraMCPServer, router *llm.Rout
 		"doc_coverage_analysis":    docCoverageTool,
 		"test_generation":          testGenTool,
 		"bug_pattern_detection":    bugDetectionTool,
+	}
+
+	// Also register tools with the Engine's tool registry so they're discoverable
+	// via tools/list and executable via tools/call (Option A solution)
+	if registry, ok := toolsRegistry.(*tools.Registry); ok {
+		registry.Register(embedTool)
+		registry.Register(searchTool)
+		registry.Register(webSearchTool)
+		registry.Register(webFetchTool)
+		registry.Register(planTool)
+		registry.Register(refactorTool)
+		registry.Register(patternsAnalysisTool)
+		registry.Register(knowledgeGraphTool)
+		registry.Register(docCoverageTool)
+		registry.Register(testGenTool)
+		registry.Register(bugDetectionTool)
 	}
 }
 

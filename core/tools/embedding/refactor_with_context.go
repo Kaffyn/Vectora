@@ -36,7 +36,7 @@ func (t *RefactorWithContextTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *RefactorWithContextTool) Description() string {
-	return "Perform code refactoring with context awareness using vector search for similar patterns"
+	return "Intelligently refactor code to match codebase patterns and best practices. Uses semantic search to find similar implementations and proposes refactoring that aligns with existing patterns. Helps maintain consistency and improves code quality."
 }
 
 // Schema returns JSON-Schema for tool parameters.

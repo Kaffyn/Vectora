@@ -1,0 +1,90 @@
+SEMANTIC SEARCH EXAMPLE PROMPTS
+================================
+
+Copy these prompts directly into Claude Code.
+Replace [TOPIC] with what you want to search for.
+
+---
+
+PROMPT 1: INITIAL SEARCH
+========================
+
+@vectora Semantic search for "[TOPIC]" in this codebase.
+
+Show me:
+1. All files that relate to [TOPIC]
+2. A brief summary of what each file does
+3. How they connect to each other
+4. Which files are most important
+
+Format as a structured outline.
+
+---
+
+PROMPT 2: DETAILED ANALYSIS
+=============================
+
+@vectora Analyze [TOPIC] in detail from the codebase search.
+
+Explain:
+1. How [TOPIC] is implemented
+2. What functions/classes are involved
+3. The flow/sequence of operations
+4. Any important design decisions
+5. Potential improvements or issues
+
+Show code examples from actual files.
+
+---
+
+PROMPT 3: FIND SIMILAR PATTERNS
+================================
+
+@vectora Find all similar patterns to [TOPIC] in the codebase.
+
+Show:
+1. Where else is this pattern used?
+2. Are implementations consistent?
+3. Inconsistencies to be aware of
+4. Which implementation is best/most robust?
+
+---
+
+EXAMPLE USAGE: Finding Authentication
+=======================================
+
+PROMPT 1:
+@vectora Semantic search for "user authentication and login" in this codebase.
+
+Show me:
+1. All files that relate to authentication
+2. A brief summary of what each file does
+3. How they connect to each other
+4. Which files are most important
+
+Format as a structured outline.
+
+---
+
+PROMPT 2:
+@vectora Analyze authentication in detail from the codebase search.
+
+Explain:
+1. How authentication is implemented
+2. What functions/classes are involved
+3. The flow: user input → session creation
+4. Any important design decisions (JWT vs sessions, etc)
+5. Potential security improvements
+
+Show code examples from actual files.
+
+---
+
+PROMPT 3:
+@vectora Find all similar authentication patterns in the codebase.
+
+Show:
+1. Where else is authentication/session management used?
+2. Are implementations consistent?
+3. Inconsistencies that could cause bugs
+4. Which implementation is most robust?

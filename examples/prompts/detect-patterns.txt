@@ -1,0 +1,185 @@
+PATTERN DETECTION & CODE ANALYSIS PROMPTS
+===========================================
+
+Copy these prompts directly into Claude Code.
+Replace [PATTERN] and [LANGUAGE] with what you're looking for.
+
+---
+
+PROMPT 1: ANALYZE FOR PATTERN
+===============================
+
+@vectora Analyze this [LANGUAGE] codebase for [PATTERN].
+
+Find:
+1. All occurrences of [PATTERN]
+2. For each, show:
+   - Location (file:line)
+   - Code snippet
+   - Is it correctly implemented?
+   - Risk level (none/low/medium/high)
+   - Why it's a risk (if any)
+
+Format as a prioritized list (highest risk first).
+
+---
+
+PROMPT 2: FIND INCONSISTENCIES
+================================
+
+@vectora Find inconsistencies in how [PATTERN] is handled.
+
+Show:
+1. Different ways the pattern is implemented
+2. Which is the "best practice"
+3. Files that should be standardized
+4. Impact of the inconsistency
+
+Prioritize by risk and ease of fixing.
+
+---
+
+PROMPT 3: SUGGEST FIXES
+========================
+
+@vectora For the top 3 highest-risk [PATTERN] issues:
+
+Show:
+1. Current code (before)
+2. Fixed code (after)
+3. Why this is better
+4. How to test the change
+5. Files affected
+
+Make it a diff so I can review line-by-line.
+
+---
+
+LANGUAGE-SPECIFIC PATTERNS
+===========================
+
+FOR GO:
+--------
+
+PROMPT 1: ANALYZE FOR RACE CONDITIONS
+@vectora Analyze this Go codebase for race conditions.
+
+Find:
+1. All goroutines (go statements)
+2. Shared data accessed by multiple goroutines
+3. Synchronization (mutex, channels, atomics)
+4. Missing synchronization
+5. Risk level for each
+
+PROMPT 1: ANALYZE FOR RESOURCE LEAKS
+@vectora Analyze this Go codebase for resource leaks.
+
+Find:
+1. All resource opens (file opens, database connections, etc)
+2. Are they all closed?
+3. What happens if function returns early or panics?
+4. Missing defer statements
+5. Risk level for each
+
+PROMPT 1: ANALYZE FOR NIL POINTER ERRORS
+@vectora Analyze this Go codebase for potential nil pointer errors.
+
+Find:
+1. Variables that might be nil
+2. Are they checked before use?
+3. Return values that might be nil
+4. Missing nil checks
+5. Risk level for each
+
+---
+
+FOR JAVASCRIPT/TYPESCRIPT:
+---------------------------
+
+PROMPT 1: ANALYZE FOR PROMISE ISSUES
+@vectora Analyze this TypeScript codebase for Promise/async issues.
+
+Find:
+1. Unhandled promises
+2. Missing await statements
+3. Race conditions (concurrent operations)
+4. Memory leaks from long-lived promises
+5. Risk level for each
+
+PROMPT 1: ANALYZE FOR STATE MUTATIONS
+@vectora Analyze this TypeScript codebase for unsafe state mutations.
+
+Find:
+1. Places where shared state is modified
+2. React hooks that don't have proper dependencies
+3. External library state mutations
+4. Thread-safety issues
+5. Risk level for each
+
+---
+
+FOR PYTHON:
+-----------
+
+PROMPT 1: ANALYZE FOR EXCEPTION HANDLING
+@vectora Analyze this Python codebase for exception handling issues.
+
+Find:
+1. Bare except clauses (bad practice)
+2. Exceptions that might be swallowed
+3. Missing exception handling
+4. Over-broad exception handling
+5. Risk level for each
+
+PROMPT 1: ANALYZE FOR RESOURCE MANAGEMENT
+@vectora Analyze this Python codebase for resource management issues.
+
+Find:
+1. Files/connections opened but not closed
+2. Missing context managers (with statements)
+3. Resource leaks in error cases
+4. Cleanup code that might be skipped
+5. Risk level for each
+
+---
+
+SECURITY PATTERNS
+==================
+
+PROMPT: FIND SECURITY ISSUES
+@vectora Analyze this codebase for potential security issues.
+
+Find:
+1. SQL injection risks
+2. Command injection risks
+3. Path traversal risks
+4. XSS vulnerabilities
+5. CSRF vulnerabilities
+6. Missing input validation
+7. Hardcoded secrets
+8. Insecure cryptography
+
+For each, show:
+- Location and code
+- What could go wrong
+- How to fix it
+- Risk level (critical/high/medium)
+
+---
+
+ANTI-PATTERNS
+==============
+
+PROMPT: FIND ANTI-PATTERNS
+@vectora Analyze this codebase for common anti-patterns.
+
+Find:
+1. Functions that are too long (>50 lines)
+2. Classes with too many responsibilities
+3. Deep nesting (>3 levels)
+4. Magic numbers or strings
+5. Duplicated code
+6. Poor naming
+7. Missing comments on complex logic
+
+Show location and suggestions for improvement.

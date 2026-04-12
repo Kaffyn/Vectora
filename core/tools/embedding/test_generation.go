@@ -36,7 +36,7 @@ func (t *TestGenerationTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *TestGenerationTool) Description() string {
-	return "Generate test cases from code using semantic understanding and pattern matching"
+	return "Automatically generate comprehensive test cases from code. Analyzes function signatures, error paths, and edge cases to create unit and integration tests. Supports multiple test frameworks (Go, Jest, pytest, etc)."
 }
 
 // Schema returns JSON-Schema for tool parameters.

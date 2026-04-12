@@ -37,7 +37,7 @@ func (t *WebFetchAndEmbedTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *WebFetchAndEmbedTool) Description() string {
-	return "Fetch and crawl URLs with robots.txt compliance, vectorizing all discovered content"
+	return "Fetch documentation from URLs and add to searchable knowledge base. Downloads HTML content, converts to readable markdown, and indexes for semantic search. Useful for integrating external API docs and technical references."
 }
 
 // Schema returns JSON-Schema for tool parameters.

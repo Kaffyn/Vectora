@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/Kaffyn/Vectora/core/api/ipc"
+	"github.com/Kaffyn/Vectora/core/api/mcp"
 	"github.com/Kaffyn/Vectora/core/crypto"
 	"github.com/Kaffyn/Vectora/core/db"
 	"github.com/Kaffyn/Vectora/core/engine"
@@ -153,6 +154,43 @@ Usage:
 	},
 }
 
+var mcpCmd = &cobra.Command{
+	Use:   "mcp [workspace]",
+	Short: "Start MCP server over stdio",
+	Long: `Start the Vectora MCP (Model Context Protocol) server over stdin/stdout.
+This allows Claude Code and other MCP-compatible clients to connect to Vectora
+as a specialized sub-agent for code analysis, semantic search, and RAG.
+
+The server reads JSON-RPC 2.0 messages from stdin and writes responses to stdout.
+All logging goes to stderr to avoid interfering with the protocol.
+
+The MCP server exposes 11 specialized embedding and analysis tools:
+  - embed, search_database, web_search_and_embed, web_fetch_and_embed
+  - analyze_code_patterns, knowledge_graph_analysis, doc_coverage_analysis
+  - test_generation, bug_pattern_detection, plan_mode, refactor_with_context
+
+Usage:
+  vectora mcp /path/to/project  # Start MCP server for specified workspace
+
+Configure in Claude Code settings.json:
+  {
+    "mcpServers": {
+      "vectora": {
+        "command": "vectora",
+        "args": ["mcp", "/absolute/path/to/workspace"]
+      }
+    }
+  }
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		workspace := "."
+		if len(args) > 0 {
+			workspace = args[0]
+		}
+		return runMcp(workspace)
+	},
+}
+
 var (
 	embedInclude   string
 	embedExclude   string
@@ -217,6 +255,7 @@ func init() {
 	rootCmd.AddCommand(resetCmd)
 	rootCmd.AddCommand(embedCmd)
 	rootCmd.AddCommand(acpCmd)
+	rootCmd.AddCommand(mcpCmd)
 	rootCmd.AddCommand(askCmd)
 	rootCmd.AddCommand(logsCmd)
 	rootCmd.AddCommand(trustCmd)
@@ -716,5 +755,93 @@ func runAcp(workspace string) error {
 	go io.Copy(conn, os.Stdin)
 	io.Copy(os.Stdout, conn)
 
+	return nil
+}
+
+func runMcp(workspace string) error {
+	ctx := context.Background()
+
+	if workspace == "" {
+		workspace = "."
+	}
+
+	absPath, err := filepath.Abs(workspace)
+	if err != nil {
+		return fmt.Errorf("invalid workspace path: %w", err)
+	}
+
+	// Validate workspace path exists
+	if info, err := os.Stat(absPath); err != nil || !info.IsDir() {
+		return fmt.Errorf("workspace path does not exist or is not a directory: %s", absPath)
+	}
+
+	// Setup logger (to stderr to not interfere with stdio protocol)
+	infra.SetupLogger()
+
+	// Load configuration
+	envPath := infra.GetConfigPath()
+	if err := godotenv.Overload(envPath); err != nil {
+		if !os.IsNotExist(err) {
+			infra.Logger().Warn(fmt.Sprintf("Failed to load .env from %s: %v", envPath, err))
+		}
+	}
+
+	infra.Logger().Info("Starting Vectora MCP server", "workspace", absPath)
+
+	// Load configuration and preferences
+	cfg := infra.LoadConfig()
+	prefs := infra.LoadPreferences()
+
+	// Setup LLM router
+	llmRouter := llm.SetupRouter(ctx, cfg, prefs)
+
+	// Initialize stores
+	kvStore, err := db.NewKVStore()
+	if err != nil {
+		return fmt.Errorf("failed to initialize KV store: %w", err)
+	}
+	defer kvStore.Close()
+
+	vecStore, err := db.NewVectorStore()
+	if err != nil {
+		return fmt.Errorf("failed to initialize vector store: %w", err)
+	}
+	defer vecStore.Close()
+
+	// Setup guardian and tools registry
+	guardian := policies.NewGuardian(absPath)
+	toolsRegistry := tools.NewRegistry(absPath, guardian, kvStore)
+
+	// Create Engine with proper tool registry
+	eng := engine.NewEngine(vecStore, kvStore, llmRouter, toolsRegistry, guardian, nil)
+
+	// Create MCP server - this will integrate the Engine with embedding tools
+	mcpServer := mcp.NewVectoraMCPServer(
+		"Vectora Core",
+		"0.1.0",
+		kvStore,
+		vecStore,
+		llmRouter,
+		nil, // msgService not needed for MCP
+		infra.Logger(),
+	)
+
+	// Register embedding tools in both MCP server and Engine's tool registry
+	// This ensures tools are discoverable via tools/list
+	mcp.RegisterEmbeddingTools(mcpServer, llmRouter, toolsRegistry)
+
+	// Create stdio server with the engine that has the tools
+	stdioServer := mcp.NewStdioServer(eng, infra.Logger())
+
+	infra.Logger().Info("MCP server started, listening on stdio", "workspace", absPath)
+
+	// Start server (this blocks until EOF or error)
+	err = stdioServer.Start(ctx)
+	if err != nil && err != context.Canceled {
+		infra.Logger().Error("MCP server error", "error", err.Error())
+		return err
+	}
+
+	infra.Logger().Info("MCP server shutdown gracefully")
 	return nil
 }

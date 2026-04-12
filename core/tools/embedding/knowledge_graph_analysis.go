@@ -36,7 +36,7 @@ func (t *KnowledgeGraphAnalysisTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *KnowledgeGraphAnalysisTool) Description() string {
-	return "Extract entities and relationships from text to build knowledge graphs"
+	return "Extract entities (classes, functions, types) and their relationships from code or documentation. Builds a knowledge graph showing how components interact, depend on each other, and relate to the overall architecture."
 }
 
 // Schema returns JSON-Schema for tool parameters.

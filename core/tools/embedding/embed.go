@@ -36,7 +36,7 @@ func (t *EmbedTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *EmbedTool) Description() string {
-	return "Convert text/file content into embeddings using Vectora's configured LLM provider (Gemini, Claude, Qwen, etc). Stores embeddings in ChromemDB."
+	return "Index text content into Vectora's vector database for semantic search. Use this to add files, code snippets, or documentation to the searchable knowledge base. Makes content discoverable via semantic queries without needing exact keywords."
 }
 
 // Schema returns JSON-Schema for tool parameters.

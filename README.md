@@ -102,6 +102,12 @@ Ideal for full control or usage outside of IDEs.
 - **Gemini CLI (Sub-Agent Mode):**
   - **Integration:** Operates exclusively as a **Sub-Agent** for the Gemini CLI. By exposing its RAG and agentic arsenal via MCP, Vectora allows the Gemini CLI to understand and act on complex codebases natively.
 
+- **Claude Code (Sub-Agent Mode via MCP):**
+  - **Integration:** Connect Vectora as a specialized code analysis and RAG engine via the MCP (Model Context Protocol).
+  - **Setup:** Configure `~/.claude/settings.json` to add Vectora MCP server. No extension required.
+  - **Capabilities:** Vectora exposes 11 specialized tools including semantic search, pattern analysis, test generation, and code refactoring.
+  - **Documentation:** See [CLAUDE_CODE_INTEGRATION.md](CLAUDE_CODE_INTEGRATION.md) for complete setup instructions and examples.
+
 ---
 
 ## SDKs & Protocols
@@ -164,6 +170,24 @@ vectora embed
 # 4. Ask about the code
 vectora ask "How does authentication work?"
 ```
+
+## 📚 Documentation & Integration Guides
+
+Complete reference and setup guides for integrating Vectora with different environments:
+
+- **[CLAUDE_CODE_INTEGRATION.md](CLAUDE_CODE_INTEGRATION.md)** — Configure Vectora as an MCP sub-agent for Claude Code. Quick start, configuration options, examples, and troubleshooting.
+
+- **[MCP_PROTOCOL_REFERENCE.md](MCP_PROTOCOL_REFERENCE.md)** — Technical reference for all 11 MCP tools exposed by Vectora. Complete API documentation with examples, error handling, and tool chains.
+
+- **[TOOLS_DOCUMENTATION.md](TOOLS_DOCUMENTATION.md)** — Comprehensive user documentation for all Vectora tools (read_file, write_file, grep_search, etc). When to use, when not to use, performance characteristics.
+
+- **[TOOLS_API_REFERENCE.md](TOOLS_API_REFERENCE.md)** — Technical API reference for all tools with function signatures, parameter details, return types, and error handling patterns.
+
+- **[LANGUAGE_SUPPORT.md](LANGUAGE_SUPPORT.md)** — Multi-language support documentation. Language preference flow from systray to LLM with conversation examples in Portuguese and English.
+
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** — Summary of tools documentation improvements and query optimization architecture.
+
+---
 
 ## 🧪 Testing
 

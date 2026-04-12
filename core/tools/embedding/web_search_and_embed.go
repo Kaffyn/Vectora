@@ -38,7 +38,7 @@ func (t *WebSearchAndEmbedTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *WebSearchAndEmbedTool) Description() string {
-	return "Search the web for content and automatically vectorize results, storing in ChromemDB with source metadata"
+	return "Research topics on the web and automatically index results. Searches for information, fetches relevant articles, and adds them to your searchable knowledge base alongside your codebase. Great for learning best practices and gathering reference materials."
 }
 
 // Schema returns JSON-Schema for tool parameters.

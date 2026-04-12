@@ -1,0 +1,275 @@
+REFACTORING EXAMPLE PROMPTS
+=============================
+
+Copy these prompts directly into Claude Code.
+Follow the multi-step approach for best results.
+
+---
+
+STEP 1: ANALYZE CURRENT STATE
+===============================
+
+@vectora Analyze [ASPECT] in this codebase.
+
+Find and show:
+1. How [ASPECT] is currently implemented
+2. Inconsistencies (different approaches in different files)
+3. What the best practice should be
+4. Which files need refactoring
+5. Risk level (how critical is this?)
+
+Format as a prioritized list.
+
+---
+
+STEP 2: DESIGN TARGET PATTERN
+==============================
+
+@vectora Design a standard [ASPECT] pattern for this project.
+
+Requirements for the new pattern:
+1. [REQUIREMENT 1]
+2. [REQUIREMENT 2]
+3. [REQUIREMENT 3]
+
+Create:
+1. Definition of the target pattern
+2. Complete working example
+3. How it differs from current state
+4. Benefits of the new pattern
+5. Migration strategy (how to update existing code)
+
+Show complete code snippets.
+
+---
+
+STEP 3: REFACTOR HIGHEST PRIORITY FILES
+=========================================
+
+@vectora Refactor [FILE_NAME] to use the [ASPECT] pattern.
+
+The target pattern is defined in Step 2 output.
+
+Show:
+1. Current code from [FILE_NAME]
+2. Refactored code
+3. Changes explained line-by-line
+4. How to test these changes
+5. Any edge cases to consider
+
+Make it a diff format (old → new).
+
+---
+
+STEP 4: CREATE REFACTORING CHECKLIST
+======================================
+
+@vectora Create a refactoring checklist for standardizing [ASPECT].
+
+Based on Step 1, there are [N] files that need updating.
+
+Provide:
+1. Complete list of files to refactor
+2. For each file:
+   - Current pattern it uses
+   - Target pattern it should use
+   - Complexity (easy/medium/hard)
+3. Suggested refactoring order
+4. Test strategy for verification
+
+---
+
+EXAMPLE 1: ERROR HANDLING STANDARDIZATION
+===========================================
+
+STEP 1:
+@vectora Analyze error handling in this codebase.
+
+Find and show:
+1. How errors are currently handled
+2. Inconsistencies (panic vs return error vs silent fail)
+3. What the best practice should be
+4. Which files need refactoring
+5. Risk level (how critical is this?)
+
+Format as a prioritized list.
+
+---
+
+STEP 2:
+@vectora Design a standard error handling pattern for this project.
+
+Requirements for the new pattern:
+1. Errors should propagate to handlers
+2. Handlers decide what to do (respond to user, log, retry)
+3. Errors should be categorized (input error, server error, etc)
+4. Error messages safe to show to users
+
+Create:
+1. Custom error types/structures
+2. Error handling middleware/utilities
+3. Examples in handler, service, database layers
+4. How it differs from current state
+5. How to update existing code
+
+Show complete code snippets.
+
+---
+
+STEP 3:
+@vectora Refactor handlers/cache.go to use the error handling pattern.
+
+The target pattern is defined in Step 2 output.
+
+Show:
+1. Current code from handlers/cache.go
+2. Refactored code
+3. Changes explained
+4. How to test these changes
+5. Any edge cases
+
+Make it a diff format.
+
+---
+
+STEP 4:
+@vectora Create an error handling refactoring checklist.
+
+There are 5+ files with inconsistent error handling.
+
+Provide:
+1. Complete list of files to refactor
+2. For each file:
+   - Current error handling pattern
+   - Target pattern
+   - Complexity (easy/medium/hard)
+3. Suggested refactoring order
+4. Test strategy for verification
+
+---
+
+EXAMPLE 2: LOGGING STANDARDIZATION
+===================================
+
+STEP 1:
+@vectora Analyze logging in this codebase.
+
+Find and show:
+1. How logging is done (log package, custom, structured vs unstructured)
+2. Inconsistencies
+3. Best practice for logging
+4. Files needing refactoring
+5. Risk level
+
+---
+
+STEP 2:
+@vectora Design a standard logging pattern.
+
+Requirements:
+1. Structured logging (JSON format)
+2. Consistent log levels (info, warn, error, debug)
+3. Request ID tracking across calls
+4. Performance efficient (not logging too much)
+
+Create:
+1. Logging utility functions
+2. Log formatting standard
+3. Examples in different layers
+4. How it differs from current
+5. Migration path
+
+---
+
+STEP 3:
+@vectora Refactor [CRITICAL_FILE] to use the logging pattern.
+
+Show before/after diff with explanation.
+
+---
+
+STEP 4:
+@vectora Create a logging refactoring checklist.
+
+Which files should we update and in what order?
+
+---
+
+EXAMPLE 3: VALIDATION STANDARDIZATION
+======================================
+
+STEP 1:
+@vectora Analyze input validation in this codebase.
+
+Find:
+1. How input validation is done
+2. Where validation happens (handler, service, model?)
+3. Consistency issues
+4. Missing validations
+5. Risk level
+
+---
+
+STEP 2:
+@vectora Design a standard validation pattern.
+
+Requirements:
+1. Centralized validation (not scattered)
+2. Clear error messages
+3. Fail fast (validate early)
+4. Reusable validation rules
+
+Create:
+1. Validation utility/validator
+2. Custom validation rules
+3. Error formatting
+4. Examples in handlers and services
+
+---
+
+STEP 3:
+@vectora Refactor a handler to use the validation pattern.
+
+Show before/after with explanation.
+
+---
+
+STEP 4:
+@vectora Create validation refactoring checklist.
+
+Which files need updating? In what order?
+
+---
+
+TIPS FOR SUCCESSFUL REFACTORING
+================================
+
+✅ DO:
+1. Start with Step 1 analysis (understand what you have)
+2. Do Step 2 design before any code changes (get pattern right)
+3. Refactor one file at a time (Step 3)
+4. Use Step 4 checklist to ensure nothing is missed
+5. Test after each file (don't batch refactoring)
+6. Commit frequently (keep changes small and reviewable)
+
+❌ DON'T:
+1. Skip analysis (you might refactor the wrong thing)
+2. Change multiple aspects at once
+3. Refactor without a clear target pattern
+4. Refactor without tests
+5. Make refactoring and feature changes together
+
+---
+
+TESTING AFTER REFACTORING
+===========================
+
+After refactoring, always test:
+1. Unit tests still pass
+2. Integration tests still pass
+3. Manual smoke testing
+4. Behavior hasn't changed
+5. Performance is similar or better
+
+Ask Vectora to help:
+"@vectora Update the tests for my refactored code"

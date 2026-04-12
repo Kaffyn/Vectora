@@ -1,0 +1,154 @@
+DOCUMENTATION GENERATION EXAMPLE PROMPTS
+==========================================
+
+Copy these prompts directly into Claude Code.
+Replace [TYPE] with the documentation type you want.
+
+---
+
+PROMPT 1: ANALYZE STRUCTURE
+=============================
+
+@vectora Analyze the [TYPE] in this codebase.
+
+Extract:
+1. All [ITEMS] with their locations
+2. For each, identify:
+   - Purpose/what it does
+   - Parameters/inputs
+   - Returns/outputs
+   - Dependencies
+   - Current documentation status
+
+Format as a structured table.
+
+---
+
+PROMPT 2: GENERATE DOCUMENTATION
+==================================
+
+@vectora Generate professional [TYPE] documentation.
+
+Use the analysis from Prompt 1.
+
+For each [ITEM], provide:
+1. Name and location
+2. Clear description
+3. Parameters with types and descriptions
+4. Return value description
+5. Example usage
+6. Important notes or warnings
+
+Format as [FORMAT - e.g., OpenAPI YAML, Markdown, etc].
+
+---
+
+PROMPT 3: FIND GAPS
+====================
+
+@vectora Compare the generated documentation from Prompt 2
+with the actual implementation.
+
+Find:
+1. Missing [ITEMS] (in code but not in docs)
+2. Incorrect documentation (docs don't match code)
+3. Missing error handling documentation
+4. Deprecated code still documented
+
+Show what's missing and how to fix it.
+
+---
+
+EXAMPLE USAGE: API DOCUMENTATION
+==================================
+
+PROMPT 1:
+@vectora Analyze the REST API in this codebase.
+
+Extract:
+1. All HTTP endpoints with their locations
+2. For each endpoint:
+   - HTTP method and path
+   - Request parameters/body
+   - Response format
+   - Required authentication
+   - Possible errors
+   - Current documentation status
+
+Format as a structured table.
+
+---
+
+PROMPT 2:
+@vectora Generate OpenAPI 3.0 documentation for the REST API.
+
+Use the analysis from Prompt 1.
+
+For each endpoint, provide:
+1. Full path and method
+2. Summary and description
+3. Request schema
+4. Response schema
+5. Example request and response
+6. Authentication requirements
+7. Error responses
+
+Output valid YAML that can be imported into Swagger UI.
+
+---
+
+PROMPT 3:
+@vectora Compare the OpenAPI documentation from Prompt 2
+with the actual implementation.
+
+Find:
+1. Missing endpoints (in code but not in docs)
+2. Incorrect documentation (doesn't match code)
+3. Missing error responses
+4. Deprecated endpoints still documented
+
+Show what to add/fix.
+
+---
+
+EXAMPLE USAGE: ARCHITECTURE DOCUMENTATION
+===========================================
+
+PROMPT 1:
+@vectora Analyze the system architecture in this codebase.
+
+Extract:
+1. Major components/modules
+2. For each:
+   - Purpose
+   - Responsibilities
+   - Dependencies
+   - Key interfaces
+   - Current documentation
+
+---
+
+PROMPT 2:
+@vectora Generate architecture documentation.
+
+Create:
+1. System overview diagram (text-based)
+2. Component descriptions
+3. Data flow between components
+4. Key design decisions and why
+5. Dependencies and interactions
+
+Format as clear, structured Markdown.
+
+---
+
+PROMPT 3:
+@vectora Find missing or outdated architecture documentation.
+
+Show:
+1. Components that changed but docs weren't updated
+2. New components not documented
+3. Outdated design decisions still in docs
+4. Unclear explanations
+
+Suggest updates for each.

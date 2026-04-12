@@ -36,7 +36,7 @@ func (t *AnalyzeCodePatternsTool) Name() string {
 
 // Description returns human-readable tool description.
 func (t *AnalyzeCodePatternsTool) Description() string {
-	return "Detect recurring code patterns and anti-patterns using semantic analysis"
+	return "Analyze code to identify design patterns (Singleton, Observer, etc), anti-patterns (code smells), and architectural patterns. Detects concurrency issues, error handling patterns, performance problems, and security concerns."
 }
 
 // Schema returns JSON-Schema for tool parameters.
