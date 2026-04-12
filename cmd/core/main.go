@@ -373,10 +373,12 @@ func runCore() {
 
 	infra.SetupLogger()
 
-	appDataDir, _ := systemManager.GetAppDataDir()
-	envPath := filepath.Join(appDataDir, ".env")
-	if err := godotenv.Load(envPath); err != nil {
-		infra.Logger().Warn(fmt.Sprintf("Global config (.env) not found at: %s. Using defaults.", envPath))
+	// Load configuration using the official standardized paths (MTP Phase 13)
+	envPath := infra.GetConfigPath()
+	if err := godotenv.Overload(envPath); err != nil {
+		if !os.IsNotExist(err) {
+			infra.Logger().Warn(fmt.Sprintf("Failed to load .env from %s: %v", envPath, err))
+		}
 	}
 
 	infra.Logger().Info("Starting Vectora Core...")
@@ -408,6 +410,7 @@ func runCore() {
 	}
 
 	// Initialize global workspace salter for per-installation workspace ID hashing
+	appDataDir, _ := systemManager.GetAppDataDir()
 	salter, err := crypto.NewWorkspaceSalter(appDataDir)
 	if err != nil {
 		infra.Logger().Warn(fmt.Sprintf("Failed to initialize workspace salter: %v", err))
@@ -416,6 +419,10 @@ func runCore() {
 
 	// Provider fetcher for IPC routes
 	getProvider := func() llm.Provider {
+		// If tray isn't ready or hasn't loaded a provider yet, try to load it now
+		if tray.ActiveProvider == nil {
+			tray.ReloadActiveProvider()
+		}
 		return tray.ActiveProvider
 	}
 
@@ -674,7 +681,12 @@ func runAsk(query string) error {
 		if strings.Contains(err.Error(), "No LLM provider has been configured") || strings.Contains(err.Error(), "provider_not_configured") {
 			fmt.Println("\rError: Vectora requires an API key to work.")
 			runConfigInteractive()
-			return fmt.Errorf("please try your query again after configuration")
+
+			// Trigger a reload in the Core after config
+			_ = client.Send(ctx, "provider.reload", map[string]any{}, nil)
+
+			fmt.Println("Configuration updated. Retrying query...")
+			return runAsk(query) // Recursive retry
 		}
 		fmt.Println("\rError while querying Vectora:", err)
 		return err

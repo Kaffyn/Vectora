@@ -435,7 +435,7 @@ Each translation file follows this structure:
 Full TypeScript support with proper type definitions:
 
 ```typescript
-type SupportedLanguage = 
+type SupportedLanguage =
   | "en-US" | "pt-BR" | "pt-PT" | "es-ES"
   | "fr-FR" | "de-DE" | "it-IT"
   | "ja-JP" | "zh-CN" | "zh-TW" | "ko-KR"

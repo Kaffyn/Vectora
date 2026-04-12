@@ -209,11 +209,11 @@ Add to type definitions if needed:
 
 ```typescript
 // In baseProvider.ts, update ProviderType:
-export type ProviderType = 
-  | "claude" 
-  | "openai" 
-  | "llama" 
-  | "gemini" 
+export type ProviderType =
+  | "claude"
+  | "openai"
+  | "llama"
+  | "gemini"
   | "newprovider"
   | "custom"
 ```

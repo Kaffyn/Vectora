@@ -142,17 +142,31 @@ func stringsContains(s, substr string) bool {
 }
 
 func runConfigInteractive() {
+	cfg := infra.LoadConfig()
+
+	// Helper to format provider label with masked key
+	formatLabel := func(base, key string) string {
+		if key == "" {
+			return base + " (not set)"
+		}
+		prefixLen := 7
+		if len(key) < prefixLen {
+			prefixLen = len(key)
+		}
+		return fmt.Sprintf("%s (%s...)", base, key[:prefixLen])
+	}
+
 	options := []string{
-		"Google Gemini (AIzaSy...)",
-		"Anthropic Claude (sk-ant...)",
-		"OpenAI (sk-...)",
-		"DeepSeek (V3.2)",
-		"Mistral (Large 3)",
-		"xAI Grok (Grok-4)",
-		"Alibaba Qwen (3.6-Plus)",
-		"Zhipu GLM-5 (7-April-2026)",
-		"Voyage AI (Embeddings)",
-		"OpenRouter (Universal)",
+		formatLabel("Google Gemini", cfg.GeminiAPIKey),
+		formatLabel("Anthropic Claude", cfg.ClaudeAPIKey),
+		formatLabel("OpenAI", cfg.OpenAIAPIKey),
+		formatLabel("DeepSeek", cfg.DeepSeekAPIKey),
+		formatLabel("Mistral", cfg.MistralAPIKey),
+		formatLabel("xAI Grok", cfg.GrokAPIKey),
+		formatLabel("Alibaba Qwen", cfg.QwenAPIKey),
+		formatLabel("Zhipu GLM-5", cfg.ZhipuAPIKey),
+		formatLabel("Voyage AI", cfg.VoyageAPIKey),
+		formatLabel("OpenRouter", cfg.OpenRouterAPIKey),
 		"---",
 		"Set Default Provider",
 		"Set Default Model",
@@ -171,32 +185,38 @@ func runConfigInteractive() {
 		return
 	}
 
-	switch choice {
-	case "Google Gemini (AIzaSy...)":
+	// Extract the base name (before the parenthesis) for the switch
+	baseChoice := choice
+	if idx := stringsIndexOf(choice, " ("); idx != -1 {
+		baseChoice = choice[:idx]
+	}
+
+	switch baseChoice {
+	case "Google Gemini":
 		promptKeyAndSave("GEMINI_API_KEY", "Gemini API Key:", true)
-	case "Anthropic Claude (sk-ant...)":
+	case "Anthropic Claude":
 		promptKeyAndSave("ANTHROPIC_API_KEY", "Anthropic/Claude API Key:", true)
-	case "OpenAI (sk-...)":
+	case "OpenAI":
 		promptKeyAndSave("OPENAI_API_KEY", "OpenAI API Key:", true)
 		promptKeyAndSave("OPENAI_BASE_URL", "OpenAI Base URL (optional):", false)
-	case "DeepSeek (V3.2)":
+	case "DeepSeek":
 		promptKeyAndSave("DEEPSEEK_API_KEY", "DeepSeek API Key:", true)
 		promptKeyAndSave("DEEPSEEK_BASE_URL", "DeepSeek Base URL (optional):", false)
-	case "Mistral (Large 3)":
+	case "Mistral":
 		promptKeyAndSave("MISTRAL_API_KEY", "Mistral API Key:", true)
 		promptKeyAndSave("MISTRAL_BASE_URL", "Mistral Base URL (optional):", false)
-	case "xAI Grok (Grok-4)":
+	case "xAI Grok":
 		promptKeyAndSave("GROK_API_KEY", "xAI Grok API Key:", true)
 		promptKeyAndSave("GROK_BASE_URL", "xAI Grok Base URL (optional):", false)
-	case "Alibaba Qwen (3.6-Plus)":
+	case "Alibaba Qwen":
 		promptKeyAndSave("QWEN_API_KEY", "Qwen API Key:", true)
 		promptKeyAndSave("QWEN_BASE_URL", "Qwen Base URL (optional):", false)
-	case "Zhipu GLM-5 (7-April-2026)":
+	case "Zhipu GLM-5":
 		promptKeyAndSave("ZHIPU_API_KEY", "Zhipu AI / GLM API Key:", true)
 		promptKeyAndSave("ZHIPU_BASE_URL", "Zhipu Base URL (optional):", false)
-	case "Voyage AI (Embeddings)":
+	case "Voyage AI":
 		promptKeyAndSave("VOYAGE_API_KEY", "Voyage AI API Key:", true)
-	case "OpenRouter (Universal)":
+	case "OpenRouter":
 		promptKeyAndSave("OPENROUTER_API_KEY", "OpenRouter API Key:", true)
 	case "Set Default Provider":
 		selectAndSave("DEFAULT_PROVIDER", "Default provider:", []string{"gemini", "claude", "openai", "deepseek", "mistral", "grok", "qwen"})
@@ -207,6 +227,15 @@ func runConfigInteractive() {
 	case "Set Fallback Model":
 		promptKeyAndSave("GEMINI_FALLBACK_MODEL", "Gemini fallback model (e.g. gemini-3-flash-preview):", false)
 	}
+}
+
+func stringsIndexOf(s, sep string) int {
+	for i := 0; i <= len(s)-len(sep); i++ {
+		if s[i:i+len(sep)] == sep {
+			return i
+		}
+	}
+	return -1
 }
 
 func promptKeyAndSave(key, message string, isSecret bool) {

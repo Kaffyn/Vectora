@@ -63,7 +63,7 @@ func (t *WebSearchToEmbedTool) Execute(ctx context.Context, args json.RawMessage
 	// 1. Placeholder for actual search/fetch logic
 	// In a full implementation, this would call specialized scrapers or search APIs.
 	// For now, we simulate the 'Vectorize the Web' concept.
-	
+
 	output := fmt.Sprintf("Web search for '%s' completed. Vectorized results stored in temporary workspace '%s'.", input.Query, input.WorkspaceID)
 
 	return &tools.ToolResult{Output: output}, nil

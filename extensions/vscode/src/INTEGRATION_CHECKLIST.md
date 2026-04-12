@@ -69,7 +69,7 @@ interface SessionUpdate {
 
 ### 2. Chat Panel Integration
 - [x] Initializes AcpClient on extension startup
-- [x] Creates sessions via `createSession()` 
+- [x] Creates sessions via `createSession()`
 - [x] Sends prompts via `prompt()` method
 - [x] Listens to `onSessionUpdate` events
 - [x] Routes messages to webview via postMessage

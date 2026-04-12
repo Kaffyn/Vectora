@@ -31,7 +31,7 @@ type PolarQuantResult struct {
 // Stage 1: Random rotation (Preconditioning) + Polar conversion.
 func (t *TurboQuant) Quantize(vectors [][]float32) (*PolarQuantResult, error) {
 	rng := rand.New(rand.NewSource(t.Seed))
-	
+
 	res := &PolarQuantResult{
 		Magnitudes: make([]float32, len(vectors)),
 		Angles:     make([][]float32, len(vectors)),
@@ -49,7 +49,7 @@ func (t *TurboQuant) Quantize(vectors [][]float32) (*PolarQuantResult, error) {
 			}
 			magSq += float64(preconditioned[j] * preconditioned[j])
 		}
-		
+
 		magnitude := float32(math.Sqrt(magSq))
 		res.Magnitudes[i] = magnitude
 
@@ -77,7 +77,7 @@ func (t *TurboQuant) ApplyQJL(vec []float32) *QJLCorrector {
 	corrector := &QJLCorrector{
 		Bias: make([]int8, len(vec)),
 	}
-	
+
 	// QJL works by capturing the sign of the error
 	// For this conceptual implementation, we store the error sign.
 	for i, val := range vec {
@@ -87,25 +87,25 @@ func (t *TurboQuant) ApplyQJL(vec []float32) *QJLCorrector {
 			corrector.Bias[i] = -1
 		}
 	}
-	
+
 	return corrector
 }
 
 // DotProduct calculates the attention dot product using compressed data and QJL correction.
 func (t *TurboQuant) DotProduct(q []float32, k *PolarQuantResult, idx int, corrector *QJLCorrector) float32 {
 	var sum float32
-	
+
 	angles := k.Angles[idx]
 	mag := k.Magnitudes[idx]
-	
+
 	for i := 0; i < len(q); i++ {
 		// Reconstruct and calculate
 		val := q[i] * angles[i] * mag
-		
+
 		// Apply Stage 2: QJL Error Correction (Simplified)
 		correction := float32(corrector.Bias[i]) * 0.001 // Small stabilization factor
 		sum += val + correction
 	}
-	
+
 	return sum
 }

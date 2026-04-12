@@ -147,8 +147,50 @@ var (
 	ActiveProviderID string
 )
 
+// ReloadActiveProvider re-reads the .env configuration from disk and re-initializes
+// the active LLM provider. This is critical for picking up API keys set by the CLI
+// without requiring a full daemon restart.
+func ReloadActiveProvider() {
+	cfg := infra.LoadConfig()
+
+	// If we already have an active provider ID, try to refresh it
+	if ActiveProviderID != "" {
+		for _, prov := range AllProviders {
+			if prov.ID == ActiveProviderID {
+				key := prov.GetKey(cfg)
+				if key != "" {
+					setProvider(prov, key, cfg)
+					return
+				}
+			}
+		}
+	}
+
+	// Otherwise, fallback to DEFAULT_PROVIDER or first available (same logic as onReady)
+	if cfg.DefaultProvider != "" {
+		for _, prov := range AllProviders {
+			if prov.ID == cfg.DefaultProvider {
+				key := prov.GetKey(cfg)
+				if key != "" {
+					ActiveProviderID = prov.ID
+					setProvider(prov, key, cfg)
+					return
+				}
+			}
+		}
+	}
+
+	for _, prov := range AllProviders {
+		key := prov.GetKey(cfg)
+		if key != "" {
+			ActiveProviderID = prov.ID
+			setProvider(prov, key, cfg)
+			return
+		}
+	}
+}
+
 // Setup configures and launches the systray.
-// Supports all 10+ LLM families from AGENTS.md (April 2026).
 func Setup() {
 	systray.Run(onReady, onExit)
 }
@@ -197,38 +239,7 @@ func onReady() {
 	updateLabels()
 
 	// Initial config check for default provider
-	cfg := infra.LoadConfig()
-	activeSet := false
-
-	// Try to use DEFAULT_PROVIDER if set
-	if cfg.DefaultProvider != "" {
-		for _, prov := range AllProviders {
-			if prov.ID == cfg.DefaultProvider {
-				key := prov.GetKey(cfg)
-				if key != "" {
-					providerItems[prov.ID].Check()
-					ActiveProviderID = prov.ID
-					setProvider(prov, key, cfg)
-					activeSet = true
-					break
-				}
-			}
-		}
-	}
-
-	// If no default provider, find first available
-	if !activeSet {
-		for _, prov := range AllProviders {
-			key := prov.GetKey(cfg)
-			if key != "" {
-				providerItems[prov.ID].Check()
-				ActiveProviderID = prov.ID
-				setProvider(prov, key, cfg)
-				activeSet = true
-				break
-			}
-		}
-	}
+	ReloadActiveProvider()
 
 	// Event loop
 	go func() {

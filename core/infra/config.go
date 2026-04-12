@@ -73,21 +73,39 @@ type Config struct {
 }
 
 // GetConfigPath returns the OS-standard path for the Vectora .env file.
+// On Windows, it prefers %APPDATA%\Vectora\.env but falls back to ~/.Vectora/.env
+// if the latter exists, to support legacy installations.
 func GetConfigPath() string {
 	appData := os.Getenv("APPDATA")
+	userProfile, _ := os.UserHomeDir()
+
+	// 1. Modern Windows Standard: %APPDATA%\Vectora\.env
 	if appData != "" {
-		// Windows: %APPDATA%\Vectora\.env
+		modernPath := filepath.Join(appData, "Vectora", ".env")
+		if _, err := os.Stat(modernPath); err == nil {
+			return modernPath
+		}
+	}
+
+	// 2. Legacy/Unix Fallback: ~/.Vectora/.env
+	if userProfile != "" {
+		legacyPath := filepath.Join(userProfile, ".Vectora", ".env")
+		if _, err := os.Stat(legacyPath); err == nil {
+			return legacyPath
+		}
+	}
+
+	// 3. Default to AppData path for new installations on Windows
+	if appData != "" {
 		return filepath.Join(appData, "Vectora", ".env")
 	}
 
-	userProfile, err := os.UserHomeDir()
-	if err != nil {
-		log.Printf("Warning: Could not find user home directory: %v", err)
-		return ".env"
+	// 4. Default to home dir for Linux/macOS
+	if userProfile != "" {
+		return filepath.Join(userProfile, ".Vectora", ".env")
 	}
 
-	// Linux/macOS: ~/.Vectora/.env
-	return filepath.Join(userProfile, ".Vectora", ".env")
+	return ".env"
 }
 
 // LoadConfig loads configuration from the OS-standard path.

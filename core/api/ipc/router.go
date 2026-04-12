@@ -3,6 +3,7 @@ package ipc
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/Kaffyn/Vectora/core/i18n"
 	"github.com/Kaffyn/Vectora/core/llm"
 	"github.com/Kaffyn/Vectora/core/manager"
+	"github.com/Kaffyn/Vectora/core/tray"
 )
 
 type ProviderFetcher func() llm.Provider
@@ -155,7 +157,7 @@ func RegisterRoutes(
 		if tenant == nil {
 			return nil, errServer("mtp_error", "No tenant context found")
 		}
-		
+
 		// Map MTP tenant ID to ACP session ID
 		return map[string]any{"sessionId": tenant.ID}, nil
 	})
@@ -222,6 +224,12 @@ func RegisterRoutes(
 			return nil, errServer("llm_error", err.Error())
 		}
 		return map[string]any{"models": list}, nil
+	})
+
+	// [3.2] Provider Reload (Triggered by CLI config)
+	server.Register("provider.reload", func(ctx context.Context, payload json.RawMessage) (any, *IPCError) {
+		tray.ReloadActiveProvider()
+		return map[string]bool{"success": true}, nil
 	})
 
 	// [4] Memory Search (Global for now)
