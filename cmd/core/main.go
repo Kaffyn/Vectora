@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -690,27 +689,6 @@ func runAsk(query string) error {
 	return nil
 }
 
-// Legacy runSetup removed in favor of runConfigInteractive in config.go
-
-	key, _ := reader.ReadString('\n')
-	key = strings.TrimSpace(key)
-
-	systemManager, _ := vecos.NewManager()
-	appDataDir, _ := systemManager.GetAppDataDir()
-	envPath := filepath.Join(appDataDir, ".env")
-
-	f, err := os.OpenFile(envPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-	if err == nil {
-		f.WriteString(fmt.Sprintf("\n%s=%s\n", envKey, key))
-		f.Close()
-		fmt.Println("Key safely saved to", envPath)
-	}
-
-	// Auto Restart
-	fmt.Println("Restarting Core with new API Key...")
-	runStop()
-	spawnDetached()
-}
 
 func initEngine(ctx context.Context, workspace string) (*engine.Engine, func(), error) {
 	absPath, err := filepath.Abs(workspace)

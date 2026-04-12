@@ -69,23 +69,36 @@ type Config struct {
 	ZhipuFallbackModel    string
 }
 
-// LoadConfig loads configuration from %USERPROFILE%\.Vectora\.env.
+// GetConfigPath returns the OS-standard path for the Vectora .env file.
+func GetConfigPath() string {
+	appData := os.Getenv("APPDATA")
+	if appData != "" {
+		// Windows: %APPDATA%\Vectora\.env
+		return filepath.Join(appData, "Vectora", ".env")
+	}
+
+	userProfile, err := os.UserHomeDir()
+	if err != nil {
+		log.Printf("Warning: Could not find user home directory: %v", err)
+		return ".env"
+	}
+
+	// Linux/macOS: ~/.Vectora/.env
+	return filepath.Join(userProfile, ".Vectora", ".env")
+}
+
+// LoadConfig loads configuration from the OS-standard path.
 // If the file doesn't exist, it returns a Config with empty keys.
 // This is the official configuration method for Vectora.
 func LoadConfig() *Config {
-	userProfile, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalf("Could not find user home directory: %v", err)
-	}
-
-	envPath := filepath.Join(userProfile, ".Vectora", ".env")
+	envPath := GetConfigPath()
 
 	if _, err := os.Stat(filepath.Dir(envPath)); os.IsNotExist(err) {
 		os.MkdirAll(filepath.Dir(envPath), 0755)
 	}
 
 	if err := godotenv.Overload(envPath); err != nil && !os.IsNotExist(err) {
-		log.Printf("Warning: error loading .env file: %v", err)
+		log.Printf("Warning: error loading .env file from %s: %v", envPath, err)
 	}
 
 	return &Config{
@@ -125,12 +138,7 @@ func LoadConfig() *Config {
 // SaveConfig persists API keys to the user's .env file.
 // Only keys that are non-empty are written.
 func SaveConfig(cfg *Config) error {
-	userProfile, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-
-	envPath := filepath.Join(userProfile, ".Vectora", ".env")
+	envPath := GetConfigPath()
 
 	content := ""
 	if cfg.GeminiAPIKey != "" {

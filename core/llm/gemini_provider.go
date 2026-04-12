@@ -152,6 +152,12 @@ func (p *GeminiProvider) Embed(ctx context.Context, input string, model string) 
 		Parts: []*genai.Part{{Text: input}},
 	}}, nil)
 	if err != nil {
+		// If we hit a rate limit (429), try once more after a short wait or just wrap it
+		if strings.Contains(err.Error(), "429") || strings.Contains(err.Error(), "RESOURCE_EXHAUSTED") {
+			// For embeddings, we don't have a clear "flash" alternative yet in the SDK,
+			// so we just ensure the error is clear so the engine can report it.
+			return nil, fmt.Errorf("gemini_embedding_quota_exceeded: %w", err)
+		}
 		return nil, p.wrapError(err)
 	}
 

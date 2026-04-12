@@ -1,0 +1,240 @@
+/**
+ * Theme System
+ * Supports: light, dark, high-contrast
+ * Uses CSS custom properties for easy customization
+ */
+
+/* ============================================
+   Light Theme (Default)
+   ============================================ */
+:root,
+[data-theme="light"] {
+  /* Primary Colors */
+  --primary-bg: #0066cc;
+  --primary-bg-hover: #0052a3;
+  --primary-fg: #ffffff;
+
+  /* Secondary Colors */
+  --secondary-bg: #e5e5e5;
+  --secondary-bg-hover: #d0d0d0;
+  --secondary-fg: #000000;
+
+  /* Danger Colors */
+  --danger-color: #dc3545;
+  --danger-bg: #dc3545;
+  --danger-bg-hover: #c82333;
+  --danger-fg: #ffffff;
+
+  /* Neutral Colors */
+  --accent-color: #0066cc;
+  --accent-color-alpha: rgba(0, 102, 204, 0.1);
+  --border-color: #999999;
+  --text-color: #000000;
+  --text-color-secondary: #666666;
+  --label-color: #333333;
+  --helper-text-color: #666666;
+
+  /* Background Colors */
+  --vscode-bg: #ffffff;
+  --vscode-fg: #000000;
+  --input-bg: #ffffff;
+  --disabled-bg: #f5f5f5;
+  --hover-bg: #f0f0f0;
+  --surface-bg: #f9f9f9;
+
+  /* Status Colors */
+  --success-color: #28a745;
+  --warning-color: #ffc107;
+  --error-color: #dc3545;
+  --info-color: #17a2b8;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+
+  /* Border Radius */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+
+  /* Z-index */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+}
+
+/* ============================================
+   Dark Theme
+   ============================================ */
+[data-theme="dark"] {
+  /* Primary Colors */
+  --primary-bg: #0078d4;
+  --primary-bg-hover: #1084d7;
+  --primary-fg: #ffffff;
+
+  /* Secondary Colors */
+  --secondary-bg: #3c3c3c;
+  --secondary-bg-hover: #4e4e4e;
+  --secondary-fg: #ffffff;
+
+  /* Danger Colors */
+  --danger-color: #f48771;
+  --danger-bg: #dc3545;
+  --danger-bg-hover: #e85059;
+  --danger-fg: #ffffff;
+
+  /* Neutral Colors */
+  --accent-color: #0078d4;
+  --accent-color-alpha: rgba(0, 120, 212, 0.2);
+  --border-color: #555555;
+  --text-color: #e0e0e0;
+  --text-color-secondary: #a0a0a0;
+  --label-color: #e0e0e0;
+  --helper-text-color: #a0a0a0;
+
+  /* Background Colors */
+  --vscode-bg: #1e1e1e;
+  --vscode-fg: #e0e0e0;
+  --input-bg: #2d2d2d;
+  --disabled-bg: #2d2d2d;
+  --hover-bg: #3c3c3c;
+  --surface-bg: #252526;
+
+  /* Status Colors */
+  --success-color: #13c314;
+  --warning-color: #d7ba13;
+  --error-color: #f48771;
+  --info-color: #3b99f6;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   High Contrast Theme
+   ============================================ */
+[data-theme="high-contrast"] {
+  /* Primary Colors */
+  --primary-bg: #000000;
+  --primary-bg-hover: #1a1a1a;
+  --primary-fg: #ffff00;
+
+  /* Secondary Colors */
+  --secondary-bg: #ffffff;
+  --secondary-bg-hover: #e0e0e0;
+  --secondary-fg: #000000;
+
+  /* Danger Colors */
+  --danger-color: #ff0000;
+  --danger-bg: #ff0000;
+  --danger-bg-hover: #cc0000;
+  --danger-fg: #ffff00;
+
+  /* Neutral Colors */
+  --accent-color: #ffff00;
+  --accent-color-alpha: rgba(255, 255, 0, 0.3);
+  --border-color: #000000;
+  --text-color: #000000;
+  --text-color-secondary: #333333;
+  --label-color: #000000;
+  --helper-text-color: #333333;
+
+  /* Background Colors */
+  --vscode-bg: #ffffff;
+  --vscode-fg: #000000;
+  --input-bg: #ffffff;
+  --disabled-bg: #cccccc;
+  --hover-bg: #ffffcc;
+  --surface-bg: #f0f0f0;
+
+  /* Status Colors */
+  --success-color: #00cc00;
+  --warning-color: #ff6600;
+  --error-color: #ff0000;
+  --info-color: #0066cc;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.8);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.8);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.8);
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  font-family: var(--font-family);
+  background-color: var(--vscode-bg);
+  color: var(--vscode-fg);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ============================================
+   Smooth Theme Transition
+   ============================================ */
+@media (prefers-reduced-motion: no-preference) {
+  html,
+  body {
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+}
+
+/* ============================================
+   System Theme Auto-Detection
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --primary-bg: #0078d4;
+    --primary-bg-hover: #1084d7;
+    --vscode-bg: #1e1e1e;
+    --vscode-fg: #e0e0e0;
+    --input-bg: #2d2d2d;
+    --surface-bg: #252526;
+    --text-color: #e0e0e0;
+    --text-color-secondary: #a0a0a0;
+    --secondary-bg: #3c3c3c;
+    --secondary-bg-hover: #4e4e4e;
+    --hover-bg: #3c3c3c;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+  }
+}

@@ -168,6 +168,9 @@ func (g *Guardian) IsModificationBlocked(path string) bool {
 
 // IsExcludedDir verifica se um diretório deve ser ignorado na indexação
 func (g *Guardian) IsExcludedDir(name string) bool {
+	if name != "." && name != ".." && strings.HasPrefix(name, ".") {
+		return true
+	}
 	return g.ExcludedDirs[name]
 }
 

@@ -112,7 +112,7 @@ var chatCmd = &cobra.Command{
 			if err != nil {
 				if strings.Contains(err.Error(), "No LLM provider has been configured") || strings.Contains(err.Error(), "provider_not_configured") {
 					fmt.Println("Error: Vectora requires an API key to work.")
-					runSetup()
+					runConfigInteractive()
 					continue
 				}
 				fmt.Println("Error:", err)
