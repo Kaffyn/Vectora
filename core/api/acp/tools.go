@@ -78,17 +78,34 @@ func (a *VectoraAgent) RegisterEmbeddingTools(router *llm.Router) {
 		a.logger,
 	)
 
+	// Phase 4J: Quality Tools
+	// Test generation tool - generate test cases from code
+	testGenTool := embedding.NewTestGenerationTool(
+		router,
+		a.vecStore,
+		a.logger,
+	)
+
+	// Bug pattern detection tool - identify potential bugs
+	bugDetectionTool := embedding.NewBugPatternDetectionTool(
+		router,
+		a.vecStore,
+		a.logger,
+	)
+
 	// Store tools for ACP agent use
 	a.embeddingTools = map[string]interface{}{
-		"embed":                   embedTool,
-		"search_database":         searchTool,
-		"web_search_and_embed":    webSearchTool,
-		"web_fetch_and_embed":     webFetchTool,
-		"plan_mode":               planTool,
-		"refactor_with_context":   refactorTool,
-		"analyze_code_patterns":   patternsAnalysisTool,
+		"embed":                    embedTool,
+		"search_database":          searchTool,
+		"web_search_and_embed":     webSearchTool,
+		"web_fetch_and_embed":      webFetchTool,
+		"plan_mode":                planTool,
+		"refactor_with_context":    refactorTool,
+		"analyze_code_patterns":    patternsAnalysisTool,
 		"knowledge_graph_analysis": knowledgeGraphTool,
-		"doc_coverage_analysis":   docCoverageTool,
+		"doc_coverage_analysis":    docCoverageTool,
+		"test_generation":          testGenTool,
+		"bug_pattern_detection":    bugDetectionTool,
 	}
 }
 
