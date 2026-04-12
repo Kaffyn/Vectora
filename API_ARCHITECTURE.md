@@ -514,7 +514,334 @@ return {
 
 ---
 
-## 9. Métodos Faltando/Futuros
+## 9. Catálogo Completo de Tools Expostas
+
+**Localização:** `core/tools/registry.go` → 10 tools registradas
+
+As tools são expostas via:
+- **ACP:** Invocadas através do `session/prompt` com tool calls
+- **MCP:** Listadas em `tools/list` e executadas em `tools/call`
+- **IPC:** Executadas via `ExecuteTool()` no Engine
+
+### 9.1 File Operations (4 tools)
+
+#### `read_file` — Ler arquivo
+```json
+{
+  "name": "read_file",
+  "description": "Reads the content of a file within the Trust Folder.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string" }
+    },
+    "required": ["path"]
+  }
+}
+```
+
+**Resposta:**
+```json
+{
+  "output": "<conteúdo do arquivo>",
+  "isError": false,
+  "metadata": {
+    "truncated": false,
+    "size": 1024
+  }
+}
+```
+
+**Guardian Checks:** ✅ Trust Folder validation, ✅ Path traversal protection
+
+---
+
+#### `write_file` — Criar/sobrescrever arquivo
+```json
+{
+  "name": "write_file",
+  "description": "Creates or overwrites a file within the Trust Folder.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string" },
+      "content": { "type": "string" }
+    },
+    "required": ["path", "content"]
+  }
+}
+```
+
+**Resposta:**
+```json
+{
+  "output": "File written successfully",
+  "isError": false,
+  "snapshot_id": "snap-abc123"
+}
+```
+
+**Guardian Checks:** ✅ Trust Folder, ✅ Protected files (.vectoraignore), ✅ Backup snapshot
+
+---
+
+#### `read_folder` — Listar diretório
+```json
+{
+  "name": "read_folder",
+  "description": "Lists files and directories within a folder in the Trust Folder.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string" }
+    },
+    "required": ["path"]
+  }
+}
+```
+
+**Resposta:**
+```json
+{
+  "output": "Contents of /path/to/folder:\n- file1.go\n- subdir/\n- file2.md",
+  "isError": false
+}
+```
+
+**Guardian Checks:** ✅ Trust Folder validation
+
+---
+
+#### `edit` — Editar trecho de arquivo
+```json
+{
+  "name": "edit",
+  "description": "Replaces a specific block of text in a file.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "path": { "type": "string" },
+      "instruction": { "type": "string" },
+      "original": { "type": "string" }
+    },
+    "required": ["path", "instruction", "original"]
+  }
+}
+```
+
+**Resposta:**
+```json
+{
+  "output": "Updated successfully",
+  "isError": false,
+  "snapshot_id": "snap-def456"
+}
+```
+
+**Guardian Checks:** ✅ Protected files, ✅ Backup creation
+
+---
+
+### 9.2 Search & Discovery (2 tools)
+
+#### `find_files` — Encontrar arquivos
+```json
+{
+  "name": "find_files",
+  "description": "Finds files matching a pattern within the Trust Folder.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pattern": { "type": "string" },
+      "limit": { "type": "integer" }
+    },
+    "required": ["pattern"]
+  }
+}
+```
+
+**Resposta:**
+```json
+{
+  "output": "Found 5 matches:\n- /src/main.go\n- /src/utils.go\n...",
+  "isError": false
+}
+```
+
+---
+
+#### `grep_search` — Buscar conteúdo com regex
+```json
+{
+  "name": "grep_search",
+  "description": "Searches file contents using regex patterns within the Trust Folder.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pattern": { "type": "string" },
+      "root": { "type": "string" },
+      "exclude": { "type": "string" }
+    },
+    "required": ["pattern"]
+  }
+}
+```
+
+**Resposta:**
+```json
+{
+  "output": "Found 3 matches:\n/src/api.go:12: const API_URL = \"...\"\n...",
+  "isError": false
+}
+```
+
+---
+
+### 9.3 Execution (1 tool)
+
+#### `run_shell_command` — Executar comando shell
+```json
+{
+  "name": "run_shell_command",
+  "description": "Executes a shell command on the host system.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "command": { "type": "string" },
+      "cwd": { "type": "string" }
+    },
+    "required": ["command"]
+  }
+}
+```
+
+**Resposta:**
+```json
+{
+  "output": "go version go1.21.0 linux/amd64",
+  "isError": false,
+  "metadata": {
+    "exit_code": 0
+  }
+}
+```
+
+---
+
+### 9.4 Memory & Knowledge (1 tool)
+
+#### `save_memory` — Armazenar na memória persistente
+```json
+{
+  "name": "save_memory",
+  "description": "Stores a key-value pair in persistent memory for future sessions.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "key": { "type": "string" },
+      "value": { "type": "string" }
+    },
+    "required": ["key", "value"]
+  }
+}
+```
+
+**Resposta:**
+```json
+{
+  "output": "Memory saved: 'project_name' = 'Vectora'",
+  "isError": false
+}
+```
+
+**Guardian Checks:** ✅ KVStore persistence via Guardian
+
+---
+
+### 9.5 Web & Internet (2 tools)
+
+#### `google_search` — Buscar na web (DuckDuckGo)
+```json
+{
+  "name": "google_search",
+  "description": "Searches the web via DuckDuckGo.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string" }
+    },
+    "required": ["query"]
+  }
+}
+```
+
+**Resposta:**
+```json
+{
+  "output": "Top results for 'golang embedding':\n1. golang.org/pkg/embedding\n2. ...",
+  "isError": false
+}
+```
+
+---
+
+#### `web_fetch` — Buscar conteúdo de URL
+```json
+{
+  "name": "web_fetch",
+  "description": "Fetches the content of a URL and extracts text.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "url": { "type": "string" }
+    },
+    "required": ["url"]
+  }
+}
+```
+
+**Resposta:**
+```json
+{
+  "output": "<HTML content parsed as text>...",
+  "isError": false,
+  "metadata": {
+    "title": "Page Title",
+    "url": "https://example.com"
+  }
+}
+```
+
+---
+
+### 9.6 Embedding & RAG - Não via Tools!
+
+**⚠️ Importante:** Embedding **NÃO é exposto como tool**. É um **serviço de backend**:
+
+```
+Embedding é feito via:
+├─ IPC: workspace.query (inclui embedding internamente)
+├─ IPC: workspace.embed.start (job de embedding)
+├─ ACP: session/prompt (embedding implícito)
+└─ MCP: (embedding não está em tools/list)
+```
+
+**Motivo:** Embedding usa provider LLM (Gemini, Claude, Qwen, etc) e é tightly coupled ao RAG pipeline, não é uma ferramenta genérica.
+
+---
+
+## 10. Resumo: Tools vs Métodos
+
+| Tipo | Localização | Transporte | Exemplo |
+|------|-------------|-----------|---------|
+| **Tools** (10) | `core/tools/registry.go` | ACP, MCP, IPC | `read_file`, `run_shell_command` |
+| **Métodos IPC** (14) | `core/api/ipc/router.go` | Named Pipe/Socket | `workspace.query`, `chat.list` |
+| **Métodos ACP** (12+) | Coder ACP SDK | Stdio | `session/prompt`, `fs/read` |
+| **Métodos MCP** (3) | `core/api/mcp/stdio.go` | Stdio | `initialize`, `tools/call` |
+
+---
+
+## 11. Métodos Faltando/Futuros
 
 ### Em ACP
 
@@ -614,7 +941,7 @@ Claude Code (parent agent)
 
 ---
 
-## 11. Resumo Executivo
+## 12. Resumo Executivo
 
 ### Implementação Atual
 
