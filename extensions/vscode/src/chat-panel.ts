@@ -1,6 +1,6 @@
-import * as fs from "fs";
-import * as path from "path";
-import { Client } from "./client";
+import * as vscode from "vscode";
+import { AcpClient } from "./client";
+import type { SessionUpdate } from "./types";
 
 /**
  * ChatViewProvider manages the Sidebar Webview for Vectora chat.
@@ -9,19 +9,20 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "vectora.chatView";
   private _view?: vscode.WebviewView;
   private isStreaming = false;
+  private sessionId?: string;
 
   constructor(
-    private client: Client | undefined,
+    private client: AcpClient | undefined,
     private context: vscode.ExtensionContext,
   ) {
     if (this.client) {
-      this.client.onNotification.event(this.handleNotification, this);
+      this.client.onSessionUpdate.event(this.handleNotification, this);
     }
   }
 
-  public setClient(client: Client) {
+  public setClient(client: AcpClient) {
     this.client = client;
-    this.client.onNotification.event(this.handleNotification, this);
+    this.client.onSessionUpdate.event(this.handleNotification, this);
   }
 
   public resolveWebviewView(
@@ -39,67 +40,54 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.html = this.getHtml(webviewView.webview);
 
     // Show connecting state if client is not ready
-    if (!this.client || !this.client.isRunning) {
+    if (!this.client || !this.client.isConnected) {
       webviewView.webview.postMessage({ type: "connecting", message: "Vectora is connecting..." });
     }
 
-    this.sendTranslations();
-
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       switch (msg.type) {
-        case "newTask":
+        case "prompt":
           await this.sendMessageInternal(msg.text);
           break;
-        case "askResponse":
-          await this.sendMessageInternal(msg.text || msg.askResponse);
-          break;
-        case "cancelTask":
-          if (this.client?.sessionId) {
-            this.client.notify("session/cancel", { sessionId: this.client.sessionId });
+
+        case "cancel":
+          if (this.client && this.sessionId) {
+            this.client.cancelSession(this.sessionId);
             this._view?.webview.postMessage({ type: "stream_end", stopReason: "cancelled" });
           }
           break;
-        case "clearTask":
-          if (this.client) {
-            this.client.sessionId = undefined;
-          }
+
+        case "clear":
+          this.sessionId = undefined;
           await this.clearChat();
           break;
       }
     });
   }
 
-  public async sendMessage(text: string): Promise<void> {
-    if (this._view) {
-      this._view.show?.(true);
-      this._view.webview.postMessage({ type: "inject_message", text });
-    } else {
-      vscode.commands.executeCommand("vectora.chatView.focus");
-    }
-  }
-
   public async clearChat(): Promise<void> {
     this._view?.webview.postMessage({ type: "clear_chat" });
+    this.sessionId = undefined;
   }
 
   private async sendMessageInternal(text: string): Promise<void> {
     if (!text.trim()) return;
 
-    if (!this.client || !this.client.isRunning) {
+    if (!this.client || !this.client.isConnected) {
       await vscode.commands.executeCommand("vectora.start");
-      // Wait a few seconds for initialization to complete
+      // Wait for connection to establish
       for (let i = 0; i < 20; i++) {
-        if (this.client?.isRunning) break;
+        if (this.client?.isConnected) break;
         await new Promise((r) => setTimeout(r, 500));
       }
     }
 
-    if (!this.client || !this.client.isRunning) {
+    if (!this.client || !this.client.isConnected) {
       this._view?.webview.postMessage({ type: "error", message: "Vectora Core is not running. Failed to auto-start." });
       return;
     }
 
-    if (!this.client.sessionId) {
+    if (!this.sessionId) {
       const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       if (!workspacePath) {
         vscode.window.showErrorMessage("Vectora: No workspace folder open.");
@@ -107,10 +95,11 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       }
 
       try {
-        const resp = await this.client.request<SessionNewRequest, SessionNewResponse>("session/new", {
-          cwd: workspacePath,
+        const resp = await this.client.createSession({
+          workspaceId: workspacePath,
+          provider: "gemini", // TODO: Get from settings/state
         });
-        this.client.sessionId = resp.sessionId;
+        this.sessionId = resp.sessionId;
       } catch (err: any) {
         this._view?.webview.postMessage({ type: "error", message: `Failed to create session: ${err.message}` });
         return;
@@ -120,94 +109,60 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     this._view?.webview.postMessage({ type: "user_message", id: Date.now().toString(), text });
 
     try {
-      const result = await this.client.request<SessionPromptRequest, PromptResponse>("session/prompt", {
-        sessionId: this.client.sessionId!,
-        prompt: [{ type: "text", text }],
+      const result = await this.client.prompt({
+        sessionId: this.sessionId,
+        messages: [{ role: "user", content: text }],
       });
-      this._view?.webview.postMessage({ type: "stream_end", stopReason: result.stopReason });
+      this._view?.webview.postMessage({ type: "stream_end", stopReason: "completed" });
     } catch (err: any) {
       this._view?.webview.postMessage({ type: "error", message: err.message });
     }
   }
 
-  private handleNotification(notification: any): void {
-    if (notification.method === "session/update") {
-      this.handleSessionUpdate(notification.params as SessionUpdate);
-    } else if (notification.method === "session/request_permission") {
-      this.handlePermissionRequest(notification.params);
-    }
-  }
-
-  private handleSessionUpdate(update: SessionUpdate): void {
+  private handleNotification(update: SessionUpdate): void {
     if (!this._view) return;
-    const u = update.update;
 
-    switch (u.sessionUpdate) {
-      case "agent_message_chunk": {
-        const text = u.content?.[0]?.content?.text || "";
-        if (text) this._view.webview.postMessage({ type: "agent_chunk", id: update.sessionId, text });
+    switch (update.type) {
+      case "message":
+        // Streaming message content
+        if (update.content) {
+          this._view.webview.postMessage({ type: "agent_chunk", text: update.content });
+        }
         break;
-      }
+
       case "tool_call":
+        // Tool execution started
         this._view.webview.postMessage({
           type: "tool_call",
-          toolCallId: u.toolCallId,
-          title: u.title || u.kind || "Tool",
-          status: u.status,
+          toolName: update.toolName,
+          toolInput: update.toolInput,
         });
         break;
-      case "tool_call_update":
+
+      case "tool_result":
+        // Tool execution completed
         this._view.webview.postMessage({
-          type: "tool_call_update",
-          toolCallId: u.toolCallId,
-          status: u.status,
+          type: "tool_result",
+          toolName: update.toolName,
+          result: update.content,
         });
         break;
-      case "plan":
-        this._view.webview.postMessage({ type: "plan", entries: u.entries || [] });
+
+      case "error":
+        // Error occurred
+        this._view.webview.postMessage({
+          type: "error",
+          message: update.content || "Unknown error",
+        });
+        break;
+
+      case "complete":
+        // Session completed
+        this._view.webview.postMessage({ type: "stream_end", stopReason: "completed" });
         break;
     }
   }
 
-  private handlePermissionRequest(req: any): void {
-    if (!this._view) return;
-    vscode.window
-      .showInformationMessage(
-        `Vectora wants to execute: ${req.toolCall?.kind || "unknown"}`,
-        { modal: true },
-        "Allow",
-        "Deny",
-      )
-      .then((_choice) => {
-        // Logic for permission handling
-      });
-  }
-
-  private sendTranslations(): void {
-    try {
-      const csvPath = path.join(this.context.extensionPath, "core", "i18n", "translations.csv");
-      if (fs.existsSync(csvPath)) {
-        const content = fs.readFileSync(csvPath, "utf8");
-        const lines = content.split("\n").filter((l) => l.trim());
-        const headers = lines[0].split(",");
-        const translations: Record<string, any> = {};
-
-        for (let i = 1; i < lines.length; i++) {
-          const parts = lines[i].split(",");
-          if (parts.length < headers.length) continue;
-          const key = parts[0];
-          translations[key] = {};
-          for (let j = 1; j < headers.length; j++) {
-            translations[key][headers[j]] = parts[j];
-          }
-        }
-
-        this._view?.webview.postMessage({ type: "translations", translations });
-      }
-    } catch (err) {
-      console.error("Failed to load translations:", err);
-    }
-  }
 
   private getNonce(): string {
     let text = "";
