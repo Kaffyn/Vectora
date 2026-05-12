@@ -51,7 +51,7 @@ repos:
         stages: [pre-commit]
 
   # ==========================================
-  # Python Validation (scripts and cognitive runtime)
+  # Python Validation
   # ==========================================
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.4.4
@@ -59,10 +59,10 @@ repos:
       - id: ruff
         name: Ruff Lint (Python)
         args: [--fix, --line-length=100]
-        files: ^(scripts|vectora-cognitive-runtime)/.*\.py$
+        files: \.py$
       - id: ruff-format
         name: Ruff Format (Python)
-        files: ^(scripts|vectora-cognitive-runtime)/.*\.py$
+        files: \.py$
 
   - repo: https://github.com/PyCQA/isort
     rev: 5.13.2
@@ -70,27 +70,27 @@ repos:
       - id: isort
         name: Sort Python Imports
         args: ["--profile=black", "--line-length=100"]
-        files: ^(scripts|vectora-cognitive-runtime)/.*\.py$
+        files: \.py$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.14.1
     hooks:
       - id: mypy
         name: Mypy (Python Static Analysis)
-        files: ^(scripts|vectora-cognitive-runtime)/.*\.py$
+        files: \.py$
         types_or: [text]
         additional_dependencies: [types-PyYAML]
 
   # ==========================================
-  # TypeScript / JavaScript Validation (vectora and integrations)
+  # TypeScript / JavaScript Validation
   # ==========================================
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:
       - id: prettier
-        name: Prettier (vectora + integrations)
+        name: Prettier
         args: ["--write"]
-        files: ^(vectora|vectora-integrations)/.*\.(ts|tsx|js|jsx|mjs|cjs|json)$
+        files: \.(ts|tsx|js|jsx|mjs|cjs|json)$
         types_or: [text]
 
   # ==========================================
