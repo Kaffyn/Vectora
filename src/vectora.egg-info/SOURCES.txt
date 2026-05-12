@@ -1,0 +1,8 @@
+LICENSE
+README.md
+pyproject.toml
+src/vectora.egg-info/PKG-INFO
+src/vectora.egg-info/SOURCES.txt
+src/vectora.egg-info/dependency_links.txt
+src/vectora.egg-info/requires.txt
+src/vectora.egg-info/top_level.txt

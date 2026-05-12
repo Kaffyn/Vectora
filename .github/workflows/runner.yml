@@ -1,0 +1,286 @@
+name: Vectora CI/CD
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Prepare CI plan
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      release_kind: ${{ steps.meta.outputs.release_kind }}
+      run_all: ${{ steps.meta.outputs.run_all }}
+      run_precommit_all: ${{ steps.plan.outputs.run_precommit_all }}
+      changed_files: ${{ steps.plan.outputs.changed_files }}
+      run_vectora: ${{ steps.plan.outputs.run_vectora }}
+      run_asset_library: ${{ steps.plan.outputs.run_asset_library }}
+      run_cognitive_runtime: ${{ steps.plan.outputs.run_cognitive_runtime }}
+      run_integrations: ${{ steps.plan.outputs.run_integrations }}
+      run_website: ${{ steps.plan.outputs.run_website }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute version
+        id: meta
+        shell: bash
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          short_sha="${SHA:0:7}"
+          if [[ "${REF_TYPE}" == "tag" && "${REF_NAME}" == v* ]]; then
+            version="${REF_NAME#v}"
+            if [[ "${version}" == *.dev ]]; then
+              release_kind="dev"
+            else
+              release_kind="stable"
+            fi
+            run_all="true"
+          else
+            latest_tag="$(git tag --list 'v*' --sort=-version:refname | head -n 1 || true)"
+            if [[ -n "${latest_tag}" ]]; then
+              base_version="${latest_tag#v}"
+              base_version="${base_version%.dev}"
+            else
+              base_version="0.0.0"
+            fi
+            version="${base_version}.dev+${short_sha}"
+            release_kind="dev"
+            run_all="false"
+          fi
+
+          {
+            echo "version=${version}"
+            echo "release_kind=${release_kind}"
+            echo "run_all=${run_all}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Plan affected modules
+        id: plan
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+          RUN_ALL: ${{ steps.meta.outputs.run_all }}
+        run: |
+          set -euo pipefail
+
+          write_output() {
+            local name="$1"
+            local value="$2"
+            echo "${name}=${value}" >> "${GITHUB_OUTPUT}"
+          }
+
+          if [[ "${RUN_ALL}" == "true" ]]; then
+            write_output "run_precommit_all" "true"
+            write_output "run_vectora" "true"
+            write_output "run_asset_library" "true"
+            write_output "run_cognitive_runtime" "true"
+            write_output "run_integrations" "true"
+            write_output "run_website" "true"
+            exit 0
+          fi
+
+          base_sha="${BEFORE_SHA}"
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
+            base_sha="${BASE_SHA}"
+          fi
+
+          if [[ -z "${base_sha}" || "${base_sha}" =~ ^0+$ ]]; then
+            base_sha="$(git hash-object -t tree /dev/null)"
+          fi
+
+          mapfile -t changed_files < <(git diff --name-only "${base_sha}" "${HEAD_SHA}")
+
+          run_vectora="false"
+          run_asset_library="false"
+          run_cognitive_runtime="false"
+          run_integrations="false"
+          run_website="false"
+          run_all_modules="false"
+          run_precommit_all="false"
+
+          for file in "${changed_files[@]}"; do
+            case "${file}" in
+              vectora/*)
+                run_vectora="true"
+                ;;
+              vectora-asset-library/*)
+                run_asset_library="true"
+                ;;
+              vectora-cognitive-runtime/*)
+                run_cognitive_runtime="true"
+                ;;
+              vectora-integrations/*)
+                run_integrations="true"
+                ;;
+              vectora-website/*)
+                run_website="true"
+                ;;
+              .github/*|scripts/*|company/*|AGENTS.md|README.md|SECURITY.md|CONTRIBUTING.md|phase-*.md|piped-booping-dawn*|.pre-commit-config.yaml)
+                run_all_modules="true"
+                run_precommit_all="true"
+                ;;
+              *)
+                run_all_modules="true"
+                run_precommit_all="true"
+                ;;
+            esac
+          done
+
+          if [[ "${run_all_modules}" == "true" ]]; then
+            run_vectora="true"
+            run_asset_library="true"
+            run_cognitive_runtime="true"
+            run_integrations="true"
+            run_website="true"
+          fi
+
+          write_output "run_vectora" "${run_vectora}"
+          write_output "run_asset_library" "${run_asset_library}"
+          write_output "run_cognitive_runtime" "${run_cognitive_runtime}"
+          write_output "run_integrations" "${run_integrations}"
+          write_output "run_website" "${run_website}"
+
+          {
+            echo "changed_files<<EOF"
+            printf '%s\n' "${changed_files[@]}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+          write_output "run_precommit_all" "${run_precommit_all}"
+
+      - name: Install pre-commit
+        if: steps.plan.outputs.changed_files != '' || steps.plan.outputs.run_precommit_all == 'true'
+        run: python -m pip install --upgrade pre-commit
+
+      - name: Run pre-commit
+        if: steps.plan.outputs.changed_files != '' || steps.plan.outputs.run_precommit_all == 'true'
+        shell: bash
+        env:
+          RUN_PRECOMMIT_ALL: ${{ steps.plan.outputs.run_precommit_all }}
+          CHANGED_FILES: ${{ steps.plan.outputs.changed_files }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${RUN_PRECOMMIT_ALL}" == "true" ]]; then
+            pre-commit run --all-files --show-diff-on-failure --color always
+            exit 0
+          fi
+
+          mapfile -t files < <(printf '%s\n' "${CHANGED_FILES}" | sed '/^$/d')
+          if [[ "${#files[@]}" -eq 0 ]]; then
+            exit 0
+          fi
+
+          pre-commit run --files "${files[@]}" --show-diff-on-failure --color always
+
+  vectora:
+    name: Vectora
+    needs: prepare
+    if: needs.prepare.outputs.run_vectora == 'true'
+    uses: ./.github/workflows/vectora.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      release_kind: ${{ needs.prepare.outputs.release_kind }}
+      run_all: ${{ needs.prepare.outputs.run_all }}
+
+  asset-library:
+    name: Asset Library
+    needs: prepare
+    if: needs.prepare.outputs.run_asset_library == 'true'
+    uses: ./.github/workflows/asset-library.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      release_kind: ${{ needs.prepare.outputs.release_kind }}
+      run_all: ${{ needs.prepare.outputs.run_all }}
+
+  cognitive-runtime:
+    name: Cognitive Runtime
+    needs: prepare
+    if: needs.prepare.outputs.run_cognitive_runtime == 'true'
+    uses: ./.github/workflows/cognitive-runtime.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      release_kind: ${{ needs.prepare.outputs.release_kind }}
+      run_all: ${{ needs.prepare.outputs.run_all }}
+
+  integrations:
+    name: Integrations
+    needs: prepare
+    if: needs.prepare.outputs.run_integrations == 'true'
+    uses: ./.github/workflows/integrations.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      release_kind: ${{ needs.prepare.outputs.release_kind }}
+      run_all: ${{ needs.prepare.outputs.run_all }}
+
+  website:
+    name: Website
+    needs: prepare
+    if: needs.prepare.outputs.run_website == 'true'
+    uses: ./.github/workflows/website.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      release_kind: ${{ needs.prepare.outputs.release_kind }}
+      run_all: ${{ needs.prepare.outputs.run_all }}
+
+  release:
+    name: Publish GitHub Release
+    needs:
+      - prepare
+      - vectora
+      - asset-library
+      - cognitive-runtime
+      - integrations
+      - website
+    if: startsWith(github.ref, 'refs/tags/v') && needs.prepare.outputs.run_all == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create release
+        uses: actions/github-script@v7
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          RELEASE_KIND: ${{ needs.prepare.outputs.release_kind }}
+          TAG_NAME: ${{ github.ref_name }}
+        with:
+          script: |
+            const version = process.env.VERSION;
+            const releaseKind = process.env.RELEASE_KIND;
+            const tagName = process.env.TAG_NAME;
+            const prerelease = releaseKind === "dev";
+
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tagName,
+              name: `Vectora ${version}`,
+              body: [
+                `Automated ${releaseKind} release for ${version}.`,
+                '',
+                'This release was generated by the root CI runner after the module validations completed.'
+              ].join('\n'),
+              draft: false,
+              prerelease
+            });

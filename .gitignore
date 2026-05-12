@@ -1,0 +1,84 @@
+# Environment
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# Dependencies
+vendor/
+go.sum
+
+# Build outputs
+dist/
+bin/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+*.pkg
+*.deb
+*.rpm
+*.apk
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test coverage
+coverage.out
+coverage.html
+*.cover
+
+# Logs
+logs/
+*.log
+
+# Database
+data/
+*.db
+.badgerdb/
+
+# Cache (data dirs only; Go source packages named cache/ are tracked via negation)
+cache/
+!desktop/internal/cache/
+!cloud/internal/cache/
+temp/
+tmp/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Sensitive Files (NEVER commit)
+fly.secrets
+fly.secrets.local
+.env.*
+!.env.example
+
+# CI/CD artifacts
+*.sarif
+trivy-results.*
+
+# Deployment
+deployment-summary.txt
+
+# Hugo
+docs/public/
+docs/resources/
+docs/static/
+docs/.hugo_build.lock
+/vectora-cognitive-runtime/tests/__pycache__
+/vectora-cognitive-runtime/server/__pycache__
+__pycache__
+**/**/__pycache__
+/vectora-website/static
+/company
