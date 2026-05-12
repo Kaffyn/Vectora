@@ -37,7 +37,7 @@ cache = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py314"
+target-version = "py312"
 fix = true
 show-fixes = true
 indent-width = 4
@@ -53,7 +53,6 @@ ignore = [
   "D",      # All pydocstyle (D)
   "ANN401", # Checks that function arguments are annotated with a more specific type than Any.
   "ERA001", # Checks for commented-out Python code.
-  "A004",   # Shadowing Python Builtin
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -65,7 +64,18 @@ indent-style = "space"
 line-ending = "lf"
 
 [tool.ruff.lint.isort]
-known-first-party = ["react_agent"]
+known-first-party = [
+  "checkpointer",
+  "constants",
+  "context",
+  "env",
+  "graph",
+  "nodes",
+  "prompts",
+  "state",
+  "tools",
+  "utils",
+]
 
 [tool.pyright]
 typeCheckingMode = "standard"

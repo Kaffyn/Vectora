@@ -5,13 +5,11 @@ from rich import print
 from rich.markdown import Markdown
 from rich.prompt import Prompt
 
-from examples.ex012.checkpointer import (
-    build_checkpointer_sqlite,
-)
-from examples.ex012.constants import DB_DSN
-from examples.ex012.context import Context
-from examples.ex012.graph import build_graph
-from examples.ex012.utils import async_lifespan
+from checkpointer import build_checkpointer_sqlite
+from constants import DB_DSN
+from context import Context
+from graph import build_graph
+from utils import async_lifespan
 
 
 async def run_graph(checkpointer: BaseCheckpointSaver) -> None:
@@ -56,7 +54,7 @@ async def run_graph(checkpointer: BaseCheckpointSaver) -> None:
         print(last_message)
         print(Markdown("\n\n  ---  \n\n"))
 
-        all_messages = result["messages"]
+        all_messages = result["messages"]  # noqa: F841
 
     print(await graph.aget_state(config=config))
 

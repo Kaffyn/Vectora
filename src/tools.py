@@ -1,12 +1,12 @@
 from langchain.tools import BaseTool, tool
 from langgraph.prebuilt.tool_node import ToolRuntime
 
-from examples.ex012.context import Context
-from examples.ex012.state import State
+from context import Context
+from state import State
 
 
 @tool
-def multiply(a: float, b: float, runtime: ToolRuntime[Context, State]) -> float:
+def multiply(a: float, b: float, runtime: ToolRuntime[Context, State]) -> float:  # noqa: ARG001
     """Multiply a * b and returns the result
 
     Args:
