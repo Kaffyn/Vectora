@@ -13,9 +13,17 @@ Além do conhecimento externo, o Vectora resolve o **problema de contexto da sua
 
 ## Arquitetura de Sub-Agent via MCP
 
-O Vectora pode operar de forma autônoma como um Agente Principal, mas **o nosso foco principal é atuar como um Sub-Agent especializado**.
+O Vectora foi projetado para brilhar primariamente como um **Sub-Agent especializado**.
 
-Utilizando o **MCP (Model Context Protocol)**, um Agente Principal (como um assistente integrado ou uma IA orquestradora) executa o Vectora e passa para ele a _session_ atual. Isso permite que o Vectora retome o contexto exato de onde a conversa parou, execute o RAG profundo e devolva a resposta extremamente embasada para o Agente Principal tomar a decisão final.
+Utilizando o **MCP (Model Context Protocol)**, um Agente Principal (como um assistente integrado na sua IDE ou uma IA orquestradora) executa o Vectora e passa para ele a _session_ atual. Isso permite que o Vectora retome o contexto exato de onde a conversa parou, execute o RAG profundo na sua base de conhecimento especializada e devolva a resposta embasada para o Agente Principal prosseguir com a tarefa.
+
+## Vectora Code (CLI Principal e Integração ACP)
+
+Apesar da sua forte vocação como Sub-Agent, nós também oferecemos o **Vectora Code**.
+
+O Vectora Code é a nossa interface CLI completa, onde o Vectora atua como o Agente Principal. Ele possui acesso a um conjunto de ferramentas (_Tools_) muito mais amplo do que no modo Sub-Agent, sendo capaz de planejar e executar workflows autônomos inteiros.
+
+Além do uso puro via terminal, toda a potência do Vectora Code também está disponível para ser integrada nativamente em IDEs modernas (como Zed, Neovim, etc.) através do **ACP (Agent Client Protocol)**.
 
 ## Stack Tecnológica
 
