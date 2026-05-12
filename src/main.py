@@ -1,3 +1,6 @@
+import logging
+from logging.setup import setup_logging
+
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph.state import RunnableConfig
 from langgraph.pregel.main import BaseCheckpointSaver, asyncio
@@ -11,14 +14,22 @@ from context import Context
 from graph import build_graph
 from utils import async_lifespan
 
+logger = logging.getLogger(__name__)
+
 
 async def run_graph(checkpointer: BaseCheckpointSaver) -> None:
     graph = build_graph(checkpointer)
 
     context = Context(user_type="plus")
+    thread_id = 1
 
     config = RunnableConfig(
-        configurable={"thread_id": 1},
+        configurable={"thread_id": thread_id},
+    )
+
+    logger.info(
+        "Graph session started",
+        extra={"thread_id": thread_id, "user_type": context.user_type},
     )
 
     all_messages: list[BaseMessage] = []
@@ -31,7 +42,16 @@ async def run_graph(checkpointer: BaseCheckpointSaver) -> None:
         print(Markdown("\n\n  ---  \n\n"))
 
         if user_input.lower() in ["q", "quit"]:
+            logger.info(
+                "Session ended by user",
+                extra={"thread_id": thread_id},
+            )
             break
+
+        logger.debug(
+            "User input received",
+            extra={"thread_id": thread_id, "input_length": len(user_input)},
+        )
 
         human_message = HumanMessage(user_input)
         current_loop_messages = [human_message]
@@ -60,12 +80,18 @@ async def run_graph(checkpointer: BaseCheckpointSaver) -> None:
 
 
 async def main() -> None:
+    setup_logging()
+    logger.info("Vectora Chat started")
+
     async with (
         async_lifespan(),
         # build_checkpointer_psql(DB_DSN) as checkpointer,
         build_checkpointer_sqlite(DB_DSN) as checkpointer,
     ):
+        logger.info("Checkpointer initialized (SQLite)")
         await run_graph(checkpointer)
+
+    logger.info("Vectora Chat ended")
 
 
 if __name__ == "__main__":

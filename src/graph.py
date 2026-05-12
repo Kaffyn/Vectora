@@ -1,3 +1,5 @@
+import logging
+
 from langgraph.constants import END, START
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 from langgraph.prebuilt.tool_node import tools_condition
@@ -7,10 +9,13 @@ from context import Context
 from nodes import call_llm, tool_node
 from state import State
 
+logger = logging.getLogger(__name__)
+
 
 def build_graph(
     checkpointer: BaseCheckpointSaver,
 ) -> CompiledStateGraph[State, Context, State, State]:
+    logger.info("Building LangGraph with 2 nodes: call_llm, tools")
     builder = StateGraph(
         state_schema=State,
         context_schema=Context,
@@ -25,4 +30,6 @@ def build_graph(
     builder.add_conditional_edges("call_llm", tools_condition, ["tools", END])
     builder.add_edge("tools", "call_llm")
 
-    return builder.compile(checkpointer=checkpointer)
+    compiled = builder.compile(checkpointer=checkpointer)
+    logger.info("Graph compiled successfully with checkpointer")
+    return compiled
