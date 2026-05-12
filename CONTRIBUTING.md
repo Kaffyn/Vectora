@@ -24,6 +24,7 @@ You need to have the following tools installed globally on your machine:
 
    - **[Ruff](https://docs.astral.sh/ruff/):** An extremely fast Python linter and code formatter.
    - **[Pyright](https://microsoft.github.io/pyright/):** A fast type checker meant for large Python source bases. We strictly enforce type hints across the project.
+   - **[ty](https://github.com/astral-sh/ty):** A type checker runner. We recommend using `uvx ty` to seamlessly run type checks (like Pyright) without needing to configure or manage their environments manually.
 
 4. **Code Formatting (Markdown, YAML, TS/JS):**
 
