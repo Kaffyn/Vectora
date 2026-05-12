@@ -32,7 +32,7 @@ Além do uso puro via terminal, toda a potência do Vectora Code também está d
 - **UI no Terminal:** [Rich](https://rich.readthedocs.io/) + [Textual](https://textual.textualize.io/)
 - **Orquestração de LLMs:** LangChain + LangGraph (Grafos, Fluxos e Memory)
 - **Busca em Tempo Real:** [Meilisearch](https://www.meilisearch.com/)
-- **Cache:** [Valkey](https://valkey.io/)
+- **Cache e Semantic Caching:** [Valkey](https://valkey.io/)
 - **Memória de Longo Prazo:** PostgreSQL
 - **Vector Store (RAG):** Camada de abstração com dois provedores (LanceDB e Qdrant)
 
@@ -70,7 +70,7 @@ Desenvolvido com inspiração na equipe do LangChain / LangGraph, o projeto apre
   - Busca por palavra-chave (BM25) via **Meilisearch**.
   - Busca semântica via **Vector DB** (LanceDB ou Qdrant).
   - Reclassificação inteligente com **VoyageAI Reranker**.
-- **Valkey (Cache):** Armazena dados frequentemente acessados em memória. Em Docker, um container próprio é usado. No modo standalone local, o sistema oferece um _fallback_ (em memória/arquivo via pickle/json) caso um servidor Valkey/Redis não esteja configurado.
+- **Valkey (Cache e Semantic Caching):** Atua não apenas como cache tradicional em memória, mas como o motor para o **Semantic Caching** ("Response RAG"). O Valkey armazena as respostas da LLM e avalia perguntas futuras através de similaridade vetorial. Se uma nova pergunta for semanticamente muito semelhante a uma já respondida, o Vectora devolve a resposta instantaneamente da memória RAM (latência quase zero). Isso economiza tokens de APIs externas, corta custos drasticamente e entrega respostas em milissegundos. Em Docker, um container próprio é usado. No modo standalone local, o sistema oferece um _fallback_ (em memória/arquivo via pickle/json) caso um servidor Valkey não esteja configurado.
 
 ---
 
