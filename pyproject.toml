@@ -8,19 +8,32 @@ authors = [{ name = "Machi" }]
 requires-python = ">=3.13"
 dependencies = [
   "aiosqlite>=0.21.0",
+  "fastapi>=0.136.1",
+  "lancedb>=0.30.2",
   "langchain>=1.0.8",
   "langchain-core>=1.0.7",
   "langchain-google-genai>=3.1.0",
   "langchain-ollama>=1.0.0",
+  "langchain-text-splitters>=1.0.0",
+  "langchain-voyageai>=0.3.3",
   "langgraph>=1.0.3",
   "langgraph-checkpoint-postgres>=3.0.1",
   "langgraph-checkpoint-sqlite>=3.0.0",
   "psycopg[binary]>=3.3.2",
   "rich>=14.2.0",
+  "textual>=8.2.5",
 ]
 
 [project.urls]
 Homepage = "https://www.otaviomiranda.com.br/"
+
+[project.optional-dependencies]
+qdrant = [
+    "langchain-qdrant>=1.1.0",
+]
+cache = [
+    "langchain-redis>=0.2.5",
+]
 
 [tool.ruff]
 line-length = 88
@@ -34,7 +47,7 @@ exclude = [".venv"]
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-  "T201",   # Checks for print statements, 
+  "T201",   # Checks for print statements,
   "COM812", # Checks for the absence of trailing commas.
   "INP001", # Checks for packages that are missing an __init__.py file.
   "D",      # All pydocstyle (D)
