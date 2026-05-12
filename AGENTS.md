@@ -32,7 +32,7 @@ O Vectora é um software avançado e exige um alto padrão de engenharia. Os seg
 
 ### 3.1. Tipagem e Validação Fortes
 
-Todo código Python deve fazer uso massivo de _Type Hints_ (tipagem estática) utilizando os padrões do Python 3.13+. O uso do `pydantic` é mandatório para validação de contratos de dados, _schemas_ de API e modelos internos.
+Todo código Python deve fazer uso massivo de _Type Hints_ (tipagem estática) utilizando os padrões do Python 3.14.5+. O uso do `pydantic` é mandatório para validação de contratos de dados, _schemas_ de API e modelos internos.
 
 ### 3.2. Modularidade e Injeção de Dependências
 

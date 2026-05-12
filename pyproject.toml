@@ -5,7 +5,7 @@ description = "vectora"
 readme = "README.md"
 license = "MIT"
 authors = [{ name = "Machi" }]
-requires-python = ">=3.13"
+requires-python = ">=3.14.5"
 dependencies = [
   "aiosqlite>=0.21.0",
   "fastapi>=0.136.1",
@@ -37,7 +37,7 @@ cache = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py314"
 fix = true
 show-fixes = true
 indent-width = 4
@@ -69,7 +69,7 @@ known-first-party = ["react_agent"]
 
 [tool.pyright]
 typeCheckingMode = "standard"
-pythonVersion = "3.13"
+pythonVersion = "3.14"
 include = ["src", "tests"]
 exclude = [
   "**/venv",
