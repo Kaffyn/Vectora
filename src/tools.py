@@ -340,3 +340,7 @@ def get_tools() -> list[BaseTool]:
         List of BaseTool instances
     """
     return _build_tools_list()
+
+
+# Export tools list for graph construction
+TOOLS = _build_tools_list()
