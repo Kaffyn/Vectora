@@ -1,7 +1,4 @@
-"""Embedding Queue: Fallback system for failed Voyage API calls."""
-
 import json
-import logging
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -10,12 +7,14 @@ from sqlalchemy import Column, DateTime, Integer, String, Text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
+import logging
+
 logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
 
-class EmbeddingQueueRecord(Base):  # type: ignore[valid-type]
+class EmbeddingQueueRecord(Base):  # type: ignore[valid-type,misc]
     """SQLAlchemy model for embedding queue records."""
 
     __tablename__ = "embedding_queue"

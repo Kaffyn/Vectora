@@ -1,5 +1,3 @@
-"""Vectora execution context: user info, preferences, feature flags, and session metadata."""
-
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal

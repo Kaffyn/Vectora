@@ -1,5 +1,3 @@
-"""Entry point for running the Vectora CLI."""
-
 import asyncio
 import os
 

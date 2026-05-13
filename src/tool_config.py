@@ -1,5 +1,3 @@
-"""Configuration for Vectora tools loaded from environment variables."""
-
 import os
 from dataclasses import dataclass, field
 

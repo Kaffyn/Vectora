@@ -1,5 +1,3 @@
-"""Utilities for Vectora: LLM loading, async lifecycle management."""
-
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import cast

@@ -1,6 +1,3 @@
-"""Textual-based TUI chat application for Vectora."""
-
-import logging
 from datetime import datetime
 from typing import Any
 
@@ -14,6 +11,7 @@ from textual.app import App, ComposeResult, on
 from textual.containers import Container
 from textual.widgets import Footer, Header, Input, RichLog, Static
 
+import logging
 from checkpointer import build_checkpointer_sqlite
 from constants import DB_DSN
 from context import Context
@@ -101,9 +99,9 @@ class ChatContainer(Static):
                         "Bem-vindo ao Vectora! 🤖 Digite suas perguntas abaixo."
                     )
                     self.query_one(ChatInput).focus()
-        except Exception as e:
-            logger.error("Failed to initialize chat", exc_info=True)
-            chat_log.add_system_message(f"Erro ao inicializar: {e}")
+        except Exception:
+            logger.exception("Failed to initialize chat", exc_info=True)
+            chat_log.add_system_message("Erro ao inicializar: <error>")
 
     @on(Input.Submitted)
     async def on_submit(self, event: Input.Submitted) -> None:
@@ -159,9 +157,9 @@ class ChatContainer(Static):
                 extra={"thread_id": self.thread_id, "model": model_name},
             )
 
-        except Exception as e:
-            logger.error("Error processing input", exc_info=True)
-            chat_log.add_system_message(f"Erro ao processar: {e}")
+        except Exception:
+            logger.exception("Error processing input", exc_info=True)
+            chat_log.add_system_message("Erro ao processar: <error>")
 
     def compose(self) -> ComposeResult:
         """Compose the layout."""

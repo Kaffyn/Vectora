@@ -1,23 +1,11 @@
-"""Vectora Tools: Web Search, URL Fetch, RAG (Embedding/Vector Search), and MCP Integration.
-
-Tools available:
-- web_search: Search the web using DuckDuckGo
-- fetch_url: Fetch and extract content from URLs
-- embedding: Index documents with embeddings in Qdrant
-- vector_search: Search vector database with reranking
-- call_mcp_tool: Call tools from MCP servers
-
-Note: Reranking is internal (_internal_reranker, _rerank_bm25, _rerank_voyage)
-and not exposed as a tool to the LLM.
-"""
-
 import json
-import logging
 from typing import Any
 
 from langchain.tools import BaseTool, tool
 from langchain_community.document_loaders import WebBaseLoader
 from langgraph.prebuilt.tool_node import ToolRuntime
+
+import logging
 
 try:
     from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults
@@ -71,12 +59,12 @@ def web_search(query: str, runtime: ToolRuntime[Context, State]) -> str:  # noqa
         )
 
         return results
-    except Exception as e:
-        logger.error(
+    except Exception:
+        logger.exception(
             "web_search failed",
-            extra={"query": query, "error": str(e)},
+            extra={"query": query},
         )
-        return f"Error searching web: {e}"
+        return "Error occurred. Please check logs."
 
 
 @tool
@@ -132,9 +120,9 @@ async def fetch_url(url: str, runtime: ToolRuntime[Context, State]) -> str:  # n
         )
 
         return truncated_content
-    except Exception as e:
-        logger.error("fetch_url failed", extra={"url": url, "error": str(e)})
-        return f"Error fetching URL: {e}"
+    except Exception:
+        logger.exception("fetch_url failed", extra={"url": url})
+        return "Error occurred. Please check logs."
 
 
 async def _get_mcp_client() -> Any | None:
@@ -184,8 +172,8 @@ async def _get_mcp_client() -> Any | None:
 
         return _mcp_client
 
-    except Exception as e:
-        logger.error("mcp_client_connection_failed", extra={"error": str(e)})
+    except Exception:
+        logger.exception("mcp_client_connection_failed", extra={"error": str(e)})
         return None
 
 
@@ -214,8 +202,8 @@ async def _get_mcp_tools() -> dict[str, Any] | None:
 
         return _mcp_tools_cache
 
-    except Exception as e:
-        logger.error("mcp_tools_retrieval_failed", extra={"error": str(e)})
+    except Exception:
+        logger.exception("mcp_tools_retrieval_failed", extra={"error": str(e)})
         return None
 
 
@@ -310,10 +298,10 @@ async def call_mcp_tool(
         else:
             return json.dumps({"status": "success", "result": result})
 
-    except Exception as e:
-        logger.error(
+    except Exception:
+        logger.exception(
             "call_mcp_tool execution failed",
-            extra={"tool_name": tool_name, "error": str(e)},
+            extra={"tool_name": tool_name},
         )
         return json.dumps(
             {
@@ -351,11 +339,10 @@ async def embedding(
     """
     from uuid import uuid4
 
+    from embedding_queue import get_embedding_queue
     from langchain_voyageai import VoyageAIEmbeddings
     from qdrant_client import QdrantClient
     from qdrant_client.models import Distance, PointStruct, VectorParams
-
-    from embedding_queue import get_embedding_queue
 
     config = get_tool_config()
 
@@ -428,8 +415,8 @@ async def embedding(
             }
         )
 
-    except Exception as e:
-        logger.error(
+    except Exception:
+        logger.exception(
             "embedding_failed",
             extra={"error": str(e), "collection": collection},
         )
@@ -453,10 +440,10 @@ async def embedding(
                     }
                 )
 
-            except Exception as queue_error:
+            except Exception:
                 logger.error(
                     "embedding_queue_failed",
-                    extra={"error": str(queue_error)},
+                    extra={"error": str(queue_err)},
                 )
 
                 return json.dumps(
@@ -470,7 +457,6 @@ async def embedding(
             return json.dumps(
                 {
                     "status": "failed",
-                    "error": str(e),
                     "collection": collection,
                 }
             )
@@ -505,8 +491,8 @@ async def _internal_reranker(
         else:
             return await _rerank_voyage(query, raw_results, documents, top_k, config)
 
-    except Exception as e:
-        logger.error(
+    except Exception:
+        logger.exception(
             "reranker_failed",
             extra={"error": str(e), "reranker_type": config.reranker_type},
         )
@@ -553,8 +539,8 @@ async def _rerank_voyage(
 
         return reranked
 
-    except Exception as e:
-        logger.error(
+    except Exception:
+        logger.exception(
             "reranker_voyage_failed",
             extra={"error": str(e)},
         )
@@ -669,12 +655,12 @@ async def vector_search(
                     }
                     all_results.append(result)
 
-            except Exception as collection_error:
+            except Exception:
                 logger.warning(
                     "vector_search_collection_failed",
                     extra={
                         "collection": collection,
-                        "error": str(collection_error),
+                        "error": str(collection_err),
                     },
                 )
                 continue
@@ -716,15 +702,14 @@ async def vector_search(
             }
         )
 
-    except Exception as e:
-        logger.error(
+    except Exception:
+        logger.exception(
             "vector_search_failed",
-            extra={"query": query[:100], "error": str(e)},
+            extra={"query": query[:100]},
         )
         return json.dumps(
             {
                 "status": "failed",
-                "error": str(e),
             }
         )
 

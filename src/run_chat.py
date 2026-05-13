@@ -1,5 +1,3 @@
-"""Entry point for running the Vectora chat TUI."""
-
 import os
 
 if __name__ == "__main__":
