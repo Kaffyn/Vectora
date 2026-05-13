@@ -1,5 +1,6 @@
 import logging
 
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
@@ -14,6 +15,19 @@ logger = logging.getLogger(__name__)
 
 tool_node = ToolNode(tools=TOOLS)
 
+# Initialize LLM with tools once during module load (not per invocation)
+_llm_base: BaseChatModel | None = None
+_llm_with_tools: BaseChatModel | None = None
+
+
+def _get_llm_with_tools() -> BaseChatModel:
+    """Get cached LLM with tools bound (initialized once per process)."""
+    global _llm_with_tools
+    if _llm_with_tools is None:
+        _llm_with_tools = load_llm().bind_tools(TOOLS)
+        logger.debug("LLM with tools initialized and cached")
+    return _llm_with_tools
+
 
 def call_llm(state: State, runtime: Runtime[Context]) -> State:
     ctx = runtime.context
@@ -22,7 +36,8 @@ def call_llm(state: State, runtime: Runtime[Context]) -> State:
     model_provider = "ollama" if user_type == "plus" else "ollama"
     model = "gpt-oss:20b" if user_type == "plus" else "qwen3-coder:30b"
 
-    llm_with_tools = load_llm().bind_tools(TOOLS)
+    # Get cached LLM with tools (bound once, reused per invocation)
+    llm_with_tools = _get_llm_with_tools()
     llm_with_config = llm_with_tools.with_config(
         config={
             "configurable": {

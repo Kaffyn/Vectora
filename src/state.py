@@ -12,14 +12,18 @@ class Document(TypedDict, total=False):
     relevance_score: float | None
 
 
-class State(TypedDict, total=False):
-    """Estado da conversa com suporte a RAG"""
+class State(TypedDict):
+    """Estado da conversa com suporte a RAG.
 
-    # Histórico de mensagens (obrigatório)
+    Campos obrigatórios: messages (histórico)
+    Campos opcionais: RAG context, routing metadata
+    """
+
+    # Histórico de mensagens (obrigatório, reduzido por add_messages)
     messages: Annotated[Sequence[BaseMessage], add_messages]
 
-    # RAG Context
-    retrieval_results: dict[str, list[Document]]
+    # RAG Context (opcionais)
+    retrieval_results: dict[str, list[Document]] | None
     # Exemplo: {"articles": [...], "wiki": [...], "api_docs": [...]}
 
     selected_rag_source: str | None
