@@ -55,7 +55,7 @@ class TestMCPClientConnection:
     """Test MCP client connection and caching."""
 
     @pytest.mark.asyncio()
-    async def test_mcp_client_disabled(self, reset_mcp_cache):  # noqa: ANN001,ARG002
+    async def test_mcp_client_disabled(self, reset_mcp_cache):
         """Test that client is None when MCP is disabled."""
         with patch("src.tools.get_tool_config") as mock_config:
             mock_config.return_value.enable_mcp = False
@@ -63,7 +63,7 @@ class TestMCPClientConnection:
             assert client is None
 
     @pytest.mark.asyncio()
-    async def test_mcp_client_missing_config(self, reset_mcp_cache):  # noqa: ANN001,ARG002
+    async def test_mcp_client_missing_config(self, reset_mcp_cache):
         """Test that client is None when server not configured."""
         with patch("src.tools.get_tool_config") as mock_config:
             mock_config.return_value.enable_mcp = True
@@ -73,7 +73,7 @@ class TestMCPClientConnection:
             assert client is None
 
     @pytest.mark.asyncio()
-    async def test_mcp_client_http_transport(self, reset_mcp_cache):  # noqa: ANN001,ARG002
+    async def test_mcp_client_http_transport(self, reset_mcp_cache):
         """Test HTTP client creation."""
         with (
             patch("src.tools.get_tool_config") as mock_config,
@@ -90,7 +90,7 @@ class TestMCPClientConnection:
             mock_mcp_class.assert_called_once()
 
     @pytest.mark.asyncio()
-    async def test_mcp_client_stdio_transport(self, reset_mcp_cache):  # noqa: ANN001,ARG002
+    async def test_mcp_client_stdio_transport(self, reset_mcp_cache):
         """Test stdio transport configuration."""
         with (
             patch("src.tools.get_tool_config") as mock_config,
@@ -115,7 +115,7 @@ class TestMCPClientConnection:
             assert config["command"] == "npx"
 
     @pytest.mark.asyncio()
-    async def test_mcp_client_caching(self, reset_mcp_cache):  # noqa: ANN001,ARG002
+    async def test_mcp_client_caching(self, reset_mcp_cache):
         """Test that MCP client is cached and reused."""
         with (
             patch("src.tools.get_tool_config") as mock_config,
@@ -141,7 +141,7 @@ class TestMCPToolsRetrieval:
     """Test MCP tools retrieval and caching."""
 
     @pytest.mark.asyncio()
-    async def test_get_mcp_tools_success(self, reset_mcp_cache):  # noqa: ANN001,ARG002
+    async def test_get_mcp_tools_success(self, reset_mcp_cache):
         """Test successful retrieval of MCP tools."""
         with (
             patch("src.tools.get_tool_config") as mock_config,
@@ -160,7 +160,7 @@ class TestMCPToolsRetrieval:
             assert "greet" in tools
 
     @pytest.mark.asyncio()
-    async def test_get_mcp_tools_caching(self, reset_mcp_cache):  # noqa: ANN001,ARG002
+    async def test_get_mcp_tools_caching(self, reset_mcp_cache):
         """Test that MCP tools are cached."""
         with (
             patch("src.tools.get_tool_config") as mock_config,
@@ -180,7 +180,7 @@ class TestMCPToolsRetrieval:
             assert tools1 is tools2
 
     @pytest.mark.asyncio()
-    async def test_get_mcp_tools_connection_failed(self, reset_mcp_cache):  # noqa: ANN001,ARG002
+    async def test_get_mcp_tools_connection_failed(self, reset_mcp_cache):
         """Test graceful failure when connection fails."""
         with (
             patch("src.tools.get_tool_config") as mock_config,
@@ -197,7 +197,7 @@ class TestMCPIntegrationScenarios:
     """Integration scenarios for MCP."""
 
     @pytest.mark.asyncio()
-    async def test_mcp_workflow_http_transport(self, reset_mcp_cache):  # noqa: ANN001,ARG002
+    async def test_mcp_workflow_http_transport(self, reset_mcp_cache):
         """Test complete MCP workflow with HTTP transport."""
         with (
             patch("src.tools.get_tool_config") as mock_config,
@@ -219,7 +219,7 @@ class TestMCPIntegrationScenarios:
             assert len(tools) == 3
 
     @pytest.mark.asyncio()
-    async def test_mcp_workflow_stdio_transport(self, reset_mcp_cache):  # noqa: ANN001,ARG002
+    async def test_mcp_workflow_stdio_transport(self, reset_mcp_cache):
         """Test complete MCP workflow with stdio transport."""
         with (
             patch("src.tools.get_tool_config") as mock_config,
