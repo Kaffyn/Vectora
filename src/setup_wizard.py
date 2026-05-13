@@ -148,7 +148,6 @@ class ApiKeyScreen(Screen):
         yield Input(
             id="api_key_input",
             password=True,
-            type="password",
         )
 
         yield Label("")
