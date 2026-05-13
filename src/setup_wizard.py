@@ -1,3 +1,4 @@
+import getpass
 import subprocess
 import sys
 import webbrowser
@@ -167,10 +168,7 @@ Este wizard o guiará através da configuração inicial.
         if Confirm.ask(f"Abrir [link]{info['get_key_url']}[/link] para obter a chave?"):
             self.open_key_url(provider)
 
-        api_key = Prompt.ask(
-            f"\nDigite sua {info['key_name']}",
-            password=True,
-        )
+        api_key = getpass.getpass(f"\nDigite sua {info['key_name']}: ")
 
         console.print("\n[yellow]⏳ Testando conexão...[/yellow]")
 
