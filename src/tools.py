@@ -4,7 +4,6 @@ from typing import Any
 
 from langchain.tools import BaseTool, tool
 from langchain_community.document_loaders import WebBaseLoader
-from langgraph.prebuilt.tool_node import ToolRuntime
 
 try:
     from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults
@@ -16,8 +15,6 @@ try:
 except ImportError:
     MultiServerMCPClient = None
 
-from context import Context
-from state import State
 from tool_config import get_tool_config
 
 logger = logging.getLogger(__name__)
@@ -28,7 +25,7 @@ _mcp_tools_cache: dict[str, Any] | None = None
 
 
 @tool
-def web_search(query: str, runtime: ToolRuntime[Context, State]) -> str:
+def web_search(query: str) -> str:
     """Search the web for current information using DuckDuckGo.
 
     Args:
@@ -67,7 +64,7 @@ def web_search(query: str, runtime: ToolRuntime[Context, State]) -> str:
 
 
 @tool
-async def fetch_url(url: str, runtime: ToolRuntime[Context, State]) -> str:
+async def fetch_url(url: str) -> str:
     """Fetch and extract text content from a specific URL.
 
     Args:
@@ -103,519 +100,146 @@ async def fetch_url(url: str, runtime: ToolRuntime[Context, State]) -> str:
         loader = WebBaseLoader(url)
         docs = loader.load()
 
-        if not docs:
-            logger.warning("fetch_url returned no content", extra={"url": url})
-            return "No content found at URL"
-
-        content = "\n".join(doc.page_content for doc in docs)
-        truncated_content = content[: config.max_fetch_size]
-
-        if len(content) > config.max_fetch_size:
-            truncated_content += f"\n... (truncated, max {config.max_fetch_size} chars)"
-
         logger.info(
             "fetch_url completed",
-            extra={"url": url, "content_length": len(content)},
+            extra={"url": url, "docs_count": len(docs)},
         )
 
-        return truncated_content
+        return "\n".join(doc.page_content for doc in docs)
+
     except Exception:
-        logger.exception("fetch_url failed", extra={"url": url})
-        return "Error occurred. Please check logs."
+        logger.exception(
+            "fetch_url failed",
+            extra={"url": url},
+        )
+        return "Error occurred fetching URL. Please check logs."
 
 
 async def _get_mcp_client() -> Any | None:
-    """Get or create MCP client connection (cached)."""
+    """Get or create global MCP client instance."""
     global _mcp_client
-    config = get_tool_config()
-
-    if not config.enable_mcp:
-        return None
-
-    # Validate transport-specific config
-    if config.mcp_transport_type == "stdio":
-        if not config.mcp_command:
-            return None
-    elif not config.mcp_server_url:
-        return None
-
-    if MultiServerMCPClient is None:
-        logger.error("langchain_mcp_adapters not installed")
-        return None
 
     if _mcp_client is not None:
         return _mcp_client
 
+    if MultiServerMCPClient is None:
+        logger.warning("MultiServerMCPClient not available")
+        return None
+
+    config = get_tool_config()
+
+    if not config.mcp_servers:
+        logger.debug("No MCP servers configured")
+        return None
+
     try:
-        server_config: dict[str, Any] = {}
-
-        if config.mcp_transport_type == "stdio":
-            server_config["transport"] = "stdio"
-            server_config["command"] = config.mcp_command
-            if config.mcp_command_args:
-                server_config["args"] = config.mcp_command_args
-        else:
-            # HTTP/WebSocket transport (default)
-            server_config["transport"] = "http"
-            server_config["url"] = config.mcp_server_url
-
-        _mcp_client = MultiServerMCPClient({"mcp_server": server_config})
-
+        _mcp_client = MultiServerMCPClient(servers=config.mcp_servers)
+        await _mcp_client.__aenter__()
         logger.info(
-            "mcp_client_connected",
-            extra={
-                "transport": config.mcp_transport_type,
-                "server": config.mcp_server_url or config.mcp_command,
-            },
+            "MCP client initialized", extra={"servers": list(config.mcp_servers.keys())}
         )
-
         return _mcp_client
-
     except Exception:
-        logger.exception("mcp_client_connection_failed", extra={})
+        logger.exception("Failed to initialize MCP client")
+        _mcp_client = None
         return None
 
 
 async def _get_mcp_tools() -> dict[str, Any] | None:
-    """Retrieve available tools from MCP server (cached)."""
+    """Get available MCP tools from initialized client."""
     global _mcp_tools_cache
 
     if _mcp_tools_cache is not None:
         return _mcp_tools_cache
 
     client = await _get_mcp_client()
-    if not client:
+    if client is None:
         return None
 
     try:
-        tools = await client.get_tools()
-        _mcp_tools_cache = {tool.name: tool for tool in tools}
-
-        logger.info(
-            "mcp_tools_loaded",
-            extra={
-                "count": len(_mcp_tools_cache),
-                "names": list(_mcp_tools_cache.keys()),
-            },
-        )
-
+        tools_response = await client.list_tools()
+        _mcp_tools_cache = {tool.name: tool for tool in tools_response.tools}
+        logger.info("MCP tools loaded", extra={"count": len(_mcp_tools_cache)})
         return _mcp_tools_cache
-
     except Exception:
-        logger.exception("mcp_tools_retrieval_failed", extra={})
-        return None
+        logger.exception("Failed to list MCP tools")
+        _mcp_tools_cache = {}
+        return _mcp_tools_cache
 
 
 @tool
-async def call_mcp_tool(
-    tool_name: str, arguments: str, runtime: ToolRuntime[Context, State]
-) -> str:
-    """Call a tool registered in a connected MCP (Model Context Protocol) server.
+async def call_mcp_tool(tool_name: str, arguments: str) -> str:
+    """Call an MCP (Model Context Protocol) tool.
 
     Args:
-        tool_name: Name of the tool in the MCP server
+        tool_name: Name of the MCP tool to call
         arguments: JSON string of tool arguments
 
     Returns:
-        Tool execution result as JSON
+        Result from the MCP tool execution
     """
     config = get_tool_config()
 
     if not config.enable_mcp:
-        logger.warning("call_mcp_tool called but disabled")
-        return (
-            "MCP server integration is not enabled. "
-            "Set ENABLE_MCP=true in environment to use this tool."
-        )
+        logger.warning("call_mcp_tool called but MCP disabled")
+        return "MCP is disabled. Enable ENABLE_MCP=true to use this tool."
 
-    if not config.mcp_server_url and not config.mcp_command:
-        logger.warning(
-            "call_mcp_tool called but neither MCP_SERVER_URL nor MCP_COMMAND configured"
-        )
-        return (
-            "Error: MCP server not configured. "
-            "Set either MCP_SERVER_URL (for HTTP) or MCP_COMMAND (for stdio) environment variables."
-        )
+    client = await _get_mcp_client()
+    if client is None:
+        return "MCP client not available"
+
+    available_tools = await _get_mcp_tools()
+    if not available_tools or tool_name not in available_tools:
+        return f"Tool '{tool_name}' not found in MCP tools"
 
     try:
-        args_dict: dict[str, Any] = json.loads(arguments)
-    except json.JSONDecodeError:
-        logger.exception(
-            "call_mcp_tool failed to parse arguments", extra={"arguments": arguments}
-        )
-        return f"Error: Invalid JSON arguments: {arguments}"
-
-    logger.info(
-        "call_mcp_tool invoked",
-        extra={
-            "tool_name": tool_name,
-            "mcp_server": config.mcp_server_url or config.mcp_command,
-        },
-    )
-
-    try:
-        # Get available tools from MCP server
-        tools = await _get_mcp_tools()
-        if not tools:
-            return (
-                "Error: Failed to retrieve tools from MCP server. "
-                "Ensure MCP_SERVER_URL or MCP_COMMAND is properly configured and the server is running."
-            )
-
-        # Find the requested tool
-        if tool_name not in tools:
-            available = list(tools.keys())
-            logger.warning(
-                "mcp_tool_not_found",
-                extra={"requested": tool_name, "available": available},
-            )
-            return json.dumps(
-                {
-                    "status": "error",
-                    "message": f"Tool '{tool_name}' not found in MCP server",
-                    "available_tools": available,
-                }
-            )
-
-        tools[tool_name]
-
-        # Execute the tool with provided arguments
-        client = await _get_mcp_client()
-        if not client:
-            return "Error: Failed to connect to MCP server"
-
-        result = await client.call_tool(tool_name, args_dict)
-
+        result = await client.call_tool(tool_name, json.loads(arguments))
         logger.info(
-            "mcp_tool_executed_success",
-            extra={"tool_name": tool_name, "result_type": type(result).__name__},
+            "mcp_tool_called",
+            extra={"tool_name": tool_name, "success": True},
         )
-
-        # Return result as JSON
-        if isinstance(result, str):
-            return json.dumps({"status": "success", "result": result})
-        return json.dumps({"status": "success", "result": result})
-
+        return json.dumps(result)
     except Exception:
         logger.exception(
-            "call_mcp_tool execution failed",
+            "mcp_tool_call_failed",
             extra={"tool_name": tool_name},
         )
-        return json.dumps(
-            {
-                "status": "error",
-                "message": f"Failed to execute MCP tool '{tool_name}'",
-            }
-        )
-
-
-# ==============================================================================
-# RAG TOOLS: Embedding, Vector Search, and Internal Reranking
-# ==============================================================================
-
-
-@tool
-async def embedding(
-    text: str,
-    collection: str = "articles",
-    metadata: dict[str, Any] | None = None,
-    runtime: ToolRuntime[Context, State] | None = None,
-) -> str:
-    """Index document with embedding in Qdrant vector store.
-
-    Generates embeddings using Voyage AI and indexes in the specified collection.
-    Falls back to embedding queue if API fails.
-
-    Args:
-        text: Document text to embed
-        collection: Qdrant collection (articles, wiki, api_docs, knowledge_base)
-        metadata: Optional metadata dict (source, author, timestamp, etc)
-        runtime: Tool runtime (unused, for LangGraph compatibility)
-
-    Returns:
-        JSON status: indexed/queued_for_indexing/failed with point_id or queue_id
-    """
-    from uuid import uuid4
-
-    from langchain_voyageai import VoyageAIEmbeddings
-    from qdrant_client import QdrantClient
-    from qdrant_client.models import Distance, PointStruct, VectorParams
-
-    from embedding_queue import get_embedding_queue
-
-    config = get_tool_config()
-
-    if not config.voyage_api_key:
-        logger.error("embedding called but VOYAGE_API_KEY not configured")
-        return json.dumps(
-            {
-                "status": "failed",
-                "error": "VOYAGE_API_KEY not configured",
-                "collection": collection,
-            }
-        )
-
-    try:
-        embeddings_model = VoyageAIEmbeddings(
-            api_key=config.voyage_api_key,
-            model=config.embedding_model,
-        )
-
-        vector = embeddings_model.embed_query(text)
-
-        qdrant_client = QdrantClient(
-            url=config.qdrant_url,
-            api_key=config.qdrant_api_key,
-        )
-
-        try:
-            qdrant_client.get_collection(collection)
-        except Exception:
-            qdrant_client.create_collection(
-                collection_name=collection,
-                vectors_config=VectorParams(
-                    size=len(vector),
-                    distance=Distance.COSINE,
-                ),
-            )
-            logger.info("qdrant_collection_created", extra={"collection": collection})
-
-        point_id = str(uuid4())
-        qdrant_client.upsert(
-            collection_name=collection,
-            points=[
-                PointStruct(
-                    id=point_id,
-                    vector=vector,
-                    payload={
-                        "page_content": text,
-                        "metadata": metadata or {},
-                    },
-                )
-            ],
-        )
-
-        logger.info(
-            "embedding_indexed_success",
-            extra={
-                "collection": collection,
-                "point_id": point_id,
-                "text_length": len(text),
-                "vector_dims": len(vector),
-            },
-        )
-
-        return json.dumps(
-            {
-                "status": "indexed",
-                "collection": collection,
-                "point_id": point_id,
-                "text_length": len(text),
-            }
-        )
-
-    except Exception:
-        logger.exception(
-            "embedding_failed",
-            extra={"collection": collection},
-        )
-
-        if config.embedding_queue_enabled:
-            try:
-                queue = await get_embedding_queue(config.embedding_queue_db)
-                queue_id = await queue.enqueue(text, collection, metadata)
-
-                logger.warning(
-                    "embedding_queued_for_retry",
-                    extra={"queue_id": queue_id, "collection": collection},
-                )
-
-                return json.dumps(
-                    {
-                        "status": "queued_for_indexing",
-                        "queue_id": queue_id,
-                        "message": f"Documento enfileirado para indexação. ID: {queue_id}. Será processado em background.",
-                        "collection": collection,
-                    }
-                )
-
-            except Exception:
-                logger.exception(
-                    "embedding_queue_failed",
-                    extra={},
-                )
-
-                return json.dumps(
-                    {
-                        "status": "failed",
-                        "error": "Both embedding and queue failed",
-                        "collection": collection,
-                    }
-                )
-        else:
-            return json.dumps(
-                {
-                    "status": "failed",
-                    "collection": collection,
-                }
-            )
-
-
-async def _internal_reranker(
-    query: str,
-    raw_results: list[dict[str, Any]],
-    top_k: int = 5,
-) -> list[dict[str, Any]]:
-    """Internal reranker (not exposed as tool to LLM).
-
-    Reranks raw vector search results using BM25 (local) or Voyage Reranker API.
-
-    Args:
-        query: Original search query
-        raw_results: Raw results from Qdrant
-        top_k: Number of top results to return
-
-    Returns:
-        Reranked results with updated relevance_score
-    """
-    if not raw_results:
-        return []
-
-    config = get_tool_config()
-    documents = [r.get("page_content", "") for r in raw_results]
-
-    try:
-        if config.reranker_type == "bm25":
-            return _rerank_bm25(query, raw_results, documents, top_k)
-        return await _rerank_voyage(query, raw_results, documents, top_k, config)
-
-    except Exception:
-        logger.exception(
-            "reranker_failed",
-            extra={"reranker_type": config.reranker_type},
-        )
-        return _rerank_bm25(query, raw_results, documents, top_k)
-
-
-async def _rerank_voyage(
-    query: str,
-    raw_results: list[dict[str, Any]],
-    documents: list[str],
-    top_k: int,
-    config: Any,
-) -> list[dict[str, Any]]:
-    """Rerank using Voyage AI Reranker API."""
-    from langchain_voyageai import VoyageAIRerank
-
-    try:
-        reranker = VoyageAIRerank(
-            api_key=config.voyage_api_key,
-            model=config.reranker_model,
-            top_k=top_k,
-        )
-
-        reranked_docs = reranker.compress_documents(
-            documents=[{"page_content": doc, "metadata": {}} for doc in documents],
-            query=query,
-        )
-
-        reranked = []
-        for idx, doc in enumerate(reranked_docs):
-            original = raw_results[documents.index(doc.page_content)].copy()
-            original["relevance_score"] = getattr(
-                doc, "relevance_score", 1.0 - (idx / len(reranked_docs))
-            )
-            reranked.append(original)
-
-        logger.debug(
-            "reranker_voyage_completed",
-            extra={
-                "raw_count": len(raw_results),
-                "reranked_count": len(reranked),
-            },
-        )
-
-        return reranked
-
-    except Exception:
-        logger.exception(
-            "reranker_voyage_failed",
-            extra={},
-        )
-        return _rerank_bm25(query, raw_results, documents, top_k)
-
-
-def _rerank_bm25(
-    query: str,
-    raw_results: list[dict[str, Any]],
-    documents: list[str],
-    top_k: int,
-) -> list[dict[str, Any]]:
-    """Rerank using local BM25 algorithm (fallback or MVP)."""
-    from rank_bm25 import BM25Okapi
-
-    tokenized_docs = [doc.lower().split() for doc in documents]
-    bm25 = BM25Okapi(tokenized_docs)
-
-    query_tokens = query.lower().split()
-    scores = bm25.get_scores(query_tokens)
-
-    scored_results = []
-    for idx, score in enumerate(scores):
-        result = raw_results[idx].copy()
-        result["relevance_score"] = float(score)
-        scored_results.append(result)
-
-    scored_results.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
-
-    logger.debug(
-        "reranker_bm25_completed",
-        extra={
-            "raw_count": len(raw_results),
-            "reranked_count": min(top_k, len(scored_results)),
-        },
-    )
-
-    return scored_results[:top_k]
+        return f"Error calling MCP tool '{tool_name}'"
 
 
 @tool
 async def vector_search(
-    query: str,
-    collections: list[str] | None = None,
-    top_k: int = 10,
-    min_score: float = 0.5,
-    runtime: ToolRuntime[Context, State] | None = None,
+    query: str, collection: str = "articles", limit: int = 5
 ) -> str:
-    """Search Qdrant vector store and return reranked results.
-
-    Automatically applies reranker to results (internal, not exposed to LLM).
+    """Search the vector database for similar documents.
 
     Args:
         query: Search query string
-        collections: Which collections to search (default: all)
-        top_k: Number of raw results before reranking
-        min_score: Minimum similarity threshold (0-1)
-        runtime: Tool runtime (unused, for LangGraph compatibility)
+        collection: Qdrant collection name
+        limit: Maximum number of results to return
 
     Returns:
-        JSON: {status: found/no_results, results: [...], total_count: N}
+        JSON formatted search results with documents and scores
     """
-    from langchain_voyageai import VoyageAIEmbeddings
-    from qdrant_client import QdrantClient
-
     config = get_tool_config()
 
-    if not config.voyage_api_key:
-        logger.error("vector_search called but VOYAGE_API_KEY not configured")
-        return json.dumps(
-            {
-                "status": "failed",
-                "error": "VOYAGE_API_KEY not configured",
-            }
-        )
+    if not config.enable_rag:
+        logger.warning("vector_search tool called but RAG disabled")
+        return "RAG is disabled. Enable ENABLE_RAG=true to use this tool."
 
     try:
+        from langchain_voyageai import VoyageAIEmbeddings
+        from qdrant_client import QdrantClient
+
+        if not config.voyage_api_key:
+            logger.error("vector_search called but VOYAGE_API_KEY not configured")
+            return json.dumps(
+                {
+                    "status": "failed",
+                    "error": "VOYAGE_API_KEY not configured",
+                }
+            )
+
         embeddings_model = VoyageAIEmbeddings(
             api_key=config.voyage_api_key,
             model=config.embedding_model,
@@ -623,104 +247,96 @@ async def vector_search(
 
         query_vector = embeddings_model.embed_query(query)
 
-        search_collections = collections or config.qdrant_collections
-        if not search_collections:
-            search_collections = ["articles", "wiki", "api_docs", "knowledge_base"]
-
         qdrant_client = QdrantClient(
             url=config.qdrant_url,
             api_key=config.qdrant_api_key,
         )
 
-        all_results: list[dict[str, Any]] = []
-
-        for collection in search_collections:
-            try:
-                hits = qdrant_client.search(
-                    collection_name=collection,
-                    query_vector=query_vector,
-                    limit=top_k,
-                    score_threshold=min_score,
-                )
-
-                for hit in hits:
-                    result = {
-                        "page_content": hit.payload.get("page_content", ""),
-                        "metadata": hit.payload.get("metadata", {}),
-                        "relevance_score": hit.score,
-                        "collection": collection,
-                        "point_id": hit.id,
-                    }
-                    all_results.append(result)
-
-            except Exception:
-                logger.warning(
-                    "vector_search_collection_failed",
-                    extra={
-                        "collection": collection,
-                    },
-                )
-                continue
-
-        if not all_results:
-            logger.info(
-                "vector_search_no_results",
-                extra={"query": query[:100], "collections": search_collections},
+        try:
+            search_results = qdrant_client.search(
+                collection_name=collection,
+                query_vector=query_vector,
+                limit=limit,
+            )
+        except Exception:
+            logger.warning(
+                "Collection not found or search failed",
+                extra={"collection": collection},
             )
             return json.dumps(
                 {
                     "status": "no_results",
-                    "count": 0,
-                    "message": "No matching documents found. Try using embedding() to index new documents.",
+                    "message": f"Collection '{collection}' not found or empty",
                 }
             )
 
-        reranked_results = await _internal_reranker(
-            query, all_results, config.reranker_top_k
-        )
+        results = [
+            {
+                "id": point.id,
+                "score": point.score,
+                "content": point.payload.get("page_content", ""),
+                "metadata": point.payload.get("metadata", {}),
+            }
+            for point in search_results
+        ]
 
         logger.info(
-            "vector_search_completed",
+            "vector_search completed",
             extra={
-                "query": query[:100],
-                "collections": search_collections,
-                "raw_results": len(all_results),
-                "reranked_results": len(reranked_results),
-                "reranker_type": config.reranker_type,
+                "query": query,
+                "collection": collection,
+                "result_count": len(results),
             },
         )
 
         return json.dumps(
             {
-                "status": "found",
-                "count": len(reranked_results),
-                "results": reranked_results,
-                "collections_searched": search_collections,
+                "status": "success",
+                "results": results,
+                "query": query,
+                "collection": collection,
             }
         )
 
     except Exception:
         logger.exception(
             "vector_search_failed",
-            extra={"query": query[:100]},
+            extra={"query": query, "collection": collection},
         )
         return json.dumps(
             {
                 "status": "failed",
+                "error": "Vector search failed",
             }
         )
 
 
 def _build_tools_list() -> list[BaseTool]:
-    """Build the list of available tools based on configuration."""
-    return [
-        web_search,
-        fetch_url,
-        embedding,
-        vector_search,
-        call_mcp_tool,
-    ]
+    """Build list of available tools based on configuration.
+
+    Returns:
+        List of BaseTool instances
+    """
+    config = get_tool_config()
+    tools: list[BaseTool] = []
+
+    # Core tools
+    tools.append(web_search)
+    tools.append(fetch_url)
+    tools.append(vector_search)
+
+    # MCP tool
+    if config.enable_mcp:
+        tools.append(call_mcp_tool)
+
+    logger.info("Tools initialized", extra={"count": len(tools)})
+    return tools
 
 
-TOOLS: list[BaseTool] = _build_tools_list()
-TOOLS_BY_NAME: dict[str, BaseTool] = {tool.name: tool for tool in TOOLS}
+def get_tools() -> list[BaseTool]:
+    """Get list of available tools.
+
+    Returns:
+        List of BaseTool instances
+    """
+    return _build_tools_list()

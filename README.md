@@ -61,7 +61,9 @@ Desenvolvido com inspiração na equipe do LangChain / LangGraph, o projeto apre
 
 ## Bancos de Dados e Search
 
-- **PostgreSQL (Memória de Longo Prazo):** Banco de dados relacional para armazenar históricos de conversas, perfis de usuários e dados relacionais que exigem alta consistência e transações ACID.
+- **Checkpointers:**
+  - **PostgreSQL:** Banco de dados relacional para armazenar históricos de conversas, perfis de usuários e dados relacionais que exigem alta consistência e transações ACID.
+  - **SQLite:** Banco de dados relacional para armazenar históricos de conversas, perfis de usuários e dados relacionais que exigem alta consistência e transações ACID. **Embarcado**, sem necessidade de container.
 - **Vector Store (RAG):** O Vectora implementa uma **Camada de Abstração** via LangChain focada em duas opções de bancos de vetores via variável de ambiente (`VECTOR_STORE_TYPE`):
   - **LanceDB:** A escolha padrão, file-based e altamente performático, ideal para a maioria dos casos "zero config". Não possui suporte nativo ao algoritmo HNSW.
   - **Qdrant:** Alternativa que suporta nativamente **HNSW**, perfeita para alta performance de busca e grandes escalas. Pode rodar 100% local no modo standalone (via driver Python/Rust) ou via container Docker se não puder ser instalado localmente.
