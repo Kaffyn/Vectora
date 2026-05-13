@@ -28,7 +28,7 @@ _mcp_tools_cache: dict[str, Any] | None = None
 
 
 @tool
-def web_search(query: str, runtime: ToolRuntime[Context, State]) -> str:  # noqa: ARG001
+def web_search(query: str, runtime: ToolRuntime[Context, State]) -> str:
     """Search the web for current information using DuckDuckGo.
 
     Args:
@@ -67,7 +67,7 @@ def web_search(query: str, runtime: ToolRuntime[Context, State]) -> str:  # noqa
 
 
 @tool
-async def fetch_url(url: str, runtime: ToolRuntime[Context, State]) -> str:  # noqa: ARG001
+async def fetch_url(url: str, runtime: ToolRuntime[Context, State]) -> str:
     """Fetch and extract text content from a specific URL.
 
     Args:
