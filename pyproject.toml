@@ -31,6 +31,10 @@ dependencies = [
 [project.urls]
 Homepage = "https://www.otaviomiranda.com.br/"
 
+[project.scripts]
+vectora-cli = "src.run_main:main"
+vectora-tui = "src.run_chat:run_chat"
+
 [project.optional-dependencies]
 test = [
     "pytest",
