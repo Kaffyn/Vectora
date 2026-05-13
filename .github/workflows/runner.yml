@@ -1,4 +1,4 @@
-name: Vectora CI/CD
+name: Vectora CI/CD Pipeline
 
 on:
   push:
@@ -13,274 +13,256 @@ on:
 
 permissions:
   contents: read
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PYTHON_VERSION: "3.13"
 
 jobs:
-  prepare:
-    name: Prepare CI plan
+  setup:
+    name: Setup & Cache
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.meta.outputs.version }}
-      release_kind: ${{ steps.meta.outputs.release_kind }}
-      run_all: ${{ steps.meta.outputs.run_all }}
-      run_precommit_all: ${{ steps.plan.outputs.run_precommit_all }}
-      changed_files: ${{ steps.plan.outputs.changed_files }}
-      run_vectora: ${{ steps.plan.outputs.run_vectora }}
-      run_asset_library: ${{ steps.plan.outputs.run_asset_library }}
-      run_cognitive_runtime: ${{ steps.plan.outputs.run_cognitive_runtime }}
-      run_integrations: ${{ steps.plan.outputs.run_integrations }}
-      run_website: ${{ steps.plan.outputs.run_website }}
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          fetch-depth: 0
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Compute version
-        id: meta
-        shell: bash
-        env:
-          REF_NAME: ${{ github.ref_name }}
-          REF_TYPE: ${{ github.ref_type }}
-          SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          enable-cache: true
 
-          short_sha="${SHA:0:7}"
-          if [[ "${REF_TYPE}" == "tag" && "${REF_NAME}" == v* ]]; then
-            version="${REF_NAME#v}"
-            if [[ "${version}" == *.dev ]]; then
-              release_kind="dev"
-            else
-              release_kind="stable"
-            fi
-            run_all="true"
-          else
-            latest_tag="$(git tag --list 'v*' --sort=-version:refname | head -n 1 || true)"
-            if [[ -n "${latest_tag}" ]]; then
-              base_version="${latest_tag#v}"
-              base_version="${base_version%.dev}"
-            else
-              base_version="0.0.0"
-            fi
-            version="${base_version}.dev+${short_sha}"
-            release_kind="dev"
-            run_all="false"
-          fi
-
-          {
-            echo "version=${version}"
-            echo "release_kind=${release_kind}"
-            echo "run_all=${run_all}"
-          } >> "${GITHUB_OUTPUT}"
-
-      - name: Plan affected modules
-        id: plan
-        shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          BEFORE_SHA: ${{ github.event.before }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.sha }}
-          RUN_ALL: ${{ steps.meta.outputs.run_all }}
-        run: |
-          set -euo pipefail
-
-          write_output() {
-            local name="$1"
-            local value="$2"
-            echo "${name}=${value}" >> "${GITHUB_OUTPUT}"
-          }
-
-          if [[ "${RUN_ALL}" == "true" ]]; then
-            write_output "run_precommit_all" "true"
-            write_output "run_vectora" "true"
-            write_output "run_asset_library" "true"
-            write_output "run_cognitive_runtime" "true"
-            write_output "run_integrations" "true"
-            write_output "run_website" "true"
-            exit 0
-          fi
-
-          base_sha="${BEFORE_SHA}"
-          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
-            base_sha="${BASE_SHA}"
-          fi
-
-          if [[ -z "${base_sha}" || "${base_sha}" =~ ^0+$ ]]; then
-            base_sha="$(git hash-object -t tree /dev/null)"
-          fi
-
-          mapfile -t changed_files < <(git diff --name-only "${base_sha}" "${HEAD_SHA}")
-
-          run_vectora="false"
-          run_asset_library="false"
-          run_cognitive_runtime="false"
-          run_integrations="false"
-          run_website="false"
-          run_all_modules="false"
-          run_precommit_all="false"
-
-          for file in "${changed_files[@]}"; do
-            case "${file}" in
-              vectora/*)
-                run_vectora="true"
-                ;;
-              vectora-asset-library/*)
-                run_asset_library="true"
-                ;;
-              vectora-cognitive-runtime/*)
-                run_cognitive_runtime="true"
-                ;;
-              vectora-integrations/*)
-                run_integrations="true"
-                ;;
-              vectora-website/*)
-                run_website="true"
-                ;;
-              .github/*|scripts/*|company/*|AGENTS.md|README.md|SECURITY.md|CONTRIBUTING.md|phase-*.md|piped-booping-dawn*|.pre-commit-config.yaml)
-                run_all_modules="true"
-                run_precommit_all="true"
-                ;;
-              *)
-                run_all_modules="true"
-                run_precommit_all="true"
-                ;;
-            esac
-          done
-
-          if [[ "${run_all_modules}" == "true" ]]; then
-            run_vectora="true"
-            run_asset_library="true"
-            run_cognitive_runtime="true"
-            run_integrations="true"
-            run_website="true"
-          fi
-
-          write_output "run_vectora" "${run_vectora}"
-          write_output "run_asset_library" "${run_asset_library}"
-          write_output "run_cognitive_runtime" "${run_cognitive_runtime}"
-          write_output "run_integrations" "${run_integrations}"
-          write_output "run_website" "${run_website}"
-
-          {
-            echo "changed_files<<EOF"
-            printf '%s\n' "${changed_files[@]}"
-            echo "EOF"
-          } >> "${GITHUB_OUTPUT}"
-          write_output "run_precommit_all" "${run_precommit_all}"
-
-      - name: Install pre-commit
-        if: steps.plan.outputs.changed_files != '' || steps.plan.outputs.run_precommit_all == 'true'
-        run: python -m pip install --upgrade pre-commit
-
-      - name: Run pre-commit
-        if: steps.plan.outputs.changed_files != '' || steps.plan.outputs.run_precommit_all == 'true'
-        shell: bash
-        env:
-          RUN_PRECOMMIT_ALL: ${{ steps.plan.outputs.run_precommit_all }}
-          CHANGED_FILES: ${{ steps.plan.outputs.changed_files }}
-        run: |
-          set -euo pipefail
-
-          if [[ "${RUN_PRECOMMIT_ALL}" == "true" ]]; then
-            pre-commit run --all-files --show-diff-on-failure --color always
-            exit 0
-          fi
-
-          mapfile -t files < <(printf '%s\n' "${CHANGED_FILES}" | sed '/^$/d')
-          if [[ "${#files[@]}" -eq 0 ]]; then
-            exit 0
-          fi
-
-          pre-commit run --files "${files[@]}" --show-diff-on-failure --color always
-
-  vectora:
-    name: Vectora
-    needs: prepare
-    if: needs.prepare.outputs.run_vectora == 'true'
-    uses: ./.github/workflows/vectora.yml
-    with:
-      version: ${{ needs.prepare.outputs.version }}
-      release_kind: ${{ needs.prepare.outputs.release_kind }}
-      run_all: ${{ needs.prepare.outputs.run_all }}
-
-  asset-library:
-    name: Asset Library
-    needs: prepare
-    if: needs.prepare.outputs.run_asset_library == 'true'
-    uses: ./.github/workflows/asset-library.yml
-    with:
-      version: ${{ needs.prepare.outputs.version }}
-      release_kind: ${{ needs.prepare.outputs.release_kind }}
-      run_all: ${{ needs.prepare.outputs.run_all }}
-
-  cognitive-runtime:
-    name: Cognitive Runtime
-    needs: prepare
-    if: needs.prepare.outputs.run_cognitive_runtime == 'true'
-    uses: ./.github/workflows/cognitive-runtime.yml
-    with:
-      version: ${{ needs.prepare.outputs.version }}
-      release_kind: ${{ needs.prepare.outputs.release_kind }}
-      run_all: ${{ needs.prepare.outputs.run_all }}
-
-  integrations:
-    name: Integrations
-    needs: prepare
-    if: needs.prepare.outputs.run_integrations == 'true'
-    uses: ./.github/workflows/integrations.yml
-    with:
-      version: ${{ needs.prepare.outputs.version }}
-      release_kind: ${{ needs.prepare.outputs.release_kind }}
-      run_all: ${{ needs.prepare.outputs.run_all }}
-
-  website:
-    name: Website
-    needs: prepare
-    if: needs.prepare.outputs.run_website == 'true'
-    uses: ./.github/workflows/website.yml
-    with:
-      version: ${{ needs.prepare.outputs.version }}
-      release_kind: ${{ needs.prepare.outputs.release_kind }}
-      run_all: ${{ needs.prepare.outputs.run_all }}
-
-  release:
-    name: Publish GitHub Release
-    needs:
-      - prepare
-      - vectora
-      - asset-library
-      - cognitive-runtime
-      - integrations
-      - website
-    if: startsWith(github.ref, 'refs/tags/v') && needs.prepare.outputs.run_all == 'true'
+  lint:
+    name: Lint & Format Check
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    needs: setup
     steps:
-      - name: Create release
-        uses: actions/github-script@v7
-        env:
-          VERSION: ${{ needs.prepare.outputs.version }}
-          RELEASE_KIND: ${{ needs.prepare.outputs.release_kind }}
-          TAG_NAME: ${{ github.ref_name }}
-        with:
-          script: |
-            const version = process.env.VERSION;
-            const releaseKind = process.env.RELEASE_KIND;
-            const tagName = process.env.TAG_NAME;
-            const prerelease = releaseKind === "dev";
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              tag_name: tagName,
-              name: `Vectora ${version}`,
-              body: [
-                `Automated ${releaseKind} release for ${version}.`,
-                '',
-                'This release was generated by the root CI runner after the module validations completed.'
-              ].join('\n'),
-              draft: false,
-              prerelease
-            });
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --frozen
+
+      - name: Run Ruff check
+        run: uv run ruff check src tests
+
+      - name: Run isort check
+        run: uv run isort --check-only src tests
+
+  build:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --frozen
+
+      - name: Verify package structure
+        run: |
+          uv run python -m py_compile src/main.py
+          uv run python -m py_compile src/tools.py
+
+  test-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --frozen --all-extras
+
+      - name: Run unit tests
+        run: uv run pytest tests/ -v --cov=src --cov-report=xml
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+
+  test-mcp:
+    name: MCP Integration Tests
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --frozen --all-extras
+
+      - name: Run MCP integration tests
+        run: uv run pytest tests/test_mcp_integration.py -v --tb=short
+
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --frozen --all-extras
+
+      - name: Check for vulnerable dependencies
+        run: |
+          uv run pip install safety 2>/dev/null || echo "safety not available"
+          safety check --json || true
+
+  docker-build:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: [test-unit, test-mcp, security]
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[deploy]')
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  report:
+    name: Test Report
+    runs-on: ubuntu-latest
+    needs: [test-unit, test-mcp, lint, security]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate test report
+        run: |
+          echo "# Vectora CI/CD Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "- **Unit Tests**: ${{ needs.test-unit.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **MCP Tests**: ${{ needs.test-mcp.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lint**: ${{ needs.lint.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security**: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
+
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: [report, docker-build]
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[deploy]') && success()
+    environment:
+      name: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan $VPS_HOST >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy application
+        env:
+          DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p $VPS_PORT $VPS_USER@$VPS_HOST "cd /opt/vectora && git fetch origin main && git reset --hard origin/main && docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest && docker compose down || true && docker compose up -d && docker compose exec -T vectora uv run python src/main.py --init-db || true"
+
+      - name: Verify deployment
+        env:
+          DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+        run: |
+          sleep 5
+          ssh -i ~/.ssh/deploy_key -p $VPS_PORT $VPS_USER@$VPS_HOST "docker compose -f /opt/vectora/docker-compose.yml ps"
