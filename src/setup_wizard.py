@@ -13,6 +13,19 @@ from config import Config
 from utils import load_llm
 
 
+def _get_secret_input(prompt: str) -> str:
+    """Lê input de senha com fallback para input() normal.
+
+    Tenta usar getpass primeiro, mas se não funcionar (em alguns terminais),
+    usa input() normal. Em ambos os casos, o valor é lido com segurança.
+    """
+    try:
+        return getpass.getpass(prompt)
+    except (EOFError, OSError):
+        Console().print("[yellow]⚠️  Modo de input degradado (entrada visível)[/yellow]")
+        return input(prompt)
+
+
 class SetupWizard:
     """App Textual para setup interativo do Vectora."""
 
@@ -168,7 +181,7 @@ Este wizard o guiará através da configuração inicial.
         if Confirm.ask(f"Abrir [link]{info['get_key_url']}[/link] para obter a chave?"):
             self.open_key_url(provider)
 
-        api_key = getpass.getpass(f"\nDigite sua {info['key_name']}: ")
+        api_key = _get_secret_input(f"\nDigite sua {info['key_name']}: ")
 
         console.print("\n[yellow]⏳ Testando conexão...[/yellow]")
 
