@@ -1,47 +1,105 @@
-import getpass
+"""Setup Wizard TUI usando Textual para interface profissional."""
+
+import asyncio
 import subprocess
 import sys
-import webbrowser
 
 from langchain_core.language_models import BaseChatModel
-from rich.console import Console
-from rich.panel import Panel
-from rich.prompt import Confirm, Prompt
-from rich.table import Table
+from textual.app import App, ComposeResult, on
+from textual.screen import Screen
+from textual.widgets import Button, Input, Label, RadioButton, RadioSet
 
 from config import Config
 from utils import load_llm
 
 
-def _get_secret_input(prompt: str) -> str:
-    """Lê input de senha com fallback para input() normal.
+class WelcomeScreen(Screen):
+    """Tela de boas-vindas do Vectora."""
 
-    Tenta usar getpass primeiro, mas se não funcionar (em alguns terminais),
-    usa input() normal. Em ambos os casos, o valor é lido com segurança.
-    """
-    try:
-        return getpass.getpass(prompt)
-    except (EOFError, OSError):
-        Console().print("[yellow]⚠️  Modo de input degradado (entrada visível)[/yellow]")
-        return input(prompt)
+    BINDINGS = [("q", "quit", "Sair")]
+
+    def compose(self) -> ComposeResult:
+        """Renderiza a tela de boas-vindas."""
+        yield Label("🚀 Bem-vindo ao Vectora")
+        yield Label("")
+        yield Label("Assistente de IA avançado com RAG,")
+        yield Label("manipulação de código e integração de ferramentas.")
+        yield Label("")
+        yield Button("Iniciar Setup", id="start_btn", variant="primary")
+        yield Button("Sair", id="quit_btn", variant="error")
+
+    @on(Button.Pressed, "#start_btn")
+    def start_setup(self) -> None:
+        """Inicia o setup."""
+        self.app.push_screen(ProviderSelectScreen())
+
+    @on(Button.Pressed, "#quit_btn")
+    def quit_app(self) -> None:
+        """Encerra o app."""
+        self.app.exit()
 
 
-class SetupWizard:
-    """App Textual para setup interativo do Vectora."""
+class ProviderSelectScreen(Screen):
+    """Tela de seleção de provedor LLM."""
 
-    def __init__(self) -> None:
-        """Inicializa wizard de setup."""
+    BINDINGS = [("q", "quit", "Sair")]
+
+    def compose(self) -> ComposeResult:
+        """Renderiza seleção de provedores."""
+        yield Label("Selecione um provedor LLM:")
+        yield Label("")
+
+        config = Config.instance()
+        with RadioSet(id="provider_selection"):
+            providers = [
+                ("google-genai", "🔵 Google Gemini"),
+                ("openai", "🟢 OpenAI GPT-4"),
+                ("anthropic", "🔴 Anthropic Claude"),
+                ("ollama", "🟠 Ollama (Local)"),
+            ]
+
+            configured = config.get_available_providers()
+
+            for provider_id, label in providers:
+                status = " (✓ Configurado)" if provider_id in configured else ""
+                yield RadioButton(f"{label}{status}", id=provider_id, value=provider_id)
+
+        yield Label("")
+        yield Button("Continuar", id="continue_btn", variant="primary")
+        yield Button("Voltar", id="back_btn")
+
+    @on(Button.Pressed, "#continue_btn")
+    def continue_to_api_key(self) -> None:
+        """Vai para entrada de API key."""
+        radio_set = self.query_one(RadioSet)
+        provider = radio_set.pressed_button.value if radio_set.pressed_button else None
+
+        if provider:
+            self.app.push_screen(
+                ApiKeyScreen(provider),
+            )
+
+    @on(Button.Pressed, "#back_btn")
+    def go_back(self) -> None:
+        """Volta para tela anterior."""
+        self.app.pop_screen()
+
+
+class ApiKeyScreen(Screen):
+    """Tela para entrada de API key."""
+
+    BINDINGS = [("q", "quit", "Sair")]
+
+    def __init__(self, provider: str) -> None:
+        """Inicializa tela com provedor selecionado."""
+        super().__init__()
+        self.provider = provider
         self.config = Config.instance()
-        self.selected_provider: str | None = None
-        self.api_key: str | None = None
+        self.provider_info = self._get_provider_info(provider)
 
-    def detect_providers(self) -> list[str]:
-        """Detecta provedores já configurados."""
-        return self.config.get_available_providers()
-
-    def get_provider_info(self, provider: str) -> dict[str, str]:
-        """Retorna informações sobre um provedor."""
-        providers: dict[str, dict[str, str]] = {
+    def _get_provider_info(self, provider: str) -> dict[str, str]:
+        """Retorna informações do provedor."""
+        providers = {
             "google-genai": {
                 "name": "Google Gemini",
                 "key_name": "GOOGLE_API_KEY",
@@ -73,153 +131,144 @@ class SetupWizard:
         }
         return providers.get(provider, {})
 
-    def open_key_url(self, provider: str) -> None:
-        """Abre URL para obter chave do provedor."""
-        info = self.get_provider_info(provider)
-        if "get_key_url" in info:
-            webbrowser.open(info["get_key_url"])
+    def compose(self) -> ComposeResult:
+        """Renderiza entrada de API key."""
+        yield Label(f"Configurar {self.provider_info['name']}")
+        yield Label("")
+        yield Label(f"Digite sua {self.provider_info['key_name']}:")
 
-    async def test_llm_connection(
-        self, provider: str, api_key: str
-    ) -> tuple[bool, str]:
-        """Testa conexão com o LLM escolhido."""
+        yield Input(
+            id="api_key_input",
+            password=True,
+            type="password",
+        )
+
+        yield Label("")
+        yield Label(f"🔗 Obter chave: {self.provider_info['get_key_url']}")
+        yield Label("")
+        yield Button("Testar e Salvar", id="test_btn", variant="primary")
+        yield Button("Voltar", id="back_btn")
+        yield Label("", id="status")
+
+    @on(Button.Pressed, "#test_btn")
+    def test_and_save(self) -> None:
+        """Testa conexão e salva config."""
+        api_key_input = self.query_one(Input)
+        api_key = api_key_input.value
+
+        if not api_key:
+            status_label = self.query_one("#status", Label)
+            status_label.update("❌ API key não pode estar vazia")
+            return
+
+        status_label = self.query_one("#status", Label)
+        status_label.update("⏳ Testando conexão...")
+
+        task = asyncio.ensure_future(self._async_test_and_save(api_key, status_label))
+        # task is tracked by event loop
+
+    async def _async_test_and_save(self, api_key: str, status_label: Label) -> None:
+        """Testa e salva de forma assíncrona."""
         try:
-            self.config.set(self.get_provider_info(provider)["key_name"], api_key)
-            self.config.set("LLM_PROVIDER", provider)
+            self.config.set(self.provider_info["key_name"], api_key)
+            self.config.set("LLM_PROVIDER", self.provider)
 
             llm = load_llm()
             if not isinstance(llm, BaseChatModel):
-                return False, "LLM carregado mas tipo inválido"
+                status_label.update("❌ LLM tipo inválido")
+                return
 
             response = await llm.ainvoke([("user", "teste")])
             if response:
-                return True, "✓ Conexão testada com sucesso"
-            return False, "LLM não retornou resposta"
+                self.config.save_to_env(
+                    {
+                        "LLM_PROVIDER": self.provider,
+                        self.provider_info["key_name"]: api_key,
+                        self.provider_info["model_env"]: self.provider_info[
+                            "default_model"
+                        ],
+                        "LOG_LEVEL": "INFO",
+                    }
+                )
+                status_label.update("✅ Configuração salva com sucesso!")
+
+                await asyncio.sleep(1)
+                self.app.push_screen(CompleteScreen())
+            else:
+                status_label.update("❌ LLM não retornou resposta")
 
         except Exception as e:
-            return False, f"✗ Erro: {e!s}"
+            status_label.update(f"❌ Erro: {str(e)[:50]}")
 
-    def save_config(self, provider: str, api_key: str) -> None:
-        """Salva configuração em .env."""
-        info = self.get_provider_info(provider)
-        data = {
-            "LLM_PROVIDER": provider,
-            info["key_name"]: api_key,
-            info["model_env"]: info["default_model"],
-            "LOG_LEVEL": "INFO",
-        }
-        self.config.save_to_env(data)
+    @on(Button.Pressed, "#back_btn")
+    def go_back(self) -> None:
+        """Volta para tela anterior."""
+        self.app.pop_screen()
 
-    def print_welcome_screen(self) -> None:
-        """Imprime tela de boas-vindas no console."""
-        console = Console()
 
-        welcome_text = """
-[bold cyan]🚀 Bem-vindo ao Vectora[/bold cyan]
+class CompleteScreen(Screen):
+    """Tela de conclusão do setup."""
 
-Assistente de IA avançado com RAG, manipulação de código e integração de ferramentas.
+    BINDINGS: list[tuple[str, str, str]] = []
 
-Este wizard o guiará através da configuração inicial.
-"""
+    def compose(self) -> ComposeResult:
+        """Renderiza tela de conclusão."""
+        yield Label("🎉 Setup Concluído!")
+        yield Label("")
+        yield Label("Seu Vectora está pronto para usar.")
+        yield Label("")
+        yield Button("Iniciar Chat", id="chat_btn", variant="primary")
+        yield Button("Sair", id="quit_btn")
 
-        console.print(Panel(welcome_text, border_style="cyan"))
-
-    def print_provider_selection(self) -> None:
-        """Imprime opções de provedores."""
-        console = Console()
-
-        table = Table(title="Provedores Disponíveis")
-        table.add_column("Provedor", style="cyan")
-        table.add_column("Configurado", style="green")
-
-        providers = [
-            ("google-genai", "Google Gemini"),
-            ("openai", "OpenAI GPT-4"),
-            ("anthropic", "Anthropic Claude"),
-            ("ollama", "Ollama (Local)"),
-        ]
-
-        configured = self.detect_providers()
-
-        for provider, name in providers:
-            is_configured = "✓" if provider in configured else "✗"
-            table.add_row(name, is_configured)
-
-        console.print(
-            Panel(table, border_style="green", title="[bold]Selecione um Provedor")
-        )
-
-    def run_interactive_setup(self) -> None:
-        """Executa setup interativo no console."""
-        console = Console()
-
-        self.print_welcome_screen()
-        self.print_provider_selection()
-
-        providers_map = {
-            "1": "google-genai",
-            "2": "openai",
-            "3": "anthropic",
-            "4": "ollama",
-        }
-
-        choice = Prompt.ask(
-            "\n[bold]Escolha um provedor[/bold]",
-            choices=["1", "2", "3", "4", "s"],
-            default="s",
-        )
-
-        if choice == "s":
-            choice = Prompt.ask("Ou digite o nome do provedor", default="google-genai")
-            provider = choice
-        else:
-            provider = providers_map.get(choice, "google-genai")
-
-        info = self.get_provider_info(provider)
-        console.print(f"\n[bold]{info['name']}[/bold]")
-
-        if Confirm.ask(f"Abrir [link]{info['get_key_url']}[/link] para obter a chave?"):
-            self.open_key_url(provider)
-
-        api_key = _get_secret_input(f"\nDigite sua {info['key_name']}: ")
-
-        console.print("\n[yellow]⏳ Testando conexão...[/yellow]")
-
-        import asyncio
-
-        success, message = asyncio.run(self.test_llm_connection(provider, api_key))
-
-        if success:
-            console.print(f"[green]{message}[/green]")
-            self.save_config(provider, api_key)
-            console.print(
-                f"\n[green]✓ Configuração salva em[/green] [bold]{self.config.env_path}[/bold]"
-            )
-            console.print("\n[cyan]🎉 Setup concluído! Iniciando Vectora...[/cyan]\n")
-            self.start_chat()
-        else:
-            console.print(f"[red]{message}[/red]")
-            console.print(
-                "[yellow]Verifique suas credenciais e tente novamente.[/yellow]"
-            )
-
+    @on(Button.Pressed, "#chat_btn")
     def start_chat(self) -> None:
-        """Inicia o chat Vectora após setup bem-sucedido."""
-        try:
-            subprocess.run(
-                [sys.executable, "src/run_chat.py"],
-                check=False,
-                shell=False,
-            )
-        except Exception as e:
-            Console().print(f"[red]Erro ao iniciar chat: {e}[/red]")
+        """Inicia o chat após setup concluído."""
+        self.app.exit(return_code=0)
+        subprocess.run(
+            [sys.executable, "src/run_chat.py"],
+            check=False,
+            shell=False,
+        )
+
+    @on(Button.Pressed, "#quit_btn")
+    def quit_app(self) -> None:
+        """Encerra."""
+        self.app.exit()
 
 
-def main() -> None:
-    """Executa o setup wizard."""
-    wizard = SetupWizard()
-    wizard.run_interactive_setup()
+class SetupWizardApp(App):
+    """App principal do setup wizard."""
+
+    BINDINGS = [("q", "quit", "Sair")]
+    CSS = """
+    Screen {
+        align: center middle;
+    }
+
+    Label {
+        margin-bottom: 1;
+    }
+
+    Input {
+        margin-bottom: 1;
+        width: 50;
+    }
+
+    Button {
+        margin-right: 2;
+    }
+    """
+
+    def on_mount(self) -> None:
+        """Inicia na tela de boas-vindas."""
+        self.push_screen(WelcomeScreen())
+
+
+def run_setup() -> None:
+    """Executa o setup wizard Textual."""
+    app = SetupWizardApp()
+    app.run()
 
 
 if __name__ == "__main__":
-    main()
+    run_setup()

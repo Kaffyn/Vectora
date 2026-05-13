@@ -89,8 +89,7 @@ ignore = [
 "src/prompts.py" = ["E501"]  # Long lines in system prompt are necessary
 "src/tools.py" = ["PLR0911", "S602"]  # Multiple returns acceptable; shell=True in terminal() is safe with whitelist
 "src/nodes.py" = ["E501"]  # Long lines necessary for tool configuration
-"src/setup_wizard.py" = ["S603", "S607"]  # subprocess.run with shell=False is safe
-"src/setup_wizard_tui.py" = ["S603", "RUF006", "F841"]  # Textual TUI, subprocess safe, task reference kept for event loop
+"src/setup_wizard.py" = ["S603", "RUF006", "F841"]  # Textual TUI, subprocess safe, task reference kept for event loop
 
 [tool.ruff.format]
 quote-style = "double"

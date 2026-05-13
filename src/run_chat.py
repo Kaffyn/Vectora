@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
     config = Config.instance()
     if not config.get_llm_provider():
-        from setup_wizard_tui import run_setup
+        from setup_wizard import run_setup
 
         run_setup()
     else:
