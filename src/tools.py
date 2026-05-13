@@ -1,3 +1,16 @@
+"""Vectora Tools: Web Search, URL Fetch, RAG (Embedding/Vector Search), and MCP Integration.
+
+Tools available:
+- web_search: Search the web using DuckDuckGo
+- fetch_url: Fetch and extract content from URLs
+- embedding: Index documents with embeddings in Qdrant
+- vector_search: Search vector database with reranking
+- call_mcp_tool: Call tools from MCP servers
+
+Note: Reranking is internal (_internal_reranker, _rerank_bm25, _rerank_voyage)
+and not exposed as a tool to the LLM.
+"""
+
 import json
 import logging
 from typing import Any
@@ -11,32 +24,20 @@ try:
 except ImportError:
     DuckDuckGoSearchResults = None
 
+try:
+    from langchain_mcp_adapters import MultiServerMCPClient
+except ImportError:
+    MultiServerMCPClient = None
+
 from context import Context
 from state import State
 from tool_config import get_tool_config
 
 logger = logging.getLogger(__name__)
 
-
-@tool
-def multiply(
-    a: float, b: float, runtime: ToolRuntime[Context, State] | None = None
-) -> float:
-    """Multiply a * b and returns the result
-
-    Args:
-        a: float multiplicand
-        b: float multiplier
-
-    Returns:
-        the resulting float of the equation a * b
-    """
-    result = a * b
-    logger.info(
-        "multiply tool executed",
-        extra={"a": a, "b": b, "result": result},
-    )
-    return result
+# Global MCP client cache (reuse connection across calls)
+_mcp_client: Any | None = None
+_mcp_tools_cache: dict[str, Any] | None = None
 
 
 @tool
@@ -94,12 +95,10 @@ async def fetch_url(url: str, runtime: ToolRuntime[Context, State]) -> str:  # n
         logger.warning("fetch_url tool called but disabled")
         return "Web fetch is disabled. Enable ENABLE_WEB_FETCH=true to use this tool."
 
-    # Validate URL
     if not url.startswith(("http://", "https://")):
         logger.warning("fetch_url called with invalid URL", extra={"url": url})
         return "Error: URL must start with http:// or https://"
 
-    # Check domain whitelist if configured
     if config.allowed_domains:
         from urllib.parse import urlparse
 
@@ -121,7 +120,6 @@ async def fetch_url(url: str, runtime: ToolRuntime[Context, State]) -> str:  # n
             logger.warning("fetch_url returned no content", extra={"url": url})
             return "No content found at URL"
 
-        # Combine document content and truncate
         content = "\n".join(doc.page_content for doc in docs)
         truncated_content = content[: config.max_fetch_size]
 
@@ -139,75 +137,86 @@ async def fetch_url(url: str, runtime: ToolRuntime[Context, State]) -> str:  # n
         return f"Error fetching URL: {e}"
 
 
-@tool
-def query_database(sql: str, runtime: ToolRuntime[Context, State]) -> str:  # noqa: ARG001
-    """Execute a SQL SELECT query against the configured database.
-
-    Args:
-        sql: SQL SELECT query (no INSERT/UPDATE/DELETE for safety)
-
-    Returns:
-        Query results as formatted table string
-    """
+async def _get_mcp_client() -> Any | None:
+    """Get or create MCP client connection (cached)."""
+    global _mcp_client
     config = get_tool_config()
 
-    if not config.enable_database:
-        logger.warning("query_database tool called but disabled")
-        return (
-            "Database tool is disabled. Enable ENABLE_DATABASE=true to use this tool."
-        )
+    if not config.enable_mcp:
+        return None
 
-    if not config.database_url:
-        logger.warning("query_database called but DATABASE_URL not configured")
-        return "Error: DATABASE_URL environment variable not configured"
+    # Validate transport-specific config
+    if config.mcp_transport_type == "stdio":
+        if not config.mcp_command:
+            return None
+    elif not config.mcp_server_url:
+        return None
 
-    # Security: Only allow SELECT queries
-    sql_upper = sql.strip().upper()
-    if not sql_upper.startswith("SELECT"):
-        logger.warning("query_database blocked non-SELECT query", extra={"query": sql})
-        return "Error: Only SELECT queries are allowed for security reasons"
+    if MultiServerMCPClient is None:
+        logger.error("langchain_mcp_adapters not installed")
+        return None
 
-    # Block dangerous SQL keywords
-    dangerous_keywords = ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE"]
-    for keyword in dangerous_keywords:
-        if keyword in sql_upper:
-            logger.warning(
-                "query_database blocked query with dangerous keyword",
-                extra={"query": sql, "keyword": keyword},
-            )
-            return f"Error: {keyword} operations are not allowed"
-
-    logger.info("query_database tool called", extra={"query": sql})
+    if _mcp_client is not None:
+        return _mcp_client
 
     try:
-        from langchain_community.utilities import SQLDatabase
+        server_config: dict[str, Any] = {}
 
-        db = SQLDatabase.from_uri(config.database_url)
+        if config.mcp_transport_type == "stdio":
+            server_config["transport"] = "stdio"
+            server_config["command"] = config.mcp_command
+            if config.mcp_command_args:
+                server_config["args"] = config.mcp_command_args
+        else:
+            # HTTP/WebSocket transport (default)
+            server_config["transport"] = "http"
+            server_config["url"] = config.mcp_server_url
 
-        # Validate table names if whitelist configured
-        if config.allowed_tables:
-            for table in db.get_usable_table_names():
-                if table not in config.allowed_tables:
-                    logger.warning(
-                        "query_database accessed unauthorized table",
-                        extra={"table": table},
-                    )
-                    return f"Error: Table {table} is not in allowed tables"
-
-        result = db.run(sql, fetch="all")
+        _mcp_client = MultiServerMCPClient({"mcp_server": server_config})
 
         logger.info(
-            "query_database completed",
-            extra={"query": sql, "result_length": len(str(result))},
+            "mcp_client_connected",
+            extra={
+                "transport": config.mcp_transport_type,
+                "server": config.mcp_server_url or config.mcp_command,
+            },
         )
 
-        return str(result)
-    except ImportError:
-        logger.error("query_database failed: sqlalchemy not installed")
-        return "Error: SQLAlchemy is not installed. Run 'uv sync --group database' to enable this tool."
+        return _mcp_client
+
     except Exception as e:
-        logger.error("query_database failed", extra={"query": sql, "error": str(e)})
-        return f"Error executing query: {e}"
+        logger.error("mcp_client_connection_failed", extra={"error": str(e)})
+        return None
+
+
+async def _get_mcp_tools() -> dict[str, Any] | None:
+    """Retrieve available tools from MCP server (cached)."""
+    global _mcp_tools_cache
+
+    if _mcp_tools_cache is not None:
+        return _mcp_tools_cache
+
+    client = await _get_mcp_client()
+    if not client:
+        return None
+
+    try:
+        tools = await client.get_tools()
+        _mcp_tools_cache = {tool.name: tool for tool in tools}
+
+        logger.info(
+            "mcp_tools_loaded",
+            extra={
+                "count": len(_mcp_tools_cache),
+                "names": list(_mcp_tools_cache.keys()),
+            },
+        )
+
+        return _mcp_tools_cache
+
+    except Exception as e:
+        logger.error("mcp_tools_retrieval_failed", extra={"error": str(e)})
+        return None
 
 
 @tool
@@ -221,7 +230,7 @@ async def call_mcp_tool(
         arguments: JSON string of tool arguments
 
     Returns:
-        Tool execution result
+        Tool execution result as JSON
     """
     config = get_tool_config()
 
@@ -229,22 +238,18 @@ async def call_mcp_tool(
         logger.warning("call_mcp_tool called but disabled")
         return (
             "MCP server integration is not enabled. "
-            "Set ENABLE_MCP=true and MCP_SERVER_URL to use this tool."
+            "Set ENABLE_MCP=true in environment to use this tool."
         )
 
-    if not config.mcp_server_url:
-        logger.warning("call_mcp_tool called but MCP_SERVER_URL not configured")
+    if not config.mcp_server_url and not config.mcp_command:
+        logger.warning(
+            "call_mcp_tool called but neither MCP_SERVER_URL nor MCP_COMMAND configured"
+        )
         return (
-            "Error: MCP_SERVER_URL environment variable not configured. "
-            "Set it to the WebSocket URL of your MCP server (e.g., ws://localhost:5000)"
+            "Error: MCP server not configured. "
+            "Set either MCP_SERVER_URL (for HTTP) or MCP_COMMAND (for stdio) environment variables."
         )
 
-    logger.info(
-        "call_mcp_tool called",
-        extra={"tool_name": tool_name, "mcp_server": config.mcp_server_url},
-    )
-
-    # Parse arguments
     try:
         args_dict: dict[str, Any] = json.loads(arguments)
     except json.JSONDecodeError:
@@ -253,25 +258,69 @@ async def call_mcp_tool(
         )
         return f"Error: Invalid JSON arguments: {arguments}"
 
+    logger.info(
+        "call_mcp_tool invoked",
+        extra={
+            "tool_name": tool_name,
+            "mcp_server": config.mcp_server_url or config.mcp_command,
+        },
+    )
+
     try:
-        # Future: Implement actual MCP client connection
-        # For MVP: Return informative message
+        # Get available tools from MCP server
+        tools = await _get_mcp_tools()
+        if not tools:
+            return (
+                "Error: Failed to retrieve tools from MCP server. "
+                "Ensure MCP_SERVER_URL or MCP_COMMAND is properly configured and the server is running."
+            )
+
+        # Find the requested tool
+        if tool_name not in tools:
+            available = list(tools.keys())
+            logger.warning(
+                "mcp_tool_not_found",
+                extra={"requested": tool_name, "available": available},
+            )
+            return json.dumps(
+                {
+                    "status": "error",
+                    "message": f"Tool '{tool_name}' not found in MCP server",
+                    "available_tools": available,
+                }
+            )
+
+        mcp_tool = tools[tool_name]
+
+        # Execute the tool with provided arguments
+        client = await _get_mcp_client()
+        if not client:
+            return "Error: Failed to connect to MCP server"
+
+        result = await client.call_tool(tool_name, args_dict)
+
         logger.info(
-            "call_mcp_tool - MCP server support coming in future release",
-            extra={"tool_name": tool_name},
+            "mcp_tool_executed_success",
+            extra={"tool_name": tool_name, "result_type": type(result).__name__},
         )
 
-        return (
-            f"MCP server support is coming in a future release. "
-            f"Tool '{tool_name}' is registered in the MCP server at {config.mcp_server_url} "
-            f"but integration is not yet implemented."
-        )
+        # Return result as JSON
+        if isinstance(result, str):
+            return json.dumps({"status": "success", "result": result})
+        else:
+            return json.dumps({"status": "success", "result": result})
+
     except Exception as e:
         logger.error(
-            "call_mcp_tool failed",
+            "call_mcp_tool execution failed",
             extra={"tool_name": tool_name, "error": str(e)},
         )
-        return f"Error calling MCP tool: {e}"
+        return json.dumps(
+            {
+                "status": "error",
+                "message": f"Failed to execute MCP tool '{tool_name}': {e!s}",
+            }
+        )
 
 
 # ==============================================================================
@@ -321,7 +370,6 @@ async def embedding(
         )
 
     try:
-        # 1. Generate embeddings using Voyage AI
         embeddings_model = VoyageAIEmbeddings(
             api_key=config.voyage_api_key,
             model=config.embedding_model,
@@ -329,17 +377,14 @@ async def embedding(
 
         vector = embeddings_model.embed_query(text)
 
-        # 2. Connect to Qdrant
         qdrant_client = QdrantClient(
             url=config.qdrant_url,
             api_key=config.qdrant_api_key,
         )
 
-        # Ensure collection exists
         try:
             qdrant_client.get_collection(collection)
         except Exception:
-            # Collection doesn't exist, create it
             qdrant_client.create_collection(
                 collection_name=collection,
                 vectors_config=VectorParams(
@@ -349,7 +394,6 @@ async def embedding(
             )
             logger.info("qdrant_collection_created", extra={"collection": collection})
 
-        # 3. Index the document
         point_id = str(uuid4())
         qdrant_client.upsert(
             collection_name=collection,
@@ -390,7 +434,6 @@ async def embedding(
             extra={"error": str(e), "collection": collection},
         )
 
-        # Fallback: Enqueue for later processing
         if config.embedding_queue_enabled:
             try:
                 queue = await get_embedding_queue(config.embedding_queue_db)
@@ -454,16 +497,12 @@ async def _internal_reranker(
         return []
 
     config = get_tool_config()
-
-    # Extract documents for reranking
     documents = [r.get("page_content", "") for r in raw_results]
 
     try:
         if config.reranker_type == "bm25":
-            # Local BM25 reranking (MVP)
             return _rerank_bm25(query, raw_results, documents, top_k)
         else:
-            # Voyage AI Reranker (production)
             return await _rerank_voyage(query, raw_results, documents, top_k, config)
 
     except Exception as e:
@@ -471,7 +510,6 @@ async def _internal_reranker(
             "reranker_failed",
             extra={"error": str(e), "reranker_type": config.reranker_type},
         )
-        # Fallback to BM25 if Voyage fails
         return _rerank_bm25(query, raw_results, documents, top_k)
 
 
@@ -492,17 +530,14 @@ async def _rerank_voyage(
             top_k=top_k,
         )
 
-        # VoyageAIRerank returns list of CompressedDocument
         reranked_docs = reranker.compress_documents(
             documents=[{"page_content": doc, "metadata": {}} for doc in documents],
             query=query,
         )
 
-        # Map back to original results with scores
         reranked = []
         for idx, doc in enumerate(reranked_docs):
             original = raw_results[documents.index(doc.page_content)].copy()
-            # Voyage reranker provides relevance_score
             original["relevance_score"] = getattr(
                 doc, "relevance_score", 1.0 - (idx / len(reranked_docs))
             )
@@ -523,7 +558,6 @@ async def _rerank_voyage(
             "reranker_voyage_failed",
             extra={"error": str(e)},
         )
-        # Fallback to BM25
         return _rerank_bm25(query, raw_results, documents, top_k)
 
 
@@ -536,22 +570,18 @@ def _rerank_bm25(
     """Rerank using local BM25 algorithm (fallback or MVP)."""
     from rank_bm25 import BM25Okapi
 
-    # Tokenize documents
     tokenized_docs = [doc.lower().split() for doc in documents]
     bm25 = BM25Okapi(tokenized_docs)
 
-    # Score query against documents
     query_tokens = query.lower().split()
     scores = bm25.get_scores(query_tokens)
 
-    # Create scored results
     scored_results = []
     for idx, score in enumerate(scores):
         result = raw_results[idx].copy()
         result["relevance_score"] = float(score)
         scored_results.append(result)
 
-    # Sort by relevance score (descending)
     scored_results.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
 
     logger.debug(
@@ -602,7 +632,6 @@ async def vector_search(
         )
 
     try:
-        # 1. Get embeddings for query
         embeddings_model = VoyageAIEmbeddings(
             api_key=config.voyage_api_key,
             model=config.embedding_model,
@@ -610,12 +639,10 @@ async def vector_search(
 
         query_vector = embeddings_model.embed_query(query)
 
-        # 2. Determine which collections to search
         search_collections = collections or config.qdrant_collections
         if not search_collections:
             search_collections = ["articles", "wiki", "api_docs", "knowledge_base"]
 
-        # 3. Search in all collections
         qdrant_client = QdrantClient(
             url=config.qdrant_url,
             api_key=config.qdrant_api_key,
@@ -652,7 +679,6 @@ async def vector_search(
                 )
                 continue
 
-        # 4. If no results, return immediately
         if not all_results:
             logger.info(
                 "vector_search_no_results",
@@ -666,7 +692,6 @@ async def vector_search(
                 }
             )
 
-        # 5. Apply reranker internally (LLM doesn't see this)
         reranked_results = await _internal_reranker(
             query, all_results, config.reranker_top_k
         )
@@ -682,7 +707,6 @@ async def vector_search(
             },
         )
 
-        # 6. Return to LLM (already reranked)
         return json.dumps(
             {
                 "status": "found",
@@ -705,23 +729,15 @@ async def vector_search(
         )
 
 
-# Build tools list dynamically based on configuration
 def _build_tools_list() -> list[BaseTool]:
     """Build the list of available tools based on configuration."""
-    tools: list[BaseTool] = [
-        multiply,
+    return [
         web_search,
         fetch_url,
         embedding,
         vector_search,
         call_mcp_tool,
     ]
-
-    config = get_tool_config()
-    if config.enable_database:
-        tools.append(query_database)
-
-    return tools
 
 
 TOOLS: list[BaseTool] = _build_tools_list()

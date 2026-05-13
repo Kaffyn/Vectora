@@ -44,6 +44,18 @@ class ToolConfig:
     mcp_server_url: str | None = field(
         default_factory=lambda: os.getenv("MCP_SERVER_URL")
     )
+    mcp_transport_type: str = field(
+        default_factory=lambda: os.getenv("MCP_TRANSPORT_TYPE", "http")
+    )
+    # "http" for HTTP/WebSocket, "stdio" for local subprocess
+    mcp_command: str | None = field(default_factory=lambda: os.getenv("MCP_COMMAND"))
+    # For stdio transport: command to run (e.g., "python", "npx")
+    mcp_command_args: list[str] | None = field(
+        default_factory=lambda: _parse_comma_separated(
+            os.getenv("MCP_COMMAND_ARGS", "")
+        )
+    )
+    # For stdio transport: arguments to command (e.g., "server.py", "chrome-devtools-mcp")
 
     # RAG - Embedding (Voyage AI)
     voyage_api_key: str = field(default_factory=lambda: os.getenv("VOYAGE_API_KEY", ""))
