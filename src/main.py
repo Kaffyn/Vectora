@@ -1,17 +1,16 @@
-import logging
-
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph.state import RunnableConfig
 from langgraph.pregel.main import BaseCheckpointSaver, asyncio
+from log_setup import setup_logging
 from rich import print
 from rich.markdown import Markdown
 from rich.prompt import Prompt
 
+import logging
 from checkpointer import build_checkpointer_sqlite
 from constants import DB_DSN
 from context import Context
 from graph import build_graph
-from log_setup import setup_logging
 from utils import async_lifespan
 
 logger = logging.getLogger(__name__)

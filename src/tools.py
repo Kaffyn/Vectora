@@ -1,10 +1,11 @@
 import json
-import logging
 from typing import Any
 
 from langchain.tools import BaseTool, tool
 from langchain_community.document_loaders import WebBaseLoader
 from langgraph.prebuilt.tool_node import ToolRuntime
+
+import logging
 
 try:
     from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults
@@ -337,11 +338,10 @@ async def embedding(
     """
     from uuid import uuid4
 
+    from embedding_queue import get_embedding_queue
     from langchain_voyageai import VoyageAIEmbeddings
     from qdrant_client import QdrantClient
     from qdrant_client.models import Distance, PointStruct, VectorParams
-
-    from embedding_queue import get_embedding_queue
 
     config = get_tool_config()
 

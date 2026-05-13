@@ -54,12 +54,16 @@ exclude = [".venv"]
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-  "T201",   # Checks for print statements,
-  "COM812", # Checks for the absence of trailing commas.
-  "INP001", # Checks for packages that are missing an __init__.py file.
+  "T201",   # Checks for print statements
+  "COM812", # Checks for the absence of trailing commas
+  "INP001", # Checks for packages that are missing an __init__.py file
   "D",      # All pydocstyle (D)
-  "ANN401", # Checks that function arguments are annotated with a more specific type than Any.
-  "ERA001", # Checks for commented-out Python code.
+  "ANN401", # Checks that function arguments are annotated with a more specific type than Any
+  "ERA001", # Checks for commented-out Python code
+  "ANN101", # Missing type annotation for self (covered by Self typing where needed)
+  "PLW0603", # Using the global statement to update (acceptable in tool registry patterns)
+  "RUF012", # Mutable class attributes (valid for fixture caches)
+  "G202",   # Logging statement has formatting issues (acceptable for debug logging)
 ]
 
 [tool.ruff.lint.per-file-ignores]

@@ -1,5 +1,4 @@
 import json
-import logging
 from datetime import UTC, datetime
 from typing import Any, Self
 from uuid import uuid4
@@ -7,6 +6,8 @@ from uuid import uuid4
 from sqlalchemy import Column, DateTime, Integer, String, Text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,9 @@ class EmbeddingQueue:
         metadata_json = json.dumps(metadata or {})
 
         try:
-            assert self.AsyncSessionLocal is not None
+            if self.AsyncSessionLocal is None:
+                msg = "AsyncSessionLocal not initialized"
+                raise RuntimeError(msg)
             async with self.AsyncSessionLocal() as session:
                 record = EmbeddingQueueRecord(
                     queue_id=queue_id,
@@ -111,7 +114,9 @@ class EmbeddingQueue:
             List of pending embedding queue records
         """
         try:
-            assert self.AsyncSessionLocal is not None
+            if self.AsyncSessionLocal is None:
+                msg = "AsyncSessionLocal not initialized"
+                raise RuntimeError(msg)
             async with self.AsyncSessionLocal() as session:
                 from sqlalchemy import and_, select
 
@@ -142,7 +147,9 @@ class EmbeddingQueue:
             queue_id: ID of record to mark
         """
         try:
-            assert self.AsyncSessionLocal is not None
+            if self.AsyncSessionLocal is None:
+                msg = "AsyncSessionLocal not initialized"
+                raise RuntimeError(msg)
             async with self.AsyncSessionLocal() as session:
                 from sqlalchemy import update
 
@@ -170,7 +177,9 @@ class EmbeddingQueue:
             queue_id: ID of record to mark
         """
         try:
-            assert self.AsyncSessionLocal is not None
+            if self.AsyncSessionLocal is None:
+                msg = "AsyncSessionLocal not initialized"
+                raise RuntimeError(msg)
             async with self.AsyncSessionLocal() as session:
                 from sqlalchemy import update
 
@@ -198,7 +207,9 @@ class EmbeddingQueue:
             error_message: Error message
         """
         try:
-            assert self.AsyncSessionLocal is not None
+            if self.AsyncSessionLocal is None:
+                msg = "AsyncSessionLocal not initialized"
+                raise RuntimeError(msg)
             async with self.AsyncSessionLocal() as session:
                 from sqlalchemy import update
 

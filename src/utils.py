@@ -94,9 +94,15 @@ def load_llm() -> BaseChatModel:
         )
         raise ValueError(msg)
 
-    assert hasattr(model, "bind_tools"), "Model must support bind_tools"
-    assert hasattr(model, "invoke"), "Model must support invoke"
-    assert hasattr(model, "with_config"), "Model must support with_config"
+    if not hasattr(model, "bind_tools"):
+        msg = "Model must support bind_tools"
+        raise TypeError(msg)
+    if not hasattr(model, "invoke"):
+        msg = "Model must support invoke"
+        raise TypeError(msg)
+    if not hasattr(model, "with_config"):
+        msg = "Model must support with_config"
+        raise TypeError(msg)
 
     return model
 

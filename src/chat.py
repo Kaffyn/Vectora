@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime
 from typing import Any, Self
 
@@ -12,6 +11,7 @@ from textual.app import App, ComposeResult, on
 from textual.containers import Container
 from textual.widgets import Footer, Header, Input, RichLog, Static
 
+import logging
 from checkpointer import build_checkpointer_sqlite
 from constants import DB_DSN
 from context import Context
