@@ -3,6 +3,7 @@
 ## Overview
 
 The **Context** is an immutable data structure passed to the LangGraph conversation that contains:
+
 - **User identification** — who is using Vectora
 - **Session metadata** — conversation tracking and persistence
 - **User preferences** — language, search settings, model preferences
@@ -24,7 +25,7 @@ class Context:
     thread_id: int  # Required: conversation thread ID
     conversation_id: str | None = None
     created_at: str | None = None  # Auto-set to current ISO timestamp
-    
+
     preferences: UserPreferences = field(default_factory=UserPreferences)
     features: FeatureFlags = field(default_factory=FeatureFlags)
 ```
@@ -124,25 +125,25 @@ result = await graph.ainvoke(
 
 The `user_type` field controls which features/models are available:
 
-| Type | Description | Typical Features |
-|------|-------------|------------------|
-| `plus` | Paid individual tier | All tools enabled |
-| `pro` | Premium tier | All tools, faster models |
-| `enterprise` | Enterprise tier | All tools, custom models, higher limits |
+| Type         | Description          | Typical Features                        |
+| ------------ | -------------------- | --------------------------------------- |
+| `plus`       | Paid individual tier | All tools enabled                       |
+| `pro`        | Premium tier         | All tools, faster models                |
+| `enterprise` | Enterprise tier      | All tools, custom models, higher limits |
 
 Custom logic can be added in nodes to route based on user_type:
 
 ```python
 def call_llm(state: State, runtime: Runtime[Context]) -> State:
     user_type = runtime.context.user_type
-    
+
     if user_type == "enterprise":
         model = "claude-opus-4-1"
     elif user_type == "pro":
         model = "gemini-2.0-pro"
     else:
         model = "gemini-2.0-flash"
-    
+
     # ... rest of node logic
 ```
 
@@ -221,7 +222,7 @@ async def vector_search(
     if runtime and runtime.context:
         top_k = runtime.context.preferences.max_search_results
         min_score = runtime.context.preferences.min_score_threshold
-    
+
     # ... rest of tool logic
 ```
 
@@ -294,6 +295,7 @@ result_v2 = await graph.ainvoke(
 ### Why Frozen?
 
 Context is `frozen=True` (immutable) per LangGraph semantics:
+
 - Prevents accidental mutations mid-conversation
 - Ensures consistency across node executions
 - Makes reasoning about state easier
@@ -385,7 +387,7 @@ class UserPreferences:
     language: str = "en"
     max_search_results: int = 10
     # ... existing fields ...
-    
+
     # New fields
     enable_summarization: bool = True
     response_style: Literal["concise", "detailed"] = "detailed"
@@ -399,7 +401,7 @@ Then update nodes/tools to use the new preferences.
 @dataclass(frozen=True)
 class FeatureFlags:
     # ... existing fields ...
-    
+
     # New flags
     enable_voice_output: bool = False
     enable_streaming: bool = True
@@ -443,7 +445,7 @@ def test_tool_with_context():
     context = Context(user_type="plus", thread_id=1)
     runtime = Mock(spec=ToolRuntime)
     runtime.context = context
-    
+
     # Call tool with mocked runtime
     result = my_tool(arg="test", runtime=runtime)
 ```
@@ -453,6 +455,7 @@ def test_tool_with_context():
 ## Migration from Old System
 
 Old system had only:
+
 ```python
 @dataclass
 class Context:
@@ -463,13 +466,15 @@ Migration path:
 
 1. **Update context.py** — Done ✓
 2. **Update instantiations:**
+
    ```python
    # Old
    context = Context(user_type="plus")
-   
+
    # New
    context = Context(user_type="plus", thread_id=thread_id)
    ```
+
 3. **Update tools (optional)** — Start using feature flags when needed
 4. **Update nodes (optional)** — Access preferences for model selection
 

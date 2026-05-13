@@ -72,7 +72,7 @@ services:
     container_name: psql
     hostname: psql
     image: postgres:18
-    restart: 'no'
+    restart: "no"
     environment:
       POSTGRES_USER: langgraph # ⚠️ IMPORTANTE: Usuário
       POSTGRES_PASSWORD: defina_sua_senha # ⚠️ IMPORTANTE: senha

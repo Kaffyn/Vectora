@@ -57,6 +57,4 @@ class Context:
     def __post_init__(self) -> None:
         """Set created_at if not provided."""
         if self.created_at is None:
-            object.__setattr__(
-                self, "created_at", datetime.now(UTC).isoformat()
-            )
+            object.__setattr__(self, "created_at", datetime.now(UTC).isoformat())

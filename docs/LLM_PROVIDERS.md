@@ -3,6 +3,7 @@
 ## Overview
 
 Vectora supports multiple LLM providers configured entirely via environment variables:
+
 - **Google Gemini** (default) — `google-genai`
 - **Ollama** (local) — `ollama`
 - **OpenAI** — `openai`
@@ -58,18 +59,19 @@ uv run python src/run_chat.py
 
 ### Provider Selection
 
-| Variable | Values | Default |
-|----------|--------|---------|
+| Variable       | Values                                          | Default        |
+| -------------- | ----------------------------------------------- | -------------- |
 | `LLM_PROVIDER` | `google-genai`, `ollama`, `openai`, `anthropic` | `google-genai` |
 
 ### Google Gemini
 
-| Variable | Purpose | Default | Required |
-|----------|---------|---------|----------|
-| `GOOGLE_API_KEY` | API authentication | — | ✅ Yes |
-| `GOOGLE_MODEL` | Model name | `gemini-2.0-flash` | No |
+| Variable         | Purpose            | Default            | Required |
+| ---------------- | ------------------ | ------------------ | -------- |
+| `GOOGLE_API_KEY` | API authentication | —                  | ✅ Yes   |
+| `GOOGLE_MODEL`   | Model name         | `gemini-2.0-flash` | No       |
 
 **Available models:**
+
 - `gemini-2.0-flash` — Fast, latest (recommended)
 - `gemini-1.5-pro` — More capable, slower
 - `gemini-1.5-flash` — Fast alternative
@@ -82,12 +84,13 @@ $env:GOOGLE_MODEL="gemini-1.5-pro"
 
 ### Ollama
 
-| Variable | Purpose | Default | Required |
-|----------|---------|---------|----------|
-| `OLLAMA_BASE_URL` | Ollama server URL | `http://127.0.0.1:11434` | No |
-| `OLLAMA_MODEL` | Model name | `gpt-oss:20b` | No |
+| Variable          | Purpose           | Default                  | Required |
+| ----------------- | ----------------- | ------------------------ | -------- |
+| `OLLAMA_BASE_URL` | Ollama server URL | `http://127.0.0.1:11434` | No       |
+| `OLLAMA_MODEL`    | Model name        | `gpt-oss:20b`            | No       |
 
 **Available models** (depends on what's installed):
+
 - `gpt-oss:20b` — GPT-like open model
 - `qwen3-coder:30b` — Code generation
 - `mistral` — General purpose
@@ -102,12 +105,13 @@ $env:OLLAMA_MODEL="mistral"
 
 ### OpenAI
 
-| Variable | Purpose | Default | Required |
-|----------|---------|---------|----------|
-| `OPENAI_API_KEY` | API authentication | — | ✅ Yes |
-| `OPENAI_MODEL` | Model name | `gpt-4o` | No |
+| Variable         | Purpose            | Default  | Required |
+| ---------------- | ------------------ | -------- | -------- |
+| `OPENAI_API_KEY` | API authentication | —        | ✅ Yes   |
+| `OPENAI_MODEL`   | Model name         | `gpt-4o` | No       |
 
 **Available models:**
+
 - `gpt-4o` — Latest multimodal
 - `gpt-4-turbo` — Powerful, cheaper
 - `gpt-3.5-turbo` — Fast, economical
@@ -120,12 +124,13 @@ $env:OPENAI_MODEL="gpt-4o"
 
 ### Anthropic
 
-| Variable | Purpose | Default | Required |
-|----------|---------|---------|----------|
-| `ANTHROPIC_API_KEY` | API authentication | — | ✅ Yes |
-| `ANTHROPIC_MODEL` | Model name | `claude-opus-4-1` | No |
+| Variable            | Purpose            | Default           | Required |
+| ------------------- | ------------------ | ----------------- | -------- |
+| `ANTHROPIC_API_KEY` | API authentication | —                 | ✅ Yes   |
+| `ANTHROPIC_MODEL`   | Model name         | `claude-opus-4-1` | No       |
 
 **Available models:**
+
 - `claude-opus-4-1` — Most capable
 - `claude-sonnet-4-7` — Balanced
 - `claude-haiku-4-5` — Fast, economical
@@ -138,9 +143,9 @@ $env:ANTHROPIC_MODEL="claude-opus-4-1"
 
 ### Common Settings
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `LLM_TEMPERATURE` | Response randomness (0.0-2.0) | `0.2` |
+| Variable          | Purpose                       | Default |
+| ----------------- | ----------------------------- | ------- |
+| `LLM_TEMPERATURE` | Response randomness (0.0-2.0) | `0.2`   |
 
 Lower = deterministic, Higher = creative.
 
@@ -198,7 +203,7 @@ When Vectora starts:
 ```python
 def load_llm() -> BaseChatModel:
     provider = get_env("LLM_PROVIDER", default="google-genai")
-    
+
     if provider == "google-genai":
         model = init_chat_model(
             model="gemini-2.0-flash",  # ← from env or default
@@ -207,7 +212,7 @@ def load_llm() -> BaseChatModel:
             temperature=0.2,  # ← from env or default
         )
     # ... other providers
-    
+
     return model
 ```
 
@@ -291,17 +296,18 @@ Then restart.
 
 ### Per-request estimates (rough)
 
-| Provider | Model | Input | Output |
-|----------|-------|-------|--------|
-| **Google** | Gemini 2.0 Flash | $0.075/M tokens | $0.30/M tokens |
-| **Google** | Gemini 1.5 Pro | $1.50/M tokens | $6.00/M tokens |
-| **Ollama** | Any local model | FREE | FREE |
-| **OpenAI** | GPT-4o | $5.00/M tokens | $15.00/M tokens |
-| **OpenAI** | GPT-3.5 | $0.50/M tokens | $1.50/M tokens |
-| **Anthropic** | Claude Opus | $3.00/M tokens | $15.00/M tokens |
-| **Anthropic** | Claude Haiku | $0.80/M tokens | $4.00/M tokens |
+| Provider      | Model            | Input           | Output          |
+| ------------- | ---------------- | --------------- | --------------- |
+| **Google**    | Gemini 2.0 Flash | $0.075/M tokens | $0.30/M tokens  |
+| **Google**    | Gemini 1.5 Pro   | $1.50/M tokens  | $6.00/M tokens  |
+| **Ollama**    | Any local model  | FREE            | FREE            |
+| **OpenAI**    | GPT-4o           | $5.00/M tokens  | $15.00/M tokens |
+| **OpenAI**    | GPT-3.5          | $0.50/M tokens  | $1.50/M tokens  |
+| **Anthropic** | Claude Opus      | $3.00/M tokens  | $15.00/M tokens |
+| **Anthropic** | Claude Haiku     | $0.80/M tokens  | $4.00/M tokens  |
 
 **Cost optimization:**
+
 - **Free local:** Use Ollama (no API costs, but needs powerful hardware)
 - **Budget cloud:** Google Gemini Flash or OpenAI GPT-3.5
 - **Best quality:** Claude Opus or Gemini 1.5 Pro
@@ -318,11 +324,13 @@ Error: GOOGLE_API_KEY not found
 ```
 
 **Fix:**
+
 ```powershell
 $env:GOOGLE_API_KEY="your-actual-key-here"
 ```
 
 Or add to `.env`:
+
 ```env
 GOOGLE_API_KEY=AIza...
 ```
@@ -377,6 +385,7 @@ ollama list
 ### Slow responses
 
 **Solutions:**
+
 1. Use a faster model (e.g., Gemini Flash instead of Gemini Pro)
 2. Lower temperature slightly
 3. Switch to local Ollama (if you have GPU)
@@ -388,24 +397,29 @@ ollama list
 ### By Use Case
 
 **General Chat**
+
 - ✅ Gemini 2.0 Flash (default)
 - ✅ GPT-4o
 - ✅ Claude Sonnet
 
 **Code Generation**
+
 - ✅ GPT-4o (best code quality)
 - ✅ Claude Opus
 - ✅ Qwen Coder (Ollama)
 
 **RAG / Long Context**
+
 - ✅ Gemini 1.5 Pro (long context window)
 - ✅ Claude Opus (best reasoning)
 
 **Local / Free**
+
 - ✅ Ollama + Mistral
 - ✅ Ollama + Neural Chat
 
 **Budget**
+
 - ✅ Gemini Flash
 - ✅ GPT-3.5
 - ✅ Claude Haiku
@@ -419,9 +433,9 @@ To add a new provider, edit `src/utils.py`:
 ```python
 def load_llm() -> BaseChatModel:
     provider = get_env("LLM_PROVIDER", strict=False) or "google-genai"
-    
+
     # ... existing providers ...
-    
+
     elif provider == "custom-provider":
         model = cast(
             "BaseChatModel",
@@ -433,11 +447,12 @@ def load_llm() -> BaseChatModel:
                 configurable_fields="any",
             ),
         )
-    
+
     # ... rest of function
 ```
 
 Then use:
+
 ```powershell
 $env:LLM_PROVIDER="custom-provider"
 $env:CUSTOM_API_KEY="your-key"

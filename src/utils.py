@@ -43,9 +43,7 @@ def load_llm() -> BaseChatModel:
         model = cast(
             "BaseChatModel",
             init_chat_model(
-                model=_get_env_with_default(
-                    "GOOGLE_MODEL", "gemini-2.0-flash"
-                ),
+                model=_get_env_with_default("GOOGLE_MODEL", "gemini-3.0-flash"),
                 model_provider="google-genai",
                 api_key=get_env("GOOGLE_API_KEY"),
                 temperature=temperature,
@@ -83,9 +81,7 @@ def load_llm() -> BaseChatModel:
         model = cast(
             "BaseChatModel",
             init_chat_model(
-                model=_get_env_with_default(
-                    "ANTHROPIC_MODEL", "claude-opus-4-1"
-                ),
+                model=_get_env_with_default("ANTHROPIC_MODEL", "claude-opus-4-1"),
                 model_provider="anthropic",
                 api_key=get_env("ANTHROPIC_API_KEY"),
                 temperature=temperature,

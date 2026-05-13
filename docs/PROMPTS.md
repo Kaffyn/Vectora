@@ -2,7 +2,7 @@
 
 ## Overview
 
-Vectora uses a language-aware system prompt that automatically detects the user's operating system language and includes it in the prompt. The AI is intelligent enough to interpret language codes (like `pt_BR`, `en_US`, etc.) and respond accordingly. This ensures that even simple queries like "47.23 * 134.97" are answered in the user's native language.
+Vectora uses a language-aware system prompt that automatically detects the user's operating system language and includes it in the prompt. The AI is intelligent enough to interpret language codes (like `pt_BR`, `en_US`, etc.) and respond accordingly. This ensures that even simple queries like "47.23 \* 134.97" are answered in the user's native language.
 
 ## How It Works
 
@@ -15,7 +15,7 @@ import locale
 
 def get_system_language() -> str:
     """Detect system language from OS locale.
-    
+
     Returns full language code like 'pt_BR', 'en_US', 'en', etc.
     """
     try:
@@ -28,6 +28,7 @@ def get_system_language() -> str:
 ```
 
 **Examples of detected codes:**
+
 - `pt_BR` - Portuguese (Brazil)
 - `pt_PT` - Portuguese (Portugal)
 - `en_US` - English (United States)
@@ -62,6 +63,7 @@ def get_system_prompt() -> str:
 ```
 
 **Result:** The AI receives a prompt ending with:
+
 ```
 Conversation language: pt_BR
 ```
@@ -77,13 +79,13 @@ The system prompt is injected into the LLM conversation in two places:
 ```python
 def call_llm(state: State, runtime: Runtime[Context]) -> State:
     # ... model setup ...
-    
+
     # Prepend Vectora system prompt with auto-detected language
     system_prompt = SystemMessage(content=get_system_prompt())
     messages_with_system = [system_prompt] + list(state["messages"])
-    
+
     result = llm_with_config.invoke(messages_with_system)
-    
+
     return {"messages": [result]}
 ```
 
@@ -92,11 +94,11 @@ def call_llm(state: State, runtime: Runtime[Context]) -> State:
 ```python
 async def call_llm_with_mock(state: State, runtime):
     # ... mock setup ...
-    
+
     # Prepend system prompt for consistent behavior in tests
     system_prompt = SystemMessage(content=get_system_prompt())
     messages_with_system = [system_prompt] + list(state["messages"])
-    
+
     result = llm_with_tools.invoke(messages_with_system)
     return {"messages": [result]}
 ```
@@ -108,11 +110,13 @@ The Vectora system prompt specifies:
 1. **Identity**: "You are Vectora, an advanced AI assistant with RAG capabilities"
 
 2. **Core Capabilities**:
+
    - Information Retrieval (RAG) - vector_search, embedding
    - Tool Integration - web_search, fetch_url, query_database, call_mcp_tool
    - Advanced Features - multi-collection search, auto-reranking, embedding queue
 
 3. **Operational Guidelines**:
+
    - When to use each tool
    - Response style expectations
    - **Language preference** (dynamically set)
@@ -145,6 +149,7 @@ The AI will automatically receive `hi_IN` in the prompt and respond in Hindi.
 ### Supported Format
 
 Language codes follow the standard format:
+
 - `{ISO 639-1}_{ISO 3166-1}` (e.g., `pt_BR`, `en_US`)
 - Or just `{ISO 639-1}` (e.g., `en`, `pt`)
 
@@ -203,7 +208,7 @@ When system locale is Portuguese (Brazil), the prompt ends with:
 Conversation language: pt_BR
 ```
 
-Result: "47.23 * 134.97 = 6.399.0751" em Português (Brasil) ✅
+Result: "47.23 \* 134.97 = 6.399.0751" em Português (Brasil) ✅
 
 ### Spanish User (es_ES)
 
@@ -215,7 +220,7 @@ When system locale is Spanish (Spain), the prompt ends with:
 Conversation language: es_ES
 ```
 
-Result: "47.23 * 134.97 = 6.399.0751 en Español (España)" ✅
+Result: "47.23 \* 134.97 = 6.399.0751 en Español (España)" ✅
 
 ### English User (en_US)
 
@@ -227,7 +232,7 @@ When system locale is English (United States), the prompt ends with:
 Conversation language: en_US
 ```
 
-Result: "47.23 * 134.97 = 6,399.0751" (US formatting) ✅
+Result: "47.23 \* 134.97 = 6,399.0751" (US formatting) ✅
 
 ### Hindi User (hi_IN)
 

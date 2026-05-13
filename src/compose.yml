@@ -3,7 +3,7 @@ services:
     container_name: psql
     hostname: psql
     image: postgres:18
-    restart: 'no'
+    restart: "no"
     volumes:
       # ⚠️ IMPORTANTE: Estou em src/examples/ex010/.
       # ⚠️ IMPORTANTE: Todas as pastas _local_data precisam estar no .gitignore.
@@ -12,4 +12,4 @@ services:
       - ./_local_data/postgresql:/var/lib/postgresql
     ports:
       - 5432:5432
-    env_file: '../../../.env'
+    env_file: "../../../.env"

@@ -17,7 +17,9 @@ def build_checkpointer() -> InMemorySaver:
 @asynccontextmanager
 async def build_checkpointer_psql(db_dsn: str) -> AsyncGenerator:
     if AsyncPostgresSaver is None:
-        raise ImportError("PostgreSQL support not available. Install langgraph with postgres extras.")
+        raise ImportError(
+            "PostgreSQL support not available. Install langgraph with postgres extras."
+        )
     async with AsyncPostgresSaver.from_conn_string(db_dsn) as checkpointer:
         await checkpointer.setup()
         yield checkpointer

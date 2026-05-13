@@ -1,14 +1,12 @@
 """Test suite for LangChain community tools integration."""
 
-import os
-
 import pytest
 from langgraph.graph.state import RunnableConfig
 
-from testing import human_message, test_graph
+from testing import human_message
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 class TestWebSearchTool:
     """Tests for DuckDuckGo web search tool."""
 
@@ -27,7 +25,9 @@ class TestWebSearchTool:
 
         assert len(messages_content) > 0
 
-    async def test_web_search_disabled_when_flag_set(self, monkeypatch, test_graph) -> None:
+    async def test_web_search_disabled_when_flag_set(
+        self, monkeypatch, test_graph
+    ) -> None:
         """Test that web search respects ENABLE_WEB_SEARCH flag."""
         monkeypatch.setenv("ENABLE_WEB_SEARCH", "false")
 
@@ -37,7 +37,7 @@ class TestWebSearchTool:
         assert not config_obj.enable_web_search
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 class TestFetchURLTool:
     """Tests for web fetch (URL reader) tool."""
 
@@ -46,11 +46,7 @@ class TestFetchURLTool:
         config = RunnableConfig(configurable={"thread_id": "test_fetch_url_1"})
 
         result = await test_graph.ainvoke(
-            {
-                "messages": [
-                    human_message("Fetch content from https://example.com")
-                ]
-            },
+            {"messages": [human_message("Fetch content from https://example.com")]},
             config=config,
         )
 
@@ -67,9 +63,7 @@ class TestFetchURLTool:
         class MockRuntime:
             pass
 
-        result = fetch_url.__wrapped__(
-            "example.com", runtime=MockRuntime()
-        )
+        result = fetch_url.__wrapped__("example.com", runtime=MockRuntime())
 
         assert "http" in result.lower() or "error" in result.lower()
 
@@ -83,7 +77,7 @@ class TestFetchURLTool:
         assert config_obj.allowed_domains == ["allowed.com", "other.com"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 class TestDatabaseTool:
     """Tests for SQL database tool."""
 
@@ -129,7 +123,7 @@ class TestDatabaseTool:
         assert config.database_url == "sqlite:///test.db"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 class TestMCPTool:
     """Tests for MCP server integration."""
 
@@ -163,7 +157,7 @@ class TestMCPTool:
         assert config.mcp_server_url == "ws://localhost:5000"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 class TestToolConfiguration:
     """Tests for tool configuration management."""
 
@@ -213,7 +207,7 @@ class TestToolConfiguration:
         assert "query_database" not in TOOLS_BY_NAME
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 class TestToolsIntegration:
     """Integration tests for tools within the graph."""
 
