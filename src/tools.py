@@ -208,6 +208,119 @@ async def call_mcp_tool(tool_name: str, arguments: str) -> str:
 
 
 @tool
+async def embedding(
+    text: str, collection: str = "articles", metadata: dict[str, Any] | None = None
+) -> str:
+    """Indexa um documento com embedding no banco de dados vetorial Qdrant.
+
+    Gera embeddings usando Voyage AI e indexa na coleção especificada.
+    Retorna o ID do ponto indexado ou um erro se falhar.
+
+    Args:
+        text: Texto do documento a indexar
+        collection: Coleção Qdrant (articles, wiki, api_docs, knowledge_base)
+        metadata: Dicionário opcional de metadados (source, author, timestamp, etc)
+
+    Returns:
+        String JSON com status: indexed/failed com point_id ou mensagem de erro
+    """
+    from uuid import uuid4
+
+    config = get_tool_config()
+
+    if not config.enable_rag:
+        logger.warning("embedding tool called but RAG disabled")
+        return "RAG is disabled. Enable ENABLE_RAG=true to use this tool."
+
+    if not config.voyage_api_key:
+        logger.error("embedding called but VOYAGE_API_KEY not configured")
+        return json.dumps(
+            {
+                "status": "failed",
+                "error": "VOYAGE_API_KEY not configured",
+                "collection": collection,
+            }
+        )
+
+    try:
+        from langchain_voyageai import VoyageAIEmbeddings
+        from qdrant_client import QdrantClient
+        from qdrant_client.models import Distance, PointStruct, VectorParams
+
+        embeddings_model = VoyageAIEmbeddings(
+            api_key=config.voyage_api_key,
+            model=config.embedding_model,
+        )
+
+        vector = embeddings_model.embed_query(text)
+
+        qdrant_client = QdrantClient(
+            url=config.qdrant_url,
+            api_key=config.qdrant_api_key,
+        )
+
+        try:
+            qdrant_client.get_collection(collection)
+        except Exception:
+            qdrant_client.create_collection(
+                collection_name=collection,
+                vectors_config=VectorParams(
+                    size=len(vector),
+                    distance=Distance.COSINE,
+                ),
+            )
+            logger.info(
+                "qdrant_collection_created",
+                extra={"collection": collection},
+            )
+
+        point_id = str(uuid4())
+        qdrant_client.upsert(
+            collection_name=collection,
+            points=[
+                PointStruct(
+                    id=point_id,
+                    vector=vector,
+                    payload={
+                        "page_content": text,
+                        "metadata": metadata or {},
+                    },
+                )
+            ],
+        )
+
+        logger.info(
+            "embedding_indexed",
+            extra={
+                "collection": collection,
+                "point_id": point_id,
+                "text_length": len(text),
+            },
+        )
+
+        return json.dumps(
+            {
+                "status": "indexed",
+                "point_id": point_id,
+                "collection": collection,
+            }
+        )
+
+    except Exception:
+        logger.exception(
+            "embedding_failed",
+            extra={"collection": collection, "text_length": len(text)},
+        )
+        return json.dumps(
+            {
+                "status": "failed",
+                "error": "Embedding indexing failed",
+                "collection": collection,
+            }
+        )
+
+
+@tool
 async def vector_search(
     query: str, collection: str = "articles", limit: int = 5
 ) -> str:
@@ -497,6 +610,73 @@ def list_dir(path: str = ".", *, recursive: bool = False) -> str:
         return "Error listing directory. Check logs."
 
 
+@tool
+def terminal(command: str) -> str:
+    """Executa um comando shell com whitelist de segurança.
+
+    Permite execução de comandos seguros como python, git, npm, node, etc.
+    Bloqueia comandos perigosos como rm, dd, mkfs, format, etc.
+
+    Args:
+        command: Comando shell para executar (ex: "python --version")
+
+    Returns:
+        Saída do comando (stdout + stderr) ou mensagem de erro se bloqueado
+    """
+    import subprocess as sp
+
+    from tool_safety import is_safe_shell_command
+
+    config = get_tool_config()
+
+    if not config.enable_file_operations:
+        return "File operations are disabled."
+
+    if not is_safe_shell_command(command):
+        logger.warning(
+            "terminal command blocked by safety check",
+            extra={"command": command[:50]},
+        )
+        return f"Error: Command '{command}' is not allowed. Only safe commands like python, git, npm, node, ls, pwd, cat, grep, find, tail, head, wc, sort, uniq, cut are permitted."
+
+    try:
+        result = sp.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+
+        output = result.stdout
+        if result.stderr:
+            output += result.stderr
+
+        logger.info(
+            "terminal_command_executed",
+            extra={
+                "command": command[:50],
+                "exit_code": result.returncode,
+                "output_length": len(output),
+            },
+        )
+
+        return (
+            output if output else f"Command executed with exit code {result.returncode}"
+        )
+
+    except sp.TimeoutExpired:
+        logger.warning(
+            "terminal_command_timeout",
+            extra={"command": command[:50]},
+        )
+        return "Error: Command timed out after 30 seconds"
+    except Exception:
+        logger.exception("terminal_command_failed", extra={"command": command[:50]})
+        return "Error executing command. Check logs."
+
+
 def _build_tools_list() -> list[BaseTool]:
     """Constrói lista de ferramentas disponíveis baseado na configuração.
 
@@ -511,12 +691,17 @@ def _build_tools_list() -> list[BaseTool]:
     tools.append(fetch_url)
     tools.append(vector_search)
 
+    # RAG tools
+    if config.enable_rag:
+        tools.append(embedding)
+
     # File operations
     if config.enable_file_operations:
         tools.append(file_read)
         tools.append(file_edit)
         tools.append(grep)
         tools.append(list_dir)
+        tools.append(terminal)
 
     # MCP tool
     if config.enable_mcp:
