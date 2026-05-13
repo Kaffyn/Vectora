@@ -68,6 +68,9 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["ANN201", "ANN101", "ANN001", "ARG001", "ARG002", "S101"]
+"src/prompts.py" = ["E501"]  # Long lines in system prompt are necessary
+"src/tools.py" = ["PLR0911"]  # Multiple return statements acceptable in tool routing
+"src/nodes.py" = ["E501"]  # Long lines necessary for tool configuration
 
 [tool.ruff.format]
 quote-style = "double"

@@ -8,7 +8,6 @@ src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
 from log_setup import setup_logging  # noqa: E402
-
 from testing.fixtures import (  # noqa: F401, E402
     checkpointer,
     mock_llm,
