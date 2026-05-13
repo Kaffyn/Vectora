@@ -4,8 +4,12 @@ from typing import Any
 
 from langchain.tools import BaseTool, tool
 from langchain_community.document_loaders import WebBaseLoader
-from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults
 from langgraph.prebuilt.tool_node import ToolRuntime
+
+try:
+    from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults
+except ImportError:
+    DuckDuckGoSearchResults = None
 
 from context import Context
 from state import State
@@ -15,7 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 @tool
-def multiply(a: float, b: float, runtime: ToolRuntime[Context, State]) -> float:  # noqa: ARG001
+def multiply(
+    a: float, b: float, runtime: ToolRuntime[Context, State] | None = None
+) -> float:
     """Multiply a * b and returns the result
 
     Args:
@@ -43,6 +49,9 @@ def web_search(query: str, runtime: ToolRuntime[Context, State]) -> str:  # noqa
     Returns:
         Search results as formatted string with URLs and snippets
     """
+    if DuckDuckGoSearchResults is None:
+        return "DuckDuckGo search module not available. Install: pip install duckduckgo-search"
+
     config = get_tool_config()
 
     if not config.enable_web_search:

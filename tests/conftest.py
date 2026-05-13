@@ -9,6 +9,7 @@ sys.path.insert(0, str(src_path))
 
 # Import setup_logging from log_setup module
 from log_setup import setup_logging
+from testing.fixtures import checkpointer, mock_llm, temp_db, test_context, test_graph  # noqa: F401
 
 pytest_plugins = ("pytest_asyncio",)
 

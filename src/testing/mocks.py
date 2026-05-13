@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from langchain_core.language_model import BaseLLM
+from langchain_core.language_models import BaseLLM
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.outputs import LLMResult
 

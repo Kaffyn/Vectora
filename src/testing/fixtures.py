@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from langchain_core.messages import SystemMessage
-from langgraph.checkpoint.sqlite import AsyncSqliteSaver
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph.state import CompiledStateGraph
 
 from context import Context
