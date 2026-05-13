@@ -297,7 +297,7 @@ async def embedding(
     from qdrant_client import QdrantClient
     from qdrant_client.models import Distance, PointStruct, VectorParams
 
-    from rag import get_embedding_queue
+    from embedding_queue import get_embedding_queue
 
     config = get_tool_config()
 

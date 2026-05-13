@@ -1,3 +1,5 @@
+"""Logging configuration and formatters for Vectora."""
+
 import json
 import logging
 import os
