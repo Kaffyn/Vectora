@@ -5,46 +5,35 @@ description = "vectora"
 readme = "README.md"
 license = "MIT"
 authors = [{ name = "Machi" }]
-requires-python = ">=3.14.5"
+requires-python = ">=3.13,<3.15"
 dependencies = [
-  "aiosqlite>=0.21.0",
-  "fastapi>=0.136.1",
-  "lancedb>=0.30.2",
-  "langchain>=1.0.8",
-  "langchain-community>=1.0.0",
-  "langchain-core>=1.0.7",
-  "langchain-google-genai>=3.1.0",
-  "langchain-ollama>=1.0.0",
-  "langchain-text-splitters>=1.0.0",
-  "langchain-voyageai>=0.3.3",
-  "langgraph>=1.0.3",
-  "langgraph-checkpoint-postgres>=3.0.1",
-  "langgraph-checkpoint-sqlite>=3.0.0",
-  "psycopg[binary]>=3.3.2",
-  "qdrant-client>=2.11.0",
-  "rank-bm25>=0.2.2",
-  "rich>=14.2.0",
-  "sqlalchemy>=2.0.0",
-  "textual>=8.2.5",
+  "aiosqlite",
+  "fastapi",
+  "lancedb",
+  "langchain",
+  "langchain-community",
+  "langchain-core",
+  "langchain-google-genai",
+  "langchain-ollama",
+  "langchain-text-splitters",
+  "langchain-voyageai",
+  "langgraph",
+  "langgraph-checkpoint-sqlite",
+  "qdrant-client<2",
+  "rank-bm25",
+  "rich",
+  "sqlalchemy",
+  "textual",
 ]
 
 [project.urls]
 Homepage = "https://www.otaviomiranda.com.br/"
 
 [project.optional-dependencies]
-qdrant = [
-    "langchain-qdrant>=1.1.0",
-]
-cache = [
-    "langchain-redis>=0.2.5",
-]
-database = [
-    "sqlalchemy>=2.0.0",
-]
 test = [
-    "pytest>=7.4.0",
-    "pytest-asyncio>=0.23.0",
-    "pytest-cov>=4.1.0",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
 ]
 
 [tool.ruff]
