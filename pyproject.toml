@@ -21,6 +21,7 @@ dependencies = [
   "langchain-voyageai",
   "langgraph",
   "langgraph-checkpoint-sqlite",
+  "python-dotenv",
   "qdrant-client<2",
   "rank-bm25",
   "rich",
@@ -88,6 +89,7 @@ ignore = [
 "src/prompts.py" = ["E501"]  # Long lines in system prompt are necessary
 "src/tools.py" = ["PLR0911"]  # Multiple return statements acceptable in tool routing
 "src/nodes.py" = ["E501"]  # Long lines necessary for tool configuration
+"src/setup_wizard.py" = ["S603", "S607"]  # subprocess.run with shell=False is safe
 
 [tool.ruff.format]
 quote-style = "double"
@@ -96,7 +98,9 @@ line-ending = "lf"
 
 [tool.ruff.lint.isort]
 known-first-party = [
+  "chat",
   "checkpointer",
+  "config",
   "constants",
   "context",
   "env",
@@ -105,6 +109,7 @@ known-first-party = [
   "log_setup",
   "nodes",
   "prompts",
+  "setup_wizard",
   "state",
   "testing",
   "tool_config",

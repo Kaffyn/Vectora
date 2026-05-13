@@ -26,13 +26,13 @@ _mcp_tools_cache: dict[str, Any] | None = None
 
 @tool
 def web_search(query: str) -> str:
-    """Search the web for current information using DuckDuckGo.
+    """Busca a web por informações atuais usando DuckDuckGo.
 
     Args:
-        query: Search query string
+        query: String da consulta de busca
 
     Returns:
-        Search results as formatted string with URLs and snippets
+        Resultados da busca como string formatada com URLs e snippets
     """
     if DuckDuckGoSearchResults is None:
         return "DuckDuckGo search module not available. Install: pip install duckduckgo-search"
@@ -65,13 +65,13 @@ def web_search(query: str) -> str:
 
 @tool
 async def fetch_url(url: str) -> str:
-    """Fetch and extract text content from a specific URL.
+    """Busca e extrai conteúdo de texto de uma URL específica.
 
     Args:
-        url: URL to fetch (must start with http:// or https://)
+        url: URL para buscar (deve começar com http:// ou https://)
 
     Returns:
-        Extracted text content from the page
+        Conteúdo de texto extraído da página
     """
     config = get_tool_config()
 
@@ -116,7 +116,7 @@ async def fetch_url(url: str) -> str:
 
 
 async def _get_mcp_client() -> Any | None:
-    """Get or create global MCP client instance."""
+    """Obtém ou cria instância global do cliente MCP."""
     global _mcp_client
 
     if _mcp_client is not None:
@@ -146,7 +146,7 @@ async def _get_mcp_client() -> Any | None:
 
 
 async def _get_mcp_tools() -> dict[str, Any] | None:
-    """Get available MCP tools from initialized client."""
+    """Obtém ferramentas MCP disponíveis do cliente inicializado."""
     global _mcp_tools_cache
 
     if _mcp_tools_cache is not None:
@@ -169,14 +169,14 @@ async def _get_mcp_tools() -> dict[str, Any] | None:
 
 @tool
 async def call_mcp_tool(tool_name: str, arguments: str) -> str:
-    """Call an MCP (Model Context Protocol) tool.
+    """Chama uma ferramenta MCP (Model Context Protocol).
 
     Args:
-        tool_name: Name of the MCP tool to call
-        arguments: JSON string of tool arguments
+        tool_name: Nome da ferramenta MCP a chamar
+        arguments: String JSON com argumentos da ferramenta
 
     Returns:
-        Result from the MCP tool execution
+        Resultado da execução da ferramenta MCP
     """
     config = get_tool_config()
 
@@ -211,15 +211,15 @@ async def call_mcp_tool(tool_name: str, arguments: str) -> str:
 async def vector_search(
     query: str, collection: str = "articles", limit: int = 5
 ) -> str:
-    """Search the vector database for similar documents.
+    """Busca o banco de dados vetorial por documentos similares.
 
     Args:
-        query: Search query string
-        collection: Qdrant collection name
-        limit: Maximum number of results to return
+        query: String da consulta de busca
+        collection: Nome da coleção Qdrant
+        limit: Número máximo de resultados a retornar
 
     Returns:
-        JSON formatted search results with documents and scores
+        Resultados da busca em formato JSON com documentos e scores
     """
     config = get_tool_config()
 
@@ -312,10 +312,10 @@ async def vector_search(
 
 
 def _build_tools_list() -> list[BaseTool]:
-    """Build list of available tools based on configuration.
+    """Constrói lista de ferramentas disponíveis baseado na configuração.
 
     Returns:
-        List of BaseTool instances
+        Lista de instâncias BaseTool
     """
     config = get_tool_config()
     tools: list[BaseTool] = []
@@ -334,10 +334,10 @@ def _build_tools_list() -> list[BaseTool]:
 
 
 def get_tools() -> list[BaseTool]:
-    """Get list of available tools.
+    """Obtém lista de ferramentas disponíveis.
 
     Returns:
-        List of BaseTool instances
+        Lista de instâncias BaseTool
     """
     return _build_tools_list()
 

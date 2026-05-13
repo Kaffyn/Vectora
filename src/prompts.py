@@ -2,9 +2,9 @@ import locale
 
 
 def get_system_language() -> str:
-    """Detect system language from OS locale.
+    """Detecta idioma do sistema a partir da localidade do SO.
 
-    Returns full language code (e.g., 'pt_BR', 'en_US') or 'en' as fallback.
+    Retorna código de idioma completo (ex: 'pt_BR', 'en_US') ou 'en' como fallback.
     """
     try:
         lang_code, _ = locale.getdefaultlocale()
@@ -60,10 +60,10 @@ Conversation language: {language_code}
 
 
 def get_system_prompt() -> str:
-    """Get the Vectora system prompt with language auto-detected from OS.
+    """Obtém o prompt do sistema Vectora com idioma detectado automaticamente do SO.
 
     Returns:
-        System prompt string with conversation language code.
+        String do prompt do sistema com código de idioma da conversa.
     """
     lang_code = get_system_language()
     return SYSTEM_PROMPT.format(language_code=lang_code)
