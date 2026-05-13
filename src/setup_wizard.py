@@ -4,7 +4,6 @@ import asyncio
 import subprocess
 import sys
 
-from langchain_core.language_models import BaseChatModel
 from textual.app import App, ComposeResult, on
 from textual.screen import Screen
 from textual.widgets import Button, Input, Label, RadioButton, RadioSet
@@ -181,9 +180,6 @@ class ApiKeyScreen(Screen):
             self.config.set("LLM_PROVIDER", self.provider)
 
             llm = load_llm()
-            if not isinstance(llm, BaseChatModel):
-                status_label.update("❌ LLM tipo inválido")
-                return
 
             response = await llm.ainvoke([("user", "teste")])
             if response:
