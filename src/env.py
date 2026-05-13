@@ -1,5 +1,5 @@
 import os
-from typing import Literal, overload, Self
+from typing import Literal, overload
 
 
 class GetEnvError(BaseException): ...

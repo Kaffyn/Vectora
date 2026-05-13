@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Literal, Self
+from typing import Literal
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
