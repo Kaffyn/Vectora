@@ -6,12 +6,12 @@ from dataclasses import dataclass, field
 class ToolConfig:
     """Configuration for external tools with environment variable support."""
 
-    # Web Search Tool
+    # Ferramenta de Busca Web
     enable_web_search: bool = field(
         default_factory=lambda: os.getenv("ENABLE_WEB_SEARCH", "true").lower() == "true"
     )
 
-    # Web Fetch Tool
+    # Ferramenta de Busca de URL
     enable_web_fetch: bool = field(
         default_factory=lambda: os.getenv("ENABLE_WEB_FETCH", "true").lower() == "true"
     )
@@ -24,7 +24,7 @@ class ToolConfig:
         )
     )
 
-    # Database Tool
+    # Ferramenta de Banco de Dados
     enable_database: bool = field(
         default_factory=lambda: os.getenv("ENABLE_DATABASE", "false").lower() == "true"
     )
@@ -35,7 +35,7 @@ class ToolConfig:
         )
     )
 
-    # MCP Server
+    # Servidor MCP
     enable_mcp: bool = field(
         default_factory=lambda: os.getenv("ENABLE_MCP", "false").lower() == "true"
     )
@@ -45,22 +45,22 @@ class ToolConfig:
     mcp_transport_type: str = field(
         default_factory=lambda: os.getenv("MCP_TRANSPORT_TYPE", "http")
     )
-    # "http" for HTTP/WebSocket, "stdio" for local subprocess
+    # "http" para HTTP/WebSocket, "stdio" para subprocesso local
     mcp_command: str | None = field(default_factory=lambda: os.getenv("MCP_COMMAND"))
-    # For stdio transport: command to run (e.g., "python", "npx")
+    # Para transporte stdio: comando a executar (ex: "python", "npx")
     mcp_command_args: list[str] | None = field(
         default_factory=lambda: _parse_comma_separated(
             os.getenv("MCP_COMMAND_ARGS", "")
         )
     )
-    # For stdio transport: arguments to command (e.g., "server.py", "chrome-devtools-mcp")
+    # Para transporte stdio: argumentos do comando (ex: "server.py", "chrome-devtools-mcp")
 
     # RAG - Embedding (Voyage AI)
     voyage_api_key: str = field(default_factory=lambda: os.getenv("VOYAGE_API_KEY", ""))
     embedding_model: str = field(
         default_factory=lambda: os.getenv("EMBEDDING_MODEL", "voyage-4")
     )
-    # Options: voyage-4 (general), voyage-4-lite (cost), voyage-code-3 (code), etc
+    # Opções: voyage-4 (geral), voyage-4-lite (economia), voyage-code-3 (código), etc
     embedding_dims: int = field(
         default_factory=lambda: int(os.getenv("EMBEDDING_DIMS", "1024"))
     )
@@ -90,7 +90,7 @@ class ToolConfig:
         or ["articles", "wiki", "api_docs", "knowledge_base"]
     )
 
-    # RAG - Vector Search
+    # RAG - Busca Vetorial
     default_search_top_k: int = field(
         default_factory=lambda: int(os.getenv("RAG_SEARCH_TOP_K", "10"))
     )
@@ -98,7 +98,7 @@ class ToolConfig:
         default_factory=lambda: float(os.getenv("RAG_SEARCH_MIN_SCORE", "0.5"))
     )
 
-    # RAG - Reranking (BM25 or Voyage)
+    # RAG - Reranking (BM25 ou Voyage)
     reranker_type: str = field(
         default_factory=lambda: os.getenv("RERANKER_TYPE", "bm25")
     )
@@ -106,20 +106,20 @@ class ToolConfig:
     reranker_model: str = field(
         default_factory=lambda: os.getenv("RERANKER_MODEL", "reranker-2.5-large")
     )
-    # Options: reranker-2.5-large, reranker-2.5-mbxl, etc
+    # Opções: reranker-2.5-large, reranker-2.5-mbxl, etc
     reranker_top_k: int = field(
         default_factory=lambda: int(os.getenv("RAG_RERANKER_TOP_K", "5"))
     )
 
 
 def _parse_comma_separated(value: str) -> list[str] | None:
-    """Parse comma-separated string into list, return None if empty."""
+    """Analisa string separada por vírgulas em lista, retorna None se vazio."""
     if not value or not value.strip():
         return None
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
-# Global singleton instance
+# Instância singleton global
 _config: ToolConfig | None = None
 
 

@@ -14,7 +14,7 @@ Base = declarative_base()
 
 
 class EmbeddingQueueRecord(Base):  # type: ignore[valid-type,misc]
-    """SQLAlchemy model for embedding queue records."""
+    """Modelo SQLAlchemy para registros da fila de embedding."""
 
     __tablename__ = "embedding_queue"
 
@@ -22,10 +22,10 @@ class EmbeddingQueueRecord(Base):  # type: ignore[valid-type,misc]
     queue_id = Column(String(36), unique=True, nullable=False)
     text = Column(Text, nullable=False)
     collection = Column(String(255), nullable=False)
-    metadata = Column(String(4096), nullable=True)  # JSON string
+    metadata = Column(String(4096), nullable=True)  # String JSON
     status = Column(
         String(20), default="pending"
-    )  # pending, processing, success, failed
+    )  # pendente, processando, sucesso, falha
     error_message = Column(Text, nullable=True)
     attempt_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=lambda: datetime.now(UTC))
@@ -33,16 +33,16 @@ class EmbeddingQueueRecord(Base):  # type: ignore[valid-type,misc]
 
 
 class EmbeddingQueue:
-    """Queue manager for embedding documents when Voyage API fails."""
+    """Gerenciador de fila para embedding de documentos quando API Voyage falha."""
 
     def __init__(self: Self, db_url: str) -> None:
-        """Initialize embedding queue with database connection."""
+        """Inicializa fila de embedding com conexão de banco de dados."""
         self.db_url = db_url
         self.engine: AsyncEngine | None = None
         self.AsyncSessionLocal: sessionmaker[AsyncSession] | None = None
 
     async def init(self) -> None:
-        """Initialize async database engine and create tables."""
+        """Inicializa motor de banco de dados assíncrono e cria tabelas."""
         self.engine = create_async_engine(self.db_url, echo=False)
 
         async with self.engine.begin() as conn:
@@ -57,22 +57,22 @@ class EmbeddingQueue:
     async def enqueue(
         self, text: str, collection: str, metadata: dict[str, Any] | None = None
     ) -> str:
-        """Enqueue a document for embedding.
+        """Enfileira um documento para embedding.
 
         Args:
-            text: Document text
-            collection: Qdrant collection name
-            metadata: Optional metadata dict
+            text: Texto do documento
+            collection: Nome da coleção Qdrant
+            metadata: Dicionário de metadados opcional
 
         Returns:
-            Queue ID for tracking
+            ID da fila para rastreamento
         """
         queue_id = str(uuid4())
         metadata_json = json.dumps(metadata or {})
 
         try:
             if self.AsyncSessionLocal is None:
-                msg = "AsyncSessionLocal not initialized"
+                msg = "AsyncSessionLocal não foi inicializado"
                 raise RuntimeError(msg)
             async with self.AsyncSessionLocal() as session:
                 record = EmbeddingQueueRecord(
@@ -104,17 +104,17 @@ class EmbeddingQueue:
             raise
 
     async def get_pending(self, limit: int = 10) -> list[EmbeddingQueueRecord]:
-        """Get pending documents from queue.
+        """Obtém documentos pendentes da fila.
 
         Args:
-            limit: Max records to return
+            limit: Máximo de registros a retornar
 
         Returns:
-            List of pending embedding queue records
+            Lista de registros pendentes da fila de embedding
         """
         try:
             if self.AsyncSessionLocal is None:
-                msg = "AsyncSessionLocal not initialized"
+                msg = "AsyncSessionLocal não foi inicializado"
                 raise RuntimeError(msg)
             async with self.AsyncSessionLocal() as session:
                 from sqlalchemy import and_, select
@@ -140,14 +140,14 @@ class EmbeddingQueue:
             return []
 
     async def mark_processing(self, queue_id: str) -> None:
-        """Mark a queue record as processing.
+        """Marca um registro da fila como processando.
 
         Args:
-            queue_id: ID of record to mark
+            queue_id: ID do registro a marcar
         """
         try:
             if self.AsyncSessionLocal is None:
-                msg = "AsyncSessionLocal not initialized"
+                msg = "AsyncSessionLocal não foi inicializado"
                 raise RuntimeError(msg)
             async with self.AsyncSessionLocal() as session:
                 from sqlalchemy import update
@@ -170,14 +170,14 @@ class EmbeddingQueue:
             )
 
     async def mark_success(self, queue_id: str) -> None:
-        """Mark a queue record as successfully processed.
+        """Marca um registro da fila como processado com sucesso.
 
         Args:
-            queue_id: ID of record to mark
+            queue_id: ID do registro a marcar
         """
         try:
             if self.AsyncSessionLocal is None:
-                msg = "AsyncSessionLocal not initialized"
+                msg = "AsyncSessionLocal não foi inicializado"
                 raise RuntimeError(msg)
             async with self.AsyncSessionLocal() as session:
                 from sqlalchemy import update
@@ -199,15 +199,15 @@ class EmbeddingQueue:
             )
 
     async def mark_failed(self, queue_id: str, error_message: str) -> None:
-        """Mark a queue record as failed.
+        """Marca um registro da fila como falha.
 
         Args:
-            queue_id: ID of record to mark
-            error_message: Error message
+            queue_id: ID do registro a marcar
+            error_message: Mensagem de erro
         """
         try:
             if self.AsyncSessionLocal is None:
-                msg = "AsyncSessionLocal not initialized"
+                msg = "AsyncSessionLocal não foi inicializado"
                 raise RuntimeError(msg)
             async with self.AsyncSessionLocal() as session:
                 from sqlalchemy import update
@@ -232,18 +232,18 @@ class EmbeddingQueue:
             )
 
     async def close(self) -> None:
-        """Close database connection."""
+        """Fecha a conexão do banco de dados."""
         if self.engine:
             await self.engine.dispose()
             logger.info("embedding_queue_closed")
 
 
-# Global singleton instance
+# Instância singleton global
 _queue: EmbeddingQueue | None = None
 
 
 async def get_embedding_queue(db_url: str) -> EmbeddingQueue:
-    """Get or create global embedding queue instance."""
+    """Obtém ou cria instância global da fila de embedding."""
     global _queue
     if _queue is None:
         _queue = EmbeddingQueue(db_url)
