@@ -50,7 +50,7 @@ class ProviderSelectScreen(Screen):
         yield Label("")
 
         config = Config.instance()
-        with RadioSet(id="provider_selection", value="google-genai"):
+        with RadioSet(id="provider_selection"):
             providers = [
                 ("google-genai", "🔵 Google Gemini"),
                 ("openai", "🟢 OpenAI GPT-4"),
@@ -72,16 +72,20 @@ class ProviderSelectScreen(Screen):
         yield Button("Continuar", id="continue_btn", variant="primary")
         yield Button("Voltar", id="back_btn")
 
+    def on_mount(self) -> None:
+        """Marca o primeiro RadioButton como padrão."""
+        first_button = self.query_one("RadioButton")
+        first_button.value = True
+
     @on(Button.Pressed, "#continue_btn")
     def continue_to_api_key(self) -> None:
         """Vai para entrada de API key."""
         radio_set = self.query_one(RadioSet)
-        provider = radio_set.value
+        pressed = radio_set.pressed_button
 
-        if provider:
-            self.app.push_screen(
-                ApiKeyScreen(provider),
-            )
+        if pressed:
+            provider = pressed.id
+            self.app.push_screen(ApiKeyScreen(provider))
 
     @on(Button.Pressed, "#back_btn")
     def go_back(self) -> None:
