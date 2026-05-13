@@ -3,10 +3,12 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 
 import pytest
+from langchain_core.messages import SystemMessage
 from langgraph.checkpoint.sqlite import AsyncSqliteSaver
 from langgraph.graph.state import CompiledStateGraph
 
 from context import Context
+from prompts import get_system_prompt
 from state import State
 from testing.mocks import MockLLM
 
@@ -63,7 +65,12 @@ async def test_graph(
         from tools import TOOLS
 
         llm_with_tools = mock_llm.bind_tools(TOOLS)
-        result = llm_with_tools.invoke(state["messages"])
+
+        # Prepend Vectora system prompt with auto-detected language
+        system_prompt = SystemMessage(content=get_system_prompt())
+        messages_with_system = [system_prompt] + list(state["messages"])
+
+        result = llm_with_tools.invoke(messages_with_system)
         return {"messages": [result]}
 
     from langgraph.constants import END, START

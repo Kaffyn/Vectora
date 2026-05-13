@@ -1,9 +1,11 @@
 import logging
 
+from langchain_core.messages import SystemMessage
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
 
 from context import Context
+from prompts import get_system_prompt
 from state import State
 from tools import TOOLS
 from utils import load_llm
@@ -30,8 +32,12 @@ def call_llm(state: State, runtime: Runtime[Context]) -> State:
         }
     )
 
+    # Prepend Vectora system prompt with auto-detected language
+    system_prompt = SystemMessage(content=get_system_prompt())
+    messages_with_system = [system_prompt] + list(state["messages"])
+
     result = llm_with_config.invoke(
-        state["messages"],
+        messages_with_system,
     )
 
     logger.debug(
