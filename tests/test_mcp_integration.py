@@ -3,6 +3,7 @@
 from unittest.mock import patch
 
 import pytest
+from typing import Any, Self
 
 from src.tools import _get_mcp_client, _get_mcp_tools
 
@@ -10,7 +11,7 @@ from src.tools import _get_mcp_client, _get_mcp_tools
 class MockMCPTool:
     """Mock MCP tool for testing."""
 
-    def __init__(self, name: str, description: str = "Mock tool") -> None:
+    def __init__(self: Self, name: str, description: str = "Mock tool") -> None:
         self.name = name
         self.description = description
 

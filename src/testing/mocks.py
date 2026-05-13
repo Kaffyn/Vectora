@@ -1,5 +1,5 @@
 import re
-from typing import Any
+from typing import Any, Self
 
 from langchain_core.language_models import BaseLLM
 from langchain_core.messages import AIMessage, BaseMessage
@@ -38,7 +38,7 @@ class MockLLM(BaseLLM):
 
         return LLMResult(generations=[[response]])
 
-    def _match_pattern(self, text: str, messages: list[BaseMessage]) -> AIMessage:
+    def _match_pattern(self: Self, text: str, messages: list[BaseMessage]) -> AIMessage:
         """Match input text against patterns and return appropriate response."""
         text_lower = text.lower()
 
@@ -50,7 +50,7 @@ class MockLLM(BaseLLM):
 
         return ai_message_text("Entendi sua mensagem. Como posso ajudá-lo?")
 
-    def _handle_multiply(self, text: str) -> AIMessage:
+    def _handle_multiply(self: Self, text: str) -> AIMessage:
         """Extract numbers from multiply request and create tool call."""
         numbers = re.findall(r"\d+", text)
 

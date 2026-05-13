@@ -1,6 +1,7 @@
 """Test suite for LangChain community tools integration."""
 
 import pytest
+from typing import Any, Self
 from langgraph.graph.state import RunnableConfig
 
 from testing import human_message
@@ -67,7 +68,7 @@ class TestFetchURLTool:
 
         assert "http" in result.lower() or "error" in result.lower()
 
-    def test_fetch_url_respects_domain_whitelist(self, monkeypatch) -> None:
+    def test_fetch_url_respects_domain_whitelist(self: Self, monkeypatch) -> None:
         """Test that fetch_url respects domain whitelist."""
         monkeypatch.setenv("WEB_FETCH_ALLOWED_DOMAINS", "allowed.com,other.com")
 
@@ -113,7 +114,7 @@ class TestDatabaseTool:
             result = query_database.__wrapped__(query, runtime=MockRuntime())
             assert "error" in result.lower() or "not allowed" in result.lower()
 
-    def test_database_url_config(self, monkeypatch) -> None:
+    def test_database_url_config(self: Self, monkeypatch) -> None:
         """Test that DATABASE_URL can be configured."""
         monkeypatch.setenv("DATABASE_URL", "sqlite:///test.db")
 
@@ -147,7 +148,7 @@ class TestMCPTool:
 
         assert "disabled" in result.lower() or "enable" in result.lower()
 
-    def test_mcp_server_url_config(self, monkeypatch) -> None:
+    def test_mcp_server_url_config(self: Self, monkeypatch) -> None:
         """Test that MCP_SERVER_URL can be configured."""
         monkeypatch.setenv("MCP_SERVER_URL", "ws://localhost:5000")
 
@@ -161,7 +162,7 @@ class TestMCPTool:
 class TestToolConfiguration:
     """Tests for tool configuration management."""
 
-    def test_tool_config_reads_env_vars(self, monkeypatch) -> None:
+    def test_tool_config_reads_env_vars(self: Self, monkeypatch) -> None:
         """Test that ToolConfig reads environment variables."""
         monkeypatch.setenv("ENABLE_WEB_SEARCH", "false")
         monkeypatch.setenv("ENABLE_WEB_FETCH", "false")
@@ -185,7 +186,7 @@ class TestToolConfiguration:
         assert config.enable_mcp is False
         assert config.max_fetch_size == 5000
 
-    def test_parse_comma_separated_config(self, monkeypatch) -> None:
+    def test_parse_comma_separated_config(self: Self, monkeypatch) -> None:
         """Test parsing comma-separated configuration values."""
         monkeypatch.setenv(
             "WEB_FETCH_ALLOWED_DOMAINS", "example.com, test.org , another.net"
@@ -200,7 +201,7 @@ class TestToolConfiguration:
             "another.net",
         ]
 
-    def test_tools_list_respects_database_flag(self, monkeypatch) -> None:
+    def test_tools_list_respects_database_flag(self: Self, monkeypatch) -> None:
         """Test that TOOLS list includes database tool only when enabled."""
         from tools import TOOLS_BY_NAME
 

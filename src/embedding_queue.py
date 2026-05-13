@@ -1,12 +1,13 @@
 import json
-import logging
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Self
 from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, Integer, String, Text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ class EmbeddingQueueRecord(Base):  # type: ignore[valid-type,misc]
 class EmbeddingQueue:
     """Queue manager for embedding documents when Voyage API fails."""
 
-    def __init__(self, db_url: str) -> None:
+    def __init__(self: Self, db_url: str) -> None:
         """Initialize embedding queue with database connection."""
         self.db_url = db_url
         self.engine: AsyncEngine | None = None

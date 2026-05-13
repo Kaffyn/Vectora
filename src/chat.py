@@ -1,6 +1,5 @@
-import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Self
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
@@ -12,6 +11,7 @@ from textual.app import App, ComposeResult, on
 from textual.containers import Container
 from textual.widgets import Footer, Header, Input, RichLog, Static
 
+import logging
 from checkpointer import build_checkpointer_sqlite
 from constants import DB_DSN
 from context import Context
@@ -38,7 +38,7 @@ class ChatHeader(Static):
 class ChatMessages(RichLog):
     """Widget to display chat messages."""
 
-    def add_human_message(self, text: str) -> None:
+    def add_human_message(self: Self, text: str) -> None:
         """Add a human message to the log."""
         timestamp = datetime.now().strftime("%H:%M:%S")
         header = Text(f"[{timestamp}] Você:", style="bold green")
@@ -46,7 +46,7 @@ class ChatMessages(RichLog):
         self.write(Markdown(text))
         self.write(Text(""))
 
-    def add_ai_message(self, text: str, model: str = "") -> None:
+    def add_ai_message(self: Self, text: str, model: str = "") -> None:
         """Add an AI message to the log."""
         timestamp = datetime.now().strftime("%H:%M:%S")
         model_info = f" ({model})" if model else ""
@@ -55,7 +55,7 @@ class ChatMessages(RichLog):
         self.write(Markdown(text))
         self.write(Text(""))
 
-    def add_system_message(self, text: str) -> None:
+    def add_system_message(self: Self, text: str) -> None:
         """Add a system message to the log."""
         msg = Text(f"ℹ️  {text}", style="dim yellow")
         self.write(msg)
