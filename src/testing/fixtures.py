@@ -16,7 +16,7 @@ from testing.mocks import MockLLM
 @pytest.fixture()
 def test_context() -> Context:
     """Provide a test context with user_type='plus'."""
-    return Context(user_type="plus")
+    return Context(user_type="plus", thread_id=1)
 
 
 @pytest.fixture()

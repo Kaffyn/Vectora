@@ -29,7 +29,7 @@ class TestMultiplyTool:
         """Test that multiply can be called with ToolRuntime (even if unused)."""
 
         class MockRuntime:
-            context = Context(user_type="plus")
+            context = Context(user_type="plus", thread_id=1)
 
         result = multiply.invoke({"a": 7.0, "b": 6.0})
         assert result == 42.0

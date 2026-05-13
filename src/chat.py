@@ -87,7 +87,7 @@ class ChatContainer(Static):
     def __init__(self) -> None:
         """Initialize the chat container."""
         super().__init__()
-        self.context = Context(user_type="plus")
+        self.context = Context(user_type="plus", thread_id=self.thread_id)
 
     async def on_mount(self) -> None:
         """Initialize the application when mounted."""

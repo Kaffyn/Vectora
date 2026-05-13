@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 async def run_graph(checkpointer: BaseCheckpointSaver) -> None:
     graph = build_graph(checkpointer)
 
-    context = Context(user_type="plus")
     thread_id = 1
+    context = Context(user_type="plus", thread_id=thread_id)
 
     config = RunnableConfig(
         configurable={"thread_id": thread_id},
