@@ -31,9 +31,6 @@ def _setup_test_environment() -> None:
     os.environ.setdefault("LOG_LEVEL", "DEBUG")
     os.environ.setdefault("LOG_JSON", "false")
 
-    # Database: SQLite (lightweight, no external server needed)
-    os.environ.setdefault("DB_DSN", "sqlite:///./test.db")
-
     # Vector Store: LanceDB (lightweight, local file-based)
     os.environ.setdefault("VECTOR_STORE_TYPE", "lancedb")
     os.environ.setdefault("LANCEDB_DIR", "./data/lancedb")

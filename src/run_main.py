@@ -3,8 +3,7 @@
 import asyncio
 import os
 
-# Set defaults BEFORE importing (before constants.py is loaded)
-os.environ.setdefault("DB_DSN", "sqlite:///./vectora.db")
+# Set defaults BEFORE importing
 os.environ.setdefault("LOG_LEVEL", "INFO")
 os.environ.setdefault("LOG_JSON", "false")
 os.environ.setdefault("GOOGLE_API_KEY", "")
