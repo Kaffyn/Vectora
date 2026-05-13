@@ -8,9 +8,9 @@ if __name__ == "__main__":
 
     config = Config.instance()
     if not config.get_llm_provider():
-        from setup_wizard import main as setup_main
+        from setup_wizard_tui import run_setup
 
-        setup_main()
+        run_setup()
     else:
         from chat import run_chat
 
