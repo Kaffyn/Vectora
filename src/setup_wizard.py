@@ -50,7 +50,7 @@ class ProviderSelectScreen(Screen):
         yield Label("")
 
         config = Config.instance()
-        with RadioSet(id="provider_selection"):
+        with RadioSet(id="provider_selection", value="google-genai"):
             providers = [
                 ("google-genai", "🔵 Google Gemini"),
                 ("openai", "🟢 OpenAI GPT-4"),
@@ -60,13 +60,12 @@ class ProviderSelectScreen(Screen):
 
             configured = config.get_available_providers()
 
-            for idx, (provider_id, label) in enumerate(providers):
+            for provider_id, label in providers:
                 status = " (✓ Configurado)" if provider_id in configured else ""
                 yield RadioButton(
                     f"{label}{status}",
                     id=provider_id,
                     value=provider_id,
-                    default=idx == 0,
                 )
 
         yield Label("")
@@ -77,7 +76,7 @@ class ProviderSelectScreen(Screen):
     def continue_to_api_key(self) -> None:
         """Vai para entrada de API key."""
         radio_set = self.query_one(RadioSet)
-        provider = radio_set.pressed_button.id if radio_set.pressed_button else None
+        provider = radio_set.value
 
         if provider:
             self.app.push_screen(
