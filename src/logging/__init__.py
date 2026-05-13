@@ -1,4 +1,4 @@
-from logging.setup import JSONFormatter, TextFormatter, setup_logging
+from .setup import JSONFormatter, TextFormatter, setup_logging
 
 __all__ = [
     "setup_logging",

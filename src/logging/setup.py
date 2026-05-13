@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -9,9 +9,9 @@ from typing import Any
 class JSONFormatter(logging.Formatter):
     """Format logs as JSON for structured logging."""
 
-    def format(self, record: logging.LogRecord) -> str:
+    def format(self: "JSONFormatter", record: logging.LogRecord) -> str:
         log_obj: dict[str, Any] = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -27,13 +27,20 @@ class JSONFormatter(logging.Formatter):
         if hasattr(record, "model"):
             log_obj["model"] = record.model
 
+        if hasattr(record, "retrieval_source"):
+            log_obj["retrieval_source"] = record.retrieval_source
+        if hasattr(record, "reranking_applied"):
+            log_obj["reranking_applied"] = record.reranking_applied
+        if hasattr(record, "routing_decision"):
+            log_obj["routing_decision"] = record.routing_decision
+
         return json.dumps(log_obj, ensure_ascii=False)
 
 
 class TextFormatter(logging.Formatter):
     """Format logs as readable text for development."""
 
-    def format(self, record: logging.LogRecord) -> str:
+    def format(self: "TextFormatter", record: logging.LogRecord) -> str:
         prefix = f"[{record.levelname:8}] {record.name:20} | "
 
         if hasattr(record, "thread_id"):

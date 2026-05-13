@@ -1,5 +1,5 @@
 import logging
-from logging.setup import setup_logging
+from logging import setup_logging  # type: ignore[attr-defined]
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph.state import RunnableConfig
