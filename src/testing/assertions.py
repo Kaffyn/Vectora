@@ -22,9 +22,8 @@ def assert_tool_called(
                 if tool_call.name == tool_name:
                     return
 
-    raise AssertionError(
-        f"Tool '{tool_name}' was not called. Messages: {[type(m).__name__ for m in messages]}"
-    )
+    msg_0 = f"Tool '{tool_name}' was not called. Messages: {[type(m).__name__ for m in messages]}"
+    raise AssertionError(msg_0)
 
 
 def assert_tool_called_with_args(
@@ -48,14 +47,14 @@ def assert_tool_called_with_args(
                 if tool_call.name == tool_name:
                     if tool_call.args == expected_args:
                         return
-                    raise AssertionError(
+                    msg_0 = (
                         f"Tool '{tool_name}' called with {tool_call.args}, "
                         f"expected {expected_args}"
                     )
+                    raise AssertionError(msg_0)
 
-    raise AssertionError(
-        f"Tool '{tool_name}' with args {expected_args} was not found in message sequence"
-    )
+    msg_0 = f"Tool '{tool_name}' with args {expected_args} was not found in message sequence"
+    raise AssertionError(msg_0)
 
 
 def assert_tool_result_in_messages(
@@ -80,9 +79,8 @@ def assert_tool_result_in_messages(
             if expected_str in msg.content:
                 return
 
-    raise AssertionError(
-        f"Result '{expected_result}' from tool '{tool_name}' not found in messages"
-    )
+    msg_0 = f"Result '{expected_result}' from tool '{tool_name}' not found in messages"
+    raise AssertionError(msg_0)
 
 
 def assert_message_contains_text(
@@ -102,10 +100,11 @@ def assert_message_contains_text(
         if hasattr(msg, "content") and text in msg.content:
             return
 
-    raise AssertionError(
+    msg_0 = (
         f"Text '{text}' not found in any message. "
         f"Messages: {[getattr(m, 'content', '')[:50] for m in messages]}"
     )
+    raise AssertionError(msg_0)
 
 
 def assert_last_message_is_ai(messages: list[BaseMessage]) -> AIMessage:
@@ -121,11 +120,11 @@ def assert_last_message_is_ai(messages: list[BaseMessage]) -> AIMessage:
         AssertionError: If last message is not from AI
     """
     if not messages:
-        raise AssertionError("No messages in sequence")
+        msg = "No messages in sequence"
+        raise AssertionError(msg)
 
     if not isinstance(messages[-1], AIMessage):
-        raise AssertionError(
-            f"Last message is {type(messages[-1]).__name__}, expected AIMessage"
-        )
+        msg = f"Last message is {type(messages[-1]).__name__}, expected AIMessage"
+        raise AssertionError(msg)
 
     return messages[-1]

@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -6,8 +7,6 @@ from uuid import uuid4
 from sqlalchemy import Column, DateTime, Integer, String, Text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
-
-import logging
 
 logger = logging.getLogger(__name__)
 

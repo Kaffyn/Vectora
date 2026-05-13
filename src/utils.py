@@ -88,10 +88,11 @@ def load_llm() -> BaseChatModel:
         )
 
     else:
-        raise ValueError(
+        msg = (
             f"Unknown LLM_PROVIDER: {provider}. "
             f"Supported: google-genai, ollama, openai, anthropic"
         )
+        raise ValueError(msg)
 
     assert hasattr(model, "bind_tools"), "Model must support bind_tools"
     assert hasattr(model, "invoke"), "Model must support invoke"

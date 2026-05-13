@@ -1,11 +1,10 @@
 import json
+import logging
 from typing import Any
 
 from langchain.tools import BaseTool, tool
 from langchain_community.document_loaders import WebBaseLoader
 from langgraph.prebuilt.tool_node import ToolRuntime
-
-import logging
 
 try:
     from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults
@@ -173,7 +172,7 @@ async def _get_mcp_client() -> Any | None:
         return _mcp_client
 
     except Exception:
-        logger.exception("mcp_client_connection_failed", extra={"error": str(e)})
+        logger.exception("mcp_client_connection_failed", extra={})
         return None
 
 
@@ -203,7 +202,7 @@ async def _get_mcp_tools() -> dict[str, Any] | None:
         return _mcp_tools_cache
 
     except Exception:
-        logger.exception("mcp_tools_retrieval_failed", extra={"error": str(e)})
+        logger.exception("mcp_tools_retrieval_failed", extra={})
         return None
 
 
@@ -241,7 +240,7 @@ async def call_mcp_tool(
     try:
         args_dict: dict[str, Any] = json.loads(arguments)
     except json.JSONDecodeError:
-        logger.error(
+        logger.exception(
             "call_mcp_tool failed to parse arguments", extra={"arguments": arguments}
         )
         return f"Error: Invalid JSON arguments: {arguments}"
@@ -278,7 +277,7 @@ async def call_mcp_tool(
                 }
             )
 
-        mcp_tool = tools[tool_name]
+        tools[tool_name]
 
         # Execute the tool with provided arguments
         client = await _get_mcp_client()
@@ -295,8 +294,7 @@ async def call_mcp_tool(
         # Return result as JSON
         if isinstance(result, str):
             return json.dumps({"status": "success", "result": result})
-        else:
-            return json.dumps({"status": "success", "result": result})
+        return json.dumps({"status": "success", "result": result})
 
     except Exception:
         logger.exception(
@@ -306,7 +304,7 @@ async def call_mcp_tool(
         return json.dumps(
             {
                 "status": "error",
-                "message": f"Failed to execute MCP tool '{tool_name}': {e!s}",
+                "message": f"Failed to execute MCP tool '{tool_name}'",
             }
         )
 
@@ -339,10 +337,11 @@ async def embedding(
     """
     from uuid import uuid4
 
-    from embedding_queue import get_embedding_queue
     from langchain_voyageai import VoyageAIEmbeddings
     from qdrant_client import QdrantClient
     from qdrant_client.models import Distance, PointStruct, VectorParams
+
+    from embedding_queue import get_embedding_queue
 
     config = get_tool_config()
 
@@ -418,7 +417,7 @@ async def embedding(
     except Exception:
         logger.exception(
             "embedding_failed",
-            extra={"error": str(e), "collection": collection},
+            extra={"collection": collection},
         )
 
         if config.embedding_queue_enabled:
@@ -441,15 +440,15 @@ async def embedding(
                 )
 
             except Exception:
-                logger.error(
+                logger.exception(
                     "embedding_queue_failed",
-                    extra={"error": str(queue_err)},
+                    extra={},
                 )
 
                 return json.dumps(
                     {
                         "status": "failed",
-                        "error": f"Both embedding and queue failed: {e!s}",
+                        "error": "Both embedding and queue failed",
                         "collection": collection,
                     }
                 )
@@ -488,13 +487,12 @@ async def _internal_reranker(
     try:
         if config.reranker_type == "bm25":
             return _rerank_bm25(query, raw_results, documents, top_k)
-        else:
-            return await _rerank_voyage(query, raw_results, documents, top_k, config)
+        return await _rerank_voyage(query, raw_results, documents, top_k, config)
 
     except Exception:
         logger.exception(
             "reranker_failed",
-            extra={"error": str(e), "reranker_type": config.reranker_type},
+            extra={"reranker_type": config.reranker_type},
         )
         return _rerank_bm25(query, raw_results, documents, top_k)
 
@@ -542,7 +540,7 @@ async def _rerank_voyage(
     except Exception:
         logger.exception(
             "reranker_voyage_failed",
-            extra={"error": str(e)},
+            extra={},
         )
         return _rerank_bm25(query, raw_results, documents, top_k)
 
@@ -660,7 +658,6 @@ async def vector_search(
                     "vector_search_collection_failed",
                     extra={
                         "collection": collection,
-                        "error": str(collection_err),
                     },
                 )
                 continue

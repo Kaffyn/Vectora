@@ -10,7 +10,7 @@ from src.tools import _get_mcp_client, _get_mcp_tools
 class MockMCPTool:
     """Mock MCP tool for testing."""
 
-    def __init__(self, name: str, description: str = "Mock tool"):
+    def __init__(self, name: str, description: str = "Mock tool") -> None:
         self.name = name
         self.description = description
 
@@ -30,12 +30,12 @@ class MockMCPClient:
         """Execute mock tool."""
         if name == "add":
             return args.get("a", 0) + args.get("b", 0)
-        elif name == "multiply":
+        if name == "multiply":
             return args.get("a", 0) * args.get("b", 0)
-        elif name == "greet":
+        if name == "greet":
             return f"Hello, {args.get('name', 'World')}!"
-        else:
-            raise ValueError(f"Unknown tool: {name}")
+        msg = f"Unknown tool: {name}"
+        raise ValueError(msg)
 
 
 @pytest.fixture()
