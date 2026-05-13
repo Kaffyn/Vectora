@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
+from constants import DB_DSN
+
 try:
     from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 except ImportError:
@@ -26,6 +28,9 @@ async def build_checkpointer_psql(db_dsn: str) -> AsyncGenerator:
 
 
 @asynccontextmanager
-async def build_checkpointer_sqlite(db_dsn: str) -> AsyncGenerator[AsyncSqliteSaver]:
-    async with AsyncSqliteSaver.from_conn_string(db_dsn) as checkpointer:
+async def build_checkpointer_sqlite(
+    db_dsn: str | None = None,
+) -> AsyncGenerator[AsyncSqliteSaver]:
+    conn_string = db_dsn or DB_DSN
+    async with AsyncSqliteSaver.from_conn_string(conn_string) as checkpointer:
         yield checkpointer
