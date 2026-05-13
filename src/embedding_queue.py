@@ -2,11 +2,12 @@
 
 import json
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
 from sqlalchemy import Column, DateTime, Integer, String, Text
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 Base = declarative_base()
 
 
-class EmbeddingQueueRecord(Base):
+class EmbeddingQueueRecord(Base):  # type: ignore[valid-type]
     """SQLAlchemy model for embedding queue records."""
 
     __tablename__ = "embedding_queue"
@@ -29,25 +30,25 @@ class EmbeddingQueueRecord(Base):
     )  # pending, processing, success, failed
     error_message = Column(Text, nullable=True)
     attempt_count = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
     processed_at = Column(DateTime, nullable=True)
 
 
 class EmbeddingQueue:
     """Queue manager for embedding documents when Voyage API fails."""
 
-    def __init__(self, db_url: str):
+    def __init__(self, db_url: str) -> None:
         """Initialize embedding queue with database connection."""
         self.db_url = db_url
-        self.engine = None
-        self.AsyncSessionLocal = None
+        self.engine: AsyncEngine | None = None
+        self.AsyncSessionLocal: sessionmaker[AsyncSession] | None = None
 
     async def init(self) -> None:
         """Initialize async database engine and create tables."""
         self.engine = create_async_engine(self.db_url, echo=False)
 
         async with self.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(Base.metadata.create_all)  # type: ignore[attr-defined]
 
         self.AsyncSessionLocal = sessionmaker(
             self.engine, class_=AsyncSession, expire_on_commit=False
@@ -56,7 +57,7 @@ class EmbeddingQueue:
         logger.info("embedding_queue_initialized", extra={"db_url": self.db_url})
 
     async def enqueue(
-        self, text: str, collection: str, metadata: dict | None = None
+        self, text: str, collection: str, metadata: dict[str, Any] | None = None
     ) -> str:
         """Enqueue a document for embedding.
 
@@ -72,6 +73,7 @@ class EmbeddingQueue:
         metadata_json = json.dumps(metadata or {})
 
         try:
+            assert self.AsyncSessionLocal is not None
             async with self.AsyncSessionLocal() as session:
                 record = EmbeddingQueueRecord(
                     queue_id=queue_id,
@@ -94,10 +96,10 @@ class EmbeddingQueue:
 
             return queue_id
 
-        except Exception as e:
-            logger.error(
+        except Exception:
+            logger.exception(
                 "embedding_queue_insert_failed",
-                extra={"queue_id": queue_id, "error": str(e)},
+                extra={"queue_id": queue_id},
             )
             raise
 
@@ -111,6 +113,7 @@ class EmbeddingQueue:
             List of pending embedding queue records
         """
         try:
+            assert self.AsyncSessionLocal is not None
             async with self.AsyncSessionLocal() as session:
                 from sqlalchemy import and_, select
 
@@ -130,8 +133,8 @@ class EmbeddingQueue:
 
                 return records[:limit]
 
-        except Exception as e:
-            logger.error("embedding_queue_get_pending_failed", extra={"error": str(e)})
+        except Exception:
+            logger.exception("embedding_queue_get_pending_failed")
             return []
 
     async def mark_processing(self, queue_id: str) -> None:
@@ -141,6 +144,7 @@ class EmbeddingQueue:
             queue_id: ID of record to mark
         """
         try:
+            assert self.AsyncSessionLocal is not None
             async with self.AsyncSessionLocal() as session:
                 from sqlalchemy import update
 
@@ -155,10 +159,10 @@ class EmbeddingQueue:
                 await session.execute(query)
                 await session.commit()
 
-        except Exception as e:
-            logger.error(
+        except Exception:
+            logger.exception(
                 "embedding_queue_mark_processing_failed",
-                extra={"queue_id": queue_id, "error": str(e)},
+                extra={"queue_id": queue_id},
             )
 
     async def mark_success(self, queue_id: str) -> None:
@@ -168,23 +172,24 @@ class EmbeddingQueue:
             queue_id: ID of record to mark
         """
         try:
+            assert self.AsyncSessionLocal is not None
             async with self.AsyncSessionLocal() as session:
                 from sqlalchemy import update
 
                 query = (
                     update(EmbeddingQueueRecord)
                     .where(EmbeddingQueueRecord.queue_id == queue_id)
-                    .values(status="success", processed_at=datetime.utcnow())
+                    .values(status="success", processed_at=datetime.now(UTC))
                 )
                 await session.execute(query)
                 await session.commit()
 
             logger.info("embedding_queue_marked_success", extra={"queue_id": queue_id})
 
-        except Exception as e:
-            logger.error(
+        except Exception:
+            logger.exception(
                 "embedding_queue_mark_success_failed",
-                extra={"queue_id": queue_id, "error": str(e)},
+                extra={"queue_id": queue_id},
             )
 
     async def mark_failed(self, queue_id: str, error_message: str) -> None:
@@ -195,6 +200,7 @@ class EmbeddingQueue:
             error_message: Error message
         """
         try:
+            assert self.AsyncSessionLocal is not None
             async with self.AsyncSessionLocal() as session:
                 from sqlalchemy import update
 
@@ -211,10 +217,10 @@ class EmbeddingQueue:
                 extra={"queue_id": queue_id, "error": error_message},
             )
 
-        except Exception as e:
-            logger.error(
+        except Exception:
+            logger.exception(
                 "embedding_queue_mark_failed_failed",
-                extra={"queue_id": queue_id, "error": str(e)},
+                extra={"queue_id": queue_id},
             )
 
     async def close(self) -> None:
