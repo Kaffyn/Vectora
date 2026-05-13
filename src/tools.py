@@ -1,11 +1,10 @@
 import json
 import logging
-import re
 from typing import Any
 
 from langchain.tools import BaseTool, tool
-from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults
 from langchain_community.document_loaders import WebBaseLoader
+from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults
 from langgraph.prebuilt.tool_node import ToolRuntime
 
 from context import Context
@@ -145,7 +144,9 @@ def query_database(sql: str, runtime: ToolRuntime[Context, State]) -> str:  # no
 
     if not config.enable_database:
         logger.warning("query_database tool called but disabled")
-        return "Database tool is disabled. Enable ENABLE_DATABASE=true to use this tool."
+        return (
+            "Database tool is disabled. Enable ENABLE_DATABASE=true to use this tool."
+        )
 
     if not config.database_url:
         logger.warning("query_database called but DATABASE_URL not configured")
@@ -203,7 +204,7 @@ def query_database(sql: str, runtime: ToolRuntime[Context, State]) -> str:  # no
 @tool
 async def call_mcp_tool(
     tool_name: str, arguments: str, runtime: ToolRuntime[Context, State]
-) -> str:  # noqa: ARG001
+) -> str:
     """Call a tool registered in a connected MCP (Model Context Protocol) server.
 
     Args:
@@ -238,7 +239,9 @@ async def call_mcp_tool(
     try:
         args_dict: dict[str, Any] = json.loads(arguments)
     except json.JSONDecodeError:
-        logger.error("call_mcp_tool failed to parse arguments", extra={"arguments": arguments})
+        logger.error(
+            "call_mcp_tool failed to parse arguments", extra={"arguments": arguments}
+        )
         return f"Error: Invalid JSON arguments: {arguments}"
 
     try:
@@ -262,10 +265,448 @@ async def call_mcp_tool(
         return f"Error calling MCP tool: {e}"
 
 
+# ==============================================================================
+# RAG TOOLS: Embedding, Vector Search, and Internal Reranking
+# ==============================================================================
+
+
+@tool
+async def embedding(
+    text: str,
+    collection: str = "articles",
+    metadata: dict[str, Any] | None = None,
+    runtime: ToolRuntime[Context, State] | None = None,
+) -> str:
+    """Index document with embedding in Qdrant vector store.
+
+    Generates embeddings using Voyage AI and indexes in the specified collection.
+    Falls back to embedding queue if API fails.
+
+    Args:
+        text: Document text to embed
+        collection: Qdrant collection (articles, wiki, api_docs, knowledge_base)
+        metadata: Optional metadata dict (source, author, timestamp, etc)
+        runtime: Tool runtime (unused, for LangGraph compatibility)
+
+    Returns:
+        JSON status: indexed/queued_for_indexing/failed with point_id or queue_id
+    """
+    from uuid import uuid4
+
+    from langchain_voyageai import VoyageAIEmbeddings
+    from qdrant_client import QdrantClient
+    from qdrant_client.models import Distance, PointStruct, VectorParams
+
+    from rag import get_embedding_queue
+
+    config = get_tool_config()
+
+    if not config.voyage_api_key:
+        logger.error("embedding called but VOYAGE_API_KEY not configured")
+        return json.dumps(
+            {
+                "status": "failed",
+                "error": "VOYAGE_API_KEY not configured",
+                "collection": collection,
+            }
+        )
+
+    try:
+        # 1. Generate embeddings using Voyage AI
+        embeddings_model = VoyageAIEmbeddings(
+            api_key=config.voyage_api_key,
+            model=config.embedding_model,
+        )
+
+        vector = embeddings_model.embed_query(text)
+
+        # 2. Connect to Qdrant
+        qdrant_client = QdrantClient(
+            url=config.qdrant_url,
+            api_key=config.qdrant_api_key,
+        )
+
+        # Ensure collection exists
+        try:
+            qdrant_client.get_collection(collection)
+        except Exception:
+            # Collection doesn't exist, create it
+            qdrant_client.create_collection(
+                collection_name=collection,
+                vectors_config=VectorParams(
+                    size=len(vector),
+                    distance=Distance.COSINE,
+                ),
+            )
+            logger.info("qdrant_collection_created", extra={"collection": collection})
+
+        # 3. Index the document
+        point_id = str(uuid4())
+        qdrant_client.upsert(
+            collection_name=collection,
+            points=[
+                PointStruct(
+                    id=point_id,
+                    vector=vector,
+                    payload={
+                        "page_content": text,
+                        "metadata": metadata or {},
+                    },
+                )
+            ],
+        )
+
+        logger.info(
+            "embedding_indexed_success",
+            extra={
+                "collection": collection,
+                "point_id": point_id,
+                "text_length": len(text),
+                "vector_dims": len(vector),
+            },
+        )
+
+        return json.dumps(
+            {
+                "status": "indexed",
+                "collection": collection,
+                "point_id": point_id,
+                "text_length": len(text),
+            }
+        )
+
+    except Exception as e:
+        logger.error(
+            "embedding_failed",
+            extra={"error": str(e), "collection": collection},
+        )
+
+        # Fallback: Enqueue for later processing
+        if config.embedding_queue_enabled:
+            try:
+                queue = await get_embedding_queue(config.embedding_queue_db)
+                queue_id = await queue.enqueue(text, collection, metadata)
+
+                logger.warning(
+                    "embedding_queued_for_retry",
+                    extra={"queue_id": queue_id, "collection": collection},
+                )
+
+                return json.dumps(
+                    {
+                        "status": "queued_for_indexing",
+                        "queue_id": queue_id,
+                        "message": f"Documento enfileirado para indexação. ID: {queue_id}. Será processado em background.",
+                        "collection": collection,
+                    }
+                )
+
+            except Exception as queue_error:
+                logger.error(
+                    "embedding_queue_failed",
+                    extra={"error": str(queue_error)},
+                )
+
+                return json.dumps(
+                    {
+                        "status": "failed",
+                        "error": f"Both embedding and queue failed: {e!s}",
+                        "collection": collection,
+                    }
+                )
+        else:
+            return json.dumps(
+                {
+                    "status": "failed",
+                    "error": str(e),
+                    "collection": collection,
+                }
+            )
+
+
+async def _internal_reranker(
+    query: str,
+    raw_results: list[dict[str, Any]],
+    top_k: int = 5,
+) -> list[dict[str, Any]]:
+    """Internal reranker (not exposed as tool to LLM).
+
+    Reranks raw vector search results using BM25 (local) or Voyage Reranker API.
+
+    Args:
+        query: Original search query
+        raw_results: Raw results from Qdrant
+        top_k: Number of top results to return
+
+    Returns:
+        Reranked results with updated relevance_score
+    """
+    if not raw_results:
+        return []
+
+    config = get_tool_config()
+
+    # Extract documents for reranking
+    documents = [r.get("page_content", "") for r in raw_results]
+
+    try:
+        if config.reranker_type == "bm25":
+            # Local BM25 reranking (MVP)
+            return _rerank_bm25(query, raw_results, documents, top_k)
+        else:
+            # Voyage AI Reranker (production)
+            return await _rerank_voyage(query, raw_results, documents, top_k, config)
+
+    except Exception as e:
+        logger.error(
+            "reranker_failed",
+            extra={"error": str(e), "reranker_type": config.reranker_type},
+        )
+        # Fallback to BM25 if Voyage fails
+        return _rerank_bm25(query, raw_results, documents, top_k)
+
+
+async def _rerank_voyage(
+    query: str,
+    raw_results: list[dict[str, Any]],
+    documents: list[str],
+    top_k: int,
+    config: Any,
+) -> list[dict[str, Any]]:
+    """Rerank using Voyage AI Reranker API."""
+    from langchain_voyageai import VoyageAIRerank
+
+    try:
+        reranker = VoyageAIRerank(
+            api_key=config.voyage_api_key,
+            model=config.reranker_model,
+            top_k=top_k,
+        )
+
+        # VoyageAIRerank returns list of CompressedDocument
+        reranked_docs = reranker.compress_documents(
+            documents=[{"page_content": doc, "metadata": {}} for doc in documents],
+            query=query,
+        )
+
+        # Map back to original results with scores
+        reranked = []
+        for idx, doc in enumerate(reranked_docs):
+            original = raw_results[documents.index(doc.page_content)].copy()
+            # Voyage reranker provides relevance_score
+            original["relevance_score"] = getattr(
+                doc, "relevance_score", 1.0 - (idx / len(reranked_docs))
+            )
+            reranked.append(original)
+
+        logger.debug(
+            "reranker_voyage_completed",
+            extra={
+                "raw_count": len(raw_results),
+                "reranked_count": len(reranked),
+            },
+        )
+
+        return reranked
+
+    except Exception as e:
+        logger.error(
+            "reranker_voyage_failed",
+            extra={"error": str(e)},
+        )
+        # Fallback to BM25
+        return _rerank_bm25(query, raw_results, documents, top_k)
+
+
+def _rerank_bm25(
+    query: str,
+    raw_results: list[dict[str, Any]],
+    documents: list[str],
+    top_k: int,
+) -> list[dict[str, Any]]:
+    """Rerank using local BM25 algorithm (fallback or MVP)."""
+    from rank_bm25 import BM25Okapi
+
+    # Tokenize documents
+    tokenized_docs = [doc.lower().split() for doc in documents]
+    bm25 = BM25Okapi(tokenized_docs)
+
+    # Score query against documents
+    query_tokens = query.lower().split()
+    scores = bm25.get_scores(query_tokens)
+
+    # Create scored results
+    scored_results = []
+    for idx, score in enumerate(scores):
+        result = raw_results[idx].copy()
+        result["relevance_score"] = float(score)
+        scored_results.append(result)
+
+    # Sort by relevance score (descending)
+    scored_results.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
+
+    logger.debug(
+        "reranker_bm25_completed",
+        extra={
+            "raw_count": len(raw_results),
+            "reranked_count": min(top_k, len(scored_results)),
+        },
+    )
+
+    return scored_results[:top_k]
+
+
+@tool
+async def vector_search(
+    query: str,
+    collections: list[str] | None = None,
+    top_k: int = 10,
+    min_score: float = 0.5,
+    runtime: ToolRuntime[Context, State] | None = None,
+) -> str:
+    """Search Qdrant vector store and return reranked results.
+
+    Automatically applies reranker to results (internal, not exposed to LLM).
+
+    Args:
+        query: Search query string
+        collections: Which collections to search (default: all)
+        top_k: Number of raw results before reranking
+        min_score: Minimum similarity threshold (0-1)
+        runtime: Tool runtime (unused, for LangGraph compatibility)
+
+    Returns:
+        JSON: {status: found/no_results, results: [...], total_count: N}
+    """
+    from langchain_voyageai import VoyageAIEmbeddings
+    from qdrant_client import QdrantClient
+
+    config = get_tool_config()
+
+    if not config.voyage_api_key:
+        logger.error("vector_search called but VOYAGE_API_KEY not configured")
+        return json.dumps(
+            {
+                "status": "failed",
+                "error": "VOYAGE_API_KEY not configured",
+            }
+        )
+
+    try:
+        # 1. Get embeddings for query
+        embeddings_model = VoyageAIEmbeddings(
+            api_key=config.voyage_api_key,
+            model=config.embedding_model,
+        )
+
+        query_vector = embeddings_model.embed_query(query)
+
+        # 2. Determine which collections to search
+        search_collections = collections or config.qdrant_collections
+        if not search_collections:
+            search_collections = ["articles", "wiki", "api_docs", "knowledge_base"]
+
+        # 3. Search in all collections
+        qdrant_client = QdrantClient(
+            url=config.qdrant_url,
+            api_key=config.qdrant_api_key,
+        )
+
+        all_results: list[dict[str, Any]] = []
+
+        for collection in search_collections:
+            try:
+                hits = qdrant_client.search(
+                    collection_name=collection,
+                    query_vector=query_vector,
+                    limit=top_k,
+                    score_threshold=min_score,
+                )
+
+                for hit in hits:
+                    result = {
+                        "page_content": hit.payload.get("page_content", ""),
+                        "metadata": hit.payload.get("metadata", {}),
+                        "relevance_score": hit.score,
+                        "collection": collection,
+                        "point_id": hit.id,
+                    }
+                    all_results.append(result)
+
+            except Exception as collection_error:
+                logger.warning(
+                    "vector_search_collection_failed",
+                    extra={
+                        "collection": collection,
+                        "error": str(collection_error),
+                    },
+                )
+                continue
+
+        # 4. If no results, return immediately
+        if not all_results:
+            logger.info(
+                "vector_search_no_results",
+                extra={"query": query[:100], "collections": search_collections},
+            )
+            return json.dumps(
+                {
+                    "status": "no_results",
+                    "count": 0,
+                    "message": "No matching documents found. Try using embedding() to index new documents.",
+                }
+            )
+
+        # 5. Apply reranker internally (LLM doesn't see this)
+        reranked_results = await _internal_reranker(
+            query, all_results, config.reranker_top_k
+        )
+
+        logger.info(
+            "vector_search_completed",
+            extra={
+                "query": query[:100],
+                "collections": search_collections,
+                "raw_results": len(all_results),
+                "reranked_results": len(reranked_results),
+                "reranker_type": config.reranker_type,
+            },
+        )
+
+        # 6. Return to LLM (already reranked)
+        return json.dumps(
+            {
+                "status": "found",
+                "count": len(reranked_results),
+                "results": reranked_results,
+                "collections_searched": search_collections,
+            }
+        )
+
+    except Exception as e:
+        logger.error(
+            "vector_search_failed",
+            extra={"query": query[:100], "error": str(e)},
+        )
+        return json.dumps(
+            {
+                "status": "failed",
+                "error": str(e),
+            }
+        )
+
+
 # Build tools list dynamically based on configuration
 def _build_tools_list() -> list[BaseTool]:
     """Build the list of available tools based on configuration."""
-    tools: list[BaseTool] = [multiply, web_search, fetch_url, call_mcp_tool]
+    tools: list[BaseTool] = [
+        multiply,
+        web_search,
+        fetch_url,
+        embedding,
+        vector_search,
+        call_mcp_tool,
+    ]
 
     config = get_tool_config()
     if config.enable_database:

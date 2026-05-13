@@ -21,7 +21,10 @@ dependencies = [
   "langgraph-checkpoint-postgres>=3.0.1",
   "langgraph-checkpoint-sqlite>=3.0.0",
   "psycopg[binary]>=3.3.2",
+  "qdrant-client>=2.11.0",
+  "rank-bm25>=0.2.2",
   "rich>=14.2.0",
+  "sqlalchemy>=2.0.0",
   "textual>=8.2.5",
 ]
 
@@ -79,9 +82,13 @@ known-first-party = [
   "context",
   "env",
   "graph",
+  "logging",
   "nodes",
   "prompts",
+  "rag",
   "state",
+  "testing",
+  "tool_config",
   "tools",
   "utils",
 ]

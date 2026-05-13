@@ -1,8 +1,30 @@
 from collections.abc import Sequence
-from typing import Annotated, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from langgraph.graph.message import BaseMessage, add_messages
 
 
-class State(TypedDict):
+class Document(TypedDict, total=False):
+    """Estrutura de documento recuperado do RAG"""
+
+    page_content: str
+    metadata: dict[str, Any]
+    relevance_score: float | None
+
+
+class State(TypedDict, total=False):
+    """Estado da conversa com suporte a RAG"""
+
+    # Histórico de mensagens (obrigatório)
     messages: Annotated[Sequence[BaseMessage], add_messages]
+
+    # RAG Context
+    retrieval_results: dict[str, list[Document]]
+    # Exemplo: {"articles": [...], "wiki": [...], "api_docs": [...]}
+
+    selected_rag_source: str | None
+    # Qual fonte RAG foi usada: "articles", "wiki", "api_docs", "knowledge_base"
+
+    routing_decision: dict[str, Any] | None
+    # Metadata da decisão tomada
+    # {"decision": "use_vector_search", "confidence": 0.95, "reason": "..."}
