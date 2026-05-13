@@ -311,6 +311,192 @@ async def vector_search(
         )
 
 
+@tool
+def file_read(file_path: str) -> str:
+    """Lê conteúdo completo de um arquivo de texto.
+
+    Args:
+        file_path: Caminho relativo ou absoluto do arquivo
+
+    Returns:
+        Conteúdo do arquivo como string
+    """
+    from pathlib import Path
+
+    from tool_safety import is_safe_file_path
+
+    config = get_tool_config()
+
+    if not config.enable_file_operations:
+        return "File operations are disabled. Enable ENABLE_FILE_OPERATIONS=true to use this tool."
+
+    if not is_safe_file_path(file_path, allowed_dirs=["."]):
+        logger.warning("file_read blocked by safety check", extra={"path": file_path})
+        return f"Error: File path '{file_path}' is not allowed"
+
+    try:
+        content = Path(file_path).read_text(encoding="utf-8")
+        logger.info(
+            "file_read completed",
+            extra={"path": file_path, "size": len(content)},
+        )
+        return content
+    except FileNotFoundError:
+        return f"Error: File '{file_path}' not found"
+    except Exception:
+        logger.exception("file_read failed", extra={"path": file_path})
+        return "Error reading file. Check logs."
+
+
+@tool
+def file_edit(file_path: str, old_text: str, new_text: str) -> str:
+    """Edita arquivo substituindo texto.
+
+    Args:
+        file_path: Caminho do arquivo
+        old_text: Texto a encontrar
+        new_text: Texto de substituição
+
+    Returns:
+        Confirmação da edição
+    """
+    from pathlib import Path
+
+    from tool_safety import is_safe_file_path
+
+    config = get_tool_config()
+
+    if not config.enable_file_operations:
+        return "File operations are disabled."
+
+    if not is_safe_file_path(file_path, allowed_dirs=["."]):
+        logger.warning("file_edit blocked by safety check", extra={"path": file_path})
+        return f"Error: File path '{file_path}' is not allowed"
+
+    try:
+        path = Path(file_path)
+        content = path.read_text(encoding="utf-8")
+
+        if old_text not in content:
+            return "Error: Text not found in file"
+
+        new_content = content.replace(old_text, new_text, 1)
+        path.write_text(new_content, encoding="utf-8")
+
+        logger.info(
+            "file_edit completed",
+            extra={
+                "path": file_path,
+                "old_len": len(old_text),
+                "new_len": len(new_text),
+            },
+        )
+        return "✓ File edited successfully"
+    except Exception:
+        logger.exception("file_edit failed", extra={"path": file_path})
+        return "Error editing file. Check logs."
+
+
+@tool
+def grep(pattern: str, path: str = ".") -> str:
+    """Busca padrão em arquivos usando regex.
+
+    Args:
+        pattern: Padrão regex para buscar
+        path: Caminho da pasta ou arquivo
+
+    Returns:
+        Linhas que correspondem ao padrão
+    """
+    import re
+    from pathlib import Path
+
+    from tool_safety import is_safe_regex_pattern
+
+    config = get_tool_config()
+
+    if not config.enable_file_operations:
+        return "File operations are disabled."
+
+    if not is_safe_regex_pattern(pattern):
+        return "Error: Invalid or unsafe regex pattern"
+
+    try:
+        results = []
+        search_path = Path(path)
+
+        files = [search_path] if search_path.is_file() else list(search_path.rglob("*"))
+
+        for file_path in files:
+            if not file_path.is_file() or file_path.suffix in {".pyc", ".o", ".exe"}:
+                continue
+
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="ignore")
+                for line_num, line in enumerate(content.split("\n"), 1):
+                    if re.search(pattern, line):
+                        results.append(f"{file_path}:{line_num}: {line}")
+            except Exception:
+                pass
+
+        logger.info(
+            "grep completed",
+            extra={"pattern": pattern, "path": path, "matches": len(results)},
+        )
+        return "\n".join(results[:100]) if results else "No matches found"
+    except Exception:
+        logger.exception("grep failed", extra={"pattern": pattern, "path": path})
+        return "Error during grep. Check logs."
+
+
+@tool
+def list_dir(path: str = ".", *, recursive: bool = False) -> str:
+    """Lista arquivos em um diretório.
+
+    Args:
+        path: Caminho do diretório
+        recursive: Se True, lista recursivamente
+
+    Returns:
+        Lista de arquivos e pastas
+    """
+    from pathlib import Path
+
+    config = get_tool_config()
+
+    if not config.enable_file_operations:
+        return "File operations are disabled."
+
+    try:
+        dir_path = Path(path)
+
+        if not dir_path.exists():
+            return f"Error: Directory '{path}' not found"
+
+        if not dir_path.is_dir():
+            return f"Error: '{path}' is not a directory"
+
+        items = []
+        if recursive:
+            for item in sorted(dir_path.rglob("*")):
+                rel_path = item.relative_to(dir_path)
+                prefix = "[DIR]" if item.is_dir() else "[FILE]"
+                items.append(f"{prefix} {rel_path}")
+        else:
+            for item in sorted(dir_path.iterdir()):
+                prefix = "[DIR]" if item.is_dir() else "[FILE]"
+                items.append(f"{prefix} {item.name}")
+
+        logger.info(
+            "list_dir completed",
+            extra={"path": path, "recursive": recursive, "count": len(items)},
+        )
+        return "\n".join(items[:500]) if items else "(empty directory)"
+    except Exception:
+        logger.exception("list_dir failed", extra={"path": path})
+        return "Error listing directory. Check logs."
+
+
 def _build_tools_list() -> list[BaseTool]:
     """Constrói lista de ferramentas disponíveis baseado na configuração.
 
@@ -320,10 +506,17 @@ def _build_tools_list() -> list[BaseTool]:
     config = get_tool_config()
     tools: list[BaseTool] = []
 
-    # Core tools
+    # Core tools (sempre disponíveis)
     tools.append(web_search)
     tools.append(fetch_url)
     tools.append(vector_search)
+
+    # File operations
+    if config.enable_file_operations:
+        tools.append(file_read)
+        tools.append(file_edit)
+        tools.append(grep)
+        tools.append(list_dir)
 
     # MCP tool
     if config.enable_mcp:

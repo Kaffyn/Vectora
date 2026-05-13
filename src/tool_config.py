@@ -24,6 +24,12 @@ class ToolConfig:
         )
     )
 
+    # Operações de Arquivo (file_read, file_edit, grep, list_dir)
+    enable_file_operations: bool = field(
+        default_factory=lambda: os.getenv("ENABLE_FILE_OPERATIONS", "true").lower()
+        == "true"
+    )
+
     # Ferramenta de Banco de Dados
     enable_database: bool = field(
         default_factory=lambda: os.getenv("ENABLE_DATABASE", "false").lower() == "true"
