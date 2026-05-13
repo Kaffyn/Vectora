@@ -2,7 +2,7 @@
 
 ## Overview
 
-Vectora uses a dynamic, language-aware system prompt that automatically detects the user's operating system language and responds accordingly. This ensures that even simple queries like "47.23 * 134.97" are answered in the user's native language.
+Vectora uses a language-aware system prompt that automatically detects the user's operating system language and includes it in the prompt. The AI is intelligent enough to interpret language codes (like `pt_BR`, `en_US`, etc.) and respond accordingly. This ensures that even simple queries like "47.23 * 134.97" are answered in the user's native language.
 
 ## How It Works
 
@@ -14,52 +14,59 @@ The system automatically detects the user's language from the operating system l
 import locale
 
 def get_system_language() -> str:
-    """Detect system language from OS locale."""
+    """Detect system language from OS locale.
+    
+    Returns full language code like 'pt_BR', 'en_US', 'en', etc.
+    """
     try:
         lang_code, _ = locale.getdefaultlocale()
         if lang_code:
-            return lang_code.split("_")[0].lower()  # e.g., 'pt', 'en', 'es'
+            return lang_code.lower()  # Returns: pt_BR, en_US, fr_FR, etc.
     except Exception:
         pass
     return "en"  # Fallback to English
 ```
 
-**Supported languages** (src/prompts.py):
-- `pt` - Portuguese (Português)
-- `en` - English
-- `es` - Spanish (Español)
-- `fr` - French (Français)
-- `de` - German (Deutsch)
-- `it` - Italian (Italiano)
-- `ja` - Japanese (日本語)
-- `zh` - Chinese (中文)
+**Examples of detected codes:**
+- `pt_BR` - Portuguese (Brazil)
+- `pt_PT` - Portuguese (Portugal)
+- `en_US` - English (United States)
+- `en_GB` - English (Great Britain)
+- `es_ES` - Spanish (Spain)
+- `es_MX` - Spanish (Mexico)
+- `fr_FR` - French (France)
+- `de_DE` - German (Germany)
+- `it_IT` - Italian (Italy)
+- `ja_JP` - Japanese (Japan)
+- `zh_CN` - Chinese (Simplified)
+- `zh_TW` - Chinese (Traditional)
 
 ### Dynamic System Prompt
 
-The system prompt is a template that gets formatted at runtime:
+The system prompt includes the language code at the end for the AI to interpret:
 
 ```python
-SYSTEM_PROMPT_TEMPLATE = """# Vectora - Advanced AI Assistant with RAG Capabilities
+SYSTEM_PROMPT = """# Vectora - Advanced AI Assistant with RAG Capabilities
 
-...
+[... capability descriptions ...]
 
-**Language:**
-Respond in {language_name} ({language_code_upper}). 
-Always match the user's language preference.
+---
 
-...
+Conversation language: {language_code}
 """
 
 def get_system_prompt() -> str:
     """Get the Vectora system prompt with language auto-detected from OS."""
     lang_code = get_system_language()
-    lang_name = LANGUAGE_NAMES.get(lang_code, "English")
-    
-    return SYSTEM_PROMPT_TEMPLATE.format(
-        language_name=lang_name,
-        language_code_upper=lang_code.upper(),
-    )
+    return SYSTEM_PROMPT.format(language_code=lang_code)
 ```
+
+**Result:** The AI receives a prompt ending with:
+```
+Conversation language: pt_BR
+```
+
+And automatically interprets this as Portuguese (Brazil) and responds accordingly.
 
 ### Integration Points
 
@@ -117,54 +124,38 @@ The Vectora system prompt specifies:
 
 ## Adding Support for New Languages
 
-To add support for a new language:
+**Great news**: You don't need to add anything! The system automatically supports any language code that your OS can produce.
 
-### 1. Add language mapping (src/prompts.py)
-
-```python
-LANGUAGE_NAMES: dict[str, str] = {
-    # ... existing languages ...
-    "hi": "Hindi (हिन्दी)",  # Example: add Hindi
-}
-```
-
-### 2. Verify locale code
-
-The locale code should be the ISO 639-1 two-letter code:
-- `pt` for Portuguese
-- `en` for English
-- `es` for Spanish
-- `hi` for Hindi
-- `tr` for Turkish
-- etc.
-
-### 3. Test locally
-
-Set your system locale and verify:
+Just set your system locale to any language, and Vectora will pass that code to the AI. Examples:
 
 ```bash
-# On Linux/Mac
-export LC_ALL=pt_BR.UTF-8
-export LANG=pt_BR.UTF-8
+# Linux/Mac - Set to Hindi
+export LC_ALL=hi_IN.UTF-8
+export LANG=hi_IN.UTF-8
 
-# On Windows
-# Settings → Region & Language → Language
-```
+# Windows
+# Settings → Region & Language → Language (choose desired language)
 
-Then run:
-
-```bash
+# Then run Vectora
 uv run src/main.py
-# or test the prompt directly:
-python3 -c "from prompts import get_system_prompt; print(get_system_prompt())"
 ```
+
+The AI will automatically receive `hi_IN` in the prompt and respond in Hindi.
+
+### Supported Format
+
+Language codes follow the standard format:
+- `{ISO 639-1}_{ISO 3166-1}` (e.g., `pt_BR`, `en_US`)
+- Or just `{ISO 639-1}` (e.g., `en`, `pt`)
+
+The AI interprets all of these automatically.
 
 ## Customizing the Prompt
 
 To modify the prompt content:
 
-1. Edit `SYSTEM_PROMPT_TEMPLATE` in `src/prompts.py`
-2. Maintain the `{language_name}` and `{language_code_upper}` placeholders
+1. Edit `SYSTEM_PROMPT` in `src/prompts.py`
+2. Keep the `{language_code}` placeholder at the end
 3. Restart Vectora to apply changes
 
 ### Prompt Sections
@@ -173,7 +164,7 @@ To modify the prompt content:
 - **Tool Integration Details**: Lines 27-40
 - **Operational Guidelines**: Lines 42-60
 - **Important Notes**: Lines 62-70
-- **Language Section**: Line 72-73 (keep placeholders!)
+- **Language Code**: Keep placeholder at end (line ~73)
 
 ## Debugging
 
@@ -183,8 +174,8 @@ To modify the prompt content:
 from prompts import get_system_language, get_system_prompt
 
 print(f"Detected language: {get_system_language()}")
-print("\nSystem prompt:")
-print(get_system_prompt())
+print("\nSystem prompt (last 100 chars):")
+print(get_system_prompt()[-100:])
 ```
 
 ### Check system locale
@@ -202,44 +193,57 @@ locale
 
 ## Examples
 
-### Portuguese User (pt)
+### Portuguese User (pt_BR)
 
-When system locale is Portuguese, the prompt ends with:
-
-```
-**Language:**
-Respond in Portuguese (Português). Always match the user's language preference.
-```
-
-Result: "47.23 * 134.97 = 6.399.0751" em Português ✅
-
-### Spanish User (es)
-
-When system locale is Spanish, the prompt ends with:
+When system locale is Portuguese (Brazil), the prompt ends with:
 
 ```
-**Language:**
-Respond in Spanish (Español). Always match the user's language preference.
+---
+
+Conversation language: pt_BR
 ```
 
-Result: "47.23 * 134.97 = 6.399.0751 en Español ✅
+Result: "47.23 * 134.97 = 6.399.0751" em Português (Brasil) ✅
 
-### Unsupported Language (e.g., Icelandic)
+### Spanish User (es_ES)
 
-Falls back to English since 'is' is not in LANGUAGE_NAMES.
+When system locale is Spanish (Spain), the prompt ends with:
 
-To support Icelandic, add to LANGUAGE_NAMES:
-
-```python
-LANGUAGE_NAMES = {
-    # ... existing ...
-    "is": "Icelandic (Íslenska)",
-}
 ```
+---
+
+Conversation language: es_ES
+```
+
+Result: "47.23 * 134.97 = 6.399.0751 en Español (España)" ✅
+
+### English User (en_US)
+
+When system locale is English (United States), the prompt ends with:
+
+```
+---
+
+Conversation language: en_US
+```
+
+Result: "47.23 * 134.97 = 6,399.0751" (US formatting) ✅
+
+### Hindi User (hi_IN)
+
+Even without explicit "Hindi" mapping, the prompt ends with:
+
+```
+---
+
+Conversation language: hi_IN
+```
+
+The AI automatically understands this is Hindi (India) and responds in Hindi ✅
 
 ## Related Files
 
-- **src/prompts.py** - Prompt templates and language detection
+- **src/prompts.py** - Simple prompt template and language detection (just 2 functions!)
 - **src/nodes.py** - LLM invocation with system prompt injection
 - **src/testing/fixtures.py** - Test fixtures with system prompt
 - **docs/PROMPTS.md** - This documentation
@@ -247,7 +251,7 @@ LANGUAGE_NAMES = {
 ## Future Enhancements
 
 - [ ] Per-user language preference override (in State or Context)
-- [ ] Language-specific system prompts (different templates per language)
 - [ ] Automatic locale detection from user messages (fallback method)
 - [ ] Language-specific tool descriptions in RAG context
 - [ ] Multi-lingual prompt responses for bilingual contexts
+- [ ] Language preference persistence across sessions
