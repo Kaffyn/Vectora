@@ -63,3 +63,20 @@ def call_llm(state: State, runtime: Runtime[Context]) -> State:
     )
 
     return {"messages": [result]}
+
+
+def handle_sub_node(state: State, runtime: Runtime[Context]) -> State:
+    """Nó subordinado para workflows complexos em instância separada de LangGraph.
+
+    Por enquanto, passa as mensagens de volta ao nó principal. No futuro,
+    pode instanciar um novo grafo para processos mais complexos.
+    """
+    logger.debug(
+        "Sub-node invoked",
+        extra={
+            "mensagens": len(state["messages"]),
+            "retrieval_results": bool(state.get("retrieval_results")),
+        },
+    )
+
+    return state

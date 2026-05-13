@@ -6,7 +6,7 @@ from langgraph.prebuilt.tool_node import tools_condition
 from langgraph.pregel.main import BaseCheckpointSaver
 
 from context import Context
-from nodes import call_llm, tool_node
+from nodes import call_llm, handle_sub_node, tool_node
 from state import State
 
 logger = logging.getLogger(__name__)
@@ -15,7 +15,14 @@ logger = logging.getLogger(__name__)
 def build_graph(
     checkpointer: BaseCheckpointSaver,
 ) -> CompiledStateGraph[State, Context, State, State]:
-    logger.info("Building LangGraph with 2 nodes: call_llm, tools")
+    """Constrói LangGraph com padrão 3-node: MAIN_NODE, TOOL_NODE, SUB_NODE.
+
+    Fluxo:
+    - MAIN_NODE (call_llm): Invoca LLM com histórico deslizante
+    - TOOL_NODE (tool_node): Executa ferramentas em paralelo
+    - SUB_NODE (handle_sub_node): Workflows complexos em instância separada
+    """
+    logger.info("Building LangGraph with 3-node pattern: call_llm, tools, sub_node")
     builder = StateGraph(
         state_schema=State,
         context_schema=Context,
@@ -25,11 +32,12 @@ def build_graph(
 
     builder.add_node("call_llm", call_llm)
     builder.add_node("tools", tool_node)
+    builder.add_node("sub_node", handle_sub_node)
 
     builder.add_edge(START, "call_llm")
     builder.add_conditional_edges("call_llm", tools_condition, ["tools", END])
     builder.add_edge("tools", "call_llm")
 
     compiled = builder.compile(checkpointer=checkpointer)
-    logger.info("Graph compiled successfully with checkpointer")
+    logger.info("Graph compiled successfully with 3-node pattern")
     return compiled
