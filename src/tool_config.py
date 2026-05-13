@@ -62,6 +62,9 @@ class ToolConfig:
     # Para transporte stdio: argumentos do comando (ex: "server.py", "chrome-devtools-mcp")
 
     # RAG - Embedding (Voyage AI)
+    enable_rag: bool = field(
+        default_factory=lambda: os.getenv("ENABLE_RAG", "true").lower() == "true"
+    )
     voyage_api_key: str = field(default_factory=lambda: os.getenv("VOYAGE_API_KEY", ""))
     embedding_model: str = field(
         default_factory=lambda: os.getenv("EMBEDDING_MODEL", "voyage-4")
