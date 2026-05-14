@@ -23,12 +23,16 @@
 - ✅ LanceDB (vector store local, sem dependências)
 - ✅ Pasta `$HOME/.vectora/` (keys, database, logs, sessions)
 
-**Integração MCP:**
+**Integração MCP (Sub-Agente):**
 
-- ✅ **MCP Server** (expõe 10 tools Vectora para clientes externos)
+- ✅ **MCP Server** (Vectora como Sub-Agente do Claude Code)
+  - 10 Tools (vector_search, web_search, file_read, terminal, etc)
+  - 3 Resources (thread context, history, status)
+  - Protocolo JSON-RPC via stdio (não HTTP)
+  - Executa LangGraph internamente (raciocínio próprio)
 - ✅ **MCP Client** (consome MCPs de servidores externos)
 - ✅ Modo duplex simultâneo (servidor + cliente)
-- ✅ Transporte stdio (para integração com Paperclip, Claude Code, etc)
+- ✅ Transporte stdio (integração com Claude Code, Paperclip, etc)
 
 **Interface:**
 
@@ -74,10 +78,33 @@
 - ✅ LangSmith integration (opcional via LANGSMITH_API_KEY)
 - ✅ Métricas por ferramenta (latência, tokens, etc)
 
+**Arquitetura de Sub-Agente (MCP):**
+
+Vectora não é apenas uma "ferramenta" para o Claude Code, mas um **agente colaborativo** com seu próprio raciocínio:
+
+1. **Tools** (capacidades):
+   - `vector_search` — Busca conhecimento técnico profundo
+   - `web_search` — Contexto externo em tempo real
+   - `file_read`, `file_edit`, `terminal` — Manipulação de sistema
+   - `grep`, `list_dir` — Exploração do codebase
+
+2. **Resources** (estado cognitivo):
+   - `vectora://thread/{id}/context` — Resumo do conhecimento coletado
+   - `vectora://thread/{id}/history` — Histórico da conversa (últimas 5 msgs)
+   - `vectora://status` — Status do servidor (LLM, RAG disponível, uptime)
+
+3. **Fluxo MCP (stdio JSON-RPC):**
+   ```
+   Claude Code → MCP Server Vectora → LangGraph internamente → Tools + Reasoning → Response
+   ```
+
+O Claude Code lê o "estado do cérebro" do Vectora (Resources) antes de decidir que ferramenta chamar.
+
 **Integração com Paperclip:**
 
 - ✅ Funcionar como MCP Server via stdio
-- ✅ Expor 10 tools para orquestração do Paperclip
+- ✅ Expor 10 tools + 3 resources para orquestração do Paperclip
+- ✅ Executar LangGraph próprio (não apenas delegar funções)
 - ✅ Suportar contexto reduzido (resumo + últimas 2 msgs)
 
 ---
@@ -227,9 +254,12 @@ curl -fsSL https://get.docker.com | bash
 # Deploy Vectora + Paperclip
 docker-compose -f docker-compose.prod.yml up -d
 
-# Verificar status
-curl http://localhost:7777/health  # MCP Server health check
+# Verificar que MCP Server está respondendo
+# MCP usa stdio JSON-RPC, não HTTP
+docker logs vectora-mcp-server  # Ver logs do servidor
 ```
+
+**Nota:** O MCP Server do Vectora usa **stdio JSON-RPC**, não HTTP/REST. Não há endpoint `/health`. A comunicação é via stdin/stdout (processo padrão).
 
 ---
 
@@ -358,11 +388,12 @@ Capabilities: tools, prompts
 - ✅ Setup wizard < 2 min
 - ✅ MCP Server startup < 5s
 
-**Integração:**
+**Integração MCP:**
 
-- ✅ Funciona com Paperclip 100%
-- ✅ Expõe todas as 10 tools via MCP
-- ✅ Documentado para outros clients
+- ✅ Funciona com Paperclip 100% (como Sub-Agente)
+- ✅ Expõe 10 tools + 3 resources via MCP (stdio JSON-RPC)
+- ✅ Executa LangGraph interno com raciocínio próprio
+- ✅ Documentado para outros clients MCP-compatíveis
 
 ---
 
