@@ -121,7 +121,7 @@ async def handle_sub_node(state: State, runtime: Runtime[Context]) -> dict:
 async def process_retrieval(state: State) -> dict:
     """Processa resultados de ferramentas de busca e atualiza o estado RAG.
 
-    Identifica se a última mensagem foi um ToolMessage de 'vector_search',
+    Varre as mensagens recentes em busca de ToolMessages de 'vector_search',
     analisa o JSON e preenche 'retrieval_results'.
     """
     from langchain_core.messages import ToolMessage
@@ -130,38 +130,42 @@ async def process_retrieval(state: State) -> dict:
     if not messages:
         return {}
 
-    last_msg = messages[-1]
-    if not isinstance(last_msg, ToolMessage) or last_msg.name != "vector_search":
-        return {}
+    # Identifica mensagens de ferramentas no turno atual (após o último AIMessage)
+    current_retrieval = state.get("retrieval_results") or {}
+    new_results_found = False
 
-    try:
-        data = json.loads(last_msg.content)
-        if data.get("status") != "success":
-            return {}
+    # Itera de trás para frente até encontrar uma mensagem que não seja de ferramenta
+    for msg in reversed(messages):
+        if not isinstance(msg, ToolMessage):
+            break
 
-        results = data.get("results", [])
-        collection = data.get("collection", "default")
+        if msg.name == "vector_search":
+            try:
+                data = json.loads(msg.content)
+                if data.get("status") != "success":
+                    continue
 
-        formatted_docs = [
-            {
-                "page_content": r["content"],
-                "metadata": r.get("metadata", {}),
-                "relevance_score": r.get("relevance_score"),
-            }
-            for r in results
-        ]
+                results = data.get("results", [])
+                collection = data.get("collection", "default")
 
-        logger.info(
-            "retrieval_processed",
-            extra={"collection": collection, "count": len(formatted_docs)},
-        )
+                formatted_docs = [
+                    {
+                        "page_content": r["content"],
+                        "metadata": r.get("metadata", {}),
+                        "relevance_score": r.get("relevance_score"),
+                    }
+                    for r in results
+                ]
 
-        # Merge results into state
-        current_retrieval = state.get("retrieval_results") or {}
-        current_retrieval[collection] = formatted_docs
+                logger.info(
+                    "retrieval_processed",
+                    extra={"collection": collection, "count": len(formatted_docs)},
+                )
 
-        return {"retrieval_results": current_retrieval}
+                current_retrieval[collection] = formatted_docs
+                new_results_found = True
 
-    except Exception as e:
-        logger.error(f"Error processing retrieval: {e}")
-        return {}
+            except Exception as e:
+                logger.error(f"Error processing retrieval for {msg.name}: {e}")
+
+    return {"retrieval_results": current_retrieval} if new_results_found else {}

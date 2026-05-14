@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import UTC, datetime
 from typing import Any
 
 from langchain.tools import BaseTool, tool
@@ -475,7 +476,7 @@ async def vector_search(
             }
         )
 
-    except Exception:
+    except Exception as e:
         logger.exception(
             "vector_search_failed",
             extra={"query": query, "collection": collection},
@@ -483,7 +484,7 @@ async def vector_search(
         return json.dumps(
             {
                 "status": "failed",
-                "error": "Vector search failed",
+                "error": str(e) or "Vector search failed",
             }
         )
 
@@ -562,17 +563,33 @@ async def ingest_docs(
     fail_count = 0
 
     for chunk in chunks:
+        # Metadados enriquecidos para rastreabilidade
+        chunk_metadata = chunk.metadata or {}
+        chunk_metadata.update(
+            {"ingested_at": datetime.now(UTC).isoformat(), "source_dir": directory_path}
+        )
+
         res = await embedding.ainvoke(
             {
                 "text": chunk.page_content,
                 "collection": collection,
-                "metadata": chunk.metadata,
+                "metadata": chunk_metadata,
             }
         )
         if '"status": "indexed"' in res or '"status": "enqueued"' in res:
             success_count += 1
         else:
             fail_count += 1
+
+    logger.info(
+        "ingest_docs_completed",
+        extra={
+            "collection": collection,
+            "success": success_count,
+            "fail": fail_count,
+            "total_chunks": len(chunks),
+        },
+    )
 
     return json.dumps(
         {
