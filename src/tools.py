@@ -3,7 +3,7 @@ import logging
 from typing import Any
 
 from langchain.tools import BaseTool, tool
-from langchain_community.document_loaders import WebBaseLoader
+from langchain_community.document_loaders import DirectoryLoader, TextLoader, WebBaseLoader
 
 try:
     from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults  # type: ignore
@@ -15,6 +15,7 @@ try:
 except ImportError:
     MultiServerMCPClient = None
 
+from embedding_queue import get_embedding_queue
 from tool_config import get_tool_config
 
 logger = logging.getLogger(__name__)
@@ -314,15 +315,36 @@ async def embedding(
             }
         )
 
-    except Exception:
+    except Exception as e:
         logger.exception(
             "embedding_failed",
             extra={"collection": collection, "text_length": len(text)},
         )
+
+        # Fallback para fila de processamento assíncrono se configurado
+        if config.embedding_queue_enabled:
+            try:
+                queue = await get_embedding_queue(config.embedding_queue_db)
+                queue_id = await queue.enqueue(text, collection, metadata)
+                logger.info(
+                    "embedding_enqueued",
+                    extra={"queue_id": queue_id, "collection": collection},
+                )
+                return json.dumps(
+                    {
+                        "status": "enqueued",
+                        "queue_id": queue_id,
+                        "collection": collection,
+                        "message": "API failed, document enqueued for retry",
+                    }
+                )
+            except Exception as queue_err:
+                logger.error(f"Failed to enqueue embedding: {queue_err}")
+
         return json.dumps(
             {
                 "status": "failed",
-                "error": "Embedding indexing failed",
+                "error": str(e) or "Embedding indexing failed",
                 "collection": collection,
             }
         )
@@ -401,6 +423,40 @@ async def vector_search(
             for _, row in search_results.iterrows()
         ]
 
+        # Reranking (opcional, melhora precisão)
+        if results and config.reranker_type == "voyage":
+            try:
+                from langchain_voyageai import VoyageAIRerank
+
+                reranker = VoyageAIRerank(
+                    api_key=SecretStr(config.voyage_api_key),
+                    model=config.reranker_model,
+                    top_k=config.reranker_top_k,
+                )
+
+                # Formata para o reranker (LangChain espera Document objects)
+                from langchain_core.documents import Document as LCDoc
+
+                docs_to_rerank = [
+                    LCDoc(page_content=str(r["content"]), metadata=r["metadata"])
+                    for r in results
+                ]
+
+                reranked_docs = reranker.compress_documents(docs_to_rerank, query)
+
+                # Reconstrói lista de resultados com base no rerank
+                results = [
+                    {
+                        "content": doc.page_content,
+                        "metadata": doc.metadata,
+                        "relevance_score": getattr(doc, "relevance_score", None),
+                    }
+                    for doc in reranked_docs
+                ]
+                logger.info("vector_search_reranked", extra={"top_k": len(results)})
+            except Exception as rerank_err:
+                logger.warning(f"Reranking failed, using raw results: {rerank_err}")
+
         logger.info(
             "vector_search completed",
             extra={
@@ -446,7 +502,88 @@ def file_read(file_path: str) -> str:
 
     from tool_safety import is_safe_file_path
 
-    config = get_tool_config()
+    if not is_safe_file_path(file_path):
+        return f"Access denied: {file_path} is outside allowed directory"
+
+    path = Path(file_path)
+    if not path.exists():
+        return f"File not found: {file_path}"
+
+    return path.read_text(encoding="utf-8")
+
+
+@tool
+async def ingest_docs(
+    directory_path: str,
+    collection: str = "articles",
+    glob_pattern: str = "**/*.md",
+) -> str:
+    """Lê todos os arquivos de um diretório e os indexa no banco vetorial.
+
+    Útil para popular o conhecimento do agente com documentação local.
+
+    Args:
+        directory_path: Caminho da pasta contendo os documentos
+        collection: Nome da coleção LanceDB de destino
+        glob_pattern: Padrão de busca de arquivos (ex: **/*.md, **/*.txt)
+
+    Returns:
+        Status da ingestão com contagem de sucessos/falhas
+    """
+    from pathlib import Path
+
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    from tool_safety import is_safe_file_path
+
+    if not is_safe_file_path(directory_path):
+        return f"Access denied: {directory_path} is outside allowed directory"
+
+    path = Path(directory_path)
+    if not path.is_dir():
+        return f"Not a directory: {directory_path}"
+
+    loader = DirectoryLoader(
+        str(path),
+        glob=glob_pattern,
+        loader_cls=TextLoader,
+        loader_kwargs={"encoding": "utf-8"},
+    )
+
+    docs = loader.load()
+    if not docs:
+        return f"No documents found in {directory_path} matching {glob_pattern}"
+
+    # Splitter para documentos grandes
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    chunks = splitter.split_documents(docs)
+
+    success_count = 0
+    fail_count = 0
+
+    for chunk in chunks:
+        res = await embedding.ainvoke(
+            {
+                "text": chunk.page_content,
+                "collection": collection,
+                "metadata": chunk.metadata,
+            }
+        )
+        if '"status": "indexed"' in res or '"status": "enqueued"' in res:
+            success_count += 1
+        else:
+            fail_count += 1
+
+    return json.dumps(
+        {
+            "status": "completed",
+            "total_files": len(docs),
+            "total_chunks": len(chunks),
+            "indexed": success_count,
+            "failed": fail_count,
+            "collection": collection,
+        }
+    )
 
     if not config.enable_file_operations:
         return "File operations are disabled. Enable ENABLE_FILE_OPERATIONS=true to use this tool."

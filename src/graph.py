@@ -6,7 +6,7 @@ from langgraph.prebuilt.tool_node import tools_condition
 from langgraph.pregel.main import BaseCheckpointSaver
 
 from context import Context
-from nodes import call_llm, handle_sub_node, tool_node
+from nodes import call_llm, handle_sub_node, process_retrieval, tool_node
 from state import State
 
 logger = logging.getLogger(__name__)
@@ -32,11 +32,13 @@ def build_graph(
 
     builder.add_node("call_llm", call_llm)
     builder.add_node("tools", tool_node)
+    builder.add_node("process_retrieval", process_retrieval)
     builder.add_node("sub_node", handle_sub_node)
 
     builder.add_edge(START, "call_llm")
     builder.add_conditional_edges("call_llm", tools_condition, ["tools", END])
-    builder.add_edge("tools", "call_llm")
+    builder.add_edge("tools", "process_retrieval")
+    builder.add_edge("process_retrieval", "call_llm")
 
     compiled = builder.compile(checkpointer=checkpointer)
     logger.info("Graph compiled successfully with 3-node pattern")

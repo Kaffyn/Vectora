@@ -1,3 +1,4 @@
+import json
 import logging
 
 from langchain_core.language_models import BaseChatModel
@@ -57,7 +58,21 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     )
 
     # Prepara prompt do sistema Vectora com detecção automática de idioma
-    system_prompt = SystemMessage(content=get_system_prompt())
+    system_content = get_system_prompt()
+
+    # Injeta contexto recuperado (RAG), se houver
+    if state.get("retrieval_results"):
+        context_parts = []
+        for collection, docs in state["retrieval_results"].items():
+            context_parts.append(f"\nContexto recuperado da coleção '{collection}':")
+            for i, doc in enumerate(docs, 1):
+                context_parts.append(f"[{i}] {doc['page_content']}")
+
+        system_content += "\n\nUSE O CONTEXTO ABAIXO PARA RESPONDER:\n" + "\n".join(
+            context_parts
+        )
+
+    system_prompt = SystemMessage(content=system_content)
 
     # Gerencia o histórico de mensagens (sliding window) para evitar estouro de contexto
     # Mantém as últimas mensagens até ~1000 tokens (estimado pelo modelo)
@@ -101,3 +116,52 @@ async def handle_sub_node(state: State, runtime: Runtime[Context]) -> dict:
     )
 
     return {}
+
+
+async def process_retrieval(state: State) -> dict:
+    """Processa resultados de ferramentas de busca e atualiza o estado RAG.
+
+    Identifica se a última mensagem foi um ToolMessage de 'vector_search',
+    analisa o JSON e preenche 'retrieval_results'.
+    """
+    from langchain_core.messages import ToolMessage
+
+    messages = state["messages"]
+    if not messages:
+        return {}
+
+    last_msg = messages[-1]
+    if not isinstance(last_msg, ToolMessage) or last_msg.name != "vector_search":
+        return {}
+
+    try:
+        data = json.loads(last_msg.content)
+        if data.get("status") != "success":
+            return {}
+
+        results = data.get("results", [])
+        collection = data.get("collection", "default")
+
+        formatted_docs = [
+            {
+                "page_content": r["content"],
+                "metadata": r.get("metadata", {}),
+                "relevance_score": r.get("relevance_score"),
+            }
+            for r in results
+        ]
+
+        logger.info(
+            "retrieval_processed",
+            extra={"collection": collection, "count": len(formatted_docs)},
+        )
+
+        # Merge results into state
+        current_retrieval = state.get("retrieval_results") or {}
+        current_retrieval[collection] = formatted_docs
+
+        return {"retrieval_results": current_retrieval}
+
+    except Exception as e:
+        logger.error(f"Error processing retrieval: {e}")
+        return {}
