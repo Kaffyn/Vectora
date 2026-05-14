@@ -2,12 +2,13 @@ import json
 import logging
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import SystemMessage, trim_messages
+from langchain_core.messages import SystemMessage, ToolMessage, trim_messages
 from langchain_core.runnables import Runnable
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
 
 from context import Context
+from memory_store import get_memory_store
 from prompts import get_system_prompt
 from state import State
 from tools import TOOLS
@@ -43,7 +44,7 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     ctx = runtime.context
     user_type = ctx.user_type
 
-    model_provider = "ollama" if user_type == "plus" else "ollama"
+    model_provider = "ollama"
     model = "gpt-oss:20b" if user_type == "plus" else "qwen3-coder:30b"
 
     # Obtém LLM em cache com ferramentas (vinculado uma vez, reutilizado por invocação)
@@ -74,6 +75,30 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
 
     system_prompt = SystemMessage(content=system_content)
 
+    # Injeta memórias persistentes do usuário após a system message
+    memory_messages: list[SystemMessage] = []
+    try:
+        memory_store = await get_memory_store()
+        user_id = ctx.thread_id or "default_user"
+        memories = await memory_store.get_all(user_id)
+
+        if memories:
+            memory_content = "## MEMÓRIAS PERSISTENTES:\n"
+            for mem in memories:
+                memory_content += f"\n- **{mem['key']}**: {mem['content']}\n"
+
+            memory_messages.append(SystemMessage(content=memory_content))
+            logger.debug(
+                "Memórias injetadas no contexto",
+                extra={"count": len(memories), "user_id": user_id},
+            )
+    except Exception as e:
+        logger.warning(
+            "Falha ao carregar memórias: %s",
+            e,
+            extra={"user_id": getattr(ctx, "thread_id", "unknown")},
+        )
+
     # Gerencia o histórico de mensagens (sliding window) para evitar estouro de contexto
     # Mantém as últimas mensagens até ~1000 tokens (estimado pelo modelo)
     trimmed_messages = trim_messages(
@@ -83,7 +108,7 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
         token_counter=llm_with_config,
     )
 
-    messages_with_system = [system_prompt, *trimmed_messages]
+    messages_with_system = [system_prompt, *memory_messages, *trimmed_messages]
 
     result = await llm_with_config.ainvoke(
         messages_with_system,
@@ -124,8 +149,6 @@ async def process_retrieval(state: State) -> dict:
     Varre as mensagens recentes em busca de ToolMessages de 'vector_search',
     analisa o JSON e preenche 'retrieval_results'.
     """
-    from langchain_core.messages import ToolMessage
-
     messages = state["messages"]
     if not messages:
         return {}
@@ -165,7 +188,7 @@ async def process_retrieval(state: State) -> dict:
                 current_retrieval[collection] = formatted_docs
                 new_results_found = True
 
-            except Exception as e:
-                logger.error(f"Error processing retrieval for {msg.name}: {e}")
+            except Exception:
+                logger.exception("Error processing retrieval for %s", msg.name)
 
     return {"retrieval_results": current_retrieval} if new_results_found else {}
