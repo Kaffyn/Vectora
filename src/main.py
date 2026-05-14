@@ -92,7 +92,6 @@ async def main() -> None:
 
     async with (
         async_lifespan(),
-        # build_checkpointer_psql(DB_DSN) as checkpointer,
         Checkpointer(DB_DSN) as checkpointer,
     ):
         logger.info("Checkpointer initialized (SQLite)")

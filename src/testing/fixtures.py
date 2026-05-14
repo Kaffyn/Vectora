@@ -55,12 +55,11 @@ async def checkpointer(temp_db: str) -> AsyncGenerator[AsyncSqliteSaver, None]:
 def vector_store_dir() -> str:
     """Provide a temporary LanceDB directory for testing.
 
-    LanceDB is used for vector storage in tests instead of Qdrant.
+    LanceDB is used for vector storage in tests.
     This is automatically cleaned up after the test.
     """
     temp_dir = tempfile.mkdtemp()
     os.environ["LANCEDB_DIR"] = temp_dir
-    os.environ["VECTOR_STORE_TYPE"] = "lancedb"
     return temp_dir
 
 
@@ -74,17 +73,17 @@ async def test_graph(
     Uses a mock LLM instead of real Ollama for deterministic responses.
     """
 
-    async def call_llm_with_mock(state: State, runtime: dict) -> dict[str, list]:
-        """Call LLM using the mock instead of real Ollama."""
+    async def call_llm_with_mock(state: State, runtime: dict) -> dict:
+        """Call LLM using the mock instead of real providers."""
         from tools import TOOLS
 
         llm_with_tools = mock_llm.bind_tools(TOOLS)
 
-        # Prepend Vectora system prompt with auto-detected language
+        # Prepend Vectora system prompt
         system_prompt = SystemMessage(content=get_system_prompt())
         messages_with_system = [system_prompt, *list(state["messages"])]
 
-        result = llm_with_tools.invoke(messages_with_system)
+        result = await llm_with_tools.ainvoke(messages_with_system)
         return {"messages": [result]}
 
     from langgraph.constants import END, START

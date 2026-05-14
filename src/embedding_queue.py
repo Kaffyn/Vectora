@@ -56,14 +56,17 @@ class EmbeddingQueue:
         logger.info("embedding_queue_initialized", extra={"db_url": self.db_url})
 
     async def enqueue(
-        self, text: str, collection: str, metadata: dict[str, Any] | None = None
+        self,
+        text: str,
+        collection: str = "articles",
+        metadata: dict[str, Any] | None = None,
     ) -> str:
-        """Enfileira um documento para embedding.
+        """Adiciona um texto à fila de embedding para processamento posterior.
 
         Args:
-            text: Texto do documento
-            collection: Nome da coleção Qdrant
-            metadata: Dicionário de metadados opcional
+            text: Conteúdo a ser transformado em embedding
+            collection: Nome da coleção (articles, wiki, api_docs, etc)
+            metadata: Metadados opcionais do documento
 
         Returns:
             ID da fila para rastreamento

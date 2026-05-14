@@ -1,7 +1,7 @@
 import logging
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import SystemMessage, trim_messages
 from langchain_core.runnables import Runnable
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
@@ -58,7 +58,17 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
 
     # Prepara prompt do sistema Vectora com detecção automática de idioma
     system_prompt = SystemMessage(content=get_system_prompt())
-    messages_with_system = [system_prompt, *list(state["messages"])]
+
+    # Gerencia o histórico de mensagens (sliding window) para evitar estouro de contexto
+    # Mantém as últimas mensagens até ~1000 tokens (estimado pelo modelo)
+    trimmed_messages = trim_messages(
+        state["messages"],
+        max_tokens=1000,
+        strategy="last",
+        token_counter=llm_with_config,
+    )
+
+    messages_with_system = [system_prompt, *trimmed_messages]
 
     result = await llm_with_config.ainvoke(
         messages_with_system,
@@ -75,11 +85,12 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     return {"messages": [result]}
 
 
-def handle_sub_node(state: State, runtime: Runtime[Context]) -> State:
+async def handle_sub_node(state: State, runtime: Runtime[Context]) -> dict:
     """Nó subordinado para workflows complexos em instância separada de LangGraph.
 
     Por enquanto, passa as mensagens de volta ao nó principal. No futuro,
     pode instanciar um novo grafo para processos mais complexos.
+    Retorna um dict vazio pois não altera o estado no momento.
     """
     logger.debug(
         "Sub-node invoked",
@@ -89,4 +100,4 @@ def handle_sub_node(state: State, runtime: Runtime[Context]) -> State:
         },
     )
 
-    return state
+    return {}
