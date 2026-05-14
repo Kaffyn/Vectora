@@ -48,7 +48,7 @@ class ToolConfig:
         default_factory=lambda: os.getenv("MCP_SERVER_URL")
     )
     mcp_transport_type: str = field(
-        default_factory=lambda: os.getenv("MCP_TRANSPORT_TYPE", "http")
+        default_factory=lambda: os.getenv("MCP_TRANSPORT_TYPE", "stdio")
     )
     mcp_command: str | None = field(default_factory=lambda: os.getenv("MCP_COMMAND"))
     mcp_command_args: list[str] | None = field(

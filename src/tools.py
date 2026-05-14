@@ -515,12 +515,26 @@ def file_read(file_path: str) -> str:
 
     if not is_safe_file_path(file_path):
         return f"Access denied: {file_path} is outside allowed directory"
+    config = get_tool_config()
+    if not config.enable_file_operations:
+        return "File operations are disabled. Enable ENABLE_FILE_OPERATIONS=true to use this tool."
 
-    path = Path(file_path)
-    if not path.exists():
-        return f"File not found: {file_path}"
+    if not is_safe_file_path(file_path, allowed_dirs=["."]):
+        logger.warning("file_read blocked by safety check", extra={"path": file_path})
+        return f"Error: File path '{file_path}' is not allowed"
 
-    return path.read_text(encoding="utf-8")
+    try:
+        content = Path(file_path).read_text(encoding="utf-8")
+        logger.info(
+            "file_read completed",
+            extra={"path": file_path, "size": len(content)},
+        )
+        return content
+    except FileNotFoundError:
+        return f"Error: File '{file_path}' not found"
+    except Exception:
+        logger.exception("file_read failed", extra={"path": file_path})
+        return "Error reading file. Check logs."
 
 
 @tool
@@ -547,6 +561,10 @@ async def ingest_docs(
 
     from tool_safety import is_safe_file_path
 
+    config = get_tool_config()
+    if not config.enable_file_operations:
+        return "File operations are disabled. Enable ENABLE_FILE_OPERATIONS=true to use this tool."
+
     if not is_safe_file_path(directory_path):
         return f"Access denied: {directory_path} is outside allowed directory"
 
@@ -561,7 +579,12 @@ async def ingest_docs(
         loader_kwargs={"encoding": "utf-8"},
     )
 
-    docs = loader.load()
+    try:
+        docs = loader.load()
+    except Exception as e:
+        logger.error(f"Error loading documents from {directory_path}: {e}")
+        return f"Error loading documents: {str(e)}"
+
     if not docs:
         return f"No documents found in {directory_path} matching {glob_pattern}"
 
@@ -612,25 +635,6 @@ async def ingest_docs(
         }
     )
 
-    if not config.enable_file_operations:
-        return "File operations are disabled. Enable ENABLE_FILE_OPERATIONS=true to use this tool."
-
-    if not is_safe_file_path(file_path, allowed_dirs=["."]):
-        logger.warning("file_read blocked by safety check", extra={"path": file_path})
-        return f"Error: File path '{file_path}' is not allowed"
-
-    try:
-        content = Path(file_path).read_text(encoding="utf-8")
-        logger.info(
-            "file_read completed",
-            extra={"path": file_path, "size": len(content)},
-        )
-        return content
-    except FileNotFoundError:
-        return f"Error: File '{file_path}' not found"
-    except Exception:
-        logger.exception("file_read failed", extra={"path": file_path})
-        return "Error reading file. Check logs."
 
 
 @tool
