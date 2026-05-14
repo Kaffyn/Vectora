@@ -361,11 +361,60 @@ jobs:
           #     "image": "${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}"
           #   }'
 
+  # ─── Publish to PyPI ──────────────────────────────────────────────────────────
+  publish-pypi:
+    name: 📦 Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    if: |
+      github.event_name == 'push' &&
+      github.ref_name == 'main' &&
+      contains(github.event.head_commit.message, '[deploy]')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔧 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: 📚 Sync dependencies
+        run: uv sync
+
+      - name: 📝 Extract version
+        id: version
+        run: |
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: 🏗️ Build package
+        run: |
+          echo "🏗️ Building Vectora v${{ steps.version.outputs.version }}..."
+          uv build
+
+      - name: 🚀 Publish to PyPI
+        run: |
+          echo "🚀 Publishing Vectora v${{ steps.version.outputs.version }} to PyPI..."
+          uv run twine upload dist/* --repository pypi --username __token__ --password "${{ secrets.PYPI_TOKEN }}" --verbose
+        env:
+          TWINE_NON_INTERACTIVE: "true"
+
+      - name: ✅ Publish Success
+        run: |
+          echo "✅ Successfully published Vectora v${{ steps.version.outputs.version }} to PyPI!"
+          echo "📦 Install with: pip install vectora==${{ steps.version.outputs.version }}"
+          echo "🔗 PyPI: https://pypi.org/project/vectora/${{ steps.version.outputs.version }}/"
+
   # ─── Deploy VPS (Condicional) ─────────────────────────────────────────────────
   deploy:
     name: 🚀 Deploy VPS
     runs-on: ubuntu-latest
-    needs: [docker-build, publish-mcp]
+    needs: [docker-build, publish-mcp, publish-pypi]
     if: |
       github.event_name == 'push' &&
       github.ref_name == 'main' &&
@@ -449,8 +498,9 @@ jobs:
     steps:
       - name: 📊 Resumo Pipeline
         run: |
-          echo "## 🚀 CI/CD Pipeline"
+          echo "## 🚀 CI/CD Pipeline Report"
           echo ""
+          echo "### Test Results"
           echo "| Job | Status |"
           echo "|-----|--------|"
           echo "| 🔍 Lint          | ${{ needs.lint.result }} |"
@@ -460,9 +510,17 @@ jobs:
           echo "| 🌐 E2E Tests     | ${{ needs.e2e-tests.result }} |"
           echo "| 🔒 Security      | ${{ needs.security.result }} |"
           echo ""
+          echo "### Deployment Status (if [deploy] tag)"
+          echo "| Service | Link |"
+          echo "|---------|------|"
+          echo "| 🐳 GHCR (Docker) | https://ghcr.io/kaffyn/vectora |"
+          echo "| 📦 PyPI | https://pypi.org/project/vectora/ |"
+          echo "| 🔌 MCP Registry | https://registry.modelcontextprotocol.io |"
+          echo "| 🌐 VPS Deploy | \${{ secrets.VPS_HOST }} |"
+          echo ""
           echo "**Branch:** ${{ github.ref_name }}"
           echo "**Commit:** ${{ github.sha }}"
-          echo "**Deploy Status:** ${{ job.status }}"
+          echo "**Workflow Status:** ${{ job.status }}"
 
       - name: ❌ Falhar se jobs críticos falharam
         if: |
