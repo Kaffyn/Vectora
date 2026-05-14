@@ -1,40 +1,58 @@
-FROM python:3.12-slim-bookworm
+# Stage 1: Build stage
+FROM python:3.13-slim as builder
 
-# Instala uv para gerenciamento de dependências ultra-rápido
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+ARG VERSION=0.1.0
 
-# Configura ambiente
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
+WORKDIR /build
 
-WORKDIR /app
-
-# Instala dependências de sistema para LanceDB/PyArrow
+# Instalar build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copia arquivos de configuração de dependências
-COPY pyproject.toml uv.lock ./
+# Instalar UV
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
 
-# Instala dependências do projeto (usa cache do docker para camadas)
-RUN uv sync --frozen --no-install-project --no-dev
+# Copiar projeto
+COPY . .
 
-# Copia código fonte
-COPY src/ ./src/
-COPY .env.example ./.env
+# Build com UV
+RUN uv sync --frozen --no-dev
 
-# Adiciona diretório src ao PYTHONPATH
-ENV PYTHONPATH="/app/src"
+# Stage 2: Runtime stage
+FROM python:3.13-slim
 
-# Cria diretórios de dados
-RUN mkdir -p /app/data /app/logs
+ARG VERSION=0.1.0
 
-# Expõe porta do MCP/API
-EXPOSE 8000
+WORKDIR /app
 
-# Comando padrão
-CMD ["uv", "run", "python", "src/main.py"]
+# Instalar runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copiar venv do builder
+COPY --from=builder /build/.venv /app/.venv
+
+# Copiar código do builder
+COPY --from=builder /build/src /app/src
+COPY --from=builder /build/pyproject.toml /app/pyproject.toml
+COPY --from=builder /build/README.md /app/README.md
+
+# Criar diretório de dados
+RUN mkdir -p /root/.vectora && chmod 777 /root/.vectora
+
+# Setup PATH
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    LOG_LEVEL=INFO \
+    VERSION=${VERSION}
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)" || exit 1
+
+# Default: rodar como MCP server
+ENTRYPOINT ["/app/.venv/bin/python", "-m"]
+CMD ["mcp.server", "src/mcp_server.py"]

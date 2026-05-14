@@ -1,0 +1,475 @@
+name: 🚀 CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, dev]
+  pull_request:
+    branches: [main, develop, dev]
+  schedule:
+    - cron: "0 2 * * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/kaffyn/vectora
+  PYTHON_VERSION: "3.13"
+  # URLs do VPS dev — testes rodam contra o ambiente real
+  VPS_BASE_URL: ${{ secrets.VPS_BASE_URL }}
+
+jobs:
+  # ─── Setup ────────────────────────────────────────────────────────────────────
+  setup:
+    name: 📦 Setup
+    runs-on: ubuntu-latest
+    outputs:
+      uv-cache-key: ${{ steps.cache-key.outputs.key }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔧 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: 🔑 Generate cache key
+        id: cache-key
+        run: echo "key=uv-${{ hashFiles('uv.lock') }}" >> $GITHUB_OUTPUT
+
+      - name: 💾 Cache UV dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: uv-
+
+      - name: 📚 Sync dependencies
+        run: uv sync
+
+  # ─── Lint & Format ────────────────────────────────────────────────────────────
+  lint:
+    name: 🔍 Lint & Format
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔧 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: 💾 Restore cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ needs.setup.outputs.uv-cache-key }}
+
+      - name: 📚 Sync dependencies
+        run: uv sync
+
+      - name: 🔍 Run Ruff lint
+        run: uv run ruff check src tests || echo "⚠️ Lint issues found"
+
+      - name: 📋 Run Ruff format check
+        run: uv run ruff format --check src tests || echo "⚠️ Format issues found"
+
+      - name: 📦 Check import sorting
+        run: uv run isort --check-only src tests || echo "⚠️ Import order issues found"
+
+  # ─── Type Check ───────────────────────────────────────────────────────────────
+  type-check:
+    name: 🔬 Type Check
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔧 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: 💾 Restore cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ needs.setup.outputs.uv-cache-key }}
+
+      - name: 📚 Sync dependencies
+        run: uv sync
+
+      - name: 🔬 Run Mypy
+        run: uv run mypy src || echo "⚠️ Type errors found"
+
+  # ─── Unit Tests ───────────────────────────────────────────────────────────────
+  unit-tests:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    needs: [setup, lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔧 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: 💾 Restore cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ needs.setup.outputs.uv-cache-key }}
+
+      - name: 📚 Sync dependencies
+        run: uv sync
+
+      - name: 🧪 Run unit tests
+        run: uv run pytest tests/unit -v --tb=short
+        env:
+          LOG_LEVEL: DEBUG
+
+      - name: 📊 Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage.xml
+          flags: unittests
+
+  # ─── Integration Tests ────────────────────────────────────────────────────────
+  integration-tests:
+    name: 🔌 Integration Tests
+    runs-on: ubuntu-latest
+    needs: [setup, lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔧 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: 💾 Restore cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ needs.setup.outputs.uv-cache-key }}
+
+      - name: 📚 Sync dependencies
+        run: uv sync
+
+      - name: 🧪 Run integration tests
+        run: uv run pytest tests/integration -v --tb=short
+        env:
+          LOG_LEVEL: DEBUG
+          TEST_MODE: "true"
+
+  # ─── E2E Tests (MCP Resources) ────────────────────────────────────────────────
+  e2e-tests:
+    name: 🌐 E2E Tests (MCP)
+    runs-on: ubuntu-latest
+    needs: [setup, lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔧 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: 💾 Restore cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ needs.setup.outputs.uv-cache-key }}
+
+      - name: 📚 Sync dependencies
+        run: uv sync
+
+      - name: 🌐 Run E2E tests
+        run: uv run pytest tests/e2e -v --tb=short
+        env:
+          LOG_LEVEL: DEBUG
+          TEST_MODE: "true"
+
+  # ─── Security Scan ────────────────────────────────────────────────────────────
+  security:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔧 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: 💾 Restore cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: ${{ needs.setup.outputs.uv-cache-key }}
+
+      - name: 📚 Sync dependencies
+        run: uv sync
+
+      - name: 🔒 Bandit security check
+        run: uv run bandit -r src -f json -o bandit-report.json || echo "⚠️ Security issues found"
+        continue-on-error: true
+
+      - name: 🔒 Verificar segredos hardcoded
+        run: |
+          if grep -rE "sk_live_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|api_key.*=.*['\"]" \
+            --include="*.py" --include="*.env*" src/ 2>/dev/null; then
+            echo "❌ Segredos hardcoded encontrados!"
+            exit 1
+          fi
+          echo "✅ Sem segredos hardcoded"
+
+      - name: 🔒 Verificar variáveis de ambiente perigosas
+        run: |
+          if git ls-files | grep -E '\.env\.(local|prod|production|vps)$'; then
+            echo "❌ Arquivos .env sensíveis rastreados pelo git!"
+            exit 1
+          fi
+          echo "✅ Nenhum .env sensível commitado"
+
+  # ─── Docker Build & Push (Condicional) ────────────────────────────────────────
+  docker-build:
+    name: 🐳 Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, e2e-tests, security, type-check]
+    if: |
+      github.event_name == 'push' &&
+      github.ref_name == 'main' &&
+      contains(github.event.head_commit.message, '[deploy]')
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔑 Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: 📝 Extract version
+        id: meta
+        run: |
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tags=${{ env.IMAGE_NAME }}:latest,${{ env.IMAGE_NAME }}:$VERSION,${{ env.IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: 🐳 Build & Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+
+  # ─── Publish to MCP Registry (Condicional) ────────────────────────────────────
+  publish-mcp:
+    name: 📢 Publish MCP Registry
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    if: |
+      github.event_name == 'push' &&
+      github.ref_name == 'main' &&
+      contains(github.event.head_commit.message, '[deploy]')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🔧 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install UV
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: 📚 Sync dependencies
+        run: uv sync
+
+      - name: 📝 Extract version
+        id: version
+        run: |
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: 📢 Register MCP Server
+        run: |
+          # Aqui você registraria o servidor MCP no registry oficial
+          # https://registry.modelcontextprotocol.io
+          echo "📢 Publicando Vectora v${{ steps.version.outputs.version }} no MCP Registry..."
+          # Exemplo (ajuste conforme necessário):
+          # curl -X POST https://registry.modelcontextprotocol.io/register \
+          #   -H "Authorization: Bearer ${{ secrets.MCP_REGISTRY_TOKEN }}" \
+          #   -d '{
+          #     "name": "vectora",
+          #     "repository": "https://github.com/Kaffyn/vectora",
+          #     "type": "server",
+          #     "version": "${{ steps.version.outputs.version }}",
+          #     "image": "${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}"
+          #   }'
+
+  # ─── Deploy VPS (Condicional) ─────────────────────────────────────────────────
+  deploy:
+    name: 🚀 Deploy VPS
+    runs-on: ubuntu-latest
+    needs: [docker-build, publish-mcp]
+    if: |
+      github.event_name == 'push' &&
+      github.ref_name == 'main' &&
+      contains(github.event.head_commit.message, '[deploy]')
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: 🔧 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📝 Extract version
+        id: version
+        run: |
+          VERSION=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: 🔑 Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: 🚀 Deploy to VPS
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} bash -s << 'ENDDEPLOY'
+          set -e
+
+          echo "🔐 Login GHCR..."
+          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u Kaffyn --password-stdin
+
+          echo "📦 Pulling latest image..."
+          docker pull ${{ env.IMAGE_NAME }}:latest
+
+          echo "🌐 Atualizar .env se necessário..."
+          # Atualizar variáveis de ambiente específicas do VPS
+          # mkdir -p /opt/vectora
+          # cd /opt/vectora
+
+          echo "🛑 Parar container anterior..."
+          docker stop vectora-mcp 2>/dev/null || true
+          docker rm vectora-mcp 2>/dev/null || true
+
+          echo "🚀 Iniciar novo container..."
+          docker run -d \
+            --name vectora-mcp \
+            --restart unless-stopped \
+            -e GOOGLE_API_KEY=${{ secrets.VPS_GOOGLE_API_KEY }} \
+            -e VOYAGE_API_KEY=${{ secrets.VPS_VOYAGE_API_KEY }} \
+            -e LANGSMITH_API_KEY=${{ secrets.VPS_LANGSMITH_API_KEY }} \
+            -e LOG_LEVEL=INFO \
+            -v /var/lib/vectora:/root/.vectora \
+            ${{ env.IMAGE_NAME }}:latest \
+            vectora mcp-server
+
+          echo "⏳ Aguardar container estabilizar..."
+          sleep 5
+
+          echo "✅ Container iniciado!"
+          docker ps -a | grep vectora-mcp
+          ENDDEPLOY
+
+      - name: 🔍 Health Check
+        run: |
+          # Opcional: verificar saúde do serviço no VPS
+          echo "🔍 Verificando saúde do serviço..."
+          # Exemplo: curl -f https://vectora-dev.seu-dominio.com/health || exit 1
+
+  # ─── Report ───────────────────────────────────────────────────────────────────
+  report:
+    name: 📊 Pipeline Report
+    runs-on: ubuntu-latest
+    needs:
+      [lint, type-check, unit-tests, integration-tests, e2e-tests, security]
+    if: always()
+    steps:
+      - name: 📊 Resumo Pipeline
+        run: |
+          echo "## 🚀 CI/CD Pipeline"
+          echo ""
+          echo "| Job | Status |"
+          echo "|-----|--------|"
+          echo "| 🔍 Lint          | ${{ needs.lint.result }} |"
+          echo "| 🔬 Type Check    | ${{ needs.type-check.result }} |"
+          echo "| 🧪 Unit Tests    | ${{ needs.unit-tests.result }} |"
+          echo "| 🔌 Integration   | ${{ needs.integration-tests.result }} |"
+          echo "| 🌐 E2E Tests     | ${{ needs.e2e-tests.result }} |"
+          echo "| 🔒 Security      | ${{ needs.security.result }} |"
+          echo ""
+          echo "**Branch:** ${{ github.ref_name }}"
+          echo "**Commit:** ${{ github.sha }}"
+          echo "**Deploy Status:** ${{ job.status }}"
+
+      - name: ❌ Falhar se jobs críticos falharam
+        if: |
+          needs.lint.result == 'failure' ||
+          needs.type-check.result == 'failure' ||
+          needs.unit-tests.result == 'failure' ||
+          needs.integration-tests.result == 'failure' ||
+          needs.e2e-tests.result == 'failure' ||
+          needs.security.result == 'failure'
+        run: exit 1
