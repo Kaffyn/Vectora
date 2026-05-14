@@ -19,11 +19,26 @@ Utilizando o **MCP (Model Context Protocol)**, um Agente Principal (como o Paper
 
 ---
 
-## Pré-requisitos
+## Pré-requisitos Essenciais
 
-O Vectora suporta múltiplos provedores de LLM e recomenda usar **Gemini + Voyage AI** por oferecerem **APIs gratuitas com excelentes limites**:
+### ⚠️ Voyage AI - OBRIGATÓRIO 100%
 
-### Provedores de LLM Suportados
+**Vectora depende fundamentalmente do Voyage AI**. Sem ele, a aplicação não funciona.
+
+Voyage AI é usado para:
+
+- **Embedding**: Converter documentos em vetores para busca semântica
+- **Reranking**: Ordenar resultados por relevância
+
+**Obtenha gratuitamente**: https://www.voyageai.com/
+
+O Voyage AI oferece um **free tier com excelentes limites** para uso em desenvolvimento e produção.
+
+---
+
+### Provedores de LLM Suportados (Escolha Um)
+
+O Vectora suporta múltiplos provedores de LLM. Recomendamos **Google Gemini** (gratuito):
 
 | Provider          | API Key                                                       | Modelo Padrão    | Recomendação               |
 | ----------------- | ------------------------------------------------------------- | ---------------- | -------------------------- |
@@ -31,12 +46,6 @@ O Vectora suporta múltiplos provedores de LLM e recomenda usar **Gemini + Voyag
 | **Ollama**        | Nenhuma (local)                                               | gpt-oss:20b      | Local sem custos           |
 | **OpenAI**        | [Obter aqui](https://platform.openai.com/api-keys)            | gpt-4o           | Pago                       |
 | **Anthropic**     | [Obter aqui](https://console.anthropic.com/)                  | claude-opus-4-1  | Pago                       |
-
-### Embedding (RAG) - Obrigatório
-
-| Provider      | API Key                                             | Recomendação                                |
-| ------------- | --------------------------------------------------- | ------------------------------------------- |
-| **Voyage AI** | [Obter gratuitamente](https://www.voyageai.com/api) | ✅ Recomendado (free tier com bons limites) |
 
 ---
 

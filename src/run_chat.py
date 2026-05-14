@@ -5,6 +5,11 @@ if __name__ == "__main__":
     os.environ.setdefault("LOG_LEVEL", "INFO")
     os.environ.setdefault("LOG_JSON", "false")
 
+    # Validar que Voyage AI está configurado (obrigatório para Vectora)
+    from env import validate_voyage_ai
+
+    validate_voyage_ai()
+
     from config import Config
 
     config = Config.instance()
