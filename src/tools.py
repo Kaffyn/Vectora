@@ -6,11 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 from langchain.tools import BaseTool, tool
-from langchain_community.document_loaders import (
-    DirectoryLoader,
-    TextLoader,
-    WebBaseLoader,
-)
+from langchain_community.document_loaders import DirectoryLoader, TextLoader, WebBaseLoader
 from langchain_core.documents import Document as LCDoc
 
 try:
@@ -895,3 +891,6 @@ def get_tools() -> list[BaseTool]:
 
 # Export tools list for graph construction
 TOOLS = _build_tools_list()
+
+# Export tools by name for test discovery
+TOOLS_BY_NAME = {tool.name: tool for tool in TOOLS}

@@ -2,7 +2,8 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import cast
 
-from langchain.chat_models import BaseChatModel, init_chat_model
+from langchain.base_language import BaseLanguageModel
+from langchain.chat_models import init_chat_model
 
 from env import get_env
 
@@ -13,7 +14,7 @@ def _get_env_with_default(name: str, default: str) -> str:
     return value if value is not None else default
 
 
-def load_llm() -> BaseChatModel:
+def load_llm() -> BaseLanguageModel:
     """Load LLM based on environment configuration.
 
     Supports multiple providers via LLM_PROVIDER environment variable:
@@ -39,7 +40,7 @@ def load_llm() -> BaseChatModel:
 
     if provider == "google-genai":
         model = cast(
-            "BaseChatModel",
+            "BaseLanguageModel",
             init_chat_model(
                 model=_get_env_with_default("GOOGLE_MODEL", "gemini-3.0-flash"),
                 model_provider="google-genai",
@@ -51,7 +52,7 @@ def load_llm() -> BaseChatModel:
 
     elif provider == "ollama":
         model = cast(
-            "BaseChatModel",
+            "BaseLanguageModel",
             init_chat_model(
                 model=_get_env_with_default("OLLAMA_MODEL", "gpt-oss:20b"),
                 model_provider="ollama",
@@ -65,7 +66,7 @@ def load_llm() -> BaseChatModel:
 
     elif provider == "openai":
         model = cast(
-            "BaseChatModel",
+            "BaseLanguageModel",
             init_chat_model(
                 model=_get_env_with_default("OPENAI_MODEL", "gpt-4o"),
                 model_provider="openai",
@@ -77,7 +78,7 @@ def load_llm() -> BaseChatModel:
 
     elif provider == "anthropic":
         model = cast(
-            "BaseChatModel",
+            "BaseLanguageModel",
             init_chat_model(
                 model=_get_env_with_default("ANTHROPIC_MODEL", "claude-opus-4-1"),
                 model_provider="anthropic",

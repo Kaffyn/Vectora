@@ -1,12 +1,12 @@
 """Testes de integração para persistência em banco de dados."""
 
 import asyncio
-import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import pytest
+
 from checkpointer import Checkpointer
-from state import State
 
 
 class TestDatabasePersistence:
@@ -22,7 +22,6 @@ class TestDatabasePersistence:
             async with Checkpointer(db_path) as checkpointer:
                 test_state = {"messages": ["msg1", "msg2"], "summary": "test"}
                 # Salvar (implementação específica)
-                pass
 
             # Recuperar estado em nova instância
             async with Checkpointer(db_path) as checkpointer:
@@ -100,6 +99,7 @@ class TestDatabasePersistence:
             # Abrir novamente (simula migração)
             async with Checkpointer(db_path) as checkpointer:
                 # Schema deve ser compatível
+                pass
 
     @pytest.mark.asyncio
     async def test_cleanup_and_vacuum(self):
