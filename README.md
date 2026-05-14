@@ -43,6 +43,30 @@ Nenhum Docker, nenhum banco de dados externo, nenhum container. O Vectora cria t
 
 ---
 
+## Servidor MCP (Model Context Protocol)
+
+O Vectora pode rodar como um servidor de contexto para outros agentes (como o **Paperclip** ou **Claude Desktop**).
+
+### Como rodar:
+```bash
+uv run vectora-mcp
+```
+O servidor iniciará via **Stdio**. Para configurar em outros agentes, use as seguintes configurações:
+
+**Exemplo de configuração (JSON):**
+```json
+{
+  "mcpServers": {
+    "vectora": {
+      "command": "uv",
+      "args": ["--directory", "/caminho/para/vectora", "run", "vectora-mcp"]
+    }
+  }
+}
+```
+
+---
+
 ## Stack Tecnológica
 
 - **Backend / Linguagem:** Python 3.14 gerenciado pelo [UV](https://github.com/astral-sh/uv)
