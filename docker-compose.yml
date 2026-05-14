@@ -1,0 +1,18 @@
+services:
+  vectora:
+    build: .
+    container_name: vectora-agent
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - VOYAGE_API_KEY=${VOYAGE_API_KEY}
+      - ENABLE_RAG=true
+      - ENABLE_MCP=true
+      - MCP_SERVER_URL=${MCP_SERVER_URL:-http://paperclip-agent:8001/mcp}
+      - LANCEDB_DIR=/app/data/lancedb
+      - EMBEDDING_QUEUE_DB=sqlite+aiosqlite:////app/data/embedding_queue.db
+      - LOG_LEVEL=INFO
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

@@ -1,7 +1,11 @@
+import asyncio
 import json
 import logging
 from datetime import UTC, datetime
 from typing import Any
+from uuid import uuid4
+
+from langchain_core.documents import Document as LCDoc
 
 from langchain.tools import BaseTool, tool
 from langchain_community.document_loaders import DirectoryLoader, TextLoader, WebBaseLoader
@@ -18,6 +22,19 @@ except ImportError:
 
 from embedding_queue import get_embedding_queue
 from tool_config import get_tool_config
+
+# Heavy RAG imports moved to top for better initialization
+try:
+    import lancedb
+    import pyarrow as pa
+    from langchain_voyageai import VoyageAIEmbeddings, VoyageAIRerank
+    from pydantic import SecretStr
+except ImportError:
+    lancedb = None
+    pa = pa
+    VoyageAIEmbeddings = None
+    VoyageAIRerank = None
+    SecretStr = None
 
 logger = logging.getLogger(__name__)
 
@@ -183,42 +200,49 @@ async def _get_mcp_tools() -> dict[str, Any] | None:
 
 @tool
 async def call_mcp_tool(tool_name: str, arguments: str) -> str:
-    """Chama uma ferramenta MCP (Model Context Protocol).
+    """Invoca ferramentas via MCP Protocol (Vector Context Protocol).
 
     Args:
-        tool_name: Nome da ferramenta MCP a chamar
-        arguments: String JSON com argumentos da ferramenta
+        tool_name: Nome da ferramenta no servidor MCP
+        arguments: Argumentos em formato JSON string
 
     Returns:
-        Resultado da execução da ferramenta MCP
+        Resposta da ferramenta MCP
     """
+    global _mcp_client
+
+    if MultiServerMCPClient is None:
+        return "MCP client not available. Install: pip install langchain-mcp-adapters"
+
     config = get_tool_config()
-
-    if not config.enable_mcp:
-        logger.warning("call_mcp_tool called but MCP disabled")
-        return "MCP is disabled. Enable ENABLE_MCP=true to use this tool."
-
-    client = await _get_mcp_client()
-    if client is None:
-        return "MCP client not available"
-
-    available_tools = await _get_mcp_tools()
-    if not available_tools or tool_name not in available_tools:
-        return f"Tool '{tool_name}' not found in MCP tools"
+    if not config.enable_mcp or not config.mcp_server_url:
+        return "MCP is disabled or server URL not configured."
 
     try:
-        result = await client.call_tool(tool_name, json.loads(arguments))
+        if _mcp_client is None:
+            _mcp_client = MultiServerMCPClient()
+            if config.mcp_transport_type == "http":
+                await _mcp_client.connect_sse(config.mcp_server_url)
+            else:
+                pass
+
         logger.info(
-            "mcp_tool_called",
-            extra={"tool_name": tool_name, "success": True},
+            "call_mcp_tool", extra={"tool": tool_name, "arguments": arguments}
         )
-        return json.dumps(result)
-    except Exception:
-        logger.exception(
-            "mcp_tool_call_failed",
-            extra={"tool_name": tool_name},
-        )
-        return f"Error calling MCP tool '{tool_name}'"
+
+        args_dict = json.loads(arguments)
+
+        async with asyncio.timeout(config.mcp_timeout):
+            result = await _mcp_client.ainvoke(tool_name, args_dict)
+
+        return str(result)
+
+    except asyncio.TimeoutError:
+        logger.error(f"MCP tool {tool_name} timed out after {config.mcp_timeout}s")
+        return f"Error: MCP tool {tool_name} timed out."
+    except Exception as e:
+        logger.exception("call_mcp_tool_failed", extra={"tool": tool_name})
+        return f"Error invoking MCP tool: {str(e)}"
 
 
 @tool
@@ -257,11 +281,6 @@ async def embedding(
         )
 
     try:
-        import lancedb
-        import pyarrow as pa
-        from langchain_voyageai import VoyageAIEmbeddings
-        from pydantic import SecretStr
-
         embeddings_model = VoyageAIEmbeddings(
             api_key=SecretStr(config.voyage_api_key),
             model=config.embedding_model,
@@ -270,7 +289,6 @@ async def embedding(
         vector = embeddings_model.embed_query(text)
         doc_id = str(uuid4())
 
-        # Conecta ao banco LanceDB local (cria diretório se não existir)
         db = await lancedb.connect_async(str(config.lancedb_path))
 
         schema = pa.schema(
@@ -278,7 +296,7 @@ async def embedding(
                 pa.field("id", pa.string()),
                 pa.field("vector", pa.list_(pa.float32(), len(vector))),
                 pa.field("text", pa.string()),
-                pa.field("metadata", pa.string()),  # JSON serializado
+                pa.field("metadata", pa.string()),
             ]
         )
 
@@ -322,7 +340,6 @@ async def embedding(
             extra={"collection": collection, "text_length": len(text)},
         )
 
-        # Fallback para fila de processamento assíncrono se configurado
         if config.embedding_queue_enabled:
             try:
                 queue = await get_embedding_queue(config.embedding_queue_db)
@@ -374,9 +391,8 @@ async def vector_search(
         return "RAG is disabled. Enable ENABLE_RAG=true to use this tool."
 
     try:
-        import lancedb
-        from langchain_voyageai import VoyageAIEmbeddings
-        from pydantic import SecretStr
+        if lancedb is None or VoyageAIEmbeddings is None:
+            return "LanceDB or Voyage AI dependencies missing."
 
         if not config.voyage_api_key:
             logger.error("vector_search called but VOYAGE_API_KEY not configured")
@@ -425,18 +441,13 @@ async def vector_search(
         ]
 
         # Reranking (opcional, melhora precisão)
-        if results and config.reranker_type == "voyage":
+        if results and config.reranker_type == "voyage" and VoyageAIRerank:
             try:
-                from langchain_voyageai import VoyageAIRerank
-
                 reranker = VoyageAIRerank(
                     api_key=SecretStr(config.voyage_api_key),
                     model=config.reranker_model,
                     top_k=config.reranker_top_k,
                 )
-
-                # Formata para o reranker (LangChain espera Document objects)
-                from langchain_core.documents import Document as LCDoc
 
                 docs_to_rerank = [
                     LCDoc(page_content=str(r["content"]), metadata=r["metadata"])
@@ -445,7 +456,6 @@ async def vector_search(
 
                 reranked_docs = reranker.compress_documents(docs_to_rerank, query)
 
-                # Reconstrói lista de resultados com base no rerank
                 results = [
                     {
                         "content": doc.page_content,

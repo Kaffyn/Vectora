@@ -40,7 +40,7 @@ class ToolConfig:
         )
     )
 
-    # Servidor MCP
+    # Servidor MCP (Vector Context Protocol)
     enable_mcp: bool = field(
         default_factory=lambda: os.getenv("ENABLE_MCP", "false").lower() == "true"
     )
@@ -56,6 +56,9 @@ class ToolConfig:
             os.getenv("MCP_COMMAND_ARGS", "")
         )
     )
+    mcp_timeout: int = field(
+        default_factory=lambda: int(os.getenv("MCP_TIMEOUT", "30"))
+    )
 
     # RAG — Vector Store: LanceDB (file-based, zero-config)
     enable_rag: bool = field(
@@ -68,10 +71,10 @@ class ToolConfig:
     # RAG — Embedding (Voyage AI)
     voyage_api_key: str = field(default_factory=lambda: os.getenv("VOYAGE_API_KEY", ""))
     embedding_model: str = field(
-        default_factory=lambda: os.getenv("EMBEDDING_MODEL", "voyage-4")
+        default_factory=lambda: os.getenv("EMBEDDING_MODEL", "voyage-3-lite")
     )
     embedding_dims: int = field(
-        default_factory=lambda: int(os.getenv("EMBEDDING_DIMS", "1024"))
+        default_factory=lambda: int(os.getenv("EMBEDDING_DIMS", "512"))
     )
 
     # RAG — Embedding Queue (SQLite fallback para falhas de API)
@@ -94,12 +97,12 @@ class ToolConfig:
         default_factory=lambda: float(os.getenv("RAG_SEARCH_MIN_SCORE", "0.5"))
     )
 
-    # RAG — Reranking (BM25 local ou Voyage API)
+    # RAG — Reranking (Voyage AI)
     reranker_type: str = field(
-        default_factory=lambda: os.getenv("RERANKER_TYPE", "bm25")
+        default_factory=lambda: os.getenv("RERANKER_TYPE", "voyage")
     )
     reranker_model: str = field(
-        default_factory=lambda: os.getenv("RERANKER_MODEL", "reranker-2.5-large")
+        default_factory=lambda: os.getenv("RERANKER_MODEL", "reranker-2-lite")
     )
     reranker_top_k: int = field(
         default_factory=lambda: int(os.getenv("RAG_RERANKER_TOP_K", "5"))
