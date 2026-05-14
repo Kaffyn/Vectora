@@ -33,7 +33,7 @@ dependencies = [
     "rank-bm25>=0.2.2",
     "python-dotenv>=1.0.0",
     # MCP Integration
-    "mcp>=0.1.0", 
+    "mcp>=0.1.0",
     "langchain-mcp-adapters>=0.1.0",
 ]
 
@@ -140,23 +140,6 @@ venv = ".venv"
 venvPath = "."
 executionEnvironments = [{ root = "src" }]
 
-[tool.ty]
-# Configure ty type checker for src directory layout
-root = ["src"]
-include = ["src", "tests"]
-exclude = [
-    "**/venv",
-    "**/.venv",
-    "**/env",
-    "**/.env",
-    "**/node_modules",
-    "**/__pycache__",
-]
-
-[[tool.ty.overrides]]
-# Allow broader imports in tests
-include = ["tests/**"]
-rules = { unresolved-import = "ignore", unresolved-attribute = "ignore" }
 
 [tool.pytest.ini_options]
 addopts = "-s --color=yes --tb=short"
