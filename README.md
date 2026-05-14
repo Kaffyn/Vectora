@@ -19,6 +19,27 @@ Utilizando o **MCP (Model Context Protocol)**, um Agente Principal (como o Paper
 
 ---
 
+## Pré-requisitos
+
+O Vectora suporta múltiplos provedores de LLM e recomenda usar **Gemini + Voyage AI** por oferecerem **APIs gratuitas com excelentes limites**:
+
+### Provedores de LLM Suportados
+
+| Provider          | API Key                                                       | Modelo Padrão    | Recomendação               |
+| ----------------- | ------------------------------------------------------------- | ---------------- | -------------------------- |
+| **Google Gemini** | [Obter gratuitamente](https://aistudio.google.com/app/apikey) | gemini-3.0-flash | ✅ Recomendado (free tier) |
+| **Ollama**        | Nenhuma (local)                                               | gpt-oss:20b      | Local sem custos           |
+| **OpenAI**        | [Obter aqui](https://platform.openai.com/api-keys)            | gpt-4o           | Pago                       |
+| **Anthropic**     | [Obter aqui](https://console.anthropic.com/)                  | claude-opus-4-1  | Pago                       |
+
+### Embedding (RAG) - Obrigatório
+
+| Provider      | API Key                                             | Recomendação                                |
+| ------------- | --------------------------------------------------- | ------------------------------------------- |
+| **Voyage AI** | [Obter gratuitamente](https://www.voyageai.com/api) | ✅ Recomendado (free tier com bons limites) |
+
+---
+
 ## Instalação
 
 Escolha uma das duas opções abaixo:
@@ -41,16 +62,20 @@ vectora chat
 ### Opção 2: Instalação via Docker
 
 ```bash
+# Crie um arquivo .env com suas configurações
+cp .env.example .env
+# Edite .env com suas API keys
+
 # Build da imagem
 docker build -t vectora:0.1.0 .
 
 # Execute o container
 docker run -it \
-  -e GOOGLE_API_KEY=seu-api-key \
+  --env-file .env \
   -v ~/.vectora:/root/.vectora \
   vectora:0.1.0
 
-# Ou use docker-compose
+# Ou use docker-compose (lê .env automaticamente)
 docker-compose up
 ```
 
@@ -67,6 +92,15 @@ O Vectora cria todos os arquivos necessários no diretório `~/.vectora/` automa
 
 O Vectora pode rodar como um servidor de contexto para outros agentes (como o **Paperclip** ou **Claude Desktop**).
 
+### Configuração de Ambiente
+
+Antes de executar, certifique-se de que o arquivo `.env` está configurado com as chaves necessárias:
+
+```bash
+cp .env.example .env
+# Edite .env com suas API keys (LLM_PROVIDER, GOOGLE_API_KEY, VOYAGE_API_KEY, etc)
+```
+
 ### Via UV:
 
 ```bash
@@ -77,7 +111,7 @@ vectora mcp-server
 
 ```bash
 docker run -it \
-  -e GOOGLE_API_KEY=seu-api-key \
+  --env-file .env \
   -v ~/.vectora:/root/.vectora \
   vectora:0.1.0 \
   vectora mcp-server
