@@ -33,7 +33,12 @@ class TestConfigLLMProvider:
 
     def test_get_llm_provider_returns_none_if_not_configured(self, monkeypatch):
         """Verificar que get_llm_provider retorna None se não configurado."""
+        # Limpar todas as variáveis relacionadas a LLM
         monkeypatch.delenv("LLM_PROVIDER", raising=False)
+        monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
         Config._instance = None  # Reset singleton
         config = Config.instance()
         provider = config.get_llm_provider()

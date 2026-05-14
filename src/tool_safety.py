@@ -62,9 +62,14 @@ def is_safe_regex_pattern(pattern: str) -> bool:
         r"(a+)*",
         r"(a*)+",
         r"(a+)+",
+        r"(a|a)*",
+        r"(a|a)+",
     ]
 
-    if any(dangerous in pattern for dangerous in dangerous_patterns):
+    # Remove anchors for pattern matching to catch variations like (a+)+$ and (a|a)*$
+    pattern_without_anchors = pattern.lstrip("^").rstrip("$")
+
+    if any(dangerous in pattern_without_anchors for dangerous in dangerous_patterns):
         return False
 
     try:

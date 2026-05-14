@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Literal
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -45,14 +44,17 @@ class Context:
     """
 
     user_id: str = "default"
-    user_type: Literal["plus", "enterprise", "pro"] = "plus"
-    thread_id: int
+    user_type: str
+    thread_id: str | int
     conversation_id: str | None = None
     created_at: str | None = None
     preferences: UserPreferences = field(default_factory=UserPreferences)
     features: FeatureFlags = field(default_factory=FeatureFlags)
 
     def __post_init__(self) -> None:
-        """Set created_at if not provided."""
+        """Set created_at if not provided and validate thread_id."""
+        if self.thread_id is None:
+            msg = "thread_id cannot be None"
+            raise ValueError(msg)
         if self.created_at is None:
             object.__setattr__(self, "created_at", datetime.now(UTC).isoformat())

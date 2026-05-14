@@ -30,12 +30,12 @@ def mock_llm() -> MockLLM:
 async def temp_db() -> AsyncGenerator[str, None]:
     """Create a temporary SQLite database for testing.
 
-    Yields the DSN path, cleans up after test.
+    Yields the file path (not DSN), cleans up after test.
     """
     temp_dir = tempfile.mkdtemp()
     db_path = Path(temp_dir) / "test.db"
 
-    yield f"sqlite:///{db_path}"
+    yield str(db_path)
 
     if db_path.exists():
         db_path.unlink()
@@ -47,7 +47,7 @@ async def checkpointer(temp_db: str) -> AsyncGenerator[AsyncSqliteSaver, None]:
 
     The checkpointer is used for persisting graph state.
     """
-    async with AsyncSqliteSaver(conn_string=temp_db) as saver:
+    async with AsyncSqliteSaver.from_conn_string(temp_db) as saver:
         yield saver
 
 

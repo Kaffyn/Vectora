@@ -59,11 +59,14 @@ Conversation language: {language_code}
 """
 
 
-def get_system_prompt() -> str:
-    """Obtém o prompt do sistema Vectora com idioma detectado automaticamente do SO.
+def get_system_prompt(language: str | None = None) -> str:
+    """Obtém o prompt do sistema Vectora com idioma especificado ou detectado automaticamente.
+
+    Args:
+        language: Código de idioma (ex: 'pt_BR', 'en_US') ou None para auto-detect
 
     Returns:
         String do prompt do sistema com código de idioma da conversa.
     """
-    lang_code = get_system_language()
+    lang_code = language or get_system_language()
     return SYSTEM_PROMPT.format(language_code=lang_code)
