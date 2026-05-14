@@ -23,7 +23,7 @@ class EmbeddingQueueRecord(Base):  # type: ignore[valid-type,misc]
     queue_id = Column(String(36), unique=True, nullable=False)
     text = Column(Text, nullable=False)
     collection = Column(String(255), nullable=False)
-    metadata = Column(String(4096), nullable=True)  # String JSON
+    doc_metadata = Column(String(4096), nullable=True)  # String JSON
     status = Column(
         String(20), default="pending"
     )  # pendente, processando, sucesso, falha
@@ -83,7 +83,7 @@ class EmbeddingQueue:
                     queue_id=queue_id,
                     text=text,
                     collection=collection,
-                    metadata=metadata_json,
+                    doc_metadata=metadata_json,
                     status="pending",
                 )
                 session.add(record)
