@@ -1,6 +1,5 @@
 """Testes unitários para o módulo de prompts (prompts.py)."""
 
-import pytest
 from prompts import get_system_prompt
 
 
@@ -39,9 +38,9 @@ class TestSystemPromptWithLanguageDetection:
         """Verificar que prompt é em português."""
         prompt = get_system_prompt(language="pt_BR")
         # Verificar caracteres português
-        assert any(
-            char in prompt for char in "áéíóúãõç"
-        ) or "português" in prompt.lower()
+        assert (
+            any(char in prompt for char in "áéíóúãõç") or "português" in prompt.lower()
+        )
 
     def test_system_prompt_with_default_language(self):
         """Verificar que prompt funciona com idioma padrão."""

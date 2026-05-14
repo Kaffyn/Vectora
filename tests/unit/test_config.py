@@ -1,9 +1,5 @@
 """Testes unitários para o módulo de configuração (config.py)."""
 
-import os
-import pytest
-from pathlib import Path
-
 from config import Config
 
 

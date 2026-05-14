@@ -1,7 +1,8 @@
 """Testes unitários para o módulo de utilidades (utils.py)."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 from utils import load_llm
 
@@ -89,7 +90,7 @@ class TestTrimMessages:
 
     def test_trim_messages_removes_old_messages(self):
         """Verificar que trim_messages remove mensagens antigas."""
-        from langchain_core.messages import HumanMessage, AIMessage
+        from langchain_core.messages import AIMessage, HumanMessage
 
         messages = [
             HumanMessage(content="msg1"),
@@ -103,7 +104,7 @@ class TestTrimMessages:
 
     def test_trim_messages_preserves_message_order(self):
         """Verificar que trim_messages preserva ordem das mensagens."""
-        from langchain_core.messages import HumanMessage, AIMessage
+        from langchain_core.messages import AIMessage, HumanMessage
 
         messages = [
             HumanMessage(content="msg1"),

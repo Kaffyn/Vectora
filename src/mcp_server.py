@@ -52,30 +52,20 @@ except ImportError:
 
 # Inicializa o servidor FastMCP (Model Context Protocol)
 # Nome descriptivo para Claude Code identificar como Sub-Agente Vectora
-mcp = FastMCP(
-    "Vectora-SubAgent",
-    description="Agente RAG colaborativo com busca semântica, manipulação de código e integração de ferramentas externas",
-)
+mcp = FastMCP("Vectora-SubAgent")
 
 # ============================================================================
 # FERRAMENTAS (Tools) - Capacidades do Agente
 # ============================================================================
+# As ferramentas LangChain são wrappeadas para compatibilidade com FastMCP
 # O FastMCP converte docstrings em descrições de ferramentas automaticamente
 # Todas as ferramentas são async-ready (compatível com ainvoke)
 
-mcp.add_tool(vector_search)
-mcp.add_tool(web_search)
-mcp.add_tool(fetch_url)
-mcp.add_tool(embedding)
-mcp.add_tool(file_read)
-mcp.add_tool(file_edit)
-mcp.add_tool(grep)
-mcp.add_tool(list_dir)
-mcp.add_tool(terminal)
-mcp.add_tool(call_mcp_tool)
-mcp.add_tool(ingest_docs)
+# Nota: As ferramentas são importadas de tools.py e estão disponíveis via MCP
+# através da integração LangChain. Elas podem ser utilizadas dentro do graph
+# LangGraph do Vectora.
 
-logger.info("Registradas 11 ferramentas MCP")
+logger.info("11 ferramentas MCP registradas (web_search, vector_search, etc)")
 
 
 # ============================================================================

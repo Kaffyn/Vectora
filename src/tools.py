@@ -5,10 +5,13 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from langchain_core.documents import Document as LCDoc
-
 from langchain.tools import BaseTool, tool
-from langchain_community.document_loaders import DirectoryLoader, TextLoader, WebBaseLoader
+from langchain_community.document_loaders import (
+    DirectoryLoader,
+    TextLoader,
+    WebBaseLoader,
+)
+from langchain_core.documents import Document as LCDoc
 
 try:
     from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults  # type: ignore
@@ -31,7 +34,7 @@ try:
     from pydantic import SecretStr
 except ImportError:
     lancedb = None
-    pa = pa
+    pa = None
     VoyageAIEmbeddings = None
     VoyageAIRerank = None
     SecretStr = None
@@ -226,9 +229,7 @@ async def call_mcp_tool(tool_name: str, arguments: str) -> str:
             else:
                 pass
 
-        logger.info(
-            "call_mcp_tool", extra={"tool": tool_name, "arguments": arguments}
-        )
+        logger.info("call_mcp_tool", extra={"tool": tool_name, "arguments": arguments})
 
         args_dict = json.loads(arguments)
 
@@ -237,12 +238,12 @@ async def call_mcp_tool(tool_name: str, arguments: str) -> str:
 
         return str(result)
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error(f"MCP tool {tool_name} timed out after {config.mcp_timeout}s")
         return f"Error: MCP tool {tool_name} timed out."
     except Exception as e:
         logger.exception("call_mcp_tool_failed", extra={"tool": tool_name})
-        return f"Error invoking MCP tool: {str(e)}"
+        return f"Error invoking MCP tool: {e!s}"
 
 
 @tool
@@ -262,7 +263,6 @@ async def embedding(
     Returns:
         String JSON com status: indexed/failed com doc_id ou mensagem de erro
     """
-    from uuid import uuid4
 
     config = get_tool_config()
 
@@ -583,7 +583,7 @@ async def ingest_docs(
         docs = loader.load()
     except Exception as e:
         logger.error(f"Error loading documents from {directory_path}: {e}")
-        return f"Error loading documents: {str(e)}"
+        return f"Error loading documents: {e!s}"
 
     if not docs:
         return f"No documents found in {directory_path} matching {glob_pattern}"
@@ -634,7 +634,6 @@ async def ingest_docs(
             "collection": collection,
         }
     )
-
 
 
 @tool

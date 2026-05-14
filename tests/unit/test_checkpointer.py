@@ -1,9 +1,9 @@
 """Testes unitários para o módulo de checkpointer (checkpointer.py)."""
 
-import asyncio
-import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
+import pytest
 
 from checkpointer import Checkpointer
 

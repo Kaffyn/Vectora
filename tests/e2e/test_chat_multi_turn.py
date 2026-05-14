@@ -2,6 +2,7 @@
 
 import pytest
 from langchain_core.messages import HumanMessage
+
 from context import Context
 
 
@@ -21,13 +22,7 @@ class TestChatMultiTurn:
         assert len(state_1["messages"]) > 0
 
         # Turno 2
-        input_2 = {
-            "messages": [
-                HumanMessage(
-                    content="Can you help me with Python?"
-                )
-            ]
-        }
+        input_2 = {"messages": [HumanMessage(content="Can you help me with Python?")]}
         state_2 = await test_graph.ainvoke(input_2, config=config, context=context)
         assert len(state_2["messages"]) > len(state_1["messages"])
 
@@ -65,9 +60,7 @@ class TestChatMultiTurn:
         for i in range(6):
             input_msg = {
                 "messages": [
-                    HumanMessage(
-                        content=f"Message {i}: Tell me about topic {i}"
-                    )
+                    HumanMessage(content=f"Message {i}: Tell me about topic {i}")
                 ]
             }
             state = await test_graph.ainvoke(input_msg, config=config, context=context)
@@ -90,11 +83,7 @@ class TestChatMultiTurn:
             initial_count = 0
 
         for i in range(3):
-            input_msg = {
-                "messages": [
-                    HumanMessage(content=f"Question {i}")
-                ]
-            }
+            input_msg = {"messages": [HumanMessage(content=f"Question {i}")]}
             state = await test_graph.ainvoke(input_msg, config=config, context=context)
             assert state["messages"] is not None
 
@@ -130,9 +119,7 @@ class TestChatMultiTurn:
         # 20 turnos
         for i in range(20):
             input_msg = {
-                "messages": [
-                    HumanMessage(content=f"Turn {i}: {i % 5} question")
-                ]
+                "messages": [HumanMessage(content=f"Turn {i}: {i % 5} question")]
             }
             state = await test_graph.ainvoke(input_msg, config=config, context=context)
             assert state["messages"] is not None
@@ -170,11 +157,7 @@ class TestChatWithTools:
         state_1 = await test_graph.ainvoke(input_msg, config=config, context=context)
 
         # Follow-up deve ter acesso ao resultado anterior
-        input_msg_2 = {
-            "messages": [
-                HumanMessage(content="Can you elaborate on that?")
-            ]
-        }
+        input_msg_2 = {"messages": [HumanMessage(content="Can you elaborate on that?")]}
         state_2 = await test_graph.ainvoke(input_msg_2, config=config, context=context)
 
         assert state_2["messages"] is not None

@@ -1,9 +1,9 @@
 """Testes de integração para persistência de RAG (LanceDB/vector store)."""
 
-import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch, MagicMock
+
+import pytest
 
 
 class TestRAGDocumentIngestion:
