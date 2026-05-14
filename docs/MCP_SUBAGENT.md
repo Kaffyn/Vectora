@@ -2,63 +2,44 @@
 
 ## O que é um Sub-Agente?
 
-Vectora não é apenas uma "ferramenta" ou "plugin". É um **agente colaborativo** com:
+Vectora não é apenas uma "ferramenta" ou "plugin". É um **agente colaborativo independente** com:
 
-1. **Raciocínio próprio** (LangGraph internal)
+1. **Raciocínio próprio** (LangGraph interno)
 2. **Conhecimento persistente** (SQLite + LanceDB)
-3. **Recursos expostos** (estado cognitivo via MCP Resources)
-4. **Ferramentas internas** (tools + integration capabilities)
+3. **Estado cognitivo exposto** (3 Resources via MCP)
+4. **Ferramentas internas** (11 tools usadas internamente pelo LangGraph)
 
-## Comunicação MCP: Stdio JSON-RPC
+**Diferença crítica:** Claude Code NÃO chama as tools do Vectora diretamente. Claude Code comunica-se COM o Vectora, e o Vectora internamente executa suas ferramentas com seu próprio raciocínio.
+
+## Comunicação MCP: Stdio JSON-RPC (Agent-to-Agent)
 
 ```
-Claude Code (Host Agent)
+Claude Code (Agente Host)
+    ↓ (lê estado)
+MCP Client: GET vectora://thread/123/context
     ↓
-MCP Client (stdin/stdout)
-    ↓
-Vectora MCP Server (stdio JSON-RPC)
-    ↓
-LangGraph (raciocínio interno)
-    ↓
-Tools (vector_search, web_search, file_read, etc)
-    ↓
-Response (resultado sintético)
+Vectora MCP Server ← (processa via LangGraph)
+    ├─ MAIN_NODE
+    ├─ TOOL_NODE (executa tools internas)
+    ├─ SUMMARIZER_NODE
+    └─ SUB_NODE
+    ↓ (responde)
+Resultado processado → Claude Code
 ```
 
-**Importante:** Não é HTTP/REST. É comunicação de processo via stdin/stdout (JSON-RPC padrão).
+**Ponto-chave:** O MCP **não expõe as 11 tools diretamente**. Expõe apenas:
+- **3 Resources**: estado cognitivo do Vectora (context, history, status)
+- **Protocolo JSON-RPC**: comunicação entre agentes via stdio
 
-## Arquitetura de Tools + Resources
+Não é HTTP/REST. É comunicação de processo (stdin/stdout) entre dois agentes LLM.
 
-### Tools (Capacidades)
+## O que é Exposto via MCP?
 
-O que o Vectora consegue **fazer**:
+### Resources (Único expostos via MCP)
 
-```python
-@mcp.tool()
-async def search_knowledge_base(query: str) -> str:
-    """Busca conhecimento técnico profundo no banco de dados local.
-    Use para: arquitetura, padrões de código, decisões técnicas anteriores.
-    ESSENCIAL para: entender projetos legados, revisar código."""
-    return await vector_search(query)
+O que Claude Code consegue **ler** sobre o estado do Vectora:
 
-@mcp.tool()
-async def search_web_real_time(query: str) -> str:
-    """Busca em tempo real na internet (DuckDuckGo).
-    Use para: bibliotecas novas, status de projetos, informações atuais."""
-    return await web_search(query)
-
-@mcp.tool()
-async def read_local_file(path: str) -> str:
-    """Lê arquivo do disco (com validação de path).
-    Use para: ler código fonte, documentação local, configurações."""
-    return await file_read(path)
-
-# ... e 7 outras tools
-```
-
-### Resources (Estado Cognitivo)
-
-O que o Claude Code consegue **ler** sobre o Vectora:
+**Obs:** As 11 ferramentas (web_search, vector_search, file_read, etc) são **internas do Vectora**. Claude Code não as chama diretamente. O Vectora as executa internamente quando processa requisições.
 
 ```python
 @mcp.resource("vectora://thread/{thread_id}/context")
@@ -100,18 +81,27 @@ async def get_status() -> Resource:
 ## Fluxo de Decisão do Claude Code
 
 ```
-Claude Code lê Context Resource
+Claude Code lê Resource: vectora://thread/123/context
 ↓
-"Vectora já tem conhecimento sobre X"
+"Vectora já sabe sobre: RAG, LanceDB, vector_search"
 ↓
-Claude Code decide: Chamar vector_search ou fazer web_search?
+Claude Code pensa: "Preciso de mais contexto. O que Vectora sabe sobre Redis?"
 ↓
-Chama tool apropriado
+Claude Code COMUNICA COM Vectora (via MCP JSON-RPC):
+"Preciso saber sobre Redis distributed cache"
 ↓
-Integra resultado com conhecimento anterior do Vectora
+Vectora internamente:
+  ├─ MAIN_NODE processa requisição
+  ├─ TOOL_NODE: executa web_search() e vector_search() internamente
+  ├─ SUMMARIZER_NODE: resume conhecimento
+  └─ Retorna resposta processada ao Claude Code
 ↓
-Resposta enriquecida
+Claude Code recebe: "Conhecimento coletado + contexto enriquecido"
+↓
+Claude Code sintetiza resposta ao usuário
 ```
+
+**Ponto crucial:** Claude Code comunica COM Vectora, não com as tools individuais.
 
 ## Configuração no Claude Code
 
@@ -143,54 +133,72 @@ python -m mcp.server src/mcp_server.py
 docker run -e GOOGLE_API_KEY=xxx vectora:0.1.0 mcp-server
 ```
 
-## Exemplo: Conversa entre Claude Code e Vectora
+## Exemplo: Comunicação entre Claude Code e Vectora
 
-### Passo 1: Claude Code lê o estado
+### Passo 1: Claude Code lê o estado do Vectora
 
 ```
-Claude Code: "Qual é o contexto atual do Vectora?"
+Claude Code: GET vectora://thread/123/context (via MCP)
 ↓
-Lê: vectora://thread/123/context
-↓
-Vectora responde: "Thread tem conhecimento sobre:
-- Arquitetura de RAG em LangGraph
-- Implementação de vector search em LanceDB
-- Padrões de error handling"
+Vectora responde (Resource):
+{
+  "status": "active",
+  "summary": "Thread tem conhecimento sobre:
+    - Arquitetura de RAG em LangGraph
+    - Implementação de vector search em LanceDB
+    - Padrões de error handling"
+}
 ```
 
-### Passo 2: Claude Code decide
+### Passo 2: Claude Code toma decisão informada
 
 ```
 Claude Code pensa:
-"O usuário perguntou sobre cache distribuído.
-Vectora já sabe sobre RAG + vector search,
-mas não menciona cache. Devo:
-1. Fazer web_search para info atualizada sobre Redis
-2. Depois perguntar ao Vectora como integrar com cache"
+"Usuário perguntou sobre cache distribuído.
+Vectora sabe sobre RAG + vector search,
+mas não menciona cache. Devo comunicar com Vectora
+para buscar info sobre Redis e integrar com seu conhecimento."
 ```
 
-### Passo 3: Claude Code executa
+### Passo 3: Claude Code comunica COM Vectora (não com as tools)
 
 ```
-Claude Code: chamar search_web_real_time("Redis distributed cache 2026")
+Claude Code: "Vectora, preciso que você pesquise
+e contextualize: como usar Redis com vector search?"
+
+(Enviado via MCP JSON-RPC)
 ↓
-Vectora executa: web_search("Redis distributed cache 2026")
+Vectora recebe requisição
 ↓
-Retorna: "Redis 7.2 suporta X, custo é Y, alternativas são Z"
+Vectora internamente (LangGraph):
+  1. MAIN_NODE: interpreta "pesquise sobre Redis"
+  2. TOOL_NODE: executa internally
+     ├─ web_search("Redis with vector search 2026")
+     └─ vector_search("cache patterns") em seu LanceDB
+  3. SUMMARIZER_NODE: compila conhecimento
+  4. Retorna resposta ao Claude Code
+↓
+Vectora responde: "Baseado em pesquisa + conhecimento local:
+  - Redis 7.2 suporta X
+  - Integração com vector search recomenda Y
+  - Exemplos: Z"
 ```
 
 ### Passo 4: Claude Code sintetiza
 
 ```
-Claude Code integra:
-- Conhecimento anterior do Vectora (RAG, LanceDB)
-- Novo conhecimento (Redis features)
-- Contexto da pergunta
+Claude Code recebe resposta processada do Vectora
 ↓
-Resposta ao usuário:
-"Baseado no conhecimento do Vectora + pesquisa realizada,
-recomendo: use Redis para cache, porque..."
+Claude Code integra com seu próprio conhecimento
+↓
+Resposta final ao usuário:
+"Recomendo integrar Redis com vector search, porque:
+- Vectora já usa LanceDB para embeddings
+- Redis pode cacheizar resultados
+- Melhora latência em X%"
 ```
+
+**Obs importante:** Em nenhum momento Claude Code chamou `web_search()` ou `vector_search()` diretamente. Essas são **ferramentas internas do Vectora**. Claude Code apenas comunicou uma requisição de alto nível ao Vectora.
 
 ## Por que Resources são fundamentais
 

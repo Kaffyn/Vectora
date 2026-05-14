@@ -26,9 +26,9 @@
 **Integração MCP (Sub-Agente):**
 
 - ✅ **MCP Server** (Vectora como Sub-Agente do Claude Code)
-  - 11 Tools (vector_search, web_search, file_read, terminal, etc)
-  - 3 Resources (thread context, history, status)
-  - Protocolo JSON-RPC via stdio (não HTTP)
+  - 3 Resources expostos (thread context, history, status)
+  - 11 Ferramentas internas (vector_search, web_search, file_read, etc — usadas internamente pelo LangGraph)
+  - Protocolo JSON-RPC via stdio (comunicação Agent-to-Agent, não HTTP)
   - Executa LangGraph internamente (raciocínio próprio)
 - ✅ **MCP Client** (consome MCPs de servidores externos)
 - ✅ Modo duplex simultâneo (servidor + cliente)
@@ -81,31 +81,44 @@
 
 **Arquitetura de Sub-Agente (MCP):**
 
-Vectora não é apenas uma "ferramenta" para o Claude Code, mas um **agente colaborativo** com seu próprio raciocínio:
+Vectora não é apenas uma "ferramenta" para o Claude Code, mas um **agente colaborativo independente** com seu próprio raciocínio. Claude Code **comunica com** Vectora, não chama suas ferramentas diretamente:
 
-1. **Tools** (capacidades):
-   - `vector_search` — Busca conhecimento técnico profundo
-   - `web_search` — Contexto externo em tempo real
+1. **Ferramentas Internas** (usadas pelo LangGraph do Vectora):
+   - `vector_search` — Busca conhecimento técnico profundo em LanceDB
+   - `web_search` — Contexto externo em tempo real via DuckDuckGo
    - `file_read`, `file_edit`, `terminal` — Manipulação de sistema
    - `grep`, `list_dir` — Exploração do codebase
+   - `embedding`, `ingest_docs`, `call_mcp_tool` — Integração e indexação
 
-2. **Resources** (estado cognitivo):
+2. **Resources Expostos via MCP** (lidos por Claude Code):
    - `vectora://thread/{id}/context` — Resumo do conhecimento coletado
    - `vectora://thread/{id}/history` — Histórico da conversa (últimas 5 msgs)
    - `vectora://status` — Status do servidor (LLM, RAG disponível, uptime)
 
-3. **Fluxo MCP (stdio JSON-RPC):**
+3. **Fluxo de Comunicação (stdio JSON-RPC):**
    ```
-   Claude Code → MCP Server Vectora → LangGraph internamente → Tools + Reasoning → Response
+   Claude Code
+       ↓ (lê Resources)
+   vectora://thread/123/context
+       ↓ (toma decisão)
+   Comunica com Vectora: "Preciso saber sobre X"
+       ↓
+   MCP Server Vectora
+       ↓ (processa internamente)
+   LangGraph: MAIN → TOOL → SUMMARIZER → SUB
+       ↓ (executa ferramentas internas)
+   web_search(), vector_search(), etc
+       ↓ (responde ao Claude Code)
+   Resultado processado
    ```
 
-O Claude Code lê o "estado do cérebro" do Vectora (Resources) antes de decidir que ferramenta chamar.
+**Ponto crítico:** Claude Code lê o "estado cognitivo" do Vectora (Resources) antes de comunicar requisições de alto nível. Não chama ferramentas individuais.
 
 **Integração com Paperclip:**
 
 - ✅ Funcionar como MCP Server via stdio
-- ✅ Expor 11 tools + 3 resources para orquestração do Paperclip
-- ✅ Executar LangGraph próprio (não apenas delegar funções)
+- ✅ Expor 3 Resources (context, history, status) para orquestração do Paperclip
+- ✅ Executar LangGraph próprio com 11 ferramentas internas (não apenas delegar funções)
 - ✅ Suportar contexto reduzido (resumo + últimas 2 msgs)
 
 ---
@@ -392,8 +405,8 @@ Capabilities: tools, prompts
 **Integração MCP:**
 
 - ✅ Funciona com Paperclip 100% (como Sub-Agente)
-- ✅ Expõe 11 tools + 3 resources via MCP (stdio JSON-RPC)
-- ✅ Executa LangGraph interno com raciocínio próprio
+- ✅ Expõe 3 Resources + comunicação Agent-to-Agent via MCP (stdio JSON-RPC)
+- ✅ Executa LangGraph interno com 11 ferramentas e raciocínio próprio
 - ✅ Documentado para outros clients MCP-compatíveis
 
 ---
