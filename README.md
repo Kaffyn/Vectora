@@ -1,7 +1,7 @@
 # Vectora
 
 O **Vectora** é um agente de IA open-source (licença Apache 2.0), self-hosted e **local-first**.
-Projetado para rodar com `uv sync` e nada mais — sem containers, sem serviços externos, sem configuração de infraestrutura pesada.
+Projetado para ser instalado com um comando (`uv tool install vectora`) ou via Docker — sem serviços externos, sem configuração de infraestrutura pesada.
 
 ## O Problema que o Vectora Resolve
 
@@ -21,25 +21,45 @@ Utilizando o **MCP (Model Context Protocol)**, um Agente Principal (como o Paper
 
 ## Instalação
 
-O Vectora requer apenas o [uv](https://github.com/astral-sh/uv) instalado.
+Escolha uma das duas opções abaixo:
+
+### Opção 1: Instalação via UV (Recomendado)
+
+Requer apenas o [uv](https://github.com/astral-sh/uv) instalado.
 
 ```bash
-# 1. Clone o repositório
-git clone https://github.com/seu-usuario/vectora
-cd vectora
+# Instale o Vectora globalmente
+uv tool install vectora
 
-# 2. Instale as dependências e configure o ambiente
-uv sync
+# Configure suas chaves (será criado em ~/.vectora/)
+vectora setup
 
-# 3. Configure suas chaves
-cp .env.example .env
-# Edite .env com sua VOYAGE_API_KEY e chaves de LLM
-
-# 4. Execute o chat TUI
-uv run vectora
+# Execute o chat TUI
+vectora chat
 ```
 
-Nenhum Docker, nenhum banco de dados externo, nenhum container. O Vectora cria todos os arquivos necessários no diretório `data/` automaticamente.
+### Opção 2: Instalação via Docker
+
+```bash
+# Build da imagem
+docker build -t vectora:0.1.0 .
+
+# Execute o container
+docker run -it \
+  -e GOOGLE_API_KEY=seu-api-key \
+  -v ~/.vectora:/root/.vectora \
+  vectora:0.1.0
+
+# Ou use docker-compose
+docker-compose up
+```
+
+O Vectora cria todos os arquivos necessários no diretório `~/.vectora/` automaticamente:
+
+- Banco de dados de sessões (SQLite)
+- Vector store para RAG (LanceDB)
+- Logs estruturados
+- Configurações
 
 ---
 
@@ -47,19 +67,55 @@ Nenhum Docker, nenhum banco de dados externo, nenhum container. O Vectora cria t
 
 O Vectora pode rodar como um servidor de contexto para outros agentes (como o **Paperclip** ou **Claude Desktop**).
 
-### Como rodar:
-```bash
-uv run vectora-mcp
-```
-O servidor iniciará via **Stdio**. Para configurar em outros agentes, use as seguintes configurações:
+### Via UV:
 
-**Exemplo de configuração (JSON):**
+```bash
+vectora mcp-server
+```
+
+### Via Docker:
+
+```bash
+docker run -it \
+  -e GOOGLE_API_KEY=seu-api-key \
+  -v ~/.vectora:/root/.vectora \
+  vectora:0.1.0 \
+  vectora mcp-server
+```
+
+O servidor iniciará via **Stdio JSON-RPC**. Para configurar em outros agentes, use as seguintes configurações:
+
+**Exemplo de configuração em Claude Desktop (JSON):**
+
 ```json
 {
   "mcpServers": {
     "vectora": {
       "command": "uv",
-      "args": ["--directory", "/caminho/para/vectora", "run", "vectora-mcp"]
+      "args": ["tool", "run", "vectora", "mcp-server"]
+    }
+  }
+}
+```
+
+**Ou via Docker:**
+
+```json
+{
+  "mcpServers": {
+    "vectora": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-it",
+        "-e",
+        "GOOGLE_API_KEY=seu-api-key",
+        "-v",
+        "~/.vectora:/root/.vectora",
+        "vectora:0.1.0",
+        "vectora",
+        "mcp-server"
+      ]
     }
   }
 }
@@ -80,23 +136,39 @@ O servidor iniciará via **Stdio**. Para configurar em outros agentes, use as se
 
 ## Persistência Local (File-Based)
 
-Toda a persistência do Vectora é baseada em arquivos locais no diretório `data/`:
+Toda a persistência do Vectora é baseada em arquivos locais no diretório `~/.vectora/`:
 
 ```
-data/
-├── vectora.db              # Histórico de conversas (SQLite via LangGraph checkpointer)
-├── embedding_queue.db      # Fila de embedding com retry (SQLite via SQLAlchemy async)
-└── lancedb/                # Vector Store para RAG semântico
+~/.vectora/
+├── config.toml             # Configurações (não-sensível)
+├── .env                    # Variáveis de ambiente (sensível)
+├── data/
+│   ├── vectora.db          # Histórico de conversas (SQLite via LangGraph checkpointer)
+│   ├── embedding_queue.db  # Fila de embedding com retry (SQLite via SQLAlchemy async)
+│   └── lancedb/            # Vector Store para RAG semântico
+├── logs/                   # Logs estruturados
+│   ├── vectora.log
+│   ├── mcp_client.log
+│   └── mcp_server.log
+└── keys/                   # Chaves de API encriptadas (opcional)
 ```
 
 **SQLite** (`aiosqlite` + `langgraph-checkpoint-sqlite`):
+
 - Armazena o histórico completo de todas as conversas com suporte a time-travel.
 - Gerencia a fila de embedding com retry automático em caso de falha de API.
 
 **LanceDB** (file-based, columnar):
+
 - Vector store para busca semântica via RAG de alta performance.
 - Ingestão automática via ferramenta `ingest_docs`.
 - Reranking integrado via VoyageAI.
+
+**Logs e Configuração:**
+
+- Logs estruturados em JSON para análise e debugging
+- Configurações salvas em TOML para fácil edição
+- Suporte a LangSmith para rastreamento de execução
 
 ---
 
