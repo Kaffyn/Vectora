@@ -9,7 +9,7 @@ from testing import (
 )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestGraphFlow:
     """Test suite for the graph execution flow."""
 

@@ -17,6 +17,14 @@ exclude: |
 
 repos:
   # ==========================================
+  # UV Lock Validation
+  # ==========================================
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.5.21
+    hooks:
+      - id: uv-lock
+
+  # ==========================================
   # Basic File Validation
   # ==========================================
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -54,7 +62,7 @@ repos:
   # Python Validation
   # ==========================================
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
+    rev: v0.15.12
     hooks:
       - id: ruff
         name: Ruff Lint (Python)
@@ -72,14 +80,16 @@ repos:
         args: ["--profile=black", "--line-length=100"]
         files: \.py$
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.14.1
+  - repo: local
     hooks:
-      - id: mypy
-        name: Mypy (Python Static Analysis)
-        files: \.py$
-        types_or: [text]
-        additional_dependencies: [types-PyYAML]
+      - id: ty
+        name: Ty (Python Type Checker)
+        entry: ty check src/
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [pre-commit]
+        verbose: true
 
   # ==========================================
   # TypeScript / JavaScript Validation

@@ -11,7 +11,7 @@ from tools import TOOLS_BY_NAME, embedding, vector_search
 class TestEmbeddingTool:
     """Test suite for the embedding tool."""
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_embedding_indexes_document(self: "TestEmbeddingTool") -> None:
         """Test embedding() successfully indexes a document in Qdrant."""
         test_text = "This is a test document about GraphQL."
@@ -41,7 +41,7 @@ class TestEmbeddingTool:
             assert result["point_id"] == "point_123"
             assert result["text_length"] == len(test_text)
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_embedding_with_metadata(
         self: "TestEmbeddingTool",
     ) -> None:
@@ -75,7 +75,7 @@ class TestEmbeddingTool:
             assert result["status"] == "indexed"
             mock_qdrant_instance.upsert.assert_called_once()
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_embedding_queue_fallback_on_api_failure(
         self: "TestEmbeddingTool",
     ) -> None:
@@ -110,7 +110,7 @@ class TestEmbeddingTool:
 class TestVectorSearchTool:
     """Test suite for the vector_search tool."""
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_vector_search_finds_documents(
         self: "TestVectorSearchTool",
     ) -> None:
@@ -147,7 +147,7 @@ class TestVectorSearchTool:
             assert "page_content" in result["results"][0]
             assert "relevance_score" in result["results"][0]
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_vector_search_no_results(
         self: "TestVectorSearchTool",
     ) -> None:
@@ -176,7 +176,7 @@ class TestVectorSearchTool:
             assert result["status"] == "no_results"
             assert result["count"] == 0
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_vector_search_multiple_collections(
         self: "TestVectorSearchTool",
     ) -> None:
@@ -207,7 +207,7 @@ class TestVectorSearchTool:
 
             assert result["status"] == "no_results"
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_vector_search_respects_min_score(
         self: "TestVectorSearchTool",
     ) -> None:
@@ -263,7 +263,7 @@ class TestRerankerInternal:
         assert "embedding" in tool_names
         assert "vector_search" in tool_names
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_reranker_bm25_mode(self: "TestRerankerInternal") -> None:
         """Test internal reranker uses BM25 when configured."""
         with patch("tools.get_tool_config") as mock_config:
@@ -291,7 +291,7 @@ class TestRerankerInternal:
             assert len(reranked) <= self.TOP_K_LIMIT
             assert all(hasattr(r, "payload") and hasattr(r, "score") for r in reranked)
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_reranker_reorders_results(
         self: "TestRerankerInternal",
     ) -> None:
@@ -324,7 +324,7 @@ class TestRerankerInternal:
 class TestRAGEnd2End:
     """Integration tests for RAG workflow."""
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_rag_workflow_search_then_use_results(
         self: "TestRAGEnd2End",
     ) -> None:
@@ -361,7 +361,7 @@ class TestRAGEnd2End:
             assert len(result["results"]) == 1
             assert "GraphQL" in result["results"][0]["page_content"]
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_rag_workflow_no_results_then_index(
         self: "TestRAGEnd2End",
     ) -> None:

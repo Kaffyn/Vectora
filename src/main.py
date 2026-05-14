@@ -1,13 +1,14 @@
+import asyncio
 import logging
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph.state import RunnableConfig
-from langgraph.pregel.main import BaseCheckpointSaver, asyncio
+from langgraph.pregel.main import BaseCheckpointSaver
 from rich import print
 from rich.markdown import Markdown
 from rich.prompt import Prompt
 
-from checkpointer import build_checkpointer_sqlite
+from checkpointer import Checkpointer
 from constants import DB_DSN
 from context import Context
 from graph import build_graph
@@ -69,8 +70,14 @@ async def run_graph(checkpointer: BaseCheckpointSaver) -> None:
         if isinstance(last_message, AIMessage):
             model_name = last_message.response_metadata.get("model", "")
 
+        content = (
+            last_message.content
+            if hasattr(last_message, "content")
+            else str(last_message)
+        )
+
         print(f"[bold cyan]RESPOSTA ({model_name}): \n")
-        print(Markdown(last_message.text))
+        print(Markdown(content))
         print(last_message)
         print(Markdown("\n\n  ---  \n\n"))
 
@@ -86,7 +93,7 @@ async def main() -> None:
     async with (
         async_lifespan(),
         # build_checkpointer_psql(DB_DSN) as checkpointer,
-        build_checkpointer_sqlite(DB_DSN) as checkpointer,
+        Checkpointer(DB_DSN) as checkpointer,
     ):
         logger.info("Checkpointer initialized (SQLite)")
         await run_graph(checkpointer)

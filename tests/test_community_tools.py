@@ -8,7 +8,7 @@ from langgraph.graph.state import RunnableConfig
 from testing import human_message
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestWebSearchTool:
     """Tests for DuckDuckGo web search tool."""
 
@@ -39,7 +39,7 @@ class TestWebSearchTool:
         assert not config_obj.enable_web_search
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestFetchURLTool:
     """Tests for web fetch (URL reader) tool."""
 
@@ -79,7 +79,7 @@ class TestFetchURLTool:
         assert config_obj.allowed_domains == ["allowed.com", "other.com"]
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestDatabaseTool:
     """Tests for SQL database tool."""
 
@@ -125,7 +125,7 @@ class TestDatabaseTool:
         assert config.database_url == "sqlite:///test.db"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestMCPTool:
     """Tests for MCP server integration."""
 
@@ -159,7 +159,7 @@ class TestMCPTool:
         assert config.mcp_server_url == "ws://localhost:5000"
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestToolConfiguration:
     """Tests for tool configuration management."""
 
@@ -209,7 +209,7 @@ class TestToolConfiguration:
         assert "query_database" not in TOOLS_BY_NAME
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestToolsIntegration:
     """Integration tests for tools within the graph."""
 

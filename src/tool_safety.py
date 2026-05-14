@@ -115,7 +115,7 @@ def is_safe_shell_command(command: str) -> bool:
         "unlink",
     }
 
-    first_word = command.split()[0] if command.split() else ""
+    first_word = command.split(maxsplit=1)[0] if command.split() else ""
 
     if first_word not in allowed_commands:
         return False

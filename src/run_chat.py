@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 if __name__ == "__main__":
@@ -14,4 +15,4 @@ if __name__ == "__main__":
     else:
         from chat import run_chat
 
-        run_chat()
+        asyncio.run(run_chat())

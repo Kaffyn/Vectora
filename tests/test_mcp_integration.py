@@ -39,7 +39,7 @@ class MockMCPClient:
         raise ValueError(msg)
 
 
-@pytest.fixture()
+@pytest.fixture
 def reset_mcp_cache():
     """Reset MCP client cache between tests."""
     import src.tools
@@ -54,7 +54,7 @@ def reset_mcp_cache():
 class TestMCPClientConnection:
     """Test MCP client connection and caching."""
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_mcp_client_disabled(self, reset_mcp_cache):
         """Test that client is None when MCP is disabled."""
         with patch("src.tools.get_tool_config") as mock_config:
@@ -62,7 +62,7 @@ class TestMCPClientConnection:
             client = await _get_mcp_client()
             assert client is None
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_mcp_client_missing_config(self, reset_mcp_cache):
         """Test that client is None when server not configured."""
         with patch("src.tools.get_tool_config") as mock_config:
@@ -72,7 +72,7 @@ class TestMCPClientConnection:
             client = await _get_mcp_client()
             assert client is None
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_mcp_client_http_transport(self, reset_mcp_cache):
         """Test HTTP client creation."""
         with (
@@ -89,7 +89,7 @@ class TestMCPClientConnection:
             assert client is not None
             mock_mcp_class.assert_called_once()
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_mcp_client_stdio_transport(self, reset_mcp_cache):
         """Test stdio transport configuration."""
         with (
@@ -114,7 +114,7 @@ class TestMCPClientConnection:
             assert config["transport"] == "stdio"
             assert config["command"] == "npx"
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_mcp_client_caching(self, reset_mcp_cache):
         """Test that MCP client is cached and reused."""
         with (
@@ -140,7 +140,7 @@ class TestMCPClientConnection:
 class TestMCPToolsRetrieval:
     """Test MCP tools retrieval and caching."""
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_get_mcp_tools_success(self, reset_mcp_cache):
         """Test successful retrieval of MCP tools."""
         with (
@@ -159,7 +159,7 @@ class TestMCPToolsRetrieval:
             assert "multiply" in tools
             assert "greet" in tools
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_get_mcp_tools_caching(self, reset_mcp_cache):
         """Test that MCP tools are cached."""
         with (
@@ -179,7 +179,7 @@ class TestMCPToolsRetrieval:
 
             assert tools1 is tools2
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_get_mcp_tools_connection_failed(self, reset_mcp_cache):
         """Test graceful failure when connection fails."""
         with (
@@ -196,7 +196,7 @@ class TestMCPToolsRetrieval:
 class TestMCPIntegrationScenarios:
     """Integration scenarios for MCP."""
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_mcp_workflow_http_transport(self, reset_mcp_cache):
         """Test complete MCP workflow with HTTP transport."""
         with (
@@ -218,7 +218,7 @@ class TestMCPIntegrationScenarios:
             tools = await _get_mcp_tools()
             assert len(tools) == 3
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_mcp_workflow_stdio_transport(self, reset_mcp_cache):
         """Test complete MCP workflow with stdio transport."""
         with (

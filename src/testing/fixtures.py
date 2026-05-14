@@ -14,19 +14,19 @@ from state import State
 from testing.mocks import MockLLM
 
 
-@pytest.fixture()
+@pytest.fixture
 def test_context() -> Context:
     """Provide a test context with user_type='plus'."""
     return Context(user_type="plus", thread_id=1)
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_llm() -> MockLLM:
     """Provide a mock LLM for deterministic testing."""
     return MockLLM()
 
 
-@pytest.fixture()
+@pytest.fixture
 async def temp_db() -> AsyncGenerator[str, None]:
     """Create a temporary SQLite database for testing.
 
@@ -41,7 +41,7 @@ async def temp_db() -> AsyncGenerator[str, None]:
         db_path.unlink()
 
 
-@pytest.fixture()
+@pytest.fixture
 async def checkpointer(temp_db: str) -> AsyncGenerator[AsyncSqliteSaver, None]:
     """Provide an AsyncSqliteSaver with temporary database.
 
@@ -51,7 +51,7 @@ async def checkpointer(temp_db: str) -> AsyncGenerator[AsyncSqliteSaver, None]:
         yield saver
 
 
-@pytest.fixture()
+@pytest.fixture
 def vector_store_dir() -> str:
     """Provide a temporary LanceDB directory for testing.
 
@@ -64,7 +64,7 @@ def vector_store_dir() -> str:
     return temp_dir
 
 
-@pytest.fixture()
+@pytest.fixture
 async def test_graph(
     mock_llm: MockLLM, checkpointer: AsyncSqliteSaver
 ) -> CompiledStateGraph[State, Context, State, State]:

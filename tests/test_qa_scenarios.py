@@ -9,7 +9,7 @@ from testing import (
 )
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestQAScenarios:
     """QA Bot test scenarios for end-to-end validation."""
 

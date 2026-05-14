@@ -1,13 +1,13 @@
 # Vectora
 
-O **Vectora** é um projeto open-source (licença Apache 2.0) e self-hosted.
-Ele está sendo desenvolvido para ser altamente flexível em sua infraestrutura e armazenamento, integrando tecnologias de ponta em agentes e inteligência artificial.
+O **Vectora** é um agente de IA open-source (licença Apache 2.0), self-hosted e **local-first**.
+Projetado para rodar com `uv sync` e nada mais — sem containers, sem serviços externos, sem configuração de infraestrutura.
 
 ## O Problema que o Vectora Resolve
 
 O **Vectora** tem o **RAG (Retrieval-Augmented Generation)** em seu coração. Modelos de IA frequentemente sofrem de defasagem de conhecimento e não foram treinados nas versões mais recentes da sua _stack_ (como as últimas atualizações do Next.js, Hono, Bun, Playwright, Axios, Zustand, TypeScript, etc.).
 
-Através do Vectora, a sua IA passa a dominar essas tecnologias de forma instantânea. Basta fornecer a documentação desses projetos para o nosso **Vector Bucket**, e o próprio Vectora realiza a ingestão e indexação automática para você. No futuro, lançaremos uma **Asset Library** para que a comunidade possa publicar e baixar _buckets_ completos com um clique.
+Através do Vectora, a sua IA passa a dominar essas tecnologias de forma instantânea. Basta fornecer a documentação desses projetos para o nosso **Vector Bucket**, e o próprio Vectora realiza a ingestão e indexação automática para você.
 
 Além do conhecimento externo, o Vectora resolve o **problema de contexto da sua própria aplicação**, injetando na IA um entendimento profundo de como cada ponto da sua arquitetura local funciona.
 
@@ -25,25 +25,86 @@ O Vectora Code é a nossa interface CLI completa, onde o Vectora atua como o Age
 
 Além do uso puro via terminal, toda a potência do Vectora Code também está disponível para ser integrada nativamente em IDEs modernas (como Zed, Neovim, etc.) através do **ACP (Agent Client Protocol)**.
 
+---
+
+## Instalação
+
+O Vectora requer apenas o [uv](https://github.com/astral-sh/uv) instalado.
+
+```bash
+# 1. Clone o repositório
+git clone https://github.com/seu-usuario/vectora
+cd vectora
+
+# 2. Instale as dependências
+uv sync
+
+# 3. Configure suas chaves
+cp .env.example .env
+# Edite .env com sua chave de API de LLM
+
+# 4. Execute o chat TUI
+uv run python src/run_chat.py
+```
+
+Nenhum Docker, nenhum banco de dados externo, nenhum container. O Vectora cria todos os arquivos necessários no diretório `data/` automaticamente.
+
+---
+
 ## Stack Tecnológica
 
 - **Backend / Linguagem:** Python gerenciado pelo [UV](https://github.com/astral-sh/uv)
-- **API:** [FastAPI](https://fastapi.tiangolo.com/)
 - **UI no Terminal:** [Rich](https://rich.readthedocs.io/) + [Textual](https://textual.textualize.io/)
 - **Orquestração de LLMs:** LangChain + LangGraph (Grafos, Fluxos e Memory)
-- **Busca em Tempo Real:** [Meilisearch](https://www.meilisearch.com/)
-- **Cache e Semantic Caching:** [Valkey](https://valkey.io/)
-- **Memória de Longo Prazo:** PostgreSQL
-- **Vector Store (RAG):** Camada de abstração com dois provedores (LanceDB e Qdrant)
+- **Vector Store (RAG):** [LanceDB](https://lancedb.github.io/lancedb/) — file-based, zero-config
+- **Persistência de Sessões:** SQLite via `aiosqlite` — file-based, zero-config
 
 ---
 
 ## Modelos e IA
 
-O Vectora conta com a **VoyageAI** como seu motor principal para:
+O Vectora é compatível com os principais provedores de LLM:
 
-- **Embeddings:** Geração de embeddings vetoriais para representação semântica robusta de textos e imagens.
-- **Reranker:** Reordenação de resultados de busca com alta performance e precisão.
+| Provedor       | Variável            | Modelo padrão      |
+| -------------- | ------------------- | ------------------ |
+| Google Gemini  | `GOOGLE_API_KEY`    | `gemini-2.0-flash` |
+| OpenAI         | `OPENAI_API_KEY`    | `gpt-4o`           |
+| Anthropic      | `ANTHROPIC_API_KEY` | `claude-opus-4-5`  |
+| Ollama (local) | `OLLAMA_BASE_URL`   | `llama3.2`         |
+
+Para RAG com embeddings, o Vectora usa **VoyageAI** (`VOYAGE_API_KEY`) para geração de embeddings e reranking.
+
+---
+
+## Persistência Local (File-Based)
+
+Toda a persistência do Vectora é baseada em arquivos locais. O diretório `data/` é criado automaticamente:
+
+```
+data/
+├── vectora.db              # Histórico de conversas (SQLite via LangGraph checkpointer)
+├── embedding_queue.db      # Fila de embedding com retry (SQLite via SQLAlchemy async)
+└── lancedb/                # Vector Store para RAG semântico
+    ├── articles/           # Coleção padrão
+    ├── wiki/
+    ├── api_docs/
+    └── knowledge_base/
+```
+
+**SQLite** (`aiosqlite` + `langgraph-checkpoint-sqlite`):
+
+- Armazena o histórico completo de todas as conversas com suporte a time-travel
+- Gerencia a fila de embedding com retry automático em caso de falha de API
+- Totalmente assíncrono, sem bloqueio do event loop
+
+**LanceDB** (file-based, columnar):
+
+- Vector store para busca semântica via RAG
+- Cria tabelas por coleção automaticamente na primeira indexação
+- Suporte nativo a embeddings via pyarrow schema
+- Busca vetorial por similaridade de cosseno
+
+---
 
 ## Deep Agents
 
@@ -58,35 +119,6 @@ Desenvolvido com inspiração na equipe do LangChain / LangGraph, o projeto apre
 - **Autonomia:** Orquestração via subagentes especializados, isolando contextos técnicos do objetivo principal.
 
 ---
-
-## Bancos de Dados e Search
-
-- **Checkpointers:**
-  - **PostgreSQL:** Banco de dados relacional para armazenar históricos de conversas, perfis de usuários e dados relacionais que exigem alta consistência e transações ACID.
-  - **SQLite:** Banco de dados relacional para armazenar históricos de conversas, perfis de usuários e dados relacionais que exigem alta consistência e transações ACID. **Embarcado**, sem necessidade de container.
-- **Vector Store (RAG):** O Vectora implementa uma **Camada de Abstração** via LangChain focada em duas opções de bancos de vetores via variável de ambiente (`VECTOR_STORE_TYPE`):
-  - **LanceDB:** A escolha padrão, file-based e altamente performático, ideal para a maioria dos casos "zero config". Não possui suporte nativo ao algoritmo HNSW.
-  - **Qdrant:** Alternativa que suporta nativamente **HNSW**, perfeita para alta performance de busca e grandes escalas. Pode rodar 100% local no modo standalone (via driver Python/Rust) ou via container Docker se não puder ser instalado localmente.
-- **Meilisearch (Busca):** Fornece recursos avançados de busca em tempo real (tolerância a erros de digitação, busca facetada). **Embarcado**, sem necessidade de container.
-- **RAG Híbrido:** Uma grande vantagem competitiva da stack do Vectora é a união de tecnologias:
-  - Busca por palavra-chave (BM25) via **Meilisearch**.
-  - Busca semântica via **Vector DB** (LanceDB ou Qdrant).
-  - Reclassificação inteligente com **VoyageAI Reranker**.
-- **Valkey (Cache e Semantic Caching):** Atua não apenas como cache tradicional em memória, mas como o motor para o **Semantic Caching** ("Response RAG"). O Valkey armazena as respostas da LLM e avalia perguntas futuras através de similaridade vetorial. Se uma nova pergunta for semanticamente muito semelhante a uma já respondida, o Vectora devolve a resposta instantaneamente da memória RAM (latência quase zero). Isso economiza tokens de APIs externas, corta custos drasticamente e entrega respostas em milissegundos. Em Docker, um container próprio é usado. No modo standalone local, o sistema oferece um _fallback_ (em memória/arquivo via pickle/json) caso um servidor Valkey não esteja configurado.
-
----
-
-## Flexibilidade de Implantação
-
-O Vectora foi arquitetado para ser flexível, rodando conforme as necessidades da sua infraestrutura:
-
-A arquitetura baseia-se em uma estratégia **"Dual-Mode"**:
-
-1. **Docker Compose (Para Servidores/VPS):** A forma mais simples de iniciar e escalar. Orquestra automaticamente containers isolados e interconectados para a aplicação, PostgreSQL, Valkey, etc.
-2. **Instalação Standalone (Para Desenvolvimento Local / Bare Metal):** Instale o serviço principal do Vectora localmente via Python/UV. Remove a barreira de entrada enquanto mantém a robustez.
-3. **Dependências Opcionais:** Através de _extras_ do Python no gerenciador de pacotes, os usuários instalam apenas o que precisam (ex: `pip install "vectora[qdrant]"` ou `vectora[full]`).
-4. **Bring Your Own DB (BYOD):** Total compatibilidade com serviços gerenciados na nuvem (Supabase, Neon, AWS RDS, etc).
-5. **Ferramentas de Migração:** O projeto prevê utilitários fáceis para a migração de dados caso o usuário comece local (ex: LanceDB) e decida escalar para uma infraestrutura dedicada (ex: pgvector no VPS).
 
 ## Licença
 

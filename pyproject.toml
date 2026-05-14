@@ -21,8 +21,8 @@ dependencies = [
   "langchain-voyageai",
   "langgraph",
   "langgraph-checkpoint-sqlite",
+  "pyarrow",
   "python-dotenv",
-  "qdrant-client<2",
   "rank-bm25",
   "rich",
   "sqlalchemy",
@@ -90,6 +90,7 @@ ignore = [
 "src/tools.py" = ["PLR0911", "S602"]  # Multiple returns acceptable; shell=True in terminal() is safe with whitelist
 "src/nodes.py" = ["E501"]  # Long lines necessary for tool configuration
 "src/setup_wizard.py" = ["S603", "RUF006", "F841"]  # Textual TUI, subprocess safe, task reference kept for event loop
+"src/checkpointer.py" = ["N802"]  # Checkpointer usa PascalCase intencionalmente (context manager usado como classe)
 
 [tool.ruff.format]
 quote-style = "double"
@@ -142,6 +143,12 @@ testpaths = ["tests"]
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
+    "ty>=0.0.35",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

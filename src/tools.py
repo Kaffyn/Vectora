@@ -6,12 +6,12 @@ from langchain.tools import BaseTool, tool
 from langchain_community.document_loaders import WebBaseLoader
 
 try:
-    from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults
+    from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults  # type: ignore
 except ImportError:
     DuckDuckGoSearchResults = None
 
 try:
-    from langchain_mcp_adapters import MultiServerMCPClient
+    from langchain_mcp_adapters import MultiServerMCPClient  # type: ignore
 except ImportError:
     MultiServerMCPClient = None
 
@@ -128,16 +128,28 @@ async def _get_mcp_client() -> Any | None:
 
     config = get_tool_config()
 
-    if not config.mcp_servers:
+    if not config.mcp_server_url and not config.mcp_command:
         logger.debug("No MCP servers configured")
         return None
 
     try:
-        _mcp_client = MultiServerMCPClient(servers=config.mcp_servers)
+        # Constrói dicionário de servidores com base nos campos reais do ToolConfig
+        servers: dict[str, Any] = {}
+        if config.mcp_server_url:
+            servers["default"] = {
+                "url": config.mcp_server_url,
+                "transport": config.mcp_transport_type,
+            }
+        if config.mcp_command:
+            servers["local"] = {
+                "command": config.mcp_command,
+                "args": config.mcp_command_args or [],
+                "transport": "stdio",
+            }
+
+        _mcp_client = MultiServerMCPClient(servers=servers)
         await _mcp_client.__aenter__()
-        logger.info(
-            "MCP client initialized", extra={"servers": list(config.mcp_servers.keys())}
-        )
+        logger.info("MCP client initialized", extra={"servers": list(servers.keys())})
         return _mcp_client
     except Exception:
         logger.exception("Failed to initialize MCP client")
@@ -211,18 +223,18 @@ async def call_mcp_tool(tool_name: str, arguments: str) -> str:
 async def embedding(
     text: str, collection: str = "articles", metadata: dict[str, Any] | None = None
 ) -> str:
-    """Indexa um documento com embedding no banco de dados vetorial Qdrant.
+    """Indexa um documento com embedding no banco de dados vetorial LanceDB.
 
-    Gera embeddings usando Voyage AI e indexa na coleção especificada.
-    Retorna o ID do ponto indexado ou um erro se falhar.
+    Gera embeddings usando Voyage AI e indexa na coleção (tabela) especificada.
+    LanceDB é file-based — nenhum container ou servidor é necessário.
 
     Args:
         text: Texto do documento a indexar
-        collection: Coleção Qdrant (articles, wiki, api_docs, knowledge_base)
+        collection: Nome da coleção/tabela LanceDB (articles, wiki, api_docs, knowledge_base)
         metadata: Dicionário opcional de metadados (source, author, timestamp, etc)
 
     Returns:
-        String JSON com status: indexed/failed com point_id ou mensagem de erro
+        String JSON com status: indexed/failed com doc_id ou mensagem de erro
     """
     from uuid import uuid4
 
@@ -243,57 +255,53 @@ async def embedding(
         )
 
     try:
+        import lancedb
+        import pyarrow as pa
         from langchain_voyageai import VoyageAIEmbeddings
-        from qdrant_client import QdrantClient
-        from qdrant_client.models import Distance, PointStruct, VectorParams
+        from pydantic import SecretStr
 
         embeddings_model = VoyageAIEmbeddings(
-            api_key=config.voyage_api_key,
+            api_key=SecretStr(config.voyage_api_key),
             model=config.embedding_model,
         )
 
         vector = embeddings_model.embed_query(text)
+        doc_id = str(uuid4())
 
-        qdrant_client = QdrantClient(
-            url=config.qdrant_url,
-            api_key=config.qdrant_api_key,
+        # Conecta ao banco LanceDB local (cria diretório se não existir)
+        db = await lancedb.connect_async(str(config.lancedb_path))
+
+        schema = pa.schema(
+            [
+                pa.field("id", pa.string()),
+                pa.field("vector", pa.list_(pa.float32(), len(vector))),
+                pa.field("text", pa.string()),
+                pa.field("metadata", pa.string()),  # JSON serializado
+            ]
         )
 
         try:
-            qdrant_client.get_collection(collection)
+            table = await db.open_table(collection)
         except Exception:
-            qdrant_client.create_collection(
-                collection_name=collection,
-                vectors_config=VectorParams(
-                    size=len(vector),
-                    distance=Distance.COSINE,
-                ),
-            )
-            logger.info(
-                "qdrant_collection_created",
-                extra={"collection": collection},
-            )
+            table = await db.create_table(collection, schema=schema)
+            logger.info("lancedb_table_created", extra={"collection": collection})
 
-        point_id = str(uuid4())
-        qdrant_client.upsert(
-            collection_name=collection,
-            points=[
-                PointStruct(
-                    id=point_id,
-                    vector=vector,
-                    payload={
-                        "page_content": text,
-                        "metadata": metadata or {},
-                    },
-                )
-            ],
+        await table.add(
+            [
+                {
+                    "id": doc_id,
+                    "vector": vector,
+                    "text": text,
+                    "metadata": json.dumps(metadata or {}),
+                }
+            ]
         )
 
         logger.info(
             "embedding_indexed",
             extra={
                 "collection": collection,
-                "point_id": point_id,
+                "doc_id": doc_id,
                 "text_length": len(text),
             },
         )
@@ -301,7 +309,7 @@ async def embedding(
         return json.dumps(
             {
                 "status": "indexed",
-                "point_id": point_id,
+                "doc_id": doc_id,
                 "collection": collection,
             }
         )
@@ -324,11 +332,13 @@ async def embedding(
 async def vector_search(
     query: str, collection: str = "articles", limit: int = 5
 ) -> str:
-    """Busca o banco de dados vetorial por documentos similares.
+    """Busca o banco de dados vetorial LanceDB por documentos similares.
+
+    LanceDB é file-based — nenhum container ou servidor é necessário.
 
     Args:
         query: String da consulta de busca
-        collection: Nome da coleção Qdrant
+        collection: Nome da tabela LanceDB
         limit: Número máximo de resultados a retornar
 
     Returns:
@@ -341,8 +351,9 @@ async def vector_search(
         return "RAG is disabled. Enable ENABLE_RAG=true to use this tool."
 
     try:
+        import lancedb
         from langchain_voyageai import VoyageAIEmbeddings
-        from qdrant_client import QdrantClient
+        from pydantic import SecretStr
 
         if not config.voyage_api_key:
             logger.error("vector_search called but VOYAGE_API_KEY not configured")
@@ -354,26 +365,19 @@ async def vector_search(
             )
 
         embeddings_model = VoyageAIEmbeddings(
-            api_key=config.voyage_api_key,
+            api_key=SecretStr(config.voyage_api_key),
             model=config.embedding_model,
         )
 
         query_vector = embeddings_model.embed_query(query)
 
-        qdrant_client = QdrantClient(
-            url=config.qdrant_url,
-            api_key=config.qdrant_api_key,
-        )
+        db = await lancedb.connect_async(str(config.lancedb_path))
 
         try:
-            search_results = qdrant_client.search(
-                collection_name=collection,
-                query_vector=query_vector,
-                limit=limit,
-            )
+            table = await db.open_table(collection)
         except Exception:
             logger.warning(
-                "Collection not found or search failed",
+                "LanceDB table not found",
                 extra={"collection": collection},
             )
             return json.dumps(
@@ -383,14 +387,18 @@ async def vector_search(
                 }
             )
 
+        search_results = await (
+            table.vector_search(query_vector).limit(limit).to_pandas()
+        )
+
         results = [
             {
-                "id": point.id,
-                "score": point.score,
-                "content": point.payload.get("page_content", ""),
-                "metadata": point.payload.get("metadata", {}),
+                "id": str(row["id"]),
+                "score": float(row.get("_distance", 0.0)),
+                "content": row["text"],
+                "metadata": json.loads(row.get("metadata", "{}")),
             }
-            for point in search_results
+            for _, row in search_results.iterrows()
         ]
 
         logger.info(
@@ -662,9 +670,7 @@ def terminal(command: str) -> str:
             },
         )
 
-        return (
-            output if output else f"Command executed with exit code {result.returncode}"
-        )
+        return output or f"Command executed with exit code {result.returncode}"
 
     except sp.TimeoutExpired:
         logger.warning(

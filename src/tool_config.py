@@ -1,10 +1,19 @@
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 
 @dataclass
 class ToolConfig:
-    """Configuration for external tools with environment variable support."""
+    """Configuração de ferramentas do Vectora — MVP local-first.
+
+    Toda a infraestrutura é file-based:
+    - Vector Store: LanceDB (diretório local)
+    - Embedding Queue: SQLite (arquivo local)
+    - Checkpointer: SQLite (arquivo local)
+
+    Não há dependências de containers externos (PostgreSQL, Qdrant, Valkey).
+    """
 
     # Ferramenta de Busca Web
     enable_web_search: bool = field(
@@ -24,20 +33,10 @@ class ToolConfig:
         )
     )
 
-    # Operações de Arquivo (file_read, file_edit, grep, list_dir)
+    # Operações de Arquivo (file_read, file_edit, grep, list_dir, terminal)
     enable_file_operations: bool = field(
-        default_factory=lambda: os.getenv("ENABLE_FILE_OPERATIONS", "true").lower()
-        == "true"
-    )
-
-    # Ferramenta de Banco de Dados
-    enable_database: bool = field(
-        default_factory=lambda: os.getenv("ENABLE_DATABASE", "false").lower() == "true"
-    )
-    database_url: str | None = field(default_factory=lambda: os.getenv("DATABASE_URL"))
-    allowed_tables: list[str] | None = field(
-        default_factory=lambda: _parse_comma_separated(
-            os.getenv("DATABASE_ALLOWED_TABLES", "")
+        default_factory=lambda: (
+            os.getenv("ENABLE_FILE_OPERATIONS", "true").lower() == "true"
         )
     )
 
@@ -51,55 +50,43 @@ class ToolConfig:
     mcp_transport_type: str = field(
         default_factory=lambda: os.getenv("MCP_TRANSPORT_TYPE", "http")
     )
-    # "http" para HTTP/WebSocket, "stdio" para subprocesso local
     mcp_command: str | None = field(default_factory=lambda: os.getenv("MCP_COMMAND"))
-    # Para transporte stdio: comando a executar (ex: "python", "npx")
     mcp_command_args: list[str] | None = field(
         default_factory=lambda: _parse_comma_separated(
             os.getenv("MCP_COMMAND_ARGS", "")
         )
     )
-    # Para transporte stdio: argumentos do comando (ex: "server.py", "chrome-devtools-mcp")
 
-    # RAG - Embedding (Voyage AI)
+    # RAG — Vector Store: LanceDB (file-based, zero-config)
     enable_rag: bool = field(
         default_factory=lambda: os.getenv("ENABLE_RAG", "true").lower() == "true"
     )
+    lancedb_dir: str = field(
+        default_factory=lambda: os.getenv("LANCEDB_DIR", "./data/lancedb")
+    )
+
+    # RAG — Embedding (Voyage AI)
     voyage_api_key: str = field(default_factory=lambda: os.getenv("VOYAGE_API_KEY", ""))
     embedding_model: str = field(
         default_factory=lambda: os.getenv("EMBEDDING_MODEL", "voyage-4")
     )
-    # Opções: voyage-4 (geral), voyage-4-lite (economia), voyage-code-3 (código), etc
     embedding_dims: int = field(
         default_factory=lambda: int(os.getenv("EMBEDDING_DIMS", "1024"))
     )
 
-    # RAG - Embedding Queue (Fallback)
+    # RAG — Embedding Queue (SQLite fallback para falhas de API)
     embedding_queue_enabled: bool = field(
-        default_factory=lambda: os.getenv("EMBEDDING_QUEUE_ENABLED", "true").lower()
-        == "true"
+        default_factory=lambda: (
+            os.getenv("EMBEDDING_QUEUE_ENABLED", "true").lower() == "true"
+        )
     )
     embedding_queue_db: str = field(
         default_factory=lambda: os.getenv(
-            "EMBEDDING_QUEUE_DB", "sqlite:///./data/embedding_queue.db"
+            "EMBEDDING_QUEUE_DB", "sqlite+aiosqlite:///./data/embedding_queue.db"
         )
     )
 
-    # RAG - Vector Store (Qdrant)
-    qdrant_url: str = field(
-        default_factory=lambda: os.getenv("QDRANT_URL", "http://localhost:6333")
-    )
-    qdrant_api_key: str | None = field(
-        default_factory=lambda: os.getenv("QDRANT_API_KEY")
-    )
-    qdrant_collections: list[str] = field(
-        default_factory=lambda: _parse_comma_separated(
-            os.getenv("QDRANT_COLLECTIONS", "articles,wiki,api_docs,knowledge_base")
-        )
-        or ["articles", "wiki", "api_docs", "knowledge_base"]
-    )
-
-    # RAG - Busca Vetorial
+    # RAG — Busca Vetorial
     default_search_top_k: int = field(
         default_factory=lambda: int(os.getenv("RAG_SEARCH_TOP_K", "10"))
     )
@@ -107,18 +94,23 @@ class ToolConfig:
         default_factory=lambda: float(os.getenv("RAG_SEARCH_MIN_SCORE", "0.5"))
     )
 
-    # RAG - Reranking (BM25 ou Voyage)
+    # RAG — Reranking (BM25 local ou Voyage API)
     reranker_type: str = field(
         default_factory=lambda: os.getenv("RERANKER_TYPE", "bm25")
     )
-    # "bm25" = local (MVP), "voyage" = API
     reranker_model: str = field(
         default_factory=lambda: os.getenv("RERANKER_MODEL", "reranker-2.5-large")
     )
-    # Opções: reranker-2.5-large, reranker-2.5-mbxl, etc
     reranker_top_k: int = field(
         default_factory=lambda: int(os.getenv("RAG_RERANKER_TOP_K", "5"))
     )
+
+    @property
+    def lancedb_path(self) -> Path:
+        """Retorna o caminho absoluto do diretório LanceDB, criando se necessário."""
+        path = Path(self.lancedb_dir)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
 
 def _parse_comma_separated(value: str) -> list[str] | None:

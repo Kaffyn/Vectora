@@ -2,6 +2,7 @@ import logging
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage
+from langchain_core.runnables import Runnable
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
 
@@ -17,10 +18,11 @@ tool_node = ToolNode(tools=TOOLS)
 
 # Inicializa LLM com ferramentas uma única vez no carregamento do módulo (não por invocação)
 _llm_base: BaseChatModel | None = None
-_llm_with_tools: BaseChatModel | None = None
+# bind_tools() retorna Runnable, não BaseChatModel — tipagem correta evita erro de atributo
+_llm_with_tools: Runnable | None = None
 
 
-def _get_llm_with_tools() -> BaseChatModel:
+def _get_llm_with_tools() -> Runnable:
     """Retorna LLM em cache com ferramentas vinculadas (inicializado uma vez por processo)."""
     global _llm_with_tools
     if _llm_with_tools is None:
@@ -29,7 +31,14 @@ def _get_llm_with_tools() -> BaseChatModel:
     return _llm_with_tools
 
 
-def call_llm(state: State, runtime: Runtime[Context]) -> State:
+async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
+    """Nó principal: invoca o LLM com o histórico completo e ferramentas vinculadas.
+
+    Assíncrono para não bloquear o event loop durante a chamada de rede ao LLM.
+    Retorna um dict parcial — o LangGraph atualiza apenas as chaves presentes,
+    sem exigir todos os campos do State TypedDict.
+    O retorno `{"messages": [result]}` faz append via reducer `add_messages`.
+    """
     ctx = runtime.context
     user_type = ctx.user_type
 
@@ -51,7 +60,7 @@ def call_llm(state: State, runtime: Runtime[Context]) -> State:
     system_prompt = SystemMessage(content=get_system_prompt())
     messages_with_system = [system_prompt, *list(state["messages"])]
 
-    result = llm_with_config.invoke(
+    result = await llm_with_config.ainvoke(
         messages_with_system,
     )
 
@@ -62,6 +71,7 @@ def call_llm(state: State, runtime: Runtime[Context]) -> State:
         },
     )
 
+    # add_messages faz append automaticamente — não sobrescreve o histórico
     return {"messages": [result]}
 
 

@@ -1,10 +1,11 @@
+import asyncio
 import logging
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Self
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
-from langgraph.pregel.main import BaseCheckpointSaver
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.text import Text
@@ -12,7 +13,7 @@ from textual.app import App, ComposeResult, on
 from textual.containers import Container
 from textual.widgets import Footer, Header, Input, RichLog, Static
 
-from checkpointer import build_checkpointer_sqlite
+from checkpointer import Checkpointer
 from constants import DB_DSN
 from context import Context
 from graph import build_graph
@@ -74,38 +75,90 @@ class ChatInput(Input):
 
 
 class ChatContainer(Static):
-    """Container for chat components."""
+    """Container for chat components.
 
-    messages: list[BaseMessage] = []
-    graph: CompiledStateGraph[State, Context, State, State] | None = None
-    checkpointer: BaseCheckpointSaver | None = None
+    Recebe o grafo já compilado via injeção de dependência no construtor.
+    O log é uma view do estado do checkpointer (Pull Model) — não há estado
+    paralelo de mensagens nesta classe.
+    """
+
     thread_id: int = 1
     context: Context
 
-    def __init__(self) -> None:
-        """Initialize the chat container."""
+    def __init__(self, graph: CompiledStateGraph[State, Context, State, State]) -> None:
+        """Initialize the chat container with an injected, pre-built graph."""
         super().__init__()
+        self.graph = graph
         self.context = Context(user_type="plus", thread_id=self.thread_id)
 
     async def on_mount(self) -> None:
-        """Initialize the application when mounted."""
+        """Display welcome message and focus input on mount.
+
+        A inicialização de recursos pesados (checkpointer, grafo) é feita
+        externamente em `run_chat()`, antes de instanciar este widget.
+        O `on_mount` apenas configura a UI inicial.
+        """
         chat_log = self.query_one(ChatMessages)
+
+        config = RunnableConfig(configurable={"thread_id": self.thread_id})
         try:
-            async with async_lifespan():
-                async with build_checkpointer_sqlite(DB_DSN) as checkpointer:
-                    self.checkpointer = checkpointer
-                    self.graph = build_graph(checkpointer)
-                    chat_log.add_system_message(
-                        "Bem-vindo ao Vectora! 🤖 Digite suas perguntas abaixo."
-                    )
-                    self.query_one(ChatInput).focus()
+            # Pull Model: verifica se há histórico anterior no checkpointer
+            existing_state = await self.graph.aget_state(config)
+            prior_messages: Sequence[BaseMessage] = existing_state.values.get(
+                "messages", []
+            )
+
+            if prior_messages:
+                chat_log.add_system_message(
+                    f"Sessão retomada — {len(prior_messages)} mensagem(s) carregada(s) do banco."
+                )
+                self._render_messages(chat_log, prior_messages)
+            else:
+                chat_log.add_system_message(
+                    "Bem-vindo ao Vectora! 🤖 Digite suas perguntas abaixo."
+                )
         except Exception:
-            logger.exception("Failed to initialize chat", exc_info=True)
-            chat_log.add_system_message("Erro ao inicializar: <error>")
+            logger.exception("Falha ao verificar estado anterior")
+            chat_log.add_system_message(
+                "Bem-vindo ao Vectora! 🤖 Digite suas perguntas abaixo."
+            )
+
+        self.query_one(ChatInput).focus()
+
+    def _render_messages(
+        self, chat_log: ChatMessages, messages: Sequence[BaseMessage]
+    ) -> None:
+        """Re-renderiza o log completo a partir de uma sequência de mensagens.
+
+        O log é limpo e reconstruído a partir do estado lido do checkpointer,
+        garantindo que a view seja sempre um reflexo fiel do banco de dados.
+        """
+        chat_log.clear()
+        for msg in messages:
+            content = msg.content if hasattr(msg, "content") else str(msg)
+            if not isinstance(content, str):
+                content = str(content)
+
+            if isinstance(msg, HumanMessage):
+                chat_log.add_human_message(content)
+            elif isinstance(msg, AIMessage):
+                model_name = (
+                    msg.response_metadata.get("model", "")
+                    if hasattr(msg, "response_metadata")
+                    else ""
+                )
+                chat_log.add_ai_message(content, model_name)
+            # ToolMessages e outros tipos são silenciados na UI (detalhes de implementação)
 
     @on(Input.Submitted)
     async def on_submit(self, event: Input.Submitted) -> None:
-        """Handle input submission."""
+        """Handle input submission using the Pull Model.
+
+        Fluxo:
+        1. Invoca o grafo com a mensagem do usuário (escreve no checkpointer)
+        2. Lê o estado atualizado do checkpointer (fonte da verdade)
+        3. Re-renderiza o log completo a partir do banco
+        """
         event.stop()
         user_input = event.value
         chat_log = self.query_one(ChatMessages)
@@ -120,12 +173,7 @@ class ChatContainer(Static):
             return
 
         try:
-            chat_log.add_human_message(user_input)
             chat_input.value = ""
-
-            if self.graph is None or self.checkpointer is None:
-                chat_log.add_system_message("Chat não inicializado corretamente")
-                return
 
             config = RunnableConfig(
                 configurable={"thread_id": self.thread_id},
@@ -137,24 +185,29 @@ class ChatContainer(Static):
             )
 
             human_message = HumanMessage(user_input)
-            result = await self.graph.ainvoke(
+
+            # Passo 1: Invocar o grafo — escreve o resultado no checkpointer (SQLite)
+            await self.graph.ainvoke(
                 {"messages": [human_message]},
                 config=config,
                 context=self.context,
             )
 
-            last_message = result["messages"][-1]
-            model_name = ""
+            # Passo 2: Pull Model — ler o estado oficial do banco de dados
+            current_state = await self.graph.aget_state(config)
+            updated_messages: Sequence[BaseMessage] = current_state.values.get(
+                "messages", []
+            )
 
-            if isinstance(last_message, AIMessage):
-                model_name = last_message.response_metadata.get("model", "")
-
-            chat_log.add_ai_message(last_message.text, model_name)
-            self.messages = result["messages"]
+            # Passo 3: Re-renderizar o log como uma view do banco
+            self._render_messages(chat_log, updated_messages)
 
             logger.info(
                 "User input processed",
-                extra={"thread_id": self.thread_id, "model": model_name},
+                extra={
+                    "thread_id": self.thread_id,
+                    "total_messages": len(updated_messages),
+                },
             )
 
         except Exception:
@@ -192,27 +245,42 @@ class VectoraChatApp(App[Any]):
         ("ctrl+c", "quit", "Sair"),
     ]
 
+    def __init__(self, graph: CompiledStateGraph[State, Context, State, State]) -> None:
+        """Initialize with a pre-built graph (dependency injection)."""
+        super().__init__()
+        self.graph = graph
+
     def compose(self) -> ComposeResult:
         """Compose the main layout."""
         yield Header()
         yield ChatHeader()
-        yield ChatContainer()
+        yield ChatContainer(self.graph)
         yield Footer()
 
 
-def run_chat() -> None:
-    """Run the chat application."""
+async def run_chat() -> None:
+    """Inicializa recursos assíncronos e executa o chat TUI.
+
+    O checkpointer e o grafo são construídos aqui, fora do Textual,
+    no mesmo event loop que o App irá usar via `run_async()`. Isso evita
+    deadlocks causados por `async with` dentro de `on_mount`.
+    """
     from log_setup import setup_logging
 
     setup_logging()
     logger.info("Vectora Chat TUI started")
 
-    app = VectoraChatApp()
-    try:
-        app.run()
-    finally:
-        logger.info("Vectora Chat TUI ended")
+    async with async_lifespan(), Checkpointer(DB_DSN) as checkpointer:
+        logger.info("Checkpointer SQLite initialized")
+        graph = build_graph(checkpointer)
+        logger.info("Graph compiled, starting TUI")
+
+        app = VectoraChatApp(graph)
+        try:
+            await app.run_async()
+        finally:
+            logger.info("Vectora Chat TUI ended")
 
 
 if __name__ == "__main__":
-    run_chat()
+    asyncio.run(run_chat())

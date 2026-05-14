@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from datetime import UTC, datetime
@@ -238,14 +239,24 @@ class EmbeddingQueue:
             logger.info("embedding_queue_closed")
 
 
-# Instância singleton global
+# Instância singleton global com lock para evitar race condition em async
 _queue: EmbeddingQueue | None = None
+_queue_lock: asyncio.Lock = asyncio.Lock()
 
 
 async def get_embedding_queue(db_url: str) -> EmbeddingQueue:
-    """Obtém ou cria instância global da fila de embedding."""
+    """Obtém ou cria instância global da fila de embedding de forma thread-safe.
+
+    O `asyncio.Lock` garante que apenas uma coroutine inicializa `_queue`,
+    eliminando a race condition quando chamadas simultâneas chegam antes da
+    primeira inicialização completar.
+    """
     global _queue
-    if _queue is None:
-        _queue = EmbeddingQueue(db_url)
-        await _queue.init()
+    if _queue is not None:
+        return _queue
+    async with _queue_lock:
+        # Double-check após adquirir o lock
+        if _queue is None:
+            _queue = EmbeddingQueue(db_url)
+            await _queue.init()
     return _queue
