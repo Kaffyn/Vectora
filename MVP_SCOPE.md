@@ -26,7 +26,7 @@
 **Integração MCP (Sub-Agente):**
 
 - ✅ **MCP Server** (Vectora como Sub-Agente do Claude Code)
-  - 10 Tools (vector_search, web_search, file_read, terminal, etc)
+  - 11 Tools (vector_search, web_search, file_read, terminal, etc)
   - 3 Resources (thread context, history, status)
   - Protocolo JSON-RPC via stdio (não HTTP)
   - Executa LangGraph internamente (raciocínio próprio)
@@ -41,7 +41,7 @@
 - ✅ Auto-detecção de chaves em variáveis de ambiente
 - ✅ Links diretos para obter API keys
 
-**10 Ferramentas Implementadas:**
+**11 Ferramentas Implementadas:**
 
 1. ✅ `web_search` — DuckDuckGo real-time
 2. ✅ `fetch_url` — Extração de conteúdo
@@ -53,6 +53,7 @@
 8. ✅ `terminal` — Execução shell com whitelist
 9. ✅ `list_dir` — Listagem recursiva
 10. ✅ `call_mcp_tool` — Invocar MCPs externos
+11. ✅ `ingest_docs` — Ingestão em lote de documentos
 
 **Testing:**
 
@@ -103,7 +104,7 @@ O Claude Code lê o "estado do cérebro" do Vectora (Resources) antes de decidir
 **Integração com Paperclip:**
 
 - ✅ Funcionar como MCP Server via stdio
-- ✅ Expor 10 tools + 3 resources para orquestração do Paperclip
+- ✅ Expor 11 tools + 3 resources para orquestração do Paperclip
 - ✅ Executar LangGraph próprio (não apenas delegar funções)
 - ✅ Suportar contexto reduzido (resumo + últimas 2 msgs)
 
@@ -314,9 +315,9 @@ Capabilities: tools, prompts
 - [x] Auto-retry inteligente
 - [x] LangSmith integration
 
-### Fase 3: 10 Ferramentas
+### Fase 3: 11 Ferramentas
 
-- [x] Todas as 10 tools implementadas
+- [x] Todas as 11 tools implementadas
 - [x] Whitelisting seguro
 - [x] Logging estruturado
 - [x] Type hints completos
@@ -369,7 +370,7 @@ Capabilities: tools, prompts
 
 **Funcionalidade:**
 
-- ✅ 10/10 ferramentas operacionais
+- ✅ 11/11 ferramentas operacionais
 - ✅ RAG end-to-end funcionando
 - ✅ MCP Server/Client integrados
 - ✅ CLI Textual responsiva
@@ -391,7 +392,7 @@ Capabilities: tools, prompts
 **Integração MCP:**
 
 - ✅ Funciona com Paperclip 100% (como Sub-Agente)
-- ✅ Expõe 10 tools + 3 resources via MCP (stdio JSON-RPC)
+- ✅ Expõe 11 tools + 3 resources via MCP (stdio JSON-RPC)
 - ✅ Executa LangGraph interno com raciocínio próprio
 - ✅ Documentado para outros clients MCP-compatíveis
 
