@@ -140,7 +140,27 @@ venv = ".venv"
 venvPath = "."
 executionEnvironments = [{ root = "src" }]
 
+[tool.ty]
+# Configure ty type checker for src directory layout
+root = ["src"]
+include = ["src", "tests"]
+exclude = [
+    "**/venv",
+    "**/.venv",
+    "**/env",
+    "**/.env",
+    "**/node_modules",
+    "**/__pycache__",
+]
+
+[[tool.ty.overrides]]
+# Allow broader imports in tests
+include = ["tests/**"]
+rules = { unresolved-import = "ignore", unresolved-attribute = "ignore" }
+
 [tool.pytest.ini_options]
 addopts = "-s --color=yes --tb=short"
 pythonpath = ["src"]
 testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
