@@ -31,6 +31,7 @@ from checkpointer import Checkpointer
 from constants import DB_DSN
 from context import Context
 from graph import build_graph
+from langsmith_integration import create_trace_context
 from log_setup import setup_logging
 from state import State
 from utils import async_lifespan
@@ -201,12 +202,24 @@ class ChatContainer(Static):
 
             human_message = HumanMessage(user_input)
 
-            # Passo 1: Invocar o grafo — escreve o resultado no checkpointer (SQLite)
-            await self.graph.ainvoke(
-                {"messages": [human_message]},
-                config=config,
-                context=self.context,
+            # Trace com LangSmith (se habilitado)
+            trace_context = await create_trace_context(
+                run_name="chat_message_processing",
+                context={
+                    "user_id": self.context.user_id,
+                    "user_type": self.context.user_type,
+                    "thread_id": self.context.thread_id,
+                    "correlation_id": self.context.correlation_id,
+                },
             )
+
+            # Passo 1: Invocar o grafo — escreve o resultado no checkpointer (SQLite)
+            with trace_context:
+                await self.graph.ainvoke(
+                    {"messages": [human_message]},
+                    config=config,
+                    context=self.context,
+                )
 
             # Passo 2: Pull Model — ler o estado oficial do banco de dados
             current_state = await self.graph.aget_state(config)

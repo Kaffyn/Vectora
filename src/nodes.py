@@ -14,6 +14,7 @@ from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
 
 from context import Context
+from langsmith_integration import create_trace_context, log_llm_call
 from memory_store import get_memory_store
 from prompts import get_system_prompt
 from state import State
@@ -116,14 +117,37 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
 
     messages_with_system = [system_prompt, *memory_messages, *trimmed_messages]
 
-    result = await llm_with_config.ainvoke(
-        messages_with_system,
+    # Trace com LangSmith se habilitado
+    trace_context = await create_trace_context(
+        run_name="vectora_llm_call",
+        context={
+            "user_id": str(ctx.user_id),
+            "user_type": ctx.user_type,
+            "thread_id": str(ctx.thread_id),
+            "correlation_id": str(ctx.correlation_id),
+        },
     )
+
+    with trace_context:
+        import time
+
+        start_time = time.time()
+        result = await llm_with_config.ainvoke(
+            messages_with_system,
+        )
+        duration_ms = (time.time() - start_time) * 1000
+
+        # Log LLM metrics
+        log_llm_call(
+            model=model,
+            duration_ms=duration_ms,
+        )
 
     logger.debug(
         "Resposta do LLM gerada",
         extra={
-            "tem_chamadas_de_ferramentas": bool(getattr(result, "tool_calls", None))
+            "tem_chamadas_de_ferramentas": bool(getattr(result, "tool_calls", None)),
+            "duration_ms": duration_ms,
         },
     )
 
