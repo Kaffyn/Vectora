@@ -33,16 +33,16 @@ class TestConfigLLMProvider:
 
     def test_get_llm_provider_returns_none_if_not_configured(self, monkeypatch):
         """Verificar que get_llm_provider retorna None se não configurado."""
-        # Limpar todas as variáveis relacionadas a LLM
-        monkeypatch.delenv("LLM_PROVIDER", raising=False)
-        monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-        monkeypatch.delenv("OLLAMA_BASE_URL", raising=False)
-        Config._instance = None  # Reset singleton
-        config = Config.instance()
-        provider = config.get_llm_provider()
-        assert provider is None
+        # Criar uma instância Mock que não lê .env
+        from unittest.mock import patch
+
+        with patch.object(Config, 'get', return_value=None):
+            Config._instance = None  # Reset singleton
+            config = Config.instance()
+            # Mock the get method to return None for all keys
+            config.get = lambda key, default=None: None
+            provider = config.get_llm_provider()
+            assert provider is None
 
     def test_get_llm_provider_with_fallback_to_env_var(self, monkeypatch):
         """Verificar detecção de provider por variáveis de ambiente."""

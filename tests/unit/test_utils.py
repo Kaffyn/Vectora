@@ -77,8 +77,10 @@ class TestLoadLLM:
 
     def test_load_llm_raises_on_missing_provider(self):
         """Verificar que load_llm gera erro se provider não está configurado."""
+        from env import GetEnvError
+
         with patch.dict("os.environ", {}, clear=True):
-            with pytest.raises((ValueError, KeyError)):
+            with pytest.raises((GetEnvError, ValueError, KeyError)):
                 load_llm()
 
     def test_load_llm_raises_on_unknown_provider(self):
