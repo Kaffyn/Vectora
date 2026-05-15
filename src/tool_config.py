@@ -2,21 +2,25 @@
 
 Dataclass managing all tool-specific settings: RAG, embedding, web search, MCP.
 Provides property-based normalization for database URLs and path handling.
+
+Todos os paths usam a estrutura roaming: ~/.vectora/
 """
 
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from constants import EMBEDDING_QUEUE_DSN, LANCEDB_DIR
+
 
 @dataclass
 class ToolConfig:
     """Configuração de ferramentas do Vectora — MVP local-first.
 
-    Toda a infraestrutura é file-based:
-    - Vector Store: LanceDB (diretório local)
-    - Embedding Queue: SQLite (arquivo local)
-    - Checkpointer: SQLite (arquivo local)
+    Toda a infraestrutura é file-based com roaming (~/.vectora/):
+    - Vector Store: LanceDB (diretório local em ~/.vectora/data/lancedb)
+    - Embedding Queue: SQLite (arquivo local em ~/.vectora/data/embedding_queue.db)
+    - Checkpointer: SQLite (arquivo local em ~/.vectora/data/vectora.db)
 
     Não há dependências de containers externos (PostgreSQL, Qdrant, Valkey).
     """
@@ -54,12 +58,12 @@ class ToolConfig:
         default_factory=lambda: int(os.getenv("MCP_TIMEOUT", "30"))
     )
 
-    # RAG — Vector Store: LanceDB (file-based, zero-config)
+    # RAG — Vector Store: LanceDB (file-based, roaming em ~/.vectora/data/lancedb)
     enable_rag: bool = field(
         default_factory=lambda: os.getenv("ENABLE_RAG", "true").lower() == "true"
     )
     lancedb_dir: str = field(
-        default_factory=lambda: os.getenv("LANCEDB_DIR", "./data/lancedb")
+        default_factory=lambda: os.getenv("LANCEDB_DIR", LANCEDB_DIR)
     )
 
     # RAG — Embedding (Voyage AI)
@@ -71,16 +75,14 @@ class ToolConfig:
         default_factory=lambda: int(os.getenv("EMBEDDING_DIMS", "512"))
     )
 
-    # RAG — Embedding Queue (SQLite com enfileiramento assíncrono)
+    # RAG — Embedding Queue (SQLite com enfileiramento assíncrono em ~/.vectora/data/)
     embedding_queue_enabled: bool = field(
         default_factory=lambda: (
             os.getenv("EMBEDDING_QUEUE_ENABLED", "true").lower() == "true"
         )
     )
     embedding_queue_db: str = field(
-        default_factory=lambda: os.getenv(
-            "EMBEDDING_QUEUE_DB", "sqlite+aiosqlite:///./data/embedding_queue.db"
-        )
+        default_factory=lambda: os.getenv("EMBEDDING_QUEUE_DB", EMBEDDING_QUEUE_DSN)
     )
 
     # RAG — Busca Vetorial

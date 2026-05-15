@@ -1,7 +1,7 @@
 """Configuration Management for Vectora Application.
 
 Singleton pattern for managing environment variables, API keys, and system settings.
-Supports .env file loading and runtime configuration updates.
+Supports hierarchical config loading: defaults.env (public) → .env (secrets).
 """
 
 import os
@@ -12,16 +12,32 @@ from dotenv import dotenv_values, find_dotenv, load_dotenv
 
 
 class Config:
-    """Gerencia configuração do Vectora desde .env e variáveis de ambiente."""
+    """Gerencia configuração do Vectora com hierarquia: defaults.env → .env.
+
+    Padrão:
+    1. Carrega defaults.env (comportamento padrão, commitado no Git)
+    2. Sobrescreve com .env (segredos e overrides locais, gitignored)
+
+    Isso garante reprodutibilidade (QAs usam mesmos defaults) e segurança
+    (secrets não vazam).
+    """
 
     _instance: "Config | None" = None
     _env_path: Path
+    _defaults_path: Path
 
     def __init__(self) -> None:
-        """Inicializa gerenciador de configuração."""
+        """Inicializa gerenciador de configuração com hierarquia."""
+        # 1. Localiza e carrega defaults.env (público)
+        self._defaults_path = Path.cwd() / "defaults.env"
+        if self._defaults_path.exists():
+            load_dotenv(self._defaults_path)
+
+        # 2. Localiza e carrega .env (segredos/overrides, sobrescreve defaults)
         env_file = find_dotenv()
         self._env_path = Path(env_file) if env_file else Path.cwd() / ".env"
-        load_dotenv(self._env_path)
+        if self._env_path.exists():
+            load_dotenv(self._env_path, override=True)
 
     @classmethod
     def instance(cls: type["Config"]) -> "Config":

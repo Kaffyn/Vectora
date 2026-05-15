@@ -296,3 +296,21 @@ dist
 *.db
 .env.gha
 *.bak
+
+# ============================================================================
+# Vectora Specific - Roaming Configuration & Data
+# ============================================================================
+# ~/.vectora/ is the roaming folder for user state (databases, logs, keys)
+# It should NEVER be committed to the repository
+data/
+.vectora/
+
+# Local environment overrides (secrets, API keys) - NEVER COMMIT
+.env
+.env.local
+
+# Test artifacts and coverage
+htmlcov/
+.coverage
+dist/
+build/
