@@ -21,12 +21,13 @@ class ToolConfig:
     Não há dependências de containers externos (PostgreSQL, Qdrant, Valkey).
     """
 
-    # Ferramenta de Busca Web
+    # Ferramenta de Busca Web (Tavily - otimizado para agentes)
     enable_web_search: bool = field(
         default_factory=lambda: os.getenv("ENABLE_WEB_SEARCH", "true").lower() == "true"
     )
+    tavily_api_key: str = field(default_factory=lambda: os.getenv("TAVILY_API_KEY", ""))
 
-    # Ferramenta de Busca de URL
+    # Ferramenta de Busca de URL (fallback, Tavily já entrega conteúdo)
     enable_web_fetch: bool = field(
         default_factory=lambda: os.getenv("ENABLE_WEB_FETCH", "true").lower() == "true"
     )

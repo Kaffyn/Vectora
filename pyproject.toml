@@ -40,6 +40,8 @@ dependencies = [
     "isort>=8.0.1",
     "ty>=0.0.35",
     "ruff>=0.15.12",
+    "deepagents>=0.6.1",
+    "tavily-python>=0.7.24",
 ]
 
 [project.optional-dependencies]

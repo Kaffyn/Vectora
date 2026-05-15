@@ -11,19 +11,9 @@ from datetime import UTC, datetime
 from typing import Any
 
 from langchain.tools import BaseTool, tool
-from langchain_community.document_loaders import (
-    DirectoryLoader,
-    TextLoader,
-    WebBaseLoader,
-)
+from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.documents import Document as LCDoc
-
-try:
-    from langchain_community.tools.duckduckgo_search import (
-        DuckDuckGoSearchResults,  # type: ignore
-    )
-except ImportError:
-    DuckDuckGoSearchResults = None
+from tavily import TavilyClient
 
 try:
     from langchain_mcp_adapters import MultiServerMCPClient  # type: ignore
@@ -55,46 +45,61 @@ _mcp_tools_cache: dict[str, Any] | None = None
 
 @tool
 def web_search(query: str) -> str:
-    """Busca a web por informações atuais usando DuckDuckGo.
+    """Busca a web por informações atuais usando Tavily (otimizado para agentes).
+
+    Tavily retorna resultados estruturados, prontos para RAG, com conteúdo já extraído.
 
     Args:
         query: String da consulta de busca
 
     Returns:
-        Resultados da busca como string formatada com URLs e snippets
+        JSON com resultados estruturados (url, title, content) prontos para embedding
     """
-    if DuckDuckGoSearchResults is None:
-        return "DuckDuckGo search module not available. Install: pip install duckduckgo-search"
-
     config = get_tool_config()
 
     if not config.enable_web_search:
         logger.warning("web_search tool called but disabled")
         return "Web search is disabled. Enable ENABLE_WEB_SEARCH=true to use this tool."
 
+    if not config.tavily_api_key:
+        logger.error("TAVILY_API_KEY not configured")
+        return json.dumps(
+            {
+                "status": "error",
+                "error": "TAVILY_API_KEY not configured. Set TAVILY_API_KEY environment variable.",
+            }
+        )
+
     logger.info("web_search tool called", extra={"query": query})
 
     try:
-        searcher = DuckDuckGoSearchResults(max_results=5)
-        results = searcher.run(query)
+        client = TavilyClient(api_key=config.tavily_api_key)
+        # search_depth="advanced" garante que o Tavily extraia e limpe o conteúdo
+        response = client.search(query=query, search_depth="advanced", max_results=5)
 
         logger.info(
             "web_search completed",
-            extra={"query": query, "result_length": len(str(results))},
+            extra={"query": query, "num_results": len(response.get("results", []))},
         )
 
-        return results
+        # Retorna JSON estruturado pronto para RAG
+        return json.dumps(response["results"])
     except Exception:
         logger.exception(
             "web_search failed",
             extra={"query": query},
         )
-        return "Error occurred. Please check logs."
+        return json.dumps(
+            {
+                "status": "error",
+                "error": "Web search failed. Please try again.",
+            }
+        )
 
 
 @tool
-async def fetch_url(url: str) -> str:
-    """Busca e extrai conteúdo de texto de uma URL específica.
+def fetch_url(url: str) -> str:
+    """Busca e extrai conteúdo de texto de uma URL específica usando Tavily.
 
     Args:
         url: URL para buscar (deve começar com http:// ou https://)
@@ -123,18 +128,29 @@ async def fetch_url(url: str) -> str:
             )
             return f"Error: Domain {domain} is not in whitelist"
 
+    if not config.tavily_api_key:
+        logger.error("TAVILY_API_KEY not configured")
+        return "Error: TAVILY_API_KEY not configured. Cannot fetch URL."
+
     logger.info("fetch_url tool called", extra={"url": url})
 
     try:
-        loader = WebBaseLoader(url)
-        docs = loader.load()
+        # Tavily retorna conteúdo extraído direto do URL
+        client = TavilyClient(api_key=config.tavily_api_key)
+        response = client.search(query=url, search_depth="advanced", max_results=1)
+
+        if not response.get("results"):
+            logger.warning("fetch_url returned no results", extra={"url": url})
+            return f"No content found at {url}"
+
+        content = response["results"][0].get("content", "")
 
         logger.info(
             "fetch_url completed",
-            extra={"url": url, "docs_count": len(docs)},
+            extra={"url": url, "content_length": len(content)},
         )
 
-        return "\n".join(doc.page_content for doc in docs)
+        return content
 
     except Exception:
         logger.exception(

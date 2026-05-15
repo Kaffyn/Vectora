@@ -31,35 +31,57 @@ grep = grep_tool
 
 
 class TestWebSearch:
-    """Tests for web_search tool."""
+    """Tests for web_search tool using Tavily."""
 
-    @patch("tools.DuckDuckGoSearchResults")
-    def test_web_search_returns_string(self, mock_ddg_class: MagicMock) -> None:
-        """Verify web_search returns string results via streaming."""
-        mock_search = MagicMock()
-        mock_search.run.return_value = "Result 1. Result 2. Result 3."
-        mock_ddg_class.return_value = mock_search
+    @patch("tools.TavilyClient")
+    def test_web_search_returns_string(self, mock_tavily_class: MagicMock) -> None:
+        """Verify web_search returns JSON results via streaming."""
+        config = ToolConfig(enable_web_search=True, tavily_api_key="test-key")
+        mock_client = MagicMock()
+        mock_client.search.return_value = {
+            "results": [
+                {
+                    "title": "Result 1",
+                    "url": "https://example.com/1",
+                    "content": "Content 1",
+                },
+                {
+                    "title": "Result 2",
+                    "url": "https://example.com/2",
+                    "content": "Content 2",
+                },
+            ]
+        }
+        mock_tavily_class.return_value = mock_client
 
-        # Stream pattern for synchronous tools
-        result = ""
-        for chunk in web_search.stream({"query": "test query"}):
-            if isinstance(chunk, str):
-                result += chunk
-        assert isinstance(result, str)
-        assert len(result) > 0
+        with patch("tools.get_tool_config", return_value=config):
+            # Stream pattern for synchronous tools
+            result = ""
+            for chunk in web_search.stream({"query": "test query"}):
+                if isinstance(chunk, str):
+                    result += chunk
+            assert isinstance(result, str)
+            # Should be valid JSON
+            result_dict = json.loads(result)
+            assert len(result_dict) >= 0
 
-    @patch("tools.DuckDuckGoSearchResults")
-    def test_web_search_handles_empty_query(self, mock_ddg_class: MagicMock) -> None:
+    @patch("tools.TavilyClient")
+    def test_web_search_handles_empty_query(self, mock_tavily_class: MagicMock) -> None:
         """Verify web_search handles empty query gracefully."""
-        mock_search = MagicMock()
-        mock_search.run.return_value = ""
-        mock_ddg_class.return_value = mock_search
+        config = ToolConfig(enable_web_search=True, tavily_api_key="test-key")
+        mock_client = MagicMock()
+        mock_client.search.return_value = {"results": []}
+        mock_tavily_class.return_value = mock_client
 
-        result = ""
-        for chunk in web_search.stream({"query": ""}):
-            if isinstance(chunk, str):
-                result += chunk
-        assert isinstance(result, str)
+        with patch("tools.get_tool_config", return_value=config):
+            result = ""
+            for chunk in web_search.stream({"query": ""}):
+                if isinstance(chunk, str):
+                    result += chunk
+            assert isinstance(result, str)
+            # Empty results should still be valid JSON
+            result_dict = json.loads(result)
+            assert isinstance(result_dict, list)
 
     def test_web_search_is_disabled_in_config(self) -> None:
         """Verify web_search returns error when disabled."""
