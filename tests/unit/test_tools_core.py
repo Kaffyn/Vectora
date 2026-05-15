@@ -103,62 +103,52 @@ class TestWebSearch:
 class TestFetchUrl:
     """Tests for fetch_url tool."""
 
-    @patch("tools.WebBaseLoader")
-    def test_fetch_url_returns_string(self, mock_loader_class: MagicMock) -> None:
-        """Verify fetch_url returns text content via streaming."""
-        mock_loader = MagicMock()
-        mock_loader.load.return_value = [MagicMock(page_content="Page content here")]
-        mock_loader_class.return_value = mock_loader
+    @patch("tools.TavilyClient")
+    def test_fetch_url_returns_string(self, mock_tavily_class: MagicMock) -> None:
+        """Verify fetch_url returns text content via Tavily streaming."""
+        config = ToolConfig(tavily_api_key="test-key")
+        mock_client = MagicMock()
+        mock_client.search.return_value = {
+            "results": [
+                {
+                    "title": "Example Page",
+                    "url": "https://example.com",
+                    "content": "Page content here with extracted text",
+                }
+            ]
+        }
+        mock_tavily_class.return_value = mock_client
 
-        # fetch_url is synchronous, use .stream()
-        result = ""
-        for chunk in fetch_url.stream({"url": "https://example.com"}):
-            if isinstance(chunk, str):
-                result += chunk
-        assert isinstance(result, str)
-        assert "Page content" in result
-
-    def test_fetch_url_validates_domain_whitelist(self) -> None:
-        """Verify fetch_url respects domain whitelist."""
-        config = ToolConfig(
-            enable_file_operations=True,
-            allowed_domains=["example.com"],
-        )
         with patch("tools.get_tool_config", return_value=config):
-            # Should reject non-whitelisted domain
+            # fetch_url is synchronous, use .stream()
             result = ""
-            for chunk in fetch_url.stream({"url": "https://malicious.com"}):
+            for chunk in fetch_url.stream({"url": "https://example.com"}):
                 if isinstance(chunk, str):
                     result += chunk
-            # Check if it returns error or string response
-            if isinstance(result, str):
-                assert (
-                    "allowed" in result.lower()
-                    or "whitelist" in result.lower()
-                    or "malicious" in result.lower()
-                    or "not allowed" in result.lower()
-                    or "domain" in result.lower()
-                )
+            assert isinstance(result, str)
+            assert "Page content" in result
 
-    @patch("tools.WebBaseLoader")
-    def test_fetch_url_respects_max_size(self, mock_loader_class: MagicMock) -> None:
-        """Verify fetch_url truncates content exceeding max size."""
-        mock_loader = MagicMock()
-        large_content = "x" * 10000  # 10KB
-        mock_loader.load.return_value = [MagicMock(page_content=large_content)]
-        mock_loader_class.return_value = mock_loader
+    def test_fetch_url_requires_valid_url_format(self) -> None:
+        """Verify fetch_url validates URL format."""
+        config = ToolConfig(tavily_api_key="test-key")
+        with patch("tools.get_tool_config", return_value=config):
+            # Should reject invalid URL
+            result = ""
+            for chunk in fetch_url.stream({"url": "not-a-url"}):
+                if isinstance(chunk, str):
+                    result += chunk
+            assert "Error" in result or "http" in result
 
-        config = ToolConfig(
-            max_fetch_size=5000,
-            allowed_domains=[],  # Allow all domains
-        )
+    @patch("tools.TavilyClient")
+    def test_fetch_url_requires_tavily_key(self, mock_tavily_class: MagicMock) -> None:
+        """Verify fetch_url requires TAVILY_API_KEY."""
+        config = ToolConfig(tavily_api_key="")  # No API key
         with patch("tools.get_tool_config", return_value=config):
             result = ""
             for chunk in fetch_url.stream({"url": "https://example.com"}):
                 if isinstance(chunk, str):
                     result += chunk
-            # Result should be truncated to max_fetch_size
-            assert len(result) <= 5100  # Allow some buffer
+            assert "TAVILY_API_KEY" in result or "not configured" in result
 
 
 class TestEmbedding:

@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 def _get_env_with_default(name: str, default: str) -> str:
-    """Get environment variable with a default fallback."""
+    """Get environment variable with a default value."""
     value = get_env(name, strict=False)
     return value if value is not None else default
 

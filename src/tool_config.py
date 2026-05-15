@@ -21,24 +21,11 @@ class ToolConfig:
     Não há dependências de containers externos (PostgreSQL, Qdrant, Valkey).
     """
 
-    # Ferramenta de Busca Web (Tavily - otimizado para agentes)
+    # Ferramenta de Busca Web (web_search e fetch_url via Tavily)
     enable_web_search: bool = field(
         default_factory=lambda: os.getenv("ENABLE_WEB_SEARCH", "true").lower() == "true"
     )
     tavily_api_key: str = field(default_factory=lambda: os.getenv("TAVILY_API_KEY", ""))
-
-    # Ferramenta de Busca de URL (fallback, Tavily já entrega conteúdo)
-    enable_web_fetch: bool = field(
-        default_factory=lambda: os.getenv("ENABLE_WEB_FETCH", "true").lower() == "true"
-    )
-    max_fetch_size: int = field(
-        default_factory=lambda: int(os.getenv("WEB_FETCH_MAX_SIZE", "5000"))
-    )
-    allowed_domains: list[str] | None = field(
-        default_factory=lambda: _parse_comma_separated(
-            os.getenv("WEB_FETCH_ALLOWED_DOMAINS", "")
-        )
-    )
 
     # Operações de Arquivo (file_read, file_edit, grep, list_dir, terminal)
     enable_file_operations: bool = field(
@@ -84,7 +71,7 @@ class ToolConfig:
         default_factory=lambda: int(os.getenv("EMBEDDING_DIMS", "512"))
     )
 
-    # RAG — Embedding Queue (SQLite fallback para falhas de API)
+    # RAG — Embedding Queue (SQLite com enfileiramento assíncrono)
     embedding_queue_enabled: bool = field(
         default_factory=lambda: (
             os.getenv("EMBEDDING_QUEUE_ENABLED", "true").lower() == "true"

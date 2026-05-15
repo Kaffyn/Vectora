@@ -10,7 +10,7 @@ import locale
 def get_system_language() -> str:
     """Detecta idioma do sistema a partir da localidade do SO.
 
-    Retorna código de idioma completo (ex: 'pt_BR', 'en_US') ou 'en' como fallback.
+    Retorna código de idioma completo (ex: 'pt_BR', 'en_US') ou 'en' como padrão.
     """
     try:
         lang_code, _ = locale.getdefaultlocale()
@@ -71,7 +71,7 @@ This pattern avoids redundant searches and keeps the knowledge base fresh and re
 ## Important Notes
 
 - When search returns no results, suggest relevant alternatives
-- Report errors gracefully and suggest fallback approaches
+- Report errors gracefully and suggest alternative approaches
 - For time-sensitive queries about current events, use web_search even if vector_search available
 - Maintain context across multi-turn conversations for coherent assistance
 - Remember: vector_search is instant (local), web_search is slower (network)

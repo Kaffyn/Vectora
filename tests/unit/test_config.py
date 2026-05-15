@@ -44,7 +44,7 @@ class TestConfigLLMProvider:
             provider = config.get_llm_provider()
             assert provider is None
 
-    def test_get_llm_provider_with_fallback_to_env_var(self, monkeypatch):
+    def test_get_llm_provider_detects_from_env_var(self, monkeypatch):
         """Verificar detecção de provider por variáveis de ambiente."""
         monkeypatch.delenv("LLM_PROVIDER", raising=False)
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")

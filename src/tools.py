@@ -109,24 +109,9 @@ def fetch_url(url: str) -> str:
     """
     config = get_tool_config()
 
-    if not config.enable_web_fetch:
-        logger.warning("fetch_url tool called but disabled")
-        return "Web fetch is disabled. Enable ENABLE_WEB_FETCH=true to use this tool."
-
     if not url.startswith(("http://", "https://")):
         logger.warning("fetch_url called with invalid URL", extra={"url": url})
         return "Error: URL must start with http:// or https://"
-
-    if config.allowed_domains:
-        from urllib.parse import urlparse
-
-        domain = urlparse(url).netloc
-        if domain not in config.allowed_domains:
-            logger.warning(
-                "fetch_url blocked by domain whitelist",
-                extra={"url": url, "domain": domain},
-            )
-            return f"Error: Domain {domain} is not in whitelist"
 
     if not config.tavily_api_key:
         logger.error("TAVILY_API_KEY not configured")
@@ -851,8 +836,7 @@ async def save_memory(
     try:
         from memory_store import get_memory_store
 
-        # Obtém contexto da sessão atual para user_id
-        # Fallback para thread_id se contexto não disponível
+        # Usa user_id padrão para armazenamento de memória
         user_id = "default_user"
 
         memory_store = await get_memory_store()
