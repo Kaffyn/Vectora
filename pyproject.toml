@@ -37,11 +37,14 @@ dependencies = [
     "trio>=0.27.0",
     "langchain-mcp-adapters>=0.1.0",
     "langsmith>=0.8.4",
+    "isort>=8.0.1",
+    "ty>=0.0.35",
+    "ruff>=0.15.12",
 ]
 
 [project.optional-dependencies]
 test = ["pytest>=8.0", "pytest-asyncio>=0.23.0", "pytest-cov>=4.0.0"]
-dev = ["ruff>=0.5.0", "mypy>=1.10.0", "ty>=0.0.35"]
+dev = ["ruff>=0.5.0", "mypy>=1.10.0", "ty>=0.0.35", "isort>=5.13.0", "bandit>=1.7.5"]
 
 [project.scripts]
 vectora = "run_chat:run_chat"
