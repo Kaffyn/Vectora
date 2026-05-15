@@ -27,32 +27,46 @@ class TestFireAndForgetBasic:
     @pytest.mark.asyncio
     async def test_embedding_returns_immediately(self) -> None:
         """Test que embedding() retorna em <200ms sem esperar Voyage AI."""
+        # 1. Mock da fila de embedding para evitar conexão com DB real
+        mock_queue = AsyncMock()
+        mock_queue.enqueue.return_value = "queue-123"
+
+        # 2. Configuração de mock para o ToolConfig
         config = ToolConfig(
             enable_rag=True,
             embedding_queue_enabled=True,
-            embedding_queue_db=":memory:",  # In-memory SQLite para testes
+            embedding_queue_db=":memory:",
         )
 
-        with patch("tool_config.get_tool_config", return_value=config):
-            # Medir tempo de execução
-            import time
+        with patch("tools.get_tool_config", return_value=config):
+            with patch("tools.get_embedding_queue", return_value=mock_queue):
+                # Medir tempo de execução
+                import time
 
-            start = time.time()
-            result = await embedding(
-                text="Test document",
-                collection="test",
-                metadata={"source": "test"},
-            )
-            elapsed = time.time() - start
+                start = time.time()
+                # embedding é um StructuredTool (@tool), usar .ainvoke()
+                result = await embedding.ainvoke(
+                    {
+                        "text": "Test document",
+                        "collection": "test",
+                        "metadata": {"source": "test"},
+                    }
+                )
+                elapsed = time.time() - start
 
-            # Deve retornar em menos de 200ms (enfilar é rápido)
-            assert elapsed < 0.2, f"embedding() levou {elapsed:.3f}s, esperado <0.2s"
+                # Deve retornar em menos de 200ms (enfilar é rápido)
+                assert elapsed < 0.2, (
+                    f"embedding() levou {elapsed:.3f}s, esperado <0.2s"
+                )
 
-            # Deve retornar status "fire_and_forget"
-            result_json = json.loads(result)
-            assert result_json["status"] == "fire_and_forget"
-            assert "queue_id" in result_json
-            assert result_json["collection"] == "test"
+                # Deve retornar status "fire_and_forget"
+                result_json = json.loads(result)
+                assert result_json["status"] == "fire_and_forget"
+                assert result_json["queue_id"] == "queue-123"
+                assert result_json["collection"] == "test"
+
+                # Garante que enfileirou
+                mock_queue.enqueue.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_embedding_enqueues_successfully(self) -> None:
