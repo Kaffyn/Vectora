@@ -7,10 +7,11 @@ Each node handles specific responsibilities in the conversation pipeline.
 import json
 import logging
 from contextlib import nullcontext
+from datetime import UTC, datetime
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage, ToolMessage, trim_messages
-from langchain_core.runnables import Runnable
+from langchain_core.runnables import Runnable, RunnableConfig
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
 
@@ -18,7 +19,7 @@ from context import Context
 from memory_store import get_memory_store
 from prompts import get_system_prompt
 from state import State
-from tools import TOOLS
+from tools import TOOLS, embedding
 from utils import load_llm
 
 logger = logging.getLogger(__name__)
@@ -154,52 +155,115 @@ async def handle_sub_node(state: State, runtime: Runtime[Context]) -> dict:
     return {}
 
 
-async def process_retrieval(state: State) -> dict:
-    """Processa resultados de ferramentas de busca e atualiza o estado RAG.
+async def process_retrieval(state: State, runtime: Runtime[Context]) -> dict:
+    """Nó 2: Persistência inteligente (Fire-and-Forget) de resultados Tavily.
 
-    Varre as mensagens recentes em busca de ToolMessages de 'vector_search',
-    analisa o JSON e preenche 'retrieval_results'.
+    Monitora ToolMessages de 'web_search' e 'fetch_url', enfileira conteúdo
+    para embedding assíncrono (fire-and-forget), e retorna status ao agente.
     """
     messages = state["messages"]
     if not messages:
         return {}
 
-    # Identifica mensagens de ferramentas no turno atual (após o último AIMessage)
     current_retrieval = state.get("retrieval_results") or {}
     new_results_found = False
 
-    # Itera de trás para frente até encontrar uma mensagem que não seja de ferramenta
+    # Processa últimas ToolMessages de web_search ou fetch_url
     for msg in reversed(messages):
         if not isinstance(msg, ToolMessage):
             break
+        if msg.name not in ["web_search", "fetch_url"]:
+            continue
 
-        if msg.name == "vector_search":
-            try:
-                data = json.loads(msg.content)
-                if data.get("status") != "success":
-                    continue
+        # Parse e valida JSON da Tavily
+        try:
+            data = json.loads(msg.content)
+        except json.JSONDecodeError:
+            logger.warning(
+                "Failed to parse tool result as JSON",
+                extra={"tool": msg.name, "content_preview": msg.content[:100]},
+            )
+            continue
 
-                results = data.get("results", [])
-                collection = data.get("collection", "default")
+        # Extrai lista de resultados (dict com "results" ou lista direta)
+        results = _extract_tavily_results(data, msg.name)
+        if not results:
+            continue
 
-                formatted_docs = [
-                    {
-                        "page_content": r["content"],
-                        "metadata": r.get("metadata", {}),
-                        "relevance_score": r.get("relevance_score"),
-                    }
-                    for r in results
-                ]
+        # Formata documentos e enfileira para embedding
+        formatted_docs = await _process_tavily_results(results, msg.name, embedding)
+        if not formatted_docs:
+            continue
 
-                logger.info(
-                    "retrieval_processed",
-                    extra={"collection": collection, "count": len(formatted_docs)},
-                )
-
-                current_retrieval[collection] = formatted_docs
-                new_results_found = True
-
-            except Exception:
-                logger.exception("Error processing retrieval for %s", msg.name)
+        # Armazena e marca sucesso
+        current_retrieval[msg.name] = formatted_docs
+        new_results_found = True
+        logger.info(
+            "retrieval_results_updated",
+            extra={"source": msg.name, "doc_count": len(formatted_docs)},
+        )
 
     return {"retrieval_results": current_retrieval} if new_results_found else {}
+
+
+def _extract_tavily_results(data: dict | list, tool_name: str) -> list[dict] | None:
+    """Extrai lista de resultados de estrutura Tavily flexível."""
+    if isinstance(data, dict):
+        return data.get("results", [])
+    if isinstance(data, list):
+        return data
+    logger.warning(
+        "Unexpected Tavily result format",
+        extra={"tool": tool_name, "type": type(data).__name__},
+    )
+    return None
+
+
+async def _process_tavily_results(
+    results: list[dict], source: str, embedding_tool: Runnable
+) -> list[dict]:
+    """Processa resultados Tavily e enfileira para embedding (fire-and-forget)."""
+    formatted_docs = []
+
+    for r in results:
+        content = r.get("content", "").strip()
+        if not content:
+            continue
+
+        # Cria documento estruturado
+        doc = {
+            "page_content": content,
+            "metadata": {
+                "title": r.get("title", ""),
+                "url": r.get("url", ""),
+                "source": source,
+            },
+        }
+        formatted_docs.append(doc)
+
+        # Enfileira documento para embedding assíncrono (fire-and-forget)
+        try:
+            # Não aguarda — fire-and-forget pattern
+            _ = embedding_tool.astream(
+                input={"text": content},
+                config=RunnableConfig(),
+            )
+            logger.debug(
+                "Document enqueued for embedding",
+                extra={
+                    "source": source,
+                    "title": doc["metadata"]["title"][:50],
+                    "content_length": len(content),
+                },
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to enqueue document for embedding",
+                extra={
+                    "source": source,
+                    "title": doc["metadata"]["title"][:50],
+                    "error": str(e),
+                },
+            )
+
+    return formatted_docs
