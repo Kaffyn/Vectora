@@ -183,7 +183,11 @@ class TestMCPSubAgentPattern:
     @pytest.mark.asyncio
     async def test_resources_return_json_format(self):
         """Verificar que todos os recursos retornam JSON válido."""
-        from src.mcp_server import get_server_status, get_thread_context, get_thread_history
+        from src.mcp_server import (
+            get_server_status,
+            get_thread_context,
+            get_thread_history,
+        )
 
         with patch("src.mcp_server.Checkpointer") as mock_checkpointer_class:
             mock_checkpointer = AsyncMock()

@@ -11,11 +11,17 @@ from datetime import UTC, datetime
 from typing import Any
 
 from langchain.tools import BaseTool, tool
-from langchain_community.document_loaders import DirectoryLoader, TextLoader, WebBaseLoader
+from langchain_community.document_loaders import (
+    DirectoryLoader,
+    TextLoader,
+    WebBaseLoader,
+)
 from langchain_core.documents import Document as LCDoc
 
 try:
-    from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults  # type: ignore
+    from langchain_community.tools.duckduckgo_search import (
+        DuckDuckGoSearchResults,  # type: ignore
+    )
 except ImportError:
     DuckDuckGoSearchResults = None
 
