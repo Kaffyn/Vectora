@@ -7,8 +7,6 @@ Testes críticos que simulam cenários de produção:
 """
 
 import asyncio
-import tempfile
-from pathlib import Path
 
 import pytest
 
@@ -35,7 +33,7 @@ class TestConcurrency:
             voyage_api_key="test-key",
         )
 
-        queue = await get_embedding_queue(config.embedding_queue_db)
+        queue = await get_embedding_queue(config.embedding_queue_url)
 
         # Enfileirar 50 documentos rapidamente (simula user queries rápidas)
         async def enqueue_documents() -> None:
@@ -69,7 +67,7 @@ class TestConcurrency:
             embedding_queue_db=":memory:",
         )
 
-        queue = await get_embedding_queue(config.embedding_queue_db)
+        queue = await get_embedding_queue(config.embedding_queue_url)
 
         # Enfileirar um documento para forçar inicialização
         await queue.enqueue(text="Test", collection="test")
@@ -92,7 +90,7 @@ class TestConcurrency:
             embedding_queue_db=":memory:",
         )
 
-        queue = await get_embedding_queue(config.embedding_queue_db)
+        queue = await get_embedding_queue(config.embedding_queue_url)
 
         # Pre-enqueue alguns documentos
         for i in range(20):
@@ -150,7 +148,7 @@ class TestReconciliation:
             embedding_queue_db=":memory:",
         )
 
-        queue = await get_embedding_queue(config.embedding_queue_db)
+        queue = await get_embedding_queue(config.embedding_queue_url)
 
         # Enfileirar documento
         queue_id = await queue.enqueue(
@@ -187,7 +185,7 @@ class TestReconciliation:
             embedding_queue_db=":memory:",
         )
 
-        queue = await get_embedding_queue(config.embedding_queue_db)
+        queue = await get_embedding_queue(config.embedding_queue_url)
 
         # Enfileirar e marcar como processing (agora)
         queue_id = await queue.enqueue(
@@ -221,7 +219,7 @@ class TestBackgroundWorkerStress:
             voyage_api_key="test-key",
         )
 
-        queue = await get_embedding_queue(config.embedding_queue_db)
+        queue = await get_embedding_queue(config.embedding_queue_url)
 
         # Enfileirar 100 documentos
         for i in range(100):

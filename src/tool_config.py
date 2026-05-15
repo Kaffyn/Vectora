@@ -115,6 +115,25 @@ class ToolConfig:
         path.mkdir(parents=True, exist_ok=True)
         return path
 
+    @property
+    def embedding_queue_url(self) -> str:
+        """Normalize embedding queue DB URL format.
+
+        Accepts both shorthand `:memory:` and full SQLAlchemy URLs.
+        Returns proper SQLAlchemy URL format.
+        """
+        if self.embedding_queue_db == ":memory:":
+            return "sqlite+aiosqlite:///:memory:"
+        if self.embedding_queue_db.startswith(
+            "sqlite://"
+        ) or self.embedding_queue_db.startswith("sqlite+aiosqlite://"):
+            return self.embedding_queue_db
+        # Assume file path, convert to SQLAlchemy URL
+        if not self.embedding_queue_db.startswith("sqlite"):
+            # Treat as file path
+            return f"sqlite+aiosqlite:///{self.embedding_queue_db}"
+        return self.embedding_queue_db
+
 
 def _parse_comma_separated(value: str) -> list[str] | None:
     """Analisa string separada por vírgulas em lista, retorna None se vazio."""

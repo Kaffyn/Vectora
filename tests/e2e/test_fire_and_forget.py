@@ -9,16 +9,14 @@ Testes críticos que validam:
 6. Idempotência via queue_id como document ID
 """
 
-import asyncio
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from langchain_core.messages import HumanMessage
 
 from background_worker import BackgroundEmbeddingWorker
-from embedding_queue import EmbeddingQueue, EmbeddingQueueRecord, get_embedding_queue
+from embedding_queue import get_embedding_queue
 from tool_config import ToolConfig
 from tools import embedding, ingest_docs
 
@@ -76,7 +74,7 @@ class TestFireAndForgetBasic:
             queue_id = result_json["queue_id"]
 
             # Verificar que o documento está na fila
-            queue = await get_embedding_queue(config.embedding_queue_db)
+            queue = await get_embedding_queue(config.embedding_queue_url)
             pending = await queue.get_pending(limit=10)
 
             assert len(pending) > 0
@@ -112,7 +110,7 @@ class TestBackgroundWorker:
         )
 
         # Enfileirar documento
-        queue = await get_embedding_queue(config.embedding_queue_db)
+        queue = await get_embedding_queue(config.embedding_queue_url)
         queue_id = await queue.enqueue(
             text="Test embedding document",
             collection="articles",
@@ -122,9 +120,7 @@ class TestBackgroundWorker:
         # Mock Voyage AI embedding
         mock_vector = [0.1, 0.2, 0.3] * 400  # 1200-dim vector
 
-        with patch(
-            "background_worker.VoyageAIEmbeddings"
-        ) as mock_voyage:
+        with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
             mock_instance = AsyncMock()
             mock_instance.embed_query.return_value = mock_vector
             mock_voyage.return_value = mock_instance
@@ -156,7 +152,7 @@ class TestBackgroundWorker:
             voyage_api_key="test-key",
         )
 
-        queue = await get_embedding_queue(config.embedding_queue_db)
+        queue = await get_embedding_queue(config.embedding_queue_url)
         queue_id = await queue.enqueue(
             text="Test retry document",
             collection="articles",
@@ -172,9 +168,7 @@ class TestBackgroundWorker:
                 raise Exception(f"API error (attempt {call_count})")
             return [0.1, 0.2] * 600  # Success on 3rd attempt
 
-        with patch(
-            "background_worker.VoyageAIEmbeddings"
-        ) as mock_voyage:
+        with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
             mock_instance = AsyncMock()
             mock_instance.embed_query.side_effect = mock_embed_query
             mock_voyage.return_value = mock_instance
@@ -191,7 +185,9 @@ class TestBackgroundWorker:
             elapsed = time.time() - start
 
             # Deve ter esperado ~3 segundos (1s + 2s)
-            assert elapsed >= 2.5, f"Retry não esperou backoff suficiente: {elapsed:.1f}s"
+            assert elapsed >= 2.5, (
+                f"Retry não esperou backoff suficiente: {elapsed:.1f}s"
+            )
             assert call_count == 3, f"Esperado 3 chamadas, got {call_count}"
 
             # Record deve estar em success
@@ -208,7 +204,7 @@ class TestBackgroundWorker:
             voyage_api_key="test-key",
         )
 
-        queue = await get_embedding_queue(config.embedding_queue_db)
+        queue = await get_embedding_queue(config.embedding_queue_url)
         queue_id = await queue.enqueue(
             text="Test DLQ document",
             collection="articles",
@@ -218,9 +214,7 @@ class TestBackgroundWorker:
         async def mock_embed_query_fail(text: str) -> list[float]:
             raise Exception("Permanent API failure")
 
-        with patch(
-            "background_worker.VoyageAIEmbeddings"
-        ) as mock_voyage:
+        with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
             mock_instance = AsyncMock()
             mock_instance.embed_query.side_effect = mock_embed_query_fail
             mock_voyage.return_value = mock_instance
@@ -247,7 +241,7 @@ class TestBackgroundWorker:
             lancedb_path=Path(":memory:"),
         )
 
-        queue = await get_embedding_queue(config.embedding_queue_db)
+        queue = await get_embedding_queue(config.embedding_queue_url)
         queue_id = await queue.enqueue(
             text="Idempotent test document",
             collection="articles",
@@ -255,9 +249,7 @@ class TestBackgroundWorker:
 
         mock_vector = [0.1, 0.2] * 600
 
-        with patch(
-            "background_worker.VoyageAIEmbeddings"
-        ) as mock_voyage:
+        with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
             mock_instance = AsyncMock()
             mock_instance.embed_query.return_value = mock_vector
             mock_voyage.return_value = mock_instance
@@ -288,7 +280,6 @@ class TestReconciliation:
     @pytest.mark.asyncio
     async def test_reconciliation_recovers_stalled_records(self) -> None:
         """Test que reconciliação recupera records em 'processing' há >2min."""
-        from datetime import UTC, timedelta
 
         config = ToolConfig(
             enable_rag=True,
@@ -296,7 +287,7 @@ class TestReconciliation:
             embedding_queue_db=":memory:",
         )
 
-        queue = await get_embedding_queue(config.embedding_queue_db)
+        queue = await get_embedding_queue(config.embedding_queue_url)
 
         # Enfileirar e marcar como processing (simular crash mid-processing)
         queue_id = await queue.enqueue(
@@ -323,9 +314,7 @@ class TestIngestDocWithFireAndForget:
     """Test ingest_docs() com fire-and-forget embedding."""
 
     @pytest.mark.asyncio
-    async def test_ingest_docs_returns_immediately(
-        self, tmp_path: Path
-    ) -> None:
+    async def test_ingest_docs_returns_immediately(self, tmp_path: Path) -> None:
         """Test que ingest_docs() retorna rápido (documentos enfileirados)."""
         config = ToolConfig(
             enable_rag=True,
@@ -357,7 +346,7 @@ class TestIngestDocWithFireAndForget:
             assert result_json["indexed"] > 0
 
             # Documentos devem estar enfileirados, não em LanceDB ainda
-            queue = await get_embedding_queue(config.embedding_queue_db)
+            queue = await get_embedding_queue(config.embedding_queue_url)
             pending = await queue.get_pending(limit=100)
             assert len(pending) > 0  # Documentos na fila
 
@@ -403,7 +392,7 @@ async def test_full_fire_and_forget_workflow() -> None:
     )
 
     # Step 1: Simulate user search → enqueue documents
-    queue = await get_embedding_queue(config.embedding_queue_db)
+    queue = await get_embedding_queue(config.embedding_queue_url)
 
     for i in range(3):
         await queue.enqueue(
@@ -419,9 +408,7 @@ async def test_full_fire_and_forget_workflow() -> None:
     # Step 2: Background worker processa
     mock_vector = [0.1, 0.2] * 600
 
-    with patch(
-        "background_worker.VoyageAIEmbeddings"
-    ) as mock_voyage:
+    with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
         mock_instance = AsyncMock()
         mock_instance.embed_query.return_value = mock_vector
         mock_voyage.return_value = mock_instance
