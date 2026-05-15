@@ -81,18 +81,20 @@ repos:
         args: ["--profile=black", "--line-length=88"]
         files: \.py$
 
-  # Disabled: ty type checker has unresolved module resolution issues
-  # The ruff linter provides sufficient type checking via ANN rules
+  # Disabled: ty has unresolved module resolution issues (cannot find src/ modules)
+  # Type checking is provided by ruff linter (ANN rules)
   # - repo: local
   #   hooks:
   #     - id: ty
   #       name: Ty (Python Type Checker)
-  #       entry: ty check src/
+  #       entry: uv run ty check src/
   #       language: system
   #       types: [python]
   #       pass_filenames: false
   #       stages: [pre-commit]
   #       verbose: true
+  #       env:
+  #         PYTHONPATH: src
 
   # ==========================================
   # TypeScript / JavaScript Validation
