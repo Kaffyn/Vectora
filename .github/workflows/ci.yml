@@ -39,7 +39,7 @@ jobs:
         run: pip install uv
 
       - name: 📚 Sync dependencies (with dev tools)
-        run: uv sync --all-groups
+        run: uv sync --all-extras
 
       - name: 🔍 Run Ruff lint
         run: uv run ruff check src tests
@@ -68,7 +68,7 @@ jobs:
         run: pip install uv
 
       - name: 📚 Sync dependencies (with dev tools)
-        run: uv sync --all-groups
+        run: uv sync --all-extras
 
       - name: 🔬 Run Mypy
         run: uv run mypy src
@@ -92,7 +92,7 @@ jobs:
         run: pip install uv
 
       - name: 📚 Sync dependencies (with dev tools)
-        run: uv sync --all-groups
+        run: uv sync --all-extras
 
       - name: 🧪 Run unit tests
         run: uv run pytest tests/unit -v --tb=short --cov=src --cov-report=xml
@@ -126,7 +126,7 @@ jobs:
         run: pip install uv
 
       - name: 📚 Sync dependencies (with dev tools)
-        run: uv sync --all-groups
+        run: uv sync --all-extras
 
       - name: 🧪 Run integration tests
         run: uv run pytest tests/integration -v --tb=short
@@ -153,7 +153,7 @@ jobs:
         run: pip install uv
 
       - name: 📚 Sync dependencies (with dev tools)
-        run: uv sync --all-groups
+        run: uv sync --all-extras
 
       - name: 🌐 Run E2E tests
         run: uv run pytest tests/e2e -v --tb=short
@@ -179,7 +179,7 @@ jobs:
         run: pip install uv
 
       - name: 📚 Sync dependencies (with dev tools)
-        run: uv sync --all-groups
+        run: uv sync --all-extras
 
       - name: 🔒 Bandit security check
         run: uv run bandit -r src -f json -o bandit-report.json
@@ -272,7 +272,7 @@ jobs:
         run: pip install uv
 
       - name: 📚 Sync dependencies (with dev tools)
-        run: uv sync --all-groups
+        run: uv sync --all-extras
 
       - name: 🏗️ Build package
         run: |
