@@ -25,7 +25,7 @@ class TestGeminiCLIMCPIntegration:
         """Test that MCP server responds to JSON-RPC calls via stdio."""
         try:
             # Importar a função para rodar o servidor MCP
-            from src.mcp_server import app  # noqa: F401
+            from src.mcp_server import app
 
             # Se conseguiu importar, o servidor está pronto
             assert True
@@ -44,15 +44,8 @@ class TestGeminiCLIMCPIntegration:
             tool_names = [t.name if hasattr(t, "name") else str(t) for t in tools]
 
             # Valida que ferramentas essenciais estão expostas
-            essential_tools = [
-                "vector_search",
-                "web_search",
-                "file_read",
-            ]
-
-            for tool_name in essential_tools:
-                # At least check that tools list is not empty
-                assert len(tool_names) > 0, "No tools found in Vectora"
+            # At least check that tools list is not empty
+            assert len(tool_names) > 0, "No tools found in Vectora"
 
         except ImportError:
             pytest.skip("MCP server module not available")
@@ -86,6 +79,7 @@ class TestGeminiCLIMCPIntegration:
                 [sys.executable, "-m", "src.mcp_server", "--help"],
                 capture_output=True,
                 timeout=5,
+                check=False,
             )
 
             # Valida que não houve erro crítico
@@ -154,7 +148,7 @@ class TestGeminiCLIMCPIntegration:
         """
         try:
             # Valida que o servidor importa sem erros
-            from src import mcp_server  # noqa: F401
+            from src import mcp_server
 
             # Se conseguiu importar, os imports estão funcionando
             assert True
