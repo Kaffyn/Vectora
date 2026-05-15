@@ -2,7 +2,7 @@
 
 **Versão:** 0.1.0-RC (Release Candidate)  
 **Data:** 2026-05-14  
-**Tester Target:** 5 testers independentes  
+**Tester Target:** 5 testers independentes
 
 ---
 
@@ -11,9 +11,11 @@
 Você foi selecionado(a) como um dos **5 testers independentes** do Vectora v0.1.0 MVP. Seu feedback é **crítico** para validar a arquitetura antes do lançamento oficial em PyPI.
 
 ### Objetivo
+
 Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento ou comportamento inesperado.
 
 ### Ambiente
+
 - **Arquivo de configuração:** `.env` (será fornecido)
 - **Banco de dados:** Local (SQLite em `data/`)
 - **LLM:** Pode usar Gemini, OpenAI ou Ollama (conforme sua API key)
@@ -24,22 +26,26 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
 ## ✅ Pré-requisitos
 
 1. **Python 3.13+**
+
    ```bash
    python --version  # Deve ser 3.13 ou superior
    ```
 
 2. **Clonar repositório**
+
    ```bash
    git clone <repo-url>
    cd vectora
    ```
 
 3. **Instalar dependências**
+
    ```bash
    uv sync --group test
    ```
 
 4. **Configurar `.env`**
+
    - Você receberá um arquivo `.env` com as API keys necessárias
    - Copie para a raiz do projeto
 
@@ -59,16 +65,19 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
 **Passos:**
 
 1. Inicie o Vectora:
+
    ```bash
    python src/run_chat.py
    ```
 
 2. Digite este comando:
+
    ```
    Pesquise sobre Next.js 16 e salve os resultados no banco de dados local
    ```
 
 3. **Observações críticas:**
+
    - [ ] Interface responde em <5 segundos? (SIM / NÃO)
    - [ ] Consegue digitar enquanto processa? (SIM / NÃO)
    - [ ] Aparece status "Document enqueued for async embedding"? (SIM / NÃO)
@@ -80,6 +89,7 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
    - [ ] SIM / [ ] NÃO
 
 **Se alguma resposta for NÃO:**
+
 - Salve um debug dump:
   ```bash
   python -m src.debug_dump
@@ -95,11 +105,13 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
 **Passos:**
 
 1. No mesmo chat, digitar:
+
    ```
    Quais foram os principais features do Next.js 16 que você aprendeu na pesquisa anterior?
    ```
 
 2. **Observações críticas:**
+
    - [ ] Resposta foi baseada em dados indexados (não web search)? (SIM / NÃO)
    - [ ] A resposta menciona a fonte (ex: "baseado nos documentos indexados")? (SIM / NÃO)
    - [ ] Resposta foi <3 segundos (sem chamada web)? (SIM / NÃO)
@@ -113,6 +125,7 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
    - Esperado: Uma busca usa web_search, a segunda usa vector_search local
 
 **Se alguma resposta for NÃO:**
+
 - Copie o correlation_id dos logs (busque em `logs/mcp.log`)
 - Salve o debug dump
 
@@ -125,11 +138,13 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
 **Passos:**
 
 1. Digite comando inválido:
+
    ```
    Pesquise sobre "xyzabc123invalid_query_that_should_return_nothing"
    ```
 
 2. **Observações críticas:**
+
    - [ ] TUI não travou? (SIM / NÃO)
    - [ ] Recebeu resposta dentro de 10 segundos? (SIM / NÃO)
    - [ ] Resposta foi graceful (ex: "Nenhum resultado encontrado, sugerindo alternativas")? (SIM / NÃO)
@@ -141,6 +156,7 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
    - [ ] Consegue reconectar após isso? (SIM / NÃO)
 
 **Se alguma resposta for NÃO:**
+
 - Descrição do erro:
   ```
   [Descreva o comportamento inesperado aqui]
@@ -156,6 +172,7 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
 **Passos:**
 
 1. Faça 15+ turnos (perguntas + respostas):
+
    ```
    1. Pesquise sobre Rust Web Development
    2. Quais são os frameworks mais populares?
@@ -164,6 +181,7 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
    ```
 
 2. **Observações críticas:**
+
    - [ ] Histórico foi mantido corretamente? (posso referir perguntas anteriores) (SIM / NÃO)
    - [ ] Não houve degradação de performance? (SIM / NÃO)
    - [ ] Mensagens estão em ordem correta? (SIM / NÃO)
@@ -176,6 +194,7 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
    - [ ] Consegue continuar conversa anterior? (SIM / NÃO)
 
 **Se alguma resposta for NÃO:**
+
 - Salve debug dump com a conversa incluída
 
 ---
@@ -187,6 +206,7 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
 **Passos:**
 
 1. Faça 5 pesquisas pesadas em sequência rápida:
+
    ```
    Pesquise sobre:
    1. Kubernetes 2025
@@ -197,6 +217,7 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
    ```
 
 2. **Observações críticas:**
+
    - [ ] Todas as 5 pesquisas foram completadas? (SIM / NÃO)
    - [ ] Nenhuma travou ou timeout? (SIM / NÃO)
    - [ ] TUI permaneceu responsiva? (SIM / NÃO)
@@ -212,6 +233,7 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
    - [ ] Menciona fontes/tópicos específicos? (SIM / NÃO)
 
 **Se alguma resposta for NÃO:**
+
 - Descreva qual pesquisa falhou
 - Salve debug dump
 
@@ -231,26 +253,33 @@ Se encontrar algum problema, siga este formato:
 **Severidade:** critical | high | medium | low
 
 ## Descrição
+
 [Descreva o que aconteceu em detalhes]
 
 ## Passos para Reproduzir
+
 1. [Passo 1]
 2. [Passo 2]
 3. [Passo 3]
 
 ## Comportamento Esperado
+
 [O que deveria ter acontecido]
 
 ## Comportamento Atual
+
 [O que realmente aconteceu]
 
 ## Correlation ID
+
 [Copie do arquivo logs/mcp.log]
 
 ## Screenshots/Logs
+
 [Se possível, copie linhas relevantes]
 
 ## Debug Dump
+
 - Arquivo: [vectora_debug_TIMESTAMP.tar.gz]
 - Tamanho: [X MB]
 - Incluir: [databases / logs / all]
@@ -269,6 +298,7 @@ vectora --debug-dump
 ```
 
 O arquivo `vectora_debug_TIMESTAMP.tar.gz` conterá:
+
 - Bancos de dados (SQLite)
 - Logs estruturados (JSON)
 - Configuração (sem secrets)
@@ -280,13 +310,13 @@ O arquivo `vectora_debug_TIMESTAMP.tar.gz` conterá:
 
 Para ser aprovado para lançamento, **todos os 5 cenários devem ter SIM em todas as observações críticas**:
 
-| Cenário | Expectativa | Seu Resultado |
-|---------|-------------|---------------|
-| 1. TUI Responsividade | 4/4 SIM | [ ] Aprovado |
-| 2. RAG Vector Search | 3/3 SIM | [ ] Aprovado |
-| 3. Error Handling | 3/3 SIM | [ ] Aprovado |
-| 4. Multi-turn | 4/4 SIM | [ ] Aprovado |
-| 5. Stress Test | 4/4 SIM | [ ] Aprovado |
+| Cenário               | Expectativa | Seu Resultado |
+| --------------------- | ----------- | ------------- |
+| 1. TUI Responsividade | 4/4 SIM     | [ ] Aprovado  |
+| 2. RAG Vector Search  | 3/3 SIM     | [ ] Aprovado  |
+| 3. Error Handling     | 3/3 SIM     | [ ] Aprovado  |
+| 4. Multi-turn         | 4/4 SIM     | [ ] Aprovado  |
+| 5. Stress Test        | 4/4 SIM     | [ ] Aprovado  |
 
 ---
 

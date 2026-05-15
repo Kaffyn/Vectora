@@ -2,7 +2,7 @@
 
 **Status:** Release Candidate (RC)  
 **Target:** Official Launch (PyPI + GitHub MCP Registry + GHCR)  
-**Current Phase:** Hardening (100% Coverage + QA)  
+**Current Phase:** Hardening (100% Coverage + QA)
 
 ---
 
@@ -21,25 +21,27 @@
 
 ## 🎯 Critérios de Sucesso para v0.1.0 MVP
 
-| Critério | Meta | Status |
-|----------|------|--------|
-| **Cobertura de Testes** | 100% | ⏳ Em andamento |
-| **Testes Passando** | Todos (unit + integration + E2E) | ⏳ Em validação |
-| **QA Friends & Family** | 5 testers independentes | ❌ Não iniciado |
-| **Aprovação QA** | 0 bugs críticos, <5 bugs menores | ❌ Aguardando |
-| **Auditoria** | Observabilidade + Performance validada | ❌ Não iniciada |
-| **Release Packing** | PyPI + MCP Registry + GHCR | ❌ Não iniciado |
+| Critério                | Meta                                   | Status          |
+| ----------------------- | -------------------------------------- | --------------- |
+| **Cobertura de Testes** | 100%                                   | ⏳ Em andamento |
+| **Testes Passando**     | Todos (unit + integration + E2E)       | ⏳ Em validação |
+| **QA Friends & Family** | 5 testers independentes                | ❌ Não iniciado |
+| **Aprovação QA**        | 0 bugs críticos, <5 bugs menores       | ❌ Aguardando   |
+| **Auditoria**           | Observabilidade + Performance validada | ❌ Não iniciada |
+| **Release Packing**     | PyPI + MCP Registry + GHCR             | ❌ Não iniciado |
 
 ---
 
 ## 🛠️ FASE 01: Cobertura 100% de Testes
 
 ### Objetivo
+
 Identificar e cobrir todos os gaps de cobertura até atingir exatamente 100%.
 
 ### Etapas
 
 #### 1.1 Auditoria de Cobertura Atual
+
 ```bash
 # Execute este comando para gerar relatório completo
 python -m pytest --cov=src --cov-report=html --cov-report=term-missing tests/
@@ -48,6 +50,7 @@ python -m pytest --cov=src --cov-report=html --cov-report=term-missing tests/
 ```
 
 **Métricas esperadas:**
+
 - `src/` coverage: [TBD]
 - Linhas não cobertas: [TBD]
 - Branches não testadas: [TBD]
@@ -55,6 +58,7 @@ python -m pytest --cov=src --cov-report=html --cov-report=term-missing tests/
 #### 1.2 Identificar Gaps de Cobertura
 
 Procure por (em ordem de prioridade):
+
 1. **Exceções não testadas** - Try/except blocks sem teste de erro
 2. **Branches condicionais** - if/else que nunca executa ambos os caminhos
 3. **Casos de borda** - Valores None, listas vazias, limites máximos
@@ -64,6 +68,7 @@ Procure por (em ordem de prioridade):
 #### 1.3 Implementar Testes Faltantes
 
 **Prioridade Alta:**
+
 - [ ] Tests de timeout em `background_worker.py`
 - [ ] Tests de race condition entre `embedding()` e `background_worker()`
 - [ ] Tests de falha de conexão LanceDB
@@ -71,12 +76,14 @@ Procure por (em ordem de prioridade):
 - [ ] Tests de reconciliation com records em "processing" há >2min
 
 **Prioridade Média:**
+
 - [ ] Tests de estado de LangGraph após 50+ interações
 - [ ] Tests de memory leaks em loops assíncrono
 - [ ] Tests de performance (latência <200ms para embedding())
 - [ ] Tests de idempotência com mesmos queue_id
 
 **Prioridade Baixa:**
+
 - [ ] Tests de UI Textual (interações do usuário)
 - [ ] Tests de MCP server routes
 - [ ] Tests de formatação de output
@@ -94,11 +101,13 @@ python -m pytest --cov=src --cov-report=term-missing tests/
 ## 🧪 FASE 02: QA Real (Friends & Family)
 
 ### Objetivo
+
 Validar o Vectora com 5 testers independentes em cenários reais.
 
 ### Preparação
 
 #### 2.1 Criar Ambiente de Staging
+
 ```bash
 # Branch de staging
 git checkout -b staging/pre-release
@@ -111,10 +120,11 @@ git tag v0.1.0-rc1
 
 **Arquivo:** `QA_TESTING_GUIDE.md`
 
-```markdown
+````markdown
 # Teste do Vectora v0.1.0-RC
 
 ## Instalação
+
 1. Clone o repositório
 2. `uv sync --group test`
 3. `python src/run_chat.py`
@@ -122,25 +132,30 @@ git tag v0.1.0-rc1
 ## Cenários de Teste
 
 ### Teste 1: TUI Responsiva
+
 - Digite: "Pesquise sobre Next.js 16"
 - **Esperado:** Resposta em <5 segundos
 - **Erro reportado?** Salve o debug dump (veja abaixo)
 
 ### Teste 2: RAG e Vector Search
+
 - Digite: "Pesquise sobre React 19"
 - Aguarde 30 segundos
 - Digite: "Quais são os principais features do React que você aprendeu?"
 - **Esperado:** Resposta baseada em docs indexados (não web_search)
 
 ### Teste 3: Tratamento de Erros
+
 - Digite: "Pesquise sobre um tópico que não existe na web"
 - **Esperado:** Resposta graceful com sugestões
 
 ### Teste 4: Chat Multi-turn
+
 - Digite 20+ mensagens em sequência
 - **Esperado:** Sem crashes, histórico mantido
 
 ### Teste 5: MCP Integration
+
 - Digite: "Use a ferramenta de clipboard do MCP"
 - **Esperado:** Resposta bem-sucedida (se MCP disponível)
 
@@ -152,12 +167,14 @@ Se algo falhar:
    ```bash
    vectora --debug-dump bug_report.tar.gz
    ```
+````
 
 2. **Envie o arquivo com:**
    - Descrição do que você estava fazendo
    - Mensagem de erro exata
    - Seu arquivo `bug_report.tar.gz`
-```
+
+````
 
 #### 2.3 Debug Dump Command
 
@@ -174,47 +191,48 @@ async def debug_dump(output_file: str = None):
     if output_file is None:
         timestamp = datetime.now().isoformat().replace(':', '-')
         output_file = f"vectora_debug_{timestamp}.tar.gz"
-    
+
     with tarfile.open(output_file, "w:gz") as tar:
         # Banco de dados
         if Path("data").exists():
             tar.add("data", arcname="data")
-        
+
         # Logs
         if Path("logs").exists():
             tar.add("logs", arcname="logs")
-        
+
         # Configuração (sem secrets)
         config = {
             "timestamp": timestamp,
             "python_version": sys.version,
             "platform": platform.platform(),
         }
-        
+
         # Adicionar info.json
         tar.add(
             io.BytesIO(json.dumps(config, indent=2).encode()),
             arcname="info.json"
         )
-    
+
     print(f"✅ Debug dump salvo em: {output_file}")
-```
+````
 
 #### 2.4 Matriz de Testes (5 Testers)
 
-| Tester | Cenário Primário | SO | Feedback |
-|--------|------------------|----|---------:|
-| Tester 1 | TUI + RAG | Windows | [ ] |
-| Tester 2 | Web Search + Embedding | macOS | [ ] |
-| Tester 3 | MCP Integration | Linux | [ ] |
-| Tester 4 | Error Handling | Windows | [ ] |
-| Tester 5 | Long Sessions (stress) | macOS | [ ] |
+| Tester   | Cenário Primário       | SO      | Feedback |
+| -------- | ---------------------- | ------- | -------: |
+| Tester 1 | TUI + RAG              | Windows |      [ ] |
+| Tester 2 | Web Search + Embedding | macOS   |      [ ] |
+| Tester 3 | MCP Integration        | Linux   |      [ ] |
+| Tester 4 | Error Handling         | Windows |      [ ] |
+| Tester 5 | Long Sessions (stress) | macOS   |      [ ] |
 
 ---
 
 ## 🔍 FASE 03: Auditoria de Observabilidade
 
 ### Objetivo
+
 Validar que todo o fluxo é rastreável e pode ser auditado.
 
 #### 3.1 Implementar Correlation ID
@@ -273,7 +291,7 @@ async def generate_performance_report():
         "web_search": 2.500,          # <5s ✓
         "background_worker_batch": 0.500,  # 5 docs/s ✓
     }
-    
+
     # Gerar relatório
     print("📈 PERFORMANCE AUDIT")
     for metric, latency in data.items():
@@ -350,13 +368,13 @@ docker push ghcr.io/usuario/vectora:0.1.0
 
 ## 📋 Timeline Estimada
 
-| Fase | Atividade | Duração | Data Estimada |
-|------|-----------|---------|---------------|
-| 01 | Cobertura 100% | 2-3 dias | 2026-05-16 |
-| 02 | QA (5 testers) | 1 semana | 2026-05-23 |
-| 03 | Auditoria | 2-3 dias | 2026-05-26 |
-| 04 | Release Packing | 1-2 dias | 2026-05-28 |
-| **LAUNCH** | **v0.1.0 Official** | | **2026-05-29** |
+| Fase       | Atividade           | Duração  | Data Estimada  |
+| ---------- | ------------------- | -------- | -------------- |
+| 01         | Cobertura 100%      | 2-3 dias | 2026-05-16     |
+| 02         | QA (5 testers)      | 1 semana | 2026-05-23     |
+| 03         | Auditoria           | 2-3 dias | 2026-05-26     |
+| 04         | Release Packing     | 1-2 dias | 2026-05-28     |
+| **LAUNCH** | **v0.1.0 Official** |          | **2026-05-29** |
 
 ---
 
@@ -375,17 +393,20 @@ docker push ghcr.io/usuario/vectora:0.1.0
 ## 🚨 Casos de Bloqueio (Go/No-Go)
 
 **Go para QA (Fase 02):**
+
 - ✅ 100% de cobertura testada
 - ✅ Todos os testes passando
 - ✅ 0 warnings em linting/type checking
 - ✅ Fire-and-Forget validado em dev
 
 **Go para Auditoria (Fase 03):**
+
 - ✅ QA completada sem bugs críticos
 - ✅ <5 bugs menores reportados e fechados
 - ✅ Nenhuma crash observada
 
 **Go para Release (Fase 04):**
+
 - ✅ Auditoria completada
 - ✅ Performance dentro dos SLAs
 - ✅ Observabilidade completa
