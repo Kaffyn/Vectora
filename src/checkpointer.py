@@ -1,9 +1,12 @@
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 from constants import DB_DSN
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -15,9 +18,21 @@ async def Checkpointer(
     Usa aiosqlite via AsyncSqliteSaver do LangGraph. O arquivo SQLite é criado
     automaticamente no diretório `data/` na raiz do projeto.
 
+    **Concorrência:** WAL mode habilitado automaticamente para permitir
+    leituras simultâneas enquanto o BackgroundWorker escreve embeddings.
+
     Args:
         db_dsn: Caminho para o arquivo SQLite. Se None, usa o padrão de `constants.DB_DSN`.
     """
     conn_string = db_dsn or DB_DSN
     async with AsyncSqliteSaver.from_conn_string(conn_string) as checkpointer:
+        # Enable WAL mode for concurrent reads + writes
+        # Critical: Chat reads/writes messages while BackgroundWorker accesses queue
+        try:
+            await checkpointer.conn.execute("PRAGMA journal_mode=WAL;")
+            await checkpointer.conn.execute("PRAGMA synchronous=NORMAL;")
+            logger.info("Checkpointer: WAL mode enabled for concurrent access")
+        except Exception as e:
+            logger.warning(f"Could not enable WAL mode: {e}")
+
         yield checkpointer

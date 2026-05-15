@@ -53,11 +53,19 @@ class EmbeddingQueue:
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)  # type: ignore[attr-defined]
 
+            # Enable WAL mode for better concurrency (Reader + Writer simultaneously)
+            # Critical for AsyncIO where Chat and BackgroundWorker write simultaneously
+            await conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
+            await conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
+
         self.AsyncSessionLocal = sessionmaker(
             self.engine, class_=AsyncSession, expire_on_commit=False
         )
 
-        logger.info("embedding_queue_initialized", extra={"db_url": self.db_url})
+        logger.info(
+            "embedding_queue_initialized",
+            extra={"db_url": self.db_url, "wal_mode": "enabled"},
+        )
 
     async def enqueue(
         self,

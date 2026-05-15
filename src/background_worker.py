@@ -12,6 +12,7 @@ Loop assíncrono que:
 import asyncio
 import json
 import logging
+import traceback
 from typing import Any
 
 try:
@@ -178,8 +179,9 @@ class BackgroundEmbeddingWorker:
 
             except Exception as e:
                 attempt += 1
+                error_trace = traceback.format_exc()
                 logger.warning(
-                    f"Erro ao processar {queue_id} (tentativa {attempt}/{MAX_RETRIES}): {e}"
+                    f"Erro ao processar {queue_id} (tentativa {attempt}/{MAX_RETRIES}): {e}\n{error_trace}"
                 )
 
                 if attempt < MAX_RETRIES:
@@ -190,9 +192,10 @@ class BackgroundEmbeddingWorker:
                     )
                     await asyncio.sleep(backoff_time)
                 else:
-                    # 3 falhas, mover para DLQ
+                    # 3 falhas, mover para DLQ com stack trace completo
+                    dlq_reason = f"{str(e)}\n\nStack trace:\n{error_trace}"
                     try:
-                        await self.queue.mark_dlq(queue_id, str(e))
+                        await self.queue.mark_dlq(queue_id, dlq_reason)
                         logger.error(
                             "embedding_moved_to_dlq",
                             extra={

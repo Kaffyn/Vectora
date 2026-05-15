@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from uuid import uuid4
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
@@ -37,6 +38,7 @@ class Context:
         user_id: Unique user identifier
         user_type: User subscription level (plus, enterprise, pro)
         thread_id: Conversation thread ID for persistence
+        correlation_id: UUID for tracing request through entire workflow (web_search → embedding → vector_search)
         conversation_id: Optional external conversation ID
         created_at: ISO timestamp when context was created
         preferences: User preferences (language, search settings, etc)
@@ -46,15 +48,19 @@ class Context:
     user_id: str = "default"
     user_type: str
     thread_id: str | int
+    correlation_id: str | None = None
     conversation_id: str | None = None
     created_at: str | None = None
     preferences: UserPreferences = field(default_factory=UserPreferences)
     features: FeatureFlags = field(default_factory=FeatureFlags)
 
     def __post_init__(self) -> None:
-        """Set created_at if not provided and validate thread_id."""
+        """Set created_at and correlation_id if not provided, and validate thread_id."""
         if self.thread_id is None:
             msg = "thread_id cannot be None"
             raise ValueError(msg)
         if self.created_at is None:
             object.__setattr__(self, "created_at", datetime.now(UTC).isoformat())
+        if self.correlation_id is None:
+            # Generate unique correlation_id for tracing this request through entire pipeline
+            object.__setattr__(self, "correlation_id", str(uuid4()))
