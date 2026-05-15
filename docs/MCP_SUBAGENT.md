@@ -28,6 +28,7 @@ Resultado processado → Claude Code
 ```
 
 **Ponto-chave:** O MCP **não expõe as 11 tools diretamente**. Expõe apenas:
+
 - **3 Resources**: estado cognitivo do Vectora (context, history, status)
 - **Protocolo JSON-RPC**: comunicação entre agentes via stdio
 

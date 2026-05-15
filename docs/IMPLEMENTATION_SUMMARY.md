@@ -44,6 +44,7 @@ Claude Code (Agente Principal)
 ### Core MCP Server
 
 **`src/mcp_server.py`** (320 linhas)
+
 - MCP Server implementado com FastMCP
 - 3 Resources para exposição de estado
 - Padrão Sub-Agent para integração com Claude Code
@@ -52,11 +53,13 @@ Claude Code (Agente Principal)
 **Recursos Implementados:**
 
 1. **`vectora://thread/{thread_id}/context`**
+
    - Retorna resumo e contexto atual da conversa
    - Útil para Claude Code entender o estado cognitivo do Vectora
    - Formato: JSON com `status`, `summary`, `message_count`
 
 2. **`vectora://thread/{thread_id}/history`**
+
    - Retorna últimas 5 mensagens da conversa
    - Permite que Claude Code tenha contexto recente
    - Formato: JSON com lista de mensagens
@@ -69,21 +72,25 @@ Claude Code (Agente Principal)
 ### Bug Fixes
 
 **`src/constants.py`**
+
 - Adicionada constante `VERSION = "0.1.0"`
 - Sincroniza com `pyproject.toml`
 
 **`src/tools.py`** (linha 37)
+
 - Corrigido bug: `pa = pa` → `pa = None` em fallback de import
 
 ### Documentation
 
 **`docs/MCP_SUBAGENT.md`** (criado anteriormente)
+
 - Documentação completa do padrão Sub-Agent
 - Exemplos de Tools vs Resources
 - Fluxo de decisão do agente principal
 - Configuração de Docker e claude_config.json
 
 **`docs/IMPLEMENTATION_SUMMARY.md`** (este arquivo)
+
 - Resumo da implementação
 - Status dos testes
 - Instruções de uso
@@ -153,16 +160,16 @@ Criar arquivo `claude_config.json`:
 Claude Code:
   1. Lê Resource: GET vectora://status
      → Verifica que server está pronto
-  
+
   2. Lê Resource: GET vectora://thread/123/context
      → Descobre que thread tem 5 mensagens
-  
+
   3. Usa Informação: "User wants to search for Python docs"
      → Decide chamar tool: web_search("Python docs")
-  
+
   4. Lê Resource: GET vectora://thread/123/history
      → Obtém contexto recente da conversa
-  
+
   5. Incorpora resultado em seu raciocínio
 ```
 
@@ -245,16 +252,19 @@ $ python -m pytest tests/e2e/test_mcp_resources.py -v
 ## Próximos Passos (Post-MVP)
 
 1. **Tools via MCP**
+
    - Wrapper functions para as 11 ferramentas
    - Integração com FastMCP tool registry
    - Schema JSON para cada ferramenta
 
 2. **Advanced Resources**
+
    - `vectora://thread/{id}/search` - buscar por padrão
    - `vectora://metrics` - métricas do servidor
    - `vectora://models` - modelos disponíveis
 
 3. **Deep Agents**
+
    - Sub-agentes especializados
    - Cada um com seus próprios Resources
    - Orquestração central

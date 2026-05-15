@@ -2425,7 +2425,7 @@ wheels = [
 
 [[package]]
 name = "vectora"
-version = "0.1.0rc1"
+version = "0.0.1.dev1"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },

@@ -84,6 +84,7 @@
 Vectora não é apenas uma "ferramenta" para o Claude Code, mas um **agente colaborativo independente** com seu próprio raciocínio. Claude Code **comunica com** Vectora, não chama suas ferramentas diretamente:
 
 1. **Ferramentas Internas** (usadas pelo LangGraph do Vectora):
+
    - `vector_search` — Busca conhecimento técnico profundo em LanceDB
    - `web_search` — Contexto externo em tempo real via DuckDuckGo
    - `file_read`, `file_edit`, `terminal` — Manipulação de sistema
@@ -91,6 +92,7 @@ Vectora não é apenas uma "ferramenta" para o Claude Code, mas um **agente cola
    - `embedding`, `ingest_docs`, `call_mcp_tool` — Integração e indexação
 
 2. **Resources Expostos via MCP** (lidos por Claude Code):
+
    - `vectora://thread/{id}/context` — Resumo do conhecimento coletado
    - `vectora://thread/{id}/history` — Histórico da conversa (últimas 5 msgs)
    - `vectora://status` — Status do servidor (LLM, RAG disponível, uptime)

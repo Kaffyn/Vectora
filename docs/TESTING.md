@@ -60,6 +60,7 @@ Acesse: https://smith.langchain.com
 ## CI/CD Pipeline
 
 GitHub Actions roda automaticamente:
+
 - Lint (ruff, isort)
 - Build verification
 - Test suites (unit, integration, E2E)
@@ -70,6 +71,7 @@ GitHub Actions roda automaticamente:
 ## Configuração para Testes
 
 Variáveis padrão:
+
 - `LLM_PROVIDER=google-genai`
 - `GOOGLE_API_KEY=test-key`
 - `VOYAGE_API_KEY=test-key`
