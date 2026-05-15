@@ -73,21 +73,6 @@ repos:
         name: Ruff Format (Python)
         files: \.py$
 
-  # Disabled: ty has unresolved module resolution issues (cannot find src/ modules)
-  # Type checking is provided by ruff linter (ANN rules)
-  # - repo: local
-  #   hooks:
-  #     - id: ty
-  #       name: Ty (Python Type Checker)
-  #       entry: uv run ty check src/
-  #       language: system
-  #       types: [python]
-  #       pass_filenames: false
-  #       stages: [pre-commit]
-  #       verbose: true
-  #       env:
-  #         PYTHONPATH: src
-
   # ==========================================
   # TypeScript / JavaScript Validation
   # ==========================================
@@ -112,6 +97,19 @@ repos:
         args: ["--write"]
         files: \.(md|yaml|yml|css)$
         types_or: [text]
+
+  # ==========================================
+  # Type Checking (Disabled in Pre-commit)
+  # ==========================================
+  # Note: `ty` (Python type checker) is not integrated here due to:
+  # - Cannot resolve relative imports in src/ without manual PYTHONPATH configuration
+  # - Strict incompatibility with optional imports used for lazy-loading external libraries
+  # - Conflicts with LangGraph's TypedDict and State typing patterns
+  #
+  # For manual type validation, run:
+  #   PYTHONPATH=src uv run ty check src tests
+  #
+  # Type checking via mypy is handled per-file in ruff configuration
 
 ci:
   autofix_commit_msg: "chore: auto fixes from pre-commit hooks"
