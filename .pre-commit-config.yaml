@@ -78,7 +78,6 @@ repos:
     hooks:
       - id: isort
         name: Sort Python Imports
-        args: ["--profile=black", "--line-length=88"]
         files: \.py$
 
   # Disabled: ty has unresolved module resolution issues (cannot find src/ modules)

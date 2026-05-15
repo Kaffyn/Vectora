@@ -160,6 +160,35 @@ venvPath = "."
 executionEnvironments = [{ root = "src" }]
 
 
+[tool.isort]
+profile = "black"
+line_length = 88
+skip_gitignore = true
+known_first_party = [
+    "chat",
+    "checkpointer",
+    "config",
+    "constants",
+    "context",
+    "env",
+    "embedding_queue",
+    "graph",
+    "log_setup",
+    "nodes",
+    "prompts",
+    "setup_wizard",
+    "state",
+    "testing",
+    "tool_config",
+    "tool_safety",
+    "tools",
+    "utils",
+    "background_worker",
+    "mcp_client",
+    "mcp_server",
+    "memory_store",
+]
+
 [tool.pytest.ini_options]
 addopts = "-s --color=yes --tb=short"
 pythonpath = ["src"]
