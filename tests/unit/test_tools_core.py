@@ -254,39 +254,38 @@ class TestVectorSearch:
 class TestFileRead:
     """Tests for file_read tool."""
 
-    def test_file_read_returns_content(self, tmp_path) -> None:
+    @patch("tool_safety.is_safe_file_path", return_value=True)
+    def test_file_read_returns_content(self, mock_safe, tmp_path) -> None:
         """Verify file_read returns file content via streaming."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("File content here")
 
         # file_read is synchronous, use .stream()
         result = ""
-        for chunk in file_read.stream({"filepath": str(test_file)}):
+        for chunk in file_read.stream({"file_path": str(test_file)}):
             if isinstance(chunk, str):
                 result += chunk
         assert "File content" in result
 
     def test_file_read_respects_whitelist(self) -> None:
         """Verify file_read respects path whitelist."""
-        config = ToolConfig(enable_file_operations=True)
-        with patch("tools.get_tool_config", return_value=config):
-            # Should reject paths outside whitelist
-            result = ""
-            for chunk in file_read.stream({"filepath": "/etc/passwd"}):
-                if isinstance(chunk, str):
-                    result += chunk
-            if isinstance(result, str):
-                assert (
-                    "not allowed" in result.lower()
-                    or "permission" in result.lower()
-                    or "whitelist" in result.lower()
-                    or "access" in result.lower()
-                )
+        # Ensure paths outside the whitelist are rejected
+        result = ""
+        for chunk in file_read.stream({"file_path": "/etc/passwd"}):
+            if isinstance(chunk, str):
+                result += chunk
+        if isinstance(result, str):
+            assert (
+                "not allowed" in result.lower()
+                or "permission" in result.lower()
+                or "whitelist" in result.lower()
+                or "access" in result.lower()
+            )
 
     def test_file_read_handles_nonexistent_file(self) -> None:
         """Verify file_read handles missing files gracefully."""
         result = ""
-        for chunk in file_read.stream({"filepath": "/nonexistent/file.txt"}):
+        for chunk in file_read.stream({"file_path": "/nonexistent/file.txt"}):
             if isinstance(chunk, str):
                 result += chunk
         assert isinstance(result, str)
