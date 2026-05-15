@@ -87,9 +87,6 @@ Pipfile.lock
 # Poetry
 poetry.lock
 
-# UV
-uv.lock
-
 # pdm
 .pdm.toml
 .pdm-python
@@ -275,6 +272,5 @@ data/
 .vectora/
 docs/
 tests/
-README.md
 CHANGELOG.md
 LICENSE
