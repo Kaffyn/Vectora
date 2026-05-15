@@ -140,7 +140,7 @@ jobs:
         run: uv sync --frozen --all-extras
 
       - name: Run MCP integration tests
-        run: uv run pytest tests/test_mcp_integration.py -v --tb=short
+        run: uv run pytest tests/e2e/test_mcp_resources.py tests/e2e/test_mcp_server_routes.py -v --tb=short
 
   security:
     name: Security Scanning
