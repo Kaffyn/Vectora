@@ -4,14 +4,19 @@ Provides LLM factory function supporting Google Gemini, OpenAI, Anthropic, Ollam
 Includes async context managers and environment variable helpers.
 """
 
-from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager
-from typing import cast
+from __future__ import annotations
 
-from langchain.base_language import BaseLanguageModel
+from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING, cast
+
 from langchain.chat_models import init_chat_model
 
 from env import get_env
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+    from langchain_core.language_model.base import BaseLanguageModel
 
 
 def _get_env_with_default(name: str, default: str) -> str:
