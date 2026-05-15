@@ -67,17 +67,10 @@ repos:
     hooks:
       - id: ruff
         name: Ruff Lint (Python)
-        args: [--fix]
+        args: [--fix, --select, I]
         files: \.py$
       - id: ruff-format
         name: Ruff Format (Python)
-        files: \.py$
-
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
-    hooks:
-      - id: isort
-        name: Sort Python Imports
         files: \.py$
 
   # Disabled: ty has unresolved module resolution issues (cannot find src/ modules)

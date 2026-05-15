@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vectora"
-version = "0.0.1dev1"
+version = "0.1.0"
 description = "Vectora - Advanced AI Assistant with RAG and MCP capabilities"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -37,16 +37,19 @@ dependencies = [
     "trio>=0.27.0",
     "langchain-mcp-adapters>=0.1.0",
     "langsmith>=0.8.4",
-    "isort>=8.0.1",
-    "ty>=0.0.35",
-    "ruff>=0.15.12",
     "deepagents>=0.6.1",
     "tavily-python>=0.7.24",
 ]
 
 [project.optional-dependencies]
 test = ["pytest>=8.0", "pytest-asyncio>=0.23.0", "pytest-cov>=4.0.0"]
-dev = ["ruff>=0.5.0", "mypy>=1.10.0", "ty>=0.0.35", "isort>=5.13.0", "bandit>=1.7.5"]
+dev = [
+    "ruff>=0.5.0",
+    "mypy>=1.10.0",
+    "isort>=5.13.0",
+    "bandit>=1.7.5",
+    "types-python-dateutil"
+]
 
 [project.scripts]
 vectora = "run_chat:run_chat"
@@ -56,58 +59,27 @@ vectora-mcp = "mcp_server:mcp.run"
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 
+# Garante que o arquivo defaults.env seja incluído dentro do pacote Python
+[tool.hatch.build.targets.wheel.force-include]
+"src/defaults.env" = "vectora/defaults.env"
+
 [tool.ruff]
 line-length = 88
-target-version = "py312"
+target-version = "py313"
 fix = true
 show-fixes = true
 indent-width = 4
-exclude = [".venv"]
+exclude = [".venv", "data", "logs"]
 
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "T201",   # Checks for print statements
-    "COM812", # Checks for the absence of trailing commas
-    "INP001", # Checks for packages that are missing an __init__.py file
-    "D",      # All pydocstyle (D)
-    "ANN401", # Checks that function arguments are annotated with a more specific type than Any
-    "ERA001", # Checks for commented-out Python code
-    "PLW0603", # Using the global statement to update (acceptable in tool registry patterns)
-    "RUF012", # Mutable class attributes (valid for fixture caches)
-    "G202",   # Logging statement has formatting issues (acceptable for debug logging)
-    "TRY300", # Move statement to else block (stylistic, not functional issue)
-    "TRY301", # Abstract raise to inner function (overly restrictive for exception handling)
-    "SIM117", # Use single with statement (acceptable with nested contexts)
-    "SIM102", # Use single if statement (sometimes multiple ifs are clearer)
-    "ARG001", # Unused function argument (e.g., runtime parameter from framework)
-    "ARG002", # Unused method argument (e.g., in mocks and fixtures)
-    "BLE001", # Blind exception catch (acceptable in library code for robustness)
-    "RUF001", # Ambiguous string characters (acceptable for special characters in UI)
-    "PGH003", # Specific rule codes for type ignores (acceptable for SQLAlchemy)
-    "SLF001", # Private member access (acceptable in tests)
-    "S110",   # Try-except-pass (acceptable for optional dependencies)
-    "PLR2004", # Magic value (acceptable for configuration constants)
-    "E501",   # Line too long (acceptable where breaking would reduce readability)
-    "PD011",  # Use .to_numpy() (pandas not primary dependency)
-    "DTZ005", # datetime without tz (UTC implicit in application context)
-    "TRY004", # Prefer TypeError (ValueError acceptable for validation)
-    "PLC0415", # Import at wrong level (acceptable for deferred imports in functions)
-    "F841",    # Unused variable (some intentional, checked in context)
-    "ASYNC240", # pathlib in async (acceptable, not blocking)
-    "F401",    # Unused import (acceptable for public API exports)
-    "PT011",   # Assertion with == in tests (acceptable)
-    "PT017",   # Assertion in except block (acceptable pattern)
-    "FBT001",  # Boolean positional argument (design choice)
-    "G004",    # Logging f-string (acceptable, equivalent to lazy formatting)
-    "TRY401",  # Redundant exception object (style preference)
-    "TRY002",  # Raise to inner function (style preference)
-    "ARG005",  # Unused lambda argument (acceptable in some patterns)
-    "C901",    # Function too complex (acceptable for utility functions)
-    "A004",    # Shadowing builtin (intentional with rich.print for better output)
-    "ASYNC230", # Blocking file operations in async (acceptable for debug utilities)
-    "PLR0913", # Too many arguments (acceptable for logging/metric collection functions)
-    "E402",    # Module level imports not at top (acceptable for sys.path setup)
+    "T201", "COM812", "INP001", "D", "ANN401", "ERA001", "PLW0603",
+    "RUF012", "G202", "TRY300", "TRY301", "SIM117", "SIM102", "ARG001",
+    "ARG002", "BLE001", "RUF001", "PGH003", "SLF001", "S110", "PLR2004",
+    "E501", "PD011", "DTZ005", "TRY004", "PLC0415", "F841", "ASYNC240",
+    "F401", "PT011", "PT017", "FBT001", "G004", "TRY401", "TRY002",
+    "ARG005", "C901", "A004", "ASYNC230", "PLR0913", "E402"
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -123,73 +95,14 @@ quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
 
-[tool.ruff.lint.isort]
-known-first-party = [
-    "chat",
-    "checkpointer",
-    "config",
-    "constants",
-    "context",
-    "env",
-    "embedding_queue",
-    "graph",
-    "log_setup",
-    "nodes",
-    "prompts",
-    "setup_wizard",
-    "state",
-    "testing",
-    "tool_config",
-    "tool_safety",
-    "tools",
-    "utils",
-]
-
 [tool.pyright]
 typeCheckingMode = "standard"
-pythonVersion = "3.14"
+pythonVersion = "3.13"
 include = ["src", "tests"]
-exclude = [
-    "**/venv",
-    "**/.venv",
-    "**/env",
-    "**/.env",
-    "**/node_modules",
-    "**/__pycache__",
-]
+exclude = ["**/venv", "**/.venv", "**/env", "**/.env", "**/node_modules", "**/__pycache__"]
 venv = ".venv"
 venvPath = "."
 executionEnvironments = [{ root = "src" }]
-
-
-[tool.isort]
-profile = "black"
-line_length = 88
-skip_gitignore = true
-known_first_party = [
-    "chat",
-    "checkpointer",
-    "config",
-    "constants",
-    "context",
-    "env",
-    "embedding_queue",
-    "graph",
-    "log_setup",
-    "nodes",
-    "prompts",
-    "setup_wizard",
-    "state",
-    "testing",
-    "tool_config",
-    "tool_safety",
-    "tools",
-    "utils",
-    "background_worker",
-    "mcp_client",
-    "mcp_server",
-    "memory_store",
-]
 
 [tool.pytest.ini_options]
 addopts = "-s --color=yes --tb=short"

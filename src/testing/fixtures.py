@@ -27,7 +27,7 @@ def mock_llm() -> MockLLM:
 
 
 @pytest.fixture
-async def temp_db() -> AsyncGenerator[str, None]:
+async def temp_db() -> AsyncGenerator[str]:
     """Create a temporary SQLite database for testing.
 
     Yields the file path (not DSN), cleans up after test.
@@ -42,7 +42,7 @@ async def temp_db() -> AsyncGenerator[str, None]:
 
 
 @pytest.fixture
-async def checkpointer(temp_db: str) -> AsyncGenerator[AsyncSqliteSaver, None]:
+async def checkpointer(temp_db: str) -> AsyncGenerator[AsyncSqliteSaver]:
     """Provide an AsyncSqliteSaver with temporary database.
 
     The checkpointer is used for persisting graph state.
