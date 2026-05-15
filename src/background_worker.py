@@ -10,7 +10,7 @@ Loop assíncrono que:
 """
 
 import asyncio
-import json
+import contextlib
 import logging
 import traceback
 from typing import Any
@@ -73,11 +73,11 @@ class BackgroundEmbeddingWorker:
         self.task = asyncio.create_task(self._run_loop())
         logger.info("BackgroundEmbeddingWorker iniciado")
 
-    async def stop(self, timeout: int = 30) -> None:
+    async def stop(self, timeout_seconds: int = 30) -> None:
         """Para o worker gracefully.
 
         Args:
-            timeout: Segundos para aguardar a terminação
+            timeout_seconds: Segundos para aguardar a terminação
         """
         if not self.running:
             return
@@ -87,14 +87,16 @@ class BackgroundEmbeddingWorker:
 
         if self.task:
             try:
-                await asyncio.wait_for(self.task, timeout=timeout)
-            except asyncio.TimeoutError:
-                logger.warning(f"Worker não terminou em {timeout}s, cancelando")
-                self.task.cancel()
-                try:
+                async with asyncio.timeout(timeout_seconds):
                     await self.task
-                except asyncio.CancelledError:
-                    pass
+            except TimeoutError:
+                logger.warning(
+                    "Worker não terminou a tempo, cancelando",
+                    extra={"timeout_seconds": timeout_seconds},
+                )
+                self.task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await self.task
 
         logger.info("BackgroundEmbeddingWorker parou")
 
@@ -119,7 +121,7 @@ class BackgroundEmbeddingWorker:
                     continue
 
                 logger.debug(
-                    f"Batch encontrado", extra={"count": len(pending)}
+                    "Batch encontrado", extra={"count": len(pending)}
                 )
 
                 # Processar batch em paralelo (limitado por Semaphore)
@@ -181,32 +183,45 @@ class BackgroundEmbeddingWorker:
                 attempt += 1
                 error_trace = traceback.format_exc()
                 logger.warning(
-                    f"Erro ao processar {queue_id} (tentativa {attempt}/{MAX_RETRIES}): {e}\n{error_trace}"
+                    "embedding_processing_failed",
+                    extra={
+                        "queue_id": queue_id,
+                        "attempt": attempt,
+                        "max_retries": MAX_RETRIES,
+                        "error": str(e),
+                        "traceback": error_trace,
+                    },
                 )
 
                 if attempt < MAX_RETRIES:
                     # Exponential backoff antes de retry
                     backoff_time = RETRY_BACKOFF[attempt - 1]
                     logger.info(
-                        f"Aguardando {backoff_time}s antes de retry"
+                        "embedding_retry_backoff",
+                        extra={
+                            "queue_id": queue_id,
+                            "backoff_seconds": backoff_time,
+                            "attempt": attempt,
+                        },
                     )
                     await asyncio.sleep(backoff_time)
                 else:
                     # 3 falhas, mover para DLQ com stack trace completo
-                    dlq_reason = f"{str(e)}\n\nStack trace:\n{error_trace}"
+                    dlq_reason = f"{e!s}\n\nStack trace:\n{error_trace}"
                     try:
                         await self.queue.mark_dlq(queue_id, dlq_reason)
-                        logger.error(
+                    except Exception:
+                        logger.exception(
+                            "Erro ao mover para DLQ",
+                            extra={"queue_id": queue_id},
+                        )
+                    else:
+                        logger.info(
                             "embedding_moved_to_dlq",
                             extra={
                                 "queue_id": queue_id,
                                 "reason": str(e),
                             },
-                        )
-                    except Exception:
-                        logger.exception(
-                            "Erro ao mover para DLQ",
-                            extra={"queue_id": queue_id},
                         )
 
     async def _generate_embedding(self, text: str) -> list[float]:
@@ -219,13 +234,16 @@ class BackgroundEmbeddingWorker:
             Lista de floats representando o embedding
 
         Raises:
-            Exception: Se Voyage AI falhar ou não estiver configurado
+            ValueError: Se VOYAGE_API_KEY não estiver configurado
+            ImportError: Se langchain_voyageai não estiver instalado
         """
         if not self.config.voyage_api_key:
-            raise ValueError("VOYAGE_API_KEY não configurado")
+            msg = "VOYAGE_API_KEY não configurado"
+            raise ValueError(msg)
 
         if VoyageAIEmbeddings is None:
-            raise ImportError("langchain_voyageai não está instalado")
+            msg = "langchain_voyageai não está instalado"
+            raise ImportError(msg)
 
         embeddings_model = VoyageAIEmbeddings(
             api_key=SecretStr(self.config.voyage_api_key),
@@ -234,8 +252,7 @@ class BackgroundEmbeddingWorker:
 
         # embed_query é bloqueante, mas rodamos sob Semaphore(5)
         # para limitar chamadas simultâneas de API
-        vector = embeddings_model.embed_query(text)
-        return vector
+        return embeddings_model.embed_query(text)
 
     async def _write_to_lancedb(
         self, record: EmbeddingQueueRecord, vector: list[float]
@@ -247,10 +264,11 @@ class BackgroundEmbeddingWorker:
             vector: Embedding vector
 
         Raises:
-            Exception: Se LanceDB falhar
+            ImportError: Se lancedb não estiver instalado
         """
         if lancedb is None:
-            raise ImportError("lancedb não está instalado")
+            msg = "lancedb não está instalado"
+            raise ImportError(msg)
 
         db = await lancedb.connect_async(str(self.config.lancedb_path))
 
