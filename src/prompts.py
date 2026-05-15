@@ -1,3 +1,9 @@
+"""System Prompts and Language-Aware Persona Definition.
+
+Manages Vectora's system prompt with local-first RAG strategy instructions.
+Auto-detects system language and provides localized guidance.
+"""
+
 import locale
 
 

@@ -1,3 +1,9 @@
+"""CLI Entry Point for Vectora Application.
+
+Handles command-line argument parsing and application startup.
+Routes to chat TUI, setup wizard, or other CLI commands.
+"""
+
 import asyncio
 import logging
 

@@ -1,3 +1,8 @@
+"""Test Fixtures and Utilities for Unit Testing.
+
+Provides mock LLM, test graph, fixtures for database, message factories, and assertions.
+"""
+
 from testing.assertions import (
     assert_last_message_is_ai,
     assert_message_contains_text,

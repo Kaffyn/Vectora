@@ -1,3 +1,9 @@
+"""Utility Functions and Multi-Provider LLM Loading.
+
+Provides LLM factory function supporting Google Gemini, OpenAI, Anthropic, Ollama.
+Includes async context managers and environment variable helpers.
+"""
+
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import cast

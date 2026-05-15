@@ -1,3 +1,9 @@
+"""LangGraph Construction for Multi-Node Agentic Workflow.
+
+Builds compiled state graph with MAIN_NODE, TOOL_NODE, SUB_NODE pattern.
+Coordinates conversation flow, tool execution, and state management.
+"""
+
 import logging
 
 from langgraph.constants import END, START

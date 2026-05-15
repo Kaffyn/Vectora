@@ -1,3 +1,9 @@
+"""Tool Configuration with Environment Variable Parsing.
+
+Dataclass managing all tool-specific settings: RAG, embedding, web search, MCP.
+Provides property-based normalization for database URLs and path handling.
+"""
+
 import os
 from dataclasses import dataclass, field
 from pathlib import Path

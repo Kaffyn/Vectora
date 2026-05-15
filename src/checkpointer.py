@@ -1,3 +1,9 @@
+"""LangGraph Checkpoint Management for Conversation State Persistence.
+
+Manages SQLite-backed checkpointing for LangGraph execution state.
+Enables resuming interrupted conversations, thread-level history,
+and state snapshots for debugging and auditing."""
+
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager

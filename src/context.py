@@ -1,3 +1,9 @@
+"""Conversation Context Data Structure.
+
+Immutable context object passed through LangGraph pipeline.
+Contains user info, session metadata, feature flags, and request tracing (correlation_id).
+"""
+
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from uuid import uuid4

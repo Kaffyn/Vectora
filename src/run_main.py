@@ -1,3 +1,9 @@
+"""Main Application Runner with Async Lifecycle.
+
+Handles application startup, async context management, and graceful shutdown.
+Coordinates background workers and resource cleanup.
+"""
+
 import asyncio
 import os
 

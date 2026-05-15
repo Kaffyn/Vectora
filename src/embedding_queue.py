@@ -1,3 +1,10 @@
+"""Asynchronous Embedding Queue for Fire-and-Forget Vector Generation.
+
+Manages SQLite-backed queue for embedding documents with Voyage AI.
+Supports retry logic, exponential backoff, Dead Letter Queue (DLQ) for failures,
+and reconciliation for crash recovery.
+"""
+
 import asyncio
 import json
 import logging

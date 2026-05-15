@@ -1,3 +1,9 @@
+"""Environment Variable Management with Strict Validation.
+
+Provides typed access to environment variables with optional strict mode.
+Includes custom exceptions for missing required configuration.
+"""
+
 import os
 from typing import Literal, overload
 

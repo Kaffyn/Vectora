@@ -1,3 +1,9 @@
+"""LangGraph Node Implementations for Agent Behavior.
+
+Defines individual nodes: MAIN_NODE (chat), TOOL_NODE (execution), SUB_NODE (isolation).
+Each node handles specific responsibilities in the conversation pipeline.
+"""
+
 import json
 import logging
 

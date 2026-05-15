@@ -1,3 +1,9 @@
+"""Configuration Management for Vectora Application.
+
+Singleton pattern for managing environment variables, API keys, and system settings.
+Supports .env file loading and runtime configuration updates.
+"""
+
 import os
 from pathlib import Path
 from typing import Any

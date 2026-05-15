@@ -1,3 +1,9 @@
+"""Logging Configuration and Initialization.
+
+Sets up structured JSON logging with correlation IDs for production observability.
+Supports multiple log levels, file rotation, and console output.
+"""
+
 import json
 import logging
 import os

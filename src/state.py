@@ -1,3 +1,9 @@
+"""LangGraph State Definition and Message Management.
+
+Defines the state schema for conversation: messages, summary, retrieval results.
+Includes reducer for message deduplication and history management.
+"""
+
 from collections.abc import Sequence
 from typing import Annotated, Any, TypedDict
 

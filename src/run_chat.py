@@ -1,3 +1,9 @@
+"""Chat Application Launcher.
+
+Entry point for starting the interactive Textual chat interface.
+Initializes graph, checkpointer, and message loop.
+"""
+
 import asyncio
 import os
 

@@ -1,3 +1,16 @@
+"""Textual TUI Chat Interface for Vectora.
+
+Implements the interactive chat terminal UI with real-time message rendering,
+conversation history, and status display. Uses Textual framework for responsive,
+cross-platform CLI experience.
+
+Components:
+    - MessageDisplay: Rich formatted message rendering
+    - InputBox: User input with history and autocomplete
+    - StatusBar: Real-time status and metrics display
+    - ChatApp: Main Textual application class
+"""
+
 import asyncio
 import logging
 from collections.abc import Sequence

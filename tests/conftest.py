@@ -1,3 +1,9 @@
+"""Pytest Configuration and Global Test Fixtures.
+
+Configures pytest environment, sets up logging, and provides reusable fixtures
+for all tests: mock_llm, temp_db, test_context, test_graph, checkpointer, etc.
+"""
+
 import os
 import sys
 from pathlib import Path

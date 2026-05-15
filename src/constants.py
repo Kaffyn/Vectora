@@ -1,3 +1,9 @@
+"""Global Constants for Vectora Application.
+
+Defines system-wide constants for paths, database configurations, and default values.
+Single source of truth for configuration parameters.
+"""
+
 from pathlib import Path
 
 # Versão do Vectora (sincronizar com pyproject.toml)

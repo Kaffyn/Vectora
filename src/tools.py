@@ -1,3 +1,9 @@
+"""Core Vectora Tools Implementation (10-tool Suite).
+
+Implements: web_search, fetch_url, embedding, vector_search, file_read, file_edit,
+grep, terminal, list_dir, call_mcp_tool. All tools include error handling and logging.
+"""
+
 import asyncio
 import json
 import logging
