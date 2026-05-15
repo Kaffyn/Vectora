@@ -71,7 +71,6 @@ ignore = [
     "D",      # All pydocstyle (D)
     "ANN401", # Checks that function arguments are annotated with a more specific type than Any
     "ERA001", # Checks for commented-out Python code
-    "ANN101", # Missing type annotation for self (covered by Self typing where needed)
     "PLW0603", # Using the global statement to update (acceptable in tool registry patterns)
     "RUF012", # Mutable class attributes (valid for fixture caches)
     "G202",   # Logging statement has formatting issues (acceptable for debug logging)
@@ -85,7 +84,6 @@ ignore = [
     "RUF001", # Ambiguous string characters (acceptable for special characters in UI)
     "PGH003", # Specific rule codes for type ignores (acceptable for SQLAlchemy)
     "SLF001", # Private member access (acceptable in tests)
-    "PT004",  # Fixture should return (not needed for setup fixtures)
     "S110",   # Try-except-pass (acceptable for optional dependencies)
     "PLR2004", # Magic value (acceptable for configuration constants)
     "E501",   # Line too long (acceptable where breaking would reduce readability)
@@ -111,7 +109,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["ANN201", "ANN101", "ANN001", "ARG001", "ARG002", "S101"]
+"tests/**/*.py" = ["ANN201", "ANN001", "ARG001", "ARG002", "S101"]
 "src/prompts.py" = ["E501"]
 "src/tools.py" = ["PLR0911", "S602"]
 "src/nodes.py" = ["E501"]
