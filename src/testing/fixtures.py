@@ -83,7 +83,15 @@ async def test_graph(
         system_prompt = SystemMessage(content=get_system_prompt())
         messages_with_system = [system_prompt, *list(state["messages"])]
 
-        result = await llm_with_tools.ainvoke(messages_with_system)
+        result_text = ""
+        async for chunk in llm_with_tools.astream(messages_with_system):
+            if isinstance(chunk, str):
+                result_text += chunk
+
+        # For testing, create a simple AI message from the streamed content
+        from langchain_core.messages import AIMessage
+
+        result = AIMessage(content=result_text)
         return {"messages": [result]}
 
     from langgraph.constants import END, START

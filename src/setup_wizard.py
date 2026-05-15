@@ -181,8 +181,12 @@ class ApiKeyScreen(Screen):
 
             llm = load_llm()
 
-            response = await llm.ainvoke([("user", "teste")])
-            if response:
+            response_text = ""
+            async for chunk in llm.astream([("user", "teste")]):
+                if isinstance(chunk, str):
+                    response_text += chunk
+
+            if response_text:
                 self.config.save_to_env(
                     {
                         "LLM_PROVIDER": self.provider,

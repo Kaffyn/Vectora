@@ -34,7 +34,7 @@ class FeatureFlags:
 class Context:
     """Immutable context for a LangGraph conversation.
 
-    Set once at conversation start, passed to graph.ainvoke(context=...).
+    Set once at conversation start, passed to graph.astream_events(context=...).
     Contains user info, feature flags, session metadata, and preferences.
 
     During a conversation, Context is immutable per LangGraph semantics.

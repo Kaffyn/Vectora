@@ -242,9 +242,16 @@ async def call_mcp_tool(tool_name: str, arguments: str) -> str:
         args_dict = json.loads(arguments)
 
         async with asyncio.timeout(config.mcp_timeout):
-            result = await _mcp_client.ainvoke(tool_name, args_dict)
+            result_text = ""
+            async for event in _mcp_client.astream_events(
+                {"tool_name": tool_name, "arguments": args_dict}, version="v1"
+            ):
+                if event.get("event") == "on_tool_stream":
+                    chunk = event.get("data", {}).get("chunk")
+                    if chunk:
+                        result_text += str(chunk)
 
-        return str(result)
+        return result_text or str(args_dict)
 
     except TimeoutError:
         logger.exception(f"MCP tool {tool_name} timed out after {config.mcp_timeout}s")
@@ -563,13 +570,17 @@ async def ingest_docs(
             {"ingested_at": datetime.now(UTC).isoformat(), "source_dir": directory_path}
         )
 
-        res = await embedding.ainvoke(
+        res = ""
+        async for stream_chunk in embedding.astream(
             {
                 "text": chunk.page_content,
                 "collection": collection,
                 "metadata": chunk_metadata,
             }
-        )
+        ):
+            if isinstance(stream_chunk, str):
+                res += stream_chunk
+
         # Sucesso: documento enfileirado para processamento assíncrono
         if '"status": "fire_and_forget"' in res:
             success_count += 1
