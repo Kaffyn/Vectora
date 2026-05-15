@@ -21,6 +21,23 @@ from tool_config import ToolConfig
 from tools import embedding, ingest_docs
 
 
+@pytest.fixture(autouse=True)
+def reset_embedding_queue_singleton() -> None:
+    """Reset module-level _queue singleton before each test.
+
+    The embedding_queue module uses a singleton pattern that caches
+    the queue instance. Tests need to reset this to avoid state
+    pollution between tests.
+    """
+    import embedding_queue
+
+    embedding_queue._queue = None
+    yield
+    # Cleanup
+    if embedding_queue._queue:
+        embedding_queue._queue = None
+
+
 class TestFireAndForgetBasic:
     """Test basic fire-and-forget functionality."""
 
@@ -81,11 +98,16 @@ class TestFireAndForgetBasic:
         )
 
         with patch("tool_config.get_tool_config", return_value=config):
-            result = await embedding(
-                text="Test document for queueing",
-                collection="articles",
-                metadata={"author": "test_user"},
-            )
+            result = ""
+            async for chunk in embedding.astream(
+                {
+                    "text": "Test document for queueing",
+                    "collection": "articles",
+                    "metadata": {"author": "test_user"},
+                }
+            ):
+                if isinstance(chunk, str):
+                    result += chunk
 
             result_json = json.loads(result)
             queue_id = result_json["queue_id"]
@@ -104,8 +126,13 @@ class TestFireAndForgetBasic:
         """Test que embedding() retorna erro se RAG desabilitado."""
         config = ToolConfig(enable_rag=False, embedding_queue_enabled=False)
 
-        with patch("tool_config.get_tool_config", return_value=config):
-            result = await embedding(text="Test", collection="test")
+        with patch("tools.get_tool_config", return_value=config):
+            result = ""
+            async for chunk in embedding.astream(
+                {"text": "Test", "collection": "test"}
+            ):
+                if isinstance(chunk, str):
+                    result += chunk
             result_json = json.loads(result)
 
             assert result_json["status"] == "error"
@@ -123,7 +150,7 @@ class TestBackgroundWorker:
             embedding_queue_enabled=True,
             embedding_queue_db=":memory:",
             voyage_api_key="test-key",
-            lancedb_path=Path(":memory:"),  # In-memory LanceDB
+            lancedb_dir=Path(":memory:"),  # In-memory LanceDB
         )
 
         # Enfileirar documento
@@ -257,7 +284,7 @@ class TestBackgroundWorker:
             embedding_queue_enabled=True,
             embedding_queue_db=":memory:",
             voyage_api_key="test-key",
-            lancedb_path=Path(":memory:"),
+            lancedb_dir=Path(":memory:"),
         )
 
         queue = await get_embedding_queue(config.embedding_queue_url)
@@ -350,11 +377,16 @@ class TestIngestDocWithFireAndForget:
             import time
 
             start = time.time()
-            result = await ingest_docs(
-                directory_path=str(tmp_path),
-                collection="articles",
-                glob_pattern="*.md",
-            )
+            result = ""
+            async for chunk in ingest_docs.astream(
+                {
+                    "directory_path": str(tmp_path),
+                    "collection": "articles",
+                    "glob_pattern": "*.md",
+                }
+            ):
+                if isinstance(chunk, str):
+                    result += chunk
             elapsed = time.time() - start
 
             result_json = json.loads(result)
@@ -407,7 +439,7 @@ async def test_full_fire_and_forget_workflow() -> None:
         embedding_queue_enabled=True,
         embedding_queue_db=":memory:",
         voyage_api_key="test-key",
-        lancedb_path=Path(":memory:"),
+        lancedb_dir=Path(":memory:"),
     )
 
     # Step 1: Simulate user search → enqueue documents
