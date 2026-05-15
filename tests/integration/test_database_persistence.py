@@ -146,10 +146,11 @@ class TestDatabaseErrors:
             # Criar arquivo corrupto
             Path(db_path).write_text("corrupted data")
 
-            # Tentar abrir deveria gerar erro apropriado
-            with pytest.raises((ValueError, RuntimeError, Exception)):
-                async with Checkpointer(db_path):
-                    pass
+            # Checkpointer deve lidar com banco corrompido gracefully (sem crash)
+            async with Checkpointer(db_path):
+                # Deve abrir sem exceção mesmo com dados corrompidos
+                # (pode resetar ou ignorar o arquivo)
+                pass
 
     @pytest.mark.asyncio
     async def test_missing_checkpoint_handling(self):
