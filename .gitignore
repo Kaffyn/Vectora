@@ -294,3 +294,4 @@ dist
 # TernJS port file
 .tern-port
 *.db
+.env.gha

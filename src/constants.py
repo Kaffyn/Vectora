@@ -7,7 +7,7 @@ Single source of truth for configuration parameters.
 from pathlib import Path
 
 # Versão do Vectora (sincronizar com pyproject.toml)
-VERSION = "0.1.0"
+VERSION = "0.1.0rc1"
 
 _data_dir = Path(__file__).parent.parent / "data"
 _data_dir.mkdir(parents=True, exist_ok=True)
