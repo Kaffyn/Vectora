@@ -55,7 +55,7 @@ jobs:
           enable-cache: true
 
       - name: Sync dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen --all-extras
 
       - name: Run Ruff check
         run: uv run ruff check src tests
@@ -82,7 +82,7 @@ jobs:
           enable-cache: true
 
       - name: Sync dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen --all-extras
 
       - name: Verify package structure
         run: |
