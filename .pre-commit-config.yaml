@@ -67,7 +67,7 @@ repos:
     hooks:
       - id: ruff
         name: Ruff Lint (Python)
-        args: [--fix, --line-length=100]
+        args: [--fix]
         files: \.py$
       - id: ruff-format
         name: Ruff Format (Python)
@@ -78,7 +78,7 @@ repos:
     hooks:
       - id: isort
         name: Sort Python Imports
-        args: ["--profile=black", "--line-length=100"]
+        args: ["--profile=black", "--line-length=88"]
         files: \.py$
 
   # Disabled: ty type checker has unresolved module resolution issues
