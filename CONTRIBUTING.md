@@ -248,7 +248,7 @@ Use docstrings simples, apenas para o "por quê" não-óbvio:
 # ✅ Bom
 async def call_graph(state: State) -> dict:
     """Execute the LangGraph workflow."""
-    return await graph.ainvoke(state)
+    return await graph.astream_events(state)
 
 # ❌ Desnecessário
 async def call_graph(state: State) -> dict:
@@ -277,7 +277,7 @@ async def test_something(test_graph, test_context):
     state = State(messages=[...])
 
     # Act
-    result = await test_graph.ainvoke(state)
+    result = await test_graph.astream_events(state)
 
     # Assert
     assert result["messages"][-1].content

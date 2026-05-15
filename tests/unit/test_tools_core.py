@@ -1,7 +1,7 @@
 """Unit Tests for Core Vectora Tools with Streaming Pattern.
 
 Tests for: web_search, fetch_url, embedding, vector_search, file_read, grep.
-Each tool is tested with astream/stream pattern (reactive, not invoke/ainvoke).
+Each tool is tested with astream/stream pattern (reactive, not invoke/astream_events).
 """
 
 from __future__ import annotations

@@ -131,7 +131,7 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     with trace_context:
         # LangSmith automatically captures duration, tokens, and model info
         # No need for manual timing—let the trace context handle metrics
-        result = await llm_with_config.ainvoke(
+        result = await llm_with_config.astream_events(
             messages_with_system,
         )
 

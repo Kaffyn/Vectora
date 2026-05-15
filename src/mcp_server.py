@@ -59,7 +59,7 @@ mcp = FastMCP("Vectora-SubAgent")
 # ============================================================================
 # As ferramentas LangChain são wrappeadas para compatibilidade com FastMCP
 # O FastMCP converte docstrings em descrições de ferramentas automaticamente
-# Todas as ferramentas são async-ready (compatível com ainvoke)
+# Todas as ferramentas são async-ready (compatível com astream_events)
 
 # Nota: As ferramentas são importadas de tools.py e estão disponíveis via MCP
 # através da integração LangChain. Elas podem ser utilizadas dentro do graph

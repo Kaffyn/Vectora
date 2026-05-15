@@ -74,7 +74,7 @@ Formato:
         config = {"configurable": {"thread_id": context.thread_id}}
 
         try:
-            result = await graph.ainvoke(
+            result = await graph.astream_events(
                 {"messages": [{"role": "user", "content": prompt_nextjs}]},
                 config=config,
                 context=context,
@@ -119,7 +119,7 @@ Formato:
 [seu sumário aqui]"""
 
         try:
-            result = await graph.ainvoke(
+            result = await graph.astream_events(
                 {"messages": [{"role": "user", "content": prompt_godot}]},
                 config=config,
                 context=context,

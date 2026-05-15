@@ -104,13 +104,13 @@ DB_DSN = str(_db_file)
 
 ### Pontos Fortes Confirmados
 
-| Aspecto                       | Implementação                                    | Status       |
-| ----------------------------- | ------------------------------------------------ | ------------ |
-| **Context Object Imutável**   | `frozen=True` dataclass injetado via `ainvoke`   | ✅ Excelente |
-| **Abstração de Persistência** | `checkpointer.py` com SQLite/PostgreSQL plugável | ✅ Excelente |
-| **Abstração de Tools**        | `tool_config.py` com carga dinâmica              | ✅ Excelente |
-| **TUI Minimalista**           | Textual + Rich sem complexidade desnecessária    | ✅ Excelente |
-| **Logging Estruturado**       | JSONFormatter em `log_setup.py`                  | ✅ Excelente |
+| Aspecto                       | Implementação                                         | Status       |
+| ----------------------------- | ----------------------------------------------------- | ------------ |
+| **Context Object Imutável**   | `frozen=True` dataclass injetado via `astream_events` | ✅ Excelente |
+| **Abstração de Persistência** | `checkpointer.py` com SQLite/PostgreSQL plugável      | ✅ Excelente |
+| **Abstração de Tools**        | `tool_config.py` com carga dinâmica                   | ✅ Excelente |
+| **TUI Minimalista**           | Textual + Rich sem complexidade desnecessária         | ✅ Excelente |
+| **Logging Estruturado**       | JSONFormatter em `log_setup.py`                       | ✅ Excelente |
 
 ---
 
@@ -245,7 +245,7 @@ def get_vector_store():
 # No futuro, adicionar supervisores/sub-agentes é trivial:
 async def supervisor_node(state: State) -> State:
     if decision == "use_deep_agent":
-        return await sub_agent.ainvoke(state)
+        return await sub_agent.astream_events(state)
     else:
         return {"messages": [default_response]}
 ```

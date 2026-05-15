@@ -112,7 +112,7 @@ context = Context(
 context = Context(user_type="plus", thread_id=thread_id)
 
 # Pass to graph invocation
-result = await graph.ainvoke(
+result = await graph.astream_events(
     {"messages": [user_message]},
     config=config,
     context=context  # ← Context passed here
@@ -269,7 +269,7 @@ context = Context(
 )
 
 # Pass to checkpointer for state persistence
-result = await graph.ainvoke(
+result = await graph.astream_events(
     {"messages": messages},
     config=RunnableConfig(configurable={"thread_id": context.thread_id}),
     context=context
@@ -281,7 +281,7 @@ context_v2 = Context(
     thread_id=42,  # Same thread → loads history from checkpointer
 )
 
-result_v2 = await graph.ainvoke(
+result_v2 = await graph.astream_events(
     {"messages": [new_message]},
     config=RunnableConfig(configurable={"thread_id": context_v2.thread_id}),
     context=context_v2
@@ -307,14 +307,14 @@ To update context between turns:
 ```python
 # Turn 1
 context_v1 = Context(user_type="plus", thread_id=1)
-result_v1 = await graph.ainvoke(msg1, context=context_v1)
+result_v1 = await graph.astream_events(msg1, context=context_v1)
 
 # Turn 2: Create new context with updated values
 context_v2 = Context(
     user_type="pro",  # ← Changed
     thread_id=1,      # ← Same (continue conversation)
 )
-result_v2 = await graph.ainvoke(msg2, context=context_v2)
+result_v2 = await graph.astream_events(msg2, context=context_v2)
 ```
 
 **Do NOT try to mutate context:**

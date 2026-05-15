@@ -76,7 +76,7 @@ MCP_COMMAND_ARGS=/path/to/mcp_server.py
 
 ```python
 # No agente/chat
-result = await call_mcp_tool.ainvoke({
+result = await call_mcp_tool.astream_events({
     "tool_name": "nome_da_ferramenta",
     "arguments": '{"param1": "value1", "param2": "value2"}',
     "runtime": runtime
@@ -89,21 +89,21 @@ Chrome DevTools MCP expõe 26 ferramentas para controlar um navegador Chrome. Ex
 
 ```python
 # Tirar screenshot
-result = await call_mcp_tool.ainvoke({
+result = await call_mcp_tool.astream_events({
     "tool_name": "screenshot",
     "arguments": '{}',
     "runtime": runtime
 })
 
 # Executar JavaScript
-result = await call_mcp_tool.ainvoke({
+result = await call_mcp_tool.astream_events({
     "tool_name": "execute_javascript",
     "arguments": '{"script": "document.title"}',
     "runtime": runtime
 })
 
 # Clicar em um elemento
-result = await call_mcp_tool.ainvoke({
+result = await call_mcp_tool.astream_events({
     "tool_name": "click",
     "arguments": '{"selector": "button.submit"}',
     "runtime": runtime

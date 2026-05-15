@@ -110,7 +110,7 @@ class TestLoadLLM:
     def test_load_llm_returns_chat_model(self, mock_init):
         """Verificar que load_llm retorna um ChatModel válido."""
         mock_llm = MagicMock()
-        mock_llm.invoke = MagicMock(return_value="response")
+        mock_llm.astream = MagicMock(return_value=iter(["response"]))
         mock_init.return_value = mock_llm
 
         with patch.dict(
@@ -121,7 +121,7 @@ class TestLoadLLM:
             },
         ):
             llm = load_llm()
-            assert hasattr(llm, "invoke") or hasattr(llm, "ainvoke")
+            assert hasattr(llm, "astream") or hasattr(llm, "astream_events")
 
 
 class TestLLMErrorHandling:
