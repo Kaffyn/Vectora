@@ -24,7 +24,12 @@ class LangSmithObserver:
     """
 
     def __init__(self) -> None:
-        """Initialize LangSmith observer."""
+        """Initialize LangSmith observer.
+
+        Raises:
+            RuntimeError: If LANGSMITH_API_KEY is set but client initialization fails
+                (fail-loud: observability is infrastructure, not optional)
+        """
         self.api_key = os.getenv("LANGSMITH_API_KEY")
         self.enabled = bool(self.api_key)
         self.client: Client | None = None
@@ -38,12 +43,13 @@ class LangSmithObserver:
                         "project": os.getenv("LANGSMITH_PROJECT", "vectora"),
                     },
                 )
-            except Exception as e:  # noqa: BLE001
-                logger.warning(
-                    "Failed to initialize LangSmith client",
-                    extra={"error": str(e)},
+            except Exception as e:
+                msg = (
+                    f"LANGSMITH_API_KEY is set but client initialization failed: {e!s}"
                 )
-                self.enabled = False
+                logger.critical(msg)
+                # Fail-loud: observability is infrastructure, not optional
+                raise RuntimeError(msg) from e
         else:
             logger.info("LangSmith tracing disabled (set LANGSMITH_API_KEY to enable)")
 
@@ -192,7 +198,7 @@ def log_tool_execution(
     """
     if error:
         logger.warning(
-            f"tool_execution_failed",
+            "tool_execution_failed",
             extra={
                 "tool": tool_name,
                 "duration_ms": duration_ms,
@@ -201,7 +207,7 @@ def log_tool_execution(
         )
     else:
         logger.info(
-            f"tool_execution_success",
+            "tool_execution_success",
             extra={
                 "tool": tool_name,
                 "duration_ms": duration_ms,
@@ -241,6 +247,7 @@ def log_vector_search(
     collection: str,
     query: str | None = None,
     num_results: int | None = None,
+    *,
     min_score: float | None = None,
     duration_ms: float | None = None,
     cache_hit: bool = False,
@@ -251,9 +258,9 @@ def log_vector_search(
         collection: Vector collection/index name
         query: Search query (optional)
         num_results: Number of results returned
-        min_score: Minimum relevance score of results
-        duration_ms: Search duration in milliseconds
-        cache_hit: Whether result came from cache
+        min_score: Minimum relevance score of results (keyword-only)
+        duration_ms: Search duration in milliseconds (keyword-only)
+        cache_hit: Whether result came from cache (keyword-only)
     """
     logger.info(
         "vector_search_execution",

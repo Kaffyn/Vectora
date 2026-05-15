@@ -27,7 +27,7 @@ class TestBackgroundWorkerLifecycle:
 
             assert worker.task is not None
             assert not worker.task.done()
-            await worker.stop(timeout=1)
+            await worker.stop(timeout_seconds=1)
 
     @pytest.mark.asyncio
     async def test_worker_stops_gracefully(self):
@@ -41,7 +41,7 @@ class TestBackgroundWorkerLifecycle:
             await worker.start()
 
             # Stop worker
-            await worker.stop(timeout=5)
+            await worker.stop(timeout_seconds=5)
 
             # Task should be stopped
             assert worker.task is None or worker.task.done()
@@ -58,7 +58,7 @@ class TestBackgroundWorkerLifecycle:
             await worker.start()
 
             # Should complete within timeout
-            await worker.stop(timeout=1)
+            await worker.stop(timeout_seconds=1)
 
 
 class TestConcurrentProcessing:
@@ -95,7 +95,7 @@ class TestConcurrentProcessing:
                 await worker.start()
                 # Should have started successfully
                 assert worker.task is not None
-                await worker.stop(timeout=1)
+                await worker.stop(timeout_seconds=1)
 
 
 class TestRetryLogic:
@@ -147,7 +147,7 @@ class TestDLQHandling:
             worker = BackgroundEmbeddingWorker()
             # Verify worker can be created and stopped gracefully
             await worker.start()
-            await worker.stop(timeout=1)
+            await worker.stop(timeout_seconds=1)
             # DLQ reason should include traceback for debugging (verified in integration tests)
 
 
@@ -164,7 +164,7 @@ class TestReconciliation:
 
             worker = BackgroundEmbeddingWorker()
             await worker.start()
-            await worker.stop(timeout=1)
+            await worker.stop(timeout_seconds=1)
 
             # reconcile() should have been called
             mock_instance.reconcile.assert_called()
@@ -182,7 +182,7 @@ class TestReconciliation:
 
             # reconcile() should be called during startup
             assert mock_instance.reconcile.call_count >= 0
-            await worker.stop(timeout=1)
+            await worker.stop(timeout_seconds=1)
 
 
 class TestIdempotence:
@@ -215,7 +215,7 @@ class TestErrorHandling:
 
             worker = BackgroundEmbeddingWorker()
             await worker.start()
-            await worker.stop(timeout=1)
+            await worker.stop(timeout_seconds=1)
 
     @pytest.mark.asyncio
     async def test_worker_handles_database_errors(self):
@@ -228,4 +228,4 @@ class TestErrorHandling:
             worker = BackgroundEmbeddingWorker()
             await worker.start()
             # Should handle error and not crash
-            await worker.stop(timeout=1)
+            await worker.stop(timeout_seconds=1)

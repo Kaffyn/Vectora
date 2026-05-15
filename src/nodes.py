@@ -14,7 +14,7 @@ from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
 
 from context import Context
-from langsmith_integration import create_trace_context, log_llm_call
+from langsmith_integration import create_trace_context
 from memory_store import get_memory_store
 from prompts import get_system_prompt
 from state import State
@@ -129,25 +129,16 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     )
 
     with trace_context:
-        import time
-
-        start_time = time.time()
+        # LangSmith automatically captures duration, tokens, and model info
+        # No need for manual timing—let the trace context handle metrics
         result = await llm_with_config.ainvoke(
             messages_with_system,
-        )
-        duration_ms = (time.time() - start_time) * 1000
-
-        # Log LLM metrics
-        log_llm_call(
-            model=model,
-            duration_ms=duration_ms,
         )
 
     logger.debug(
         "Resposta do LLM gerada",
         extra={
             "tem_chamadas_de_ferramentas": bool(getattr(result, "tool_calls", None)),
-            "duration_ms": duration_ms,
         },
     )
 

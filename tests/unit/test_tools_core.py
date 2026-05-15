@@ -8,35 +8,48 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from tools import embedding, fetch_url, file_read, grep, vector_search, web_search
+# Import StructuredTool wrappers and extract underlying functions via .func
+from tools import embedding as embedding_tool
+from tools import fetch_url as fetch_url_tool
+from tools import file_read as file_read_tool
+from tools import grep as grep_tool
+from tools import vector_search as vector_search_tool
+from tools import web_search as web_search_tool
+
+# Extract underlying async/sync functions
+web_search = web_search_tool.func
+fetch_url = fetch_url_tool.func
+file_read = file_read_tool.func
+embedding = embedding_tool.func
+vector_search = vector_search_tool.func
+grep = grep_tool.func
 
 
 class TestWebSearch:
     """Tests for web_search tool."""
 
-    @patch("tools.DuckDuckGoSearchRun")
-    def test_web_search_returns_string(self, mock_ddg):
+    @patch("tools.DuckDuckGoSearchResults")
+    def test_web_search_returns_string(self, mock_ddg_class):
         """Verify web_search returns string results."""
         mock_search = MagicMock()
-        mock_search.return_value = "Result 1. Result 2. Result 3."
-        mock_ddg.return_value = mock_search
+        mock_search.run.return_value = "Result 1. Result 2. Result 3."
+        mock_ddg_class.return_value = mock_search
 
         result = web_search("test query")
         assert isinstance(result, str)
         assert len(result) > 0
 
-    @patch("tools.DuckDuckGoSearchRun")
-    def test_web_search_handles_empty_query(self, mock_ddg):
+    @patch("tools.DuckDuckGoSearchResults")
+    def test_web_search_handles_empty_query(self, mock_ddg_class):
         """Verify web_search handles empty query gracefully."""
         mock_search = MagicMock()
-        mock_search.return_value = ""
-        mock_ddg.return_value = mock_search
+        mock_search.run.return_value = ""
+        mock_ddg_class.return_value = mock_search
 
         result = web_search("")
         assert isinstance(result, str)
 
-    @patch("tools.DuckDuckGoSearchRun")
-    def test_web_search_is_disabled_in_config(self, mock_ddg):
+    def test_web_search_is_disabled_in_config(self):
         """Verify web_search returns error when disabled."""
         with patch("tools.get_tool_config") as mock_config:
             mock_config.return_value.enable_web_search = False

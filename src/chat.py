@@ -42,9 +42,29 @@ logger = logging.getLogger(__name__)
 class ChatHeader(Static):
     """Header widget for the chat application."""
 
+    def __init__(self, context: Context | None = None) -> None:
+        """Initialize header with optional context for displaying correlation_id."""
+        super().__init__()
+        self.context = context
+
     def render(self) -> Panel:
-        """Render the header."""
-        title = Text("⚡ Vectora Chat", style="bold cyan")
+        """Render the header with version and optional correlation_id."""
+        title_text = "⚡ Vectora Chat v0.0.1dev1"
+        title = Text(title_text, style="bold cyan")
+
+        if self.context:
+            # Display correlation_id for debugging (useful for QA/support)
+            correlation_info = Text(
+                f"Thread: {self.context.thread_id} | Trace: {self.context.correlation_id}",
+                style="dim white",
+            )
+            return Panel(
+                title,
+                subtitle=correlation_info,
+                style="blue",
+                height=4,
+            )
+
         return Panel(
             title,
             style="blue",
@@ -115,6 +135,14 @@ class ChatContainer(Static):
         O `on_mount` apenas configura a UI inicial.
         """
         chat_log = self.query_one(ChatMessages)
+
+        # Update header with correlation info for debugging/support
+        try:
+            header = self.app.query_one(ChatHeader)
+            header.context = self.context
+            header.refresh()
+        except Exception:
+            pass  # Header might not be available, continue anyway
 
         config = RunnableConfig(configurable={"thread_id": self.thread_id})
         try:

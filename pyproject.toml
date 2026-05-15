@@ -103,6 +103,7 @@ ignore = [
     "C901",    # Function too complex (acceptable for utility functions)
     "A004",    # Shadowing builtin (intentional with rich.print for better output)
     "ASYNC230", # Blocking file operations in async (acceptable for debug utilities)
+    "PLR0913", # Too many arguments (acceptable for logging/metric collection functions)
 ]
 
 [tool.ruff.lint.per-file-ignores]
