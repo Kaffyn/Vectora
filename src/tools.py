@@ -376,12 +376,22 @@ async def vector_search(
             model=config.embedding_model,
         )
 
+        # embed_query is synchronous (no timeout needed)
         query_vector = embeddings_model.embed_query(query)
 
         db = await lancedb.connect_async(str(config.lancedb_path))
 
         try:
-            table = await db.open_table(collection)
+            async with asyncio.timeout(10):  # 10s timeout para LanceDB
+                table = await db.open_table(collection)
+        except TimeoutError:
+            logger.exception(f"LanceDB open_table timed out for {collection}")
+            return json.dumps(
+                {
+                    "status": "error",
+                    "error": "Vector store access timed out",
+                }
+            )
         except Exception:
             logger.warning(
                 "LanceDB table not found",
@@ -394,9 +404,19 @@ async def vector_search(
                 }
             )
 
-        search_results = await (
-            table.vector_search(query_vector).limit(limit).to_pandas()
-        )
+        try:
+            async with asyncio.timeout(10):  # 10s timeout para search
+                search_results = await (
+                    table.vector_search(query_vector).limit(limit).to_pandas()
+                )
+        except TimeoutError:
+            logger.exception(f"vector_search timed out for collection {collection}")
+            return json.dumps(
+                {
+                    "status": "error",
+                    "error": "Search timed out after 10s",
+                }
+            )
 
         results = [
             {

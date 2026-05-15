@@ -14,6 +14,7 @@ Components:
 import asyncio
 import logging
 from collections.abc import Sequence
+from contextlib import nullcontext
 from datetime import datetime
 from typing import Any, Self
 
@@ -31,7 +32,6 @@ from checkpointer import Checkpointer
 from constants import DB_DSN
 from context import Context
 from graph import build_graph
-from langsmith_integration import create_trace_context
 from log_setup import setup_logging
 from state import State
 from utils import async_lifespan
@@ -232,20 +232,10 @@ class ChatContainer(Static):
 
             human_message = HumanMessage(user_input)
 
-            # Trace com LangSmith (se habilitado)
-            trace_context = await create_trace_context(
-                run_name="chat_message_processing",
-                context={
-                    "user_id": self.context.user_id,
-                    "user_type": self.context.user_type,
-                    "thread_id": self.context.thread_id,
-                    "correlation_id": self.context.correlation_id,
-                },
-            )
-
+            # LangSmith tracing é auto-injetado via env vars (LANGSMITH_API_KEY, etc)
             # Streaming reativo com astream_events
             ai_response = ""
-            with trace_context:
+            with nullcontext():
                 async for graph_event in self.graph.astream_events(
                     {"messages": [human_message]},
                     config=config,
