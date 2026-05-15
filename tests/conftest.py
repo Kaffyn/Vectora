@@ -13,8 +13,8 @@ import pytest
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-from log_setup import setup_logging  # noqa: E402
-from testing.fixtures import (  # noqa: E402
+from log_setup import setup_logging
+from testing.fixtures import (
     checkpointer,
     mock_llm,
     temp_db,

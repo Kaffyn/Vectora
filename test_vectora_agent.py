@@ -11,20 +11,22 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Setup paths and logging FIRST
+sys.path.insert(0, "src")
+
+# Now import from src
+from checkpointer import Checkpointer
+from context import Context
+from graph import build_graph
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger(__name__)
 
-sys.path.insert(0, "src")
 
-from checkpointer import Checkpointer
-from context import Context
-from graph import build_graph
-
-
-async def test_vectora_agent():
+async def test_vectora_agent() -> None:
     """Teste com 2 tópicos (Next.js 16 e Godot 4.7)."""
     logger.info("🚀 Teste Vectora Research Agent (Modo Reduzido)")
     logger.info("   Tópicos: 2 (Next.js 16, Godot 4.7)")
@@ -45,7 +47,7 @@ async def test_vectora_agent():
         logger.info("✅ Grafo LangGraph carregado")
 
         # Teste 1: Next.js 16
-        logger.info("\n" + "=" * 80)
+        logger.info("=" * 80)
         logger.info("[1/2] Pesquisando: Next.js 16")
         logger.info("=" * 80)
 
@@ -89,10 +91,10 @@ Formato:
                 logger.warning("⚠️  Resposta vazia")
 
         except Exception as e:
-            logger.error(f"❌ Erro no teste: {e}", exc_info=True)
+            logger.exception("❌ Erro no teste: %s", e)
 
         # Teste 2: Godot 4.7
-        logger.info("\n" + "=" * 80)
+        logger.info("=" * 80)
         logger.info("[2/2] Pesquisando: Godot 4.7")
         logger.info("=" * 80)
 
@@ -134,10 +136,10 @@ Formato:
                 logger.warning("⚠️  Resposta vazia")
 
         except Exception as e:
-            logger.error(f"❌ Erro no teste: {e}", exc_info=True)
+            logger.exception("❌ Erro no teste: %s", e)
 
     # Resumo (fora do contexto do checkpointer)
-    logger.info("\n" + "=" * 80)
+    logger.info("=" * 80)
     logger.info("🏁 TESTE CONCLUÍDO")
     logger.info("=" * 80)
     logger.info(
