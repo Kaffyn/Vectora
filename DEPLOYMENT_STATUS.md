@@ -74,21 +74,33 @@
 
 ## Resolved Issues
 
-### Issue 1: GitHub Actions Lint Failure
+### Issue 1: GitHub Actions Lint Failure (FIXED - Attempt 2)
 
 **Before**: `Failed to spawn: ruff - No such file or directory`  
-**Root Cause**: `uv sync` not installing dev dependencies  
-**Fix**: Changed to `uv sync --all-groups` in 7 CI jobs  
-**Status**: ✅ Fixed and tested
+**Root Cause**: Incorrect UV sync flag
+
+- First attempt: `uv sync --all-groups` (for PEP 735 dependency-groups)
+- Actual config: `[project.optional-dependencies]` (PEP 508)
+  **Fix**: Changed to `uv sync --all-extras` in 7 CI jobs  
+  **Status**: ✅ Fixed and corrected
+
+---
+
+## Deployment Attempts
+
+1. **Attempt 1** (c59ec6f): `uv sync` - ❌ Failed (no dev deps)
+2. **Attempt 2** (dbe9ea0): `uv sync --all-groups` - ❌ Failed (wrong flag)
+3. **Attempt 3** (2b0b7bf): `uv sync --all-extras` - ⏳ Current
 
 ---
 
 ## Next Steps
 
-1. Configure 6 GitHub secrets in repository settings
-2. Push deployment commit with `[deploy]` trigger
-3. Monitor GitHub Actions workflow execution
-4. Verify successful deployment on VPS
+1. Monitor GitHub Actions workflow execution (Attempt 3)
+2. Verify Lint & Format Check passes with ruff installed
+3. Verify all tests pass
+4. Configure 6 GitHub secrets in repository settings
+5. Verify successful deployment on VPS
 
 ---
 
