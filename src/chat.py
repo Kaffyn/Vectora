@@ -196,12 +196,13 @@ class ChatContainer(Static):
 
     @on(Input.Submitted)
     async def on_submit(self, event: Input.Submitted) -> None:
-        """Handle input submission using the Pull Model.
+        """Handle input submission using reactive streaming (astream_events).
 
-        Fluxo:
-        1. Invoca o grafo com a mensagem do usuário (escreve no checkpointer)
-        2. Lê o estado atualizado do checkpointer (fonte da verdade)
-        3. Re-renderiza o log completo a partir do banco
+        Fluxo reativo:
+        1. Dispara astream_events (Fire-and-forget, sem bloquear)
+        2. Consome eventos em tempo real (chunks, node start/end)
+        3. Atualiza UI progressivamente (streaming de resposta)
+        4. Persiste no checkpointer automaticamente
         """
         event.stop()
         user_input = event.value
@@ -218,6 +219,7 @@ class ChatContainer(Static):
 
         try:
             chat_input.value = ""
+            chat_log.add_human_message(user_input)
 
             config = RunnableConfig(
                 configurable={"thread_id": self.thread_id},
@@ -241,28 +243,47 @@ class ChatContainer(Static):
                 },
             )
 
-            # Passo 1: Invocar o grafo — escreve o resultado no checkpointer (SQLite)
+            # Streaming reativo com astream_events
+            ai_response = ""
             with trace_context:
-                await self.graph.ainvoke(
+                async for graph_event in self.graph.astream_events(
                     {"messages": [human_message]},
                     config=config,
-                    context=self.context,
-                )
+                    version="v2",
+                ):
+                    event_type = graph_event.get("event")
+                    data = graph_event.get("data", {})
 
-            # Passo 2: Pull Model — ler o estado oficial do banco de dados
-            current_state = await self.graph.aget_state(config)
-            updated_messages: Sequence[BaseMessage] = current_state.values.get(
-                "messages", []
-            )
+                    # Streaming de tokens do LLM
+                    if event_type == "on_chat_model_stream":
+                        chunk = data.get("chunk")
+                        if chunk and hasattr(chunk, "content"):
+                            content = chunk.content
+                            if content:
+                                ai_response += content
+                                chat_log.write(content)
 
-            # Passo 3: Re-renderizar o log como uma view do banco
-            self._render_messages(chat_log, updated_messages)
+                    # Nó iniciando
+                    elif event_type == "on_node_start":
+                        node_name = graph_event.get("name", "")
+                        if node_name:
+                            logger.debug(f"Node started: {node_name}")
+
+                    # Nó terminando
+                    elif event_type == "on_node_end":
+                        node_name = graph_event.get("name", "")
+                        if node_name:
+                            logger.debug(f"Node ended: {node_name}")
+
+            # Garantir que mensagem de IA foi adicionada ao log
+            if ai_response:
+                chat_log.write("")
 
             logger.info(
                 "User input processed",
                 extra={
                     "thread_id": self.thread_id,
-                    "total_messages": len(updated_messages),
+                    "response_length": len(ai_response),
                 },
             )
 

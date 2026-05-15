@@ -63,31 +63,31 @@ async def run_graph(checkpointer: BaseCheckpointSaver) -> None:
         human_message = HumanMessage(user_input)
         current_loop_messages = [human_message]
 
-        # if len(all_messages) == 0:
-        #     current_loop_messages = [SystemMessage(SYSTEM_PROMPT), human_message]
+        # Streaming reativo com astream_events
+        print("[bold cyan]RESPOSTA:[/bold cyan] \n")
+        ai_response = ""
+        async for event in graph.astream_events(
+            {"messages": current_loop_messages},
+            config=config,
+            version="v2",
+        ):
+            event_type = event.get("event")
+            data = event.get("data", {})
 
-        result = await graph.ainvoke(
-            {"messages": current_loop_messages}, config=config, context=context
-        )
+            # Streaming de tokens do LLM
+            if event_type == "on_chat_model_stream":
+                chunk = data.get("chunk")
+                if chunk and hasattr(chunk, "content"):
+                    content = chunk.content
+                    if content:
+                        ai_response += content
+                        print(content, end="", flush=True)
 
-        model_name = ""
-        last_message = result["messages"][-1]
-
-        if isinstance(last_message, AIMessage):
-            model_name = last_message.response_metadata.get("model", "")
-
-        content = (
-            last_message.content
-            if hasattr(last_message, "content")
-            else str(last_message)
-        )
-
-        print(f"[bold cyan]RESPOSTA ({model_name}): \n")
-        print(Markdown(content))
-        print(last_message)
         print(Markdown("\n\n  ---  \n\n"))
 
-        all_messages = result["messages"]
+        # Ler estado final para salvar histórico
+        final_state = await graph.aget_state(config=config)
+        all_messages = final_state.values.get("messages", [])
 
     print(await graph.aget_state(config=config))
 

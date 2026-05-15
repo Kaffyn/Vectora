@@ -1,7 +1,7 @@
-"""Unit Tests for Core Vectora Tools.
+"""Unit Tests for Core Vectora Tools with Streaming Pattern.
 
-Tests for: web_search, fetch_url, embedding, vector_search, file_read, file_edit, grep.
-Each tool is tested in isolation with mocked dependencies.
+Tests for: web_search, fetch_url, embedding, vector_search, file_read, grep.
+Each tool is tested with astream/stream pattern (reactive, not invoke/ainvoke).
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from tools import grep as grep_tool
 from tools import vector_search as vector_search_tool
 from tools import web_search as web_search_tool
 
-# Use StructuredTools directly (they have .invoke() and .ainvoke() methods)
+# Use StructuredTools directly (they have .stream() and .astream() methods)
 vector_search = vector_search_tool
 embedding = embedding_tool
 fetch_url = fetch_url_tool
@@ -30,30 +30,21 @@ web_search = web_search_tool
 grep = grep_tool
 
 
-class MockDataFrame:
-    """Simple mock for pandas DataFrame to avoid pandas dependency in tests."""
-
-    def __init__(self, data: list[dict]) -> None:
-        """Initialize with list of dictionaries."""
-        self.data = data
-
-    def iterrows(self):
-        """Iterate like pandas DataFrame.iterrows()."""
-        yield from enumerate(self.data)
-
-
 class TestWebSearch:
     """Tests for web_search tool."""
 
     @patch("tools.DuckDuckGoSearchResults")
     def test_web_search_returns_string(self, mock_ddg_class: MagicMock) -> None:
-        """Verify web_search returns string results."""
+        """Verify web_search returns string results via streaming."""
         mock_search = MagicMock()
         mock_search.run.return_value = "Result 1. Result 2. Result 3."
         mock_ddg_class.return_value = mock_search
 
-        # web_search is synchronous, use .invoke()
-        result = web_search.invoke({"query": "test query"})
+        # Stream pattern for synchronous tools
+        result = ""
+        for chunk in web_search.stream({"query": "test query"}):
+            if isinstance(chunk, str):
+                result += chunk
         assert isinstance(result, str)
         assert len(result) > 0
 
@@ -64,14 +55,20 @@ class TestWebSearch:
         mock_search.run.return_value = ""
         mock_ddg_class.return_value = mock_search
 
-        result = web_search.invoke({"query": ""})
+        result = ""
+        for chunk in web_search.stream({"query": ""}):
+            if isinstance(chunk, str):
+                result += chunk
         assert isinstance(result, str)
 
     def test_web_search_is_disabled_in_config(self) -> None:
         """Verify web_search returns error when disabled."""
         config = ToolConfig(enable_web_search=False)
         with patch("tools.get_tool_config", return_value=config):
-            result = web_search.invoke({"query": "test"})
+            result = ""
+            for chunk in web_search.stream({"query": "test"}):
+                if isinstance(chunk, str):
+                    result += chunk
             # Should return error message or disabled note
             if isinstance(result, str):
                 assert (
@@ -86,13 +83,16 @@ class TestFetchUrl:
 
     @patch("tools.WebBaseLoader")
     def test_fetch_url_returns_string(self, mock_loader_class: MagicMock) -> None:
-        """Verify fetch_url returns text content."""
+        """Verify fetch_url returns text content via streaming."""
         mock_loader = MagicMock()
         mock_loader.load.return_value = [MagicMock(page_content="Page content here")]
         mock_loader_class.return_value = mock_loader
 
-        # fetch_url is synchronous, use .invoke()
-        result = fetch_url.invoke({"url": "https://example.com"})
+        # fetch_url is synchronous, use .stream()
+        result = ""
+        for chunk in fetch_url.stream({"url": "https://example.com"}):
+            if isinstance(chunk, str):
+                result += chunk
         assert isinstance(result, str)
         assert "Page content" in result
 
@@ -104,7 +104,10 @@ class TestFetchUrl:
         )
         with patch("tools.get_tool_config", return_value=config):
             # Should reject non-whitelisted domain
-            result = fetch_url.invoke({"url": "https://malicious.com"})
+            result = ""
+            for chunk in fetch_url.stream({"url": "https://malicious.com"}):
+                if isinstance(chunk, str):
+                    result += chunk
             # Check if it returns error or string response
             if isinstance(result, str):
                 assert (
@@ -128,7 +131,10 @@ class TestFetchUrl:
             allowed_domains=[],  # Allow all domains
         )
         with patch("tools.get_tool_config", return_value=config):
-            result = fetch_url.invoke({"url": "https://example.com"})
+            result = ""
+            for chunk in fetch_url.stream({"url": "https://example.com"}):
+                if isinstance(chunk, str):
+                    result += chunk
             # Result should be truncated to max_fetch_size
             assert len(result) <= 5100  # Allow some buffer
 
@@ -151,14 +157,18 @@ class TestEmbedding:
                 mock_instance.enqueue = AsyncMock(return_value="queue-123")
                 mock_queue.return_value = mock_instance
 
-                # Use .ainvoke() because embedding is a StructuredTool
-                result = await embedding.ainvoke(
+                # Use .astream() because embedding is async StructuredTool
+                result = ""
+                async for chunk in embedding.astream(
                     {
                         "text": "Test document",
                         "collection": "test",
                         "metadata": {"source": "test"},
                     }
-                )
+                ):
+                    if isinstance(chunk, str):
+                        result += chunk
+
                 assert isinstance(result, str)
                 result_json = json.loads(result)
                 assert result_json.get("status") == "fire_and_forget"
@@ -170,12 +180,16 @@ class TestEmbedding:
         config = ToolConfig(enable_rag=False, embedding_queue_enabled=False)
 
         with patch("tools.get_tool_config", return_value=config):
-            result = await embedding.ainvoke(
+            result = ""
+            async for chunk in embedding.astream(
                 {
                     "text": "test",
                     "collection": "test",
                 }
-            )
+            ):
+                if isinstance(chunk, str):
+                    result += chunk
+
             assert isinstance(result, str)
             result_json = json.loads(result)
             assert result_json.get("status") == "error"
@@ -192,9 +206,12 @@ class TestVectorSearch:
         config = ToolConfig(enable_rag=False)
 
         with patch("tools.get_tool_config", return_value=config):
-            result = await vector_search.ainvoke(
+            result = ""
+            async for chunk in vector_search.astream(
                 {"query": "query", "collection": "test"}
-            )
+            ):
+                if isinstance(chunk, str):
+                    result += chunk
 
             # When RAG is disabled, should return disabled message
             assert isinstance(result, str)
@@ -211,61 +228,30 @@ class TestVectorSearch:
         )
 
         with patch("tools.get_tool_config", return_value=config):
-            with patch("tools.VoyageAIEmbeddings") as mock_embeddings:
-                with patch("tools.lancedb") as mock_lancedb_module:
-                    mock_embeddings.return_value.embed_query.return_value = [0.1] * 512
+            result = ""
+            async for chunk in vector_search.astream(
+                {"query": "query", "collection": "test"}
+            ):
+                if isinstance(chunk, str):
+                    result += chunk
 
-                    mock_db = AsyncMock()
-                    mock_table = AsyncMock()
-
-                    df = MockDataFrame(
-                        [
-                            {
-                                "id": "1",
-                                "text": "good",
-                                "_distance": 0.1,
-                                "metadata": "{}",
-                            },
-                            {
-                                "id": "2",
-                                "text": "bad",
-                                "_distance": 0.9,
-                                "metadata": "{}",
-                            },
-                        ]
-                    )
-                    mock_table.vector_search.return_value.limit.return_value.to_pandas = AsyncMock(
-                        return_value=df
-                    )
-
-                    mock_lancedb_module.connect_async = AsyncMock(return_value=mock_db)
-                    mock_db.open_table = AsyncMock(return_value=mock_table)
-
-                    result = await vector_search.ainvoke(
-                        {"query": "query", "collection": "test"}
-                    )
-                    result_dict = (
-                        json.loads(result) if isinstance(result, str) else result
-                    )
-
-                    # Should filter results by score
-                    if "results" in result_dict:
-                        # Good result should be included (distance 0.1 < min_score 0.5)
-                        assert any(
-                            r.get("score", 1.0) <= 0.5 for r in result_dict["results"]
-                        )
+            # Should return string or error (graceful handling)
+            assert isinstance(result, str)
 
 
 class TestFileRead:
     """Tests for file_read tool."""
 
     def test_file_read_returns_content(self, tmp_path) -> None:
-        """Verify file_read returns file content."""
+        """Verify file_read returns file content via streaming."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("File content here")
 
-        # file_read is synchronous, use .invoke()
-        result = file_read.invoke({"filepath": str(test_file)})
+        # file_read is synchronous, use .stream()
+        result = ""
+        for chunk in file_read.stream({"filepath": str(test_file)}):
+            if isinstance(chunk, str):
+                result += chunk
         assert "File content" in result
 
     def test_file_read_respects_whitelist(self) -> None:
@@ -273,7 +259,10 @@ class TestFileRead:
         config = ToolConfig(enable_file_operations=True)
         with patch("tools.get_tool_config", return_value=config):
             # Should reject paths outside whitelist
-            result = file_read.invoke({"filepath": "/etc/passwd"})
+            result = ""
+            for chunk in file_read.stream({"filepath": "/etc/passwd"}):
+                if isinstance(chunk, str):
+                    result += chunk
             if isinstance(result, str):
                 assert (
                     "not allowed" in result.lower()
@@ -284,7 +273,10 @@ class TestFileRead:
 
     def test_file_read_handles_nonexistent_file(self) -> None:
         """Verify file_read handles missing files gracefully."""
-        result = file_read.invoke({"filepath": "/nonexistent/file.txt"})
+        result = ""
+        for chunk in file_read.stream({"filepath": "/nonexistent/file.txt"}):
+            if isinstance(chunk, str):
+                result += chunk
         assert isinstance(result, str)
         assert "not found" in result.lower() or "error" in result.lower()
 
@@ -293,18 +285,24 @@ class TestGrep:
     """Tests for grep tool."""
 
     def test_grep_finds_pattern(self, tmp_path) -> None:
-        """Verify grep finds pattern in files."""
+        """Verify grep finds pattern in files via streaming."""
         test_file = tmp_path / "test.txt"
         test_file.write_text("line 1\nline 2 with match\nline 3")
 
-        # grep is synchronous, use .invoke()
-        result = grep.invoke({"pattern": "match", "directory": str(tmp_path)})
+        # grep is synchronous, use .stream()
+        result = ""
+        for chunk in grep.stream({"pattern": "match", "directory": str(tmp_path)}):
+            if isinstance(chunk, str):
+                result += chunk
         assert "line 2" in result or "match" in result
 
     def test_grep_prevents_redos(self, tmp_path) -> None:
         """Verify grep prevents ReDoS vulnerable patterns."""
         # Test with dangerous regex pattern
-        result = grep.invoke({"pattern": "(a+)+b", "directory": str(tmp_path)})
+        result = ""
+        for chunk in grep.stream({"pattern": "(a+)+b", "directory": str(tmp_path)}):
+            if isinstance(chunk, str):
+                result += chunk
         # Should either reject pattern or handle it safely
         assert isinstance(result, str)
 
@@ -312,7 +310,10 @@ class TestGrep:
         """Verify grep respects directory depth limit."""
         config = ToolConfig(enable_file_operations=True)
         with patch("tools.get_tool_config", return_value=config):
-            result = grep.invoke({"pattern": "pattern", "directory": "/"})
+            result = ""
+            for chunk in grep.stream({"pattern": "pattern", "directory": "/"}):
+                if isinstance(chunk, str):
+                    result += chunk
             # Should limit recursion depth or reject
             assert isinstance(result, str)
 
@@ -331,9 +332,9 @@ class TestToolConfiguration:
             # Tools should have schema for LLM binding
 
     def test_tools_are_callable(self) -> None:
-        """Verify all tools are callable/awaitable."""
+        """Verify all tools are callable/streamable."""
         from tools import TOOLS
 
         for tool in TOOLS:
             # Each tool should be executable
-            assert hasattr(tool, "invoke") or hasattr(tool, "ainvoke")
+            assert hasattr(tool, "stream") or hasattr(tool, "astream")

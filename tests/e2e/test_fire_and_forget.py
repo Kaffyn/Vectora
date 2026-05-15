@@ -44,14 +44,17 @@ class TestFireAndForgetBasic:
                 import time
 
                 start = time.time()
-                # embedding é um StructuredTool (@tool), usar .ainvoke()
-                result = await embedding.ainvoke(
+                # Use .astream() for streaming pattern
+                result = ""
+                async for chunk in embedding.astream(
                     {
                         "text": "Test document",
                         "collection": "test",
                         "metadata": {"source": "test"},
                     }
-                )
+                ):
+                    if isinstance(chunk, str):
+                        result += chunk
                 elapsed = time.time() - start
 
                 # Deve retornar em menos de 200ms (enfilar é rápido)
