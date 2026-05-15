@@ -3,7 +3,6 @@ import json
 import logging
 from datetime import UTC, datetime
 from typing import Any
-from uuid import uuid4
 
 from langchain.tools import BaseTool, tool
 from langchain_community.document_loaders import DirectoryLoader, TextLoader, WebBaseLoader
@@ -246,10 +245,11 @@ async def call_mcp_tool(tool_name: str, arguments: str) -> str:
 async def embedding(
     text: str, collection: str = "articles", metadata: dict[str, Any] | None = None
 ) -> str:
-    """Indexa um documento com embedding no banco de dados vetorial LanceDB.
+    """Enfileira documento para embedding assíncrono (fire-and-forget).
 
-    Gera embeddings usando Voyage AI e indexa na coleção (tabela) especificada.
-    LanceDB é file-based — nenhum container ou servidor é necessário.
+    Em vez de bloquear esperando Voyage AI (5+ segundos), este método
+    enfileira o documento imediatamente. Um background worker processa
+    a fila e indexa em LanceDB de forma não-bloqueante.
 
     Args:
         text: Texto do documento a indexar
@@ -257,108 +257,60 @@ async def embedding(
         metadata: Dicionário opcional de metadados (source, author, timestamp, etc)
 
     Returns:
-        String JSON com status: indexed/failed com doc_id ou mensagem de erro
+        String JSON com status: fire_and_forget + queue_id ou error
     """
 
     config = get_tool_config()
 
     if not config.enable_rag:
         logger.warning("embedding tool called but RAG disabled")
-        return "RAG is disabled. Enable ENABLE_RAG=true to use this tool."
-
-    if not config.voyage_api_key:
-        logger.error("embedding called but VOYAGE_API_KEY not configured")
         return json.dumps(
             {
-                "status": "failed",
-                "error": "VOYAGE_API_KEY not configured",
-                "collection": collection,
+                "status": "error",
+                "error": "RAG is disabled. Enable ENABLE_RAG=true to use this tool.",
+            }
+        )
+
+    if not config.embedding_queue_enabled:
+        logger.error("embedding called but queue not enabled")
+        return json.dumps(
+            {
+                "status": "error",
+                "error": "Embedding queue not configured.",
             }
         )
 
     try:
-        embeddings_model = VoyageAIEmbeddings(
-            api_key=SecretStr(config.voyage_api_key),
-            model=config.embedding_model,
-        )
-
-        vector = embeddings_model.embed_query(text)
-        doc_id = str(uuid4())
-
-        db = await lancedb.connect_async(str(config.lancedb_path))
-
-        schema = pa.schema(
-            [
-                pa.field("id", pa.string()),
-                pa.field("vector", pa.list_(pa.float32(), len(vector))),
-                pa.field("text", pa.string()),
-                pa.field("metadata", pa.string()),
-            ]
-        )
-
-        try:
-            table = await db.open_table(collection)
-        except Exception:
-            table = await db.create_table(collection, schema=schema)
-            logger.info("lancedb_table_created", extra={"collection": collection})
-
-        await table.add(
-            [
-                {
-                    "id": doc_id,
-                    "vector": vector,
-                    "text": text,
-                    "metadata": json.dumps(metadata or {}),
-                }
-            ]
-        )
+        queue = await get_embedding_queue(config.embedding_queue_db)
+        queue_id = await queue.enqueue(text, collection, metadata)
 
         logger.info(
-            "embedding_indexed",
+            "embedding_enqueued",
             extra={
+                "queue_id": queue_id,
                 "collection": collection,
-                "doc_id": doc_id,
                 "text_length": len(text),
             },
         )
 
         return json.dumps(
             {
-                "status": "indexed",
-                "doc_id": doc_id,
+                "status": "fire_and_forget",
+                "queue_id": queue_id,
                 "collection": collection,
+                "message": "Document enqueued for async embedding and indexing.",
             }
         )
 
     except Exception as e:
         logger.exception(
-            "embedding_failed",
+            "embedding_enqueue_failed",
             extra={"collection": collection, "text_length": len(text)},
         )
-
-        if config.embedding_queue_enabled:
-            try:
-                queue = await get_embedding_queue(config.embedding_queue_db)
-                queue_id = await queue.enqueue(text, collection, metadata)
-                logger.info(
-                    "embedding_enqueued",
-                    extra={"queue_id": queue_id, "collection": collection},
-                )
-                return json.dumps(
-                    {
-                        "status": "enqueued",
-                        "queue_id": queue_id,
-                        "collection": collection,
-                        "message": "API failed, document enqueued for retry",
-                    }
-                )
-            except Exception as queue_err:
-                logger.error(f"Failed to enqueue embedding: {queue_err}")
-
         return json.dumps(
             {
-                "status": "failed",
-                "error": str(e) or "Embedding indexing failed",
+                "status": "error",
+                "error": str(e) or "Failed to enqueue embedding",
                 "collection": collection,
             }
         )
@@ -605,7 +557,8 @@ async def ingest_docs(
                 "metadata": chunk_metadata,
             }
         )
-        if '"status": "indexed"' in res or '"status": "enqueued"' in res:
+        # Sucesso: documento enfileirado para processamento assíncrono
+        if '"status": "fire_and_forget"' in res:
             success_count += 1
         else:
             fail_count += 1

@@ -81,13 +81,13 @@ jobs:
         run: uv sync
 
       - name: 🔍 Run Ruff lint
-        run: uv run ruff check src tests || echo "⚠️ Lint issues found"
+        run: uv run ruff check src tests
 
       - name: 📋 Run Ruff format check
-        run: uv run ruff format --check src tests || echo "⚠️ Format issues found"
+        run: uv run ruff format --check src tests
 
       - name: 📦 Check import sorting
-        run: uv run isort --check-only src tests || echo "⚠️ Import order issues found"
+        run: uv run isort --check-only src tests
 
   # ─── Type Check ───────────────────────────────────────────────────────────────
   type-check:
@@ -117,7 +117,7 @@ jobs:
         run: uv sync
 
       - name: 🔬 Run Mypy
-        run: uv run mypy src || echo "⚠️ Type errors found"
+        run: uv run mypy src
 
   # ─── Unit Tests ───────────────────────────────────────────────────────────────
   unit-tests:
@@ -252,7 +252,7 @@ jobs:
         run: uv sync
 
       - name: 🔒 Bandit security check
-        run: uv run bandit -r src -f json -o bandit-report.json || echo "⚠️ Security issues found"
+        run: uv run bandit -r src -f json -o bandit-report.json
         continue-on-error: true
 
       - name: 🔒 Verificar segredos hardcoded
