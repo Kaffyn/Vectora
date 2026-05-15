@@ -264,8 +264,13 @@ async def run_chat() -> None:
     O checkpointer e o grafo são construídos aqui, fora do Textual,
     no mesmo event loop que o App irá usar via `run_async()`. Isso evita
     deadlocks causados por `async with` dentro de `on_mount`.
+
+    Também inicializa o BackgroundEmbeddingWorker que processa a fila
+    de embeddings de forma assíncrona e não-bloqueante.
     """
     from log_setup import setup_logging
+
+    from background_worker import get_background_worker
 
     setup_logging()
     logger.info("Vectora Chat TUI started")
@@ -275,10 +280,17 @@ async def run_chat() -> None:
         graph = build_graph(checkpointer)
         logger.info("Graph compiled, starting TUI")
 
+        # Inicializar e iniciar background worker para embeddings fire-and-forget
+        worker = await get_background_worker()
+        await worker.start()
+        logger.info("BackgroundEmbeddingWorker iniciado")
+
         app = VectoraChatApp(graph)
         try:
             await app.run_async()
         finally:
+            # Graceful shutdown do worker
+            await worker.stop(timeout=30)
             logger.info("Vectora Chat TUI ended")
 
 
