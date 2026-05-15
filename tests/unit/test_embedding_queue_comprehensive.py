@@ -5,6 +5,7 @@ reconcile, WAL mode, concurrent access, and crash recovery.
 """
 
 import asyncio
+import contextlib
 
 import pytest
 
@@ -119,8 +120,7 @@ class TestRetryLogic:
 
         # Get initial attempt count
         pending = await queue.get_pending(limit=10)
-        initial_record = next(r for r in pending if r.queue_id == queue_id)
-        initial_attempts = initial_record.attempt_count
+        next(r for r in pending if r.queue_id == queue_id)
 
         # Mark processing (which might increment attempts)
         await queue.mark_processing(queue_id)
@@ -152,7 +152,8 @@ class TestReconciliation:
             assert True
         except Exception as e:
             # If reconciliation fails, fail the test
-            assert False, f"Reconcile should not raise exception: {e}"
+            msg = f"Reconcile should not raise exception: {e}"
+            raise AssertionError(msg) from e
 
     @pytest.mark.asyncio
     async def test_reconcile_preserves_recent_processing(self):
@@ -195,12 +196,12 @@ class TestWALMode:
             await queue.enqueue(f"doc{i}", "test")
 
         # Concurrent read and write
-        async def reader():
+        async def reader() -> None:
             for _ in range(3):
                 await queue.get_pending(limit=10)
                 await asyncio.sleep(0.01)
 
-        async def writer():
+        async def writer() -> None:
             for i in range(3):
                 await queue.enqueue(f"concurrent-doc-{i}", "test")
                 await asyncio.sleep(0.01)
@@ -252,8 +253,8 @@ class TestCollections:
         queue = EmbeddingQueue("sqlite+aiosqlite:///:memory:")
         await queue.init()
 
-        id1 = await queue.enqueue("doc1", collection="articles")
-        id2 = await queue.enqueue("doc2", collection="wiki")
+        await queue.enqueue("doc1", collection="articles")
+        await queue.enqueue("doc2", collection="wiki")
 
         # Both should be in queue
         pending = await queue.get_pending(limit=10)
@@ -294,7 +295,5 @@ class TestErrorHandling:
         await queue.init()
 
         # Should not crash
-        try:
+        with contextlib.suppress(Exception):
             await queue.mark_processing("non-existent-id")
-        except Exception:
-            pass  # Expected to fail gracefully

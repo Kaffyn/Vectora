@@ -13,13 +13,9 @@ class TestRAGDocumentIngestion:
     async def test_document_indexing(self):
         """Verificar que documentos são indexados corretamente."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Criar documento de teste
-            test_doc = {
-                "content": "This is a test document about Python",
-                "metadata": {"source": "test.txt"},
-            }
 
             # Índicar documento
             # Implementation: usar embedding + vector_search
@@ -28,22 +24,7 @@ class TestRAGDocumentIngestion:
     async def test_multiple_documents_indexing(self):
         """Verificar indexação de múltiplos documentos."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
-
-            docs = [
-                {
-                    "content": "Document 1 about Python",
-                    "metadata": {"id": "1"},
-                },
-                {
-                    "content": "Document 2 about JavaScript",
-                    "metadata": {"id": "2"},
-                },
-                {
-                    "content": "Document 3 about Go",
-                    "metadata": {"id": "3"},
-                },
-            ]
+            Path(tmpdir) / "lancedb"
 
             # Indexar múltiplos documentos
             # Implementation: batch embedding
@@ -52,7 +33,7 @@ class TestRAGDocumentIngestion:
     async def test_document_update(self):
         """Verificar que documentos podem ser atualizados."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Indexar doc inicial
             # Atualizar doc
@@ -62,7 +43,7 @@ class TestRAGDocumentIngestion:
     async def test_document_deletion(self):
         """Verificar que documentos podem ser deletados."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Indexar doc
             # Deletar doc
@@ -72,10 +53,10 @@ class TestRAGDocumentIngestion:
     async def test_large_document_handling(self):
         """Verificar manipulação de documentos grandes."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Criar documento grande (>10MB de conteúdo)
-            large_doc = {
+            {
                 "content": "x" * (10 * 1024 * 1024),  # 10MB
                 "metadata": {"size": "large"},
             }
@@ -90,7 +71,7 @@ class TestVectorSearch:
     async def test_basic_vector_search(self):
         """Verificar busca vetorial básica."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Indexar docs
             # Fazer busca por query similar
@@ -100,7 +81,7 @@ class TestVectorSearch:
     async def test_vector_search_with_scoring(self):
         """Verificar que resultados têm scores de relevância."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Buscar e verificar scores
             # Scores devem ser ordenados (maior score = maior relevância)
@@ -109,7 +90,7 @@ class TestVectorSearch:
     async def test_vector_search_top_k(self):
         """Verificar filtro de top-k resultados."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Indexar 10 docs
             # Buscar com top_k=3
@@ -119,7 +100,7 @@ class TestVectorSearch:
     async def test_vector_search_min_score_threshold(self):
         """Verificar threshold mínimo de score."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Buscar com min_score=0.7
             # Resultados com score < 0.7 não devem aparecer
@@ -128,7 +109,7 @@ class TestVectorSearch:
     async def test_vector_search_empty_results(self):
         """Verificar busca que não encontra resultados."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Indexar docs sobre Python
             # Buscar por tema não relacionado
@@ -142,7 +123,7 @@ class TestReranking:
     async def test_bm25_reranking(self):
         """Verificar reranking com BM25."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Indexar docs
             # Buscar e reranquear com BM25
@@ -152,7 +133,7 @@ class TestReranking:
     async def test_semantic_reranking(self):
         """Verificar reranking semântico."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Buscar
             # Reranquear semanticamente
@@ -162,7 +143,7 @@ class TestReranking:
     async def test_reranking_preserves_top_results(self):
         """Verificar que reranking não remove tudo."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Buscar com top_k=5
             # Reranquear
@@ -176,12 +157,7 @@ class TestMetadataHandling:
     async def test_metadata_storage(self):
         """Verificar que metadados são armazenados."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
-
-            doc = {
-                "content": "Test",
-                "metadata": {"source": "file.txt", "date": "2026-05-14"},
-            }
+            Path(tmpdir) / "lancedb"
 
             # Indexar com metadados
             # Recuperar e verificar metadados
@@ -190,7 +166,7 @@ class TestMetadataHandling:
     async def test_metadata_filtering(self):
         """Verificar filtro por metadados."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Indexar docs com diferentes sources
             # Buscar filtrando por source
@@ -200,7 +176,7 @@ class TestMetadataHandling:
     async def test_metadata_update(self):
         """Verificar atualização de metadados."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Indexar com metadado v1
             # Atualizar metadado para v2
@@ -214,7 +190,7 @@ class TestCollectionManagement:
     async def test_multiple_collections(self):
         """Verificar isolamento entre coleções."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Indexar docs em collection A
             # Indexar docs em collection B
@@ -224,7 +200,7 @@ class TestCollectionManagement:
     async def test_collection_deletion(self):
         """Verificar deleção de coleção."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Criar collection
             # Deletar collection
@@ -234,7 +210,7 @@ class TestCollectionManagement:
     async def test_collection_listing(self):
         """Verificar listagem de coleções."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Criar múltiplas coleções
             # Listar
@@ -248,7 +224,7 @@ class TestRAGPerformance:
     async def test_indexing_speed(self):
         """Verificar que indexação é rápida."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Indexar 100 documentos
             # Deve levar < 5s
@@ -257,7 +233,7 @@ class TestRAGPerformance:
     async def test_search_speed(self):
         """Verificar que busca é rápida."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Indexar 100 docs
             # Buscar
@@ -267,7 +243,7 @@ class TestRAGPerformance:
     async def test_cache_effectiveness(self):
         """Verificar que cache melhora performance."""
         with TemporaryDirectory() as tmpdir:
-            lancedb_dir = Path(tmpdir) / "lancedb"
+            Path(tmpdir) / "lancedb"
 
             # Fazer mesma busca 2x
             # Segunda busca deve ser mais rápida (cache hit)

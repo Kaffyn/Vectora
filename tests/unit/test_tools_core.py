@@ -200,17 +200,17 @@ class TestGrep:
         result = grep("match", str(tmp_path))
         assert "line 2" in result or "match" in result
 
-    def test_grep_prevents_redos(self):
+    def test_grep_prevents_redos(self, tmp_path):
         """Verify grep prevents ReDoS vulnerable patterns."""
         # Test with dangerous regex pattern
-        result = grep("(a+)+b", "/tmp")
+        grep("(a+)+b", str(tmp_path))
         # Should either reject pattern or handle it safely
 
     def test_grep_respects_max_depth(self):
         """Verify grep respects directory depth limit."""
         with patch("tools.get_tool_config") as mock_config:
             mock_config.return_value.enable_file_operations = True
-            result = grep("pattern", "/")
+            grep("pattern", "/")
             # Should limit recursion depth
 
 

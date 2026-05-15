@@ -16,7 +16,11 @@ class TestGetSystemPrompt:
         """Verificar que prompt contém instruções clara."""
         prompt = get_system_prompt()
         # Deve conter instruções ou guidelines
-        assert "guide" in prompt.lower() or "instruction" in prompt.lower() or "rag" in prompt.lower()
+        assert (
+            "guide" in prompt.lower()
+            or "instruction" in prompt.lower()
+            or "rag" in prompt.lower()
+        )
 
     def test_system_prompt_defines_persona(self):
         """Verificar que prompt define persona do Vectora."""
@@ -103,7 +107,7 @@ class TestPromptCaching:
 
     def test_system_prompt_cache_invalidation(self):
         """Verificar que cache pode ser invalidado."""
-        prompt1 = get_system_prompt()
+        get_system_prompt()
         # Se houver função para invalidar cache
         # cache_invalidate() ou similar
         prompt2 = get_system_prompt()

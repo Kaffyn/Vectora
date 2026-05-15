@@ -85,7 +85,7 @@ async def test_memory_with_ttl(temp_memory_store: MemoryStore):
     content = "Dados temporários"
 
     # Salva com TTL de 1 dia
-    memory_id = await temp_memory_store.save(
+    await temp_memory_store.save(
         user_id=user_id,
         key=key,
         content=content,

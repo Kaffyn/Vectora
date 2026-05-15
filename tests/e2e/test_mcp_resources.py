@@ -5,8 +5,9 @@ que permite ao agente principal (Claude Code) ler o contexto antes de chamar fer
 """
 
 import json
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 
 class TestMCPResourcesExist:
@@ -15,7 +16,7 @@ class TestMCPResourcesExist:
     def test_server_has_context_resource(self):
         """Verificar que servidor expõe recurso de contexto de thread."""
         # Importar mcp do servidor
-        from src.mcp_server import mcp, get_thread_context
+        from src.mcp_server import get_thread_context, mcp
 
         # Verificar que os recursos foram importados com sucesso
         assert callable(get_thread_context)
@@ -23,14 +24,14 @@ class TestMCPResourcesExist:
 
     def test_server_has_history_resource(self):
         """Verificar que servidor expõe histórico de conversa."""
-        from src.mcp_server import mcp, get_thread_history
+        from src.mcp_server import get_thread_history, mcp
 
         assert callable(get_thread_history)
         assert mcp is not None
 
     def test_server_has_status_resource(self):
         """Verificar que servidor expõe status do servidor."""
-        from src.mcp_server import mcp, get_server_status
+        from src.mcp_server import get_server_status, mcp
 
         assert callable(get_server_status)
         assert mcp is not None
@@ -63,8 +64,9 @@ class TestMCPResourceImplementations:
     @pytest.mark.asyncio
     async def test_get_thread_context_active_thread(self):
         """Verificar get_thread_context retorna contexto para thread ativa."""
+        from langchain_core.messages import AIMessage, HumanMessage
+
         from src.mcp_server import get_thread_context
-        from langchain_core.messages import HumanMessage, AIMessage
 
         # Mock do Checkpointer com estado
         with patch("src.mcp_server.Checkpointer") as mock_checkpointer_class:
@@ -118,13 +120,12 @@ class TestMCPResourceImplementations:
     @pytest.mark.asyncio
     async def test_get_thread_history_recent_messages(self):
         """Verificar que history retorna apenas as últimas 5 mensagens."""
-        from src.mcp_server import get_thread_history
         from langchain_core.messages import HumanMessage
 
+        from src.mcp_server import get_thread_history
+
         # Criar 10 mensagens
-        messages = [
-            HumanMessage(content=f"Mensagem {i}") for i in range(10)
-        ]
+        messages = [HumanMessage(content=f"Mensagem {i}") for i in range(10)]
 
         with patch("src.mcp_server.Checkpointer") as mock_checkpointer_class:
             mock_checkpointer = AsyncMock()
@@ -183,9 +184,9 @@ class TestMCPSubAgentPattern:
     async def test_resources_return_json_format(self):
         """Verificar que todos os recursos retornam JSON válido."""
         from src.mcp_server import (
+            get_server_status,
             get_thread_context,
             get_thread_history,
-            get_server_status,
         )
 
         with patch("src.mcp_server.Checkpointer") as mock_checkpointer_class:

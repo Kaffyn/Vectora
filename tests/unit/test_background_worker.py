@@ -115,7 +115,7 @@ class TestRetryLogic:
             mock_instance.reconcile = AsyncMock()
             mock_queue.return_value = mock_instance
 
-            worker = BackgroundEmbeddingWorker()
+            BackgroundEmbeddingWorker()
             # Should have retry logic in _process_record
 
 

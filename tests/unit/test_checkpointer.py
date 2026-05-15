@@ -150,7 +150,7 @@ class TestCheckpointerCleanup:
         """Verificar que Checkpointer pode ser recriado."""
         with TemporaryDirectory() as tmpdir:
             db_path = str(Path(tmpdir) / "test.db")
-            async with Checkpointer(db_path) as cp1:
+            async with Checkpointer(db_path):
                 pass
             # Deve ser possível criar novo Checkpointer com mesmo path
             async with Checkpointer(db_path) as cp2:

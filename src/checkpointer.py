@@ -39,6 +39,6 @@ async def Checkpointer(
             await checkpointer.conn.execute("PRAGMA synchronous=NORMAL;")
             logger.info("Checkpointer: WAL mode enabled for concurrent access")
         except Exception as e:
-            logger.warning(f"Could not enable WAL mode: {e}")
+            logger.warning("Could not enable WAL mode", extra={"error": str(e)})
 
         yield checkpointer

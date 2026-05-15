@@ -16,11 +16,14 @@ from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
 
+from tool_config import get_tool_config
+
 logger = logging.getLogger(__name__)
 
 
 async def generate_debug_dump(
     output_file: str | None = None,
+    *,
     include_databases: bool = True,
     include_logs: bool = True,
 ) -> str:
@@ -46,13 +49,11 @@ async def generate_debug_dump(
         >>> print(f"Debug dump: {path}")
         Debug dump: vectora_debug_2026-05-14T14-30-45.tar.gz
     """
-    from tool_config import get_tool_config
-
     if output_file is None:
         timestamp = datetime.now(UTC).isoformat().replace(":", "-").split(".")[0]
         output_file = f"vectora_debug_{timestamp}.tar.gz"
 
-    logger.info(f"Gerando debug dump em: {output_file}")
+    logger.info("Gerando debug dump", extra={"output_file": output_file})
 
     # Coletar metadados do sistema
     config = get_tool_config()
@@ -153,7 +154,7 @@ async def create_qa_report(
     Returns:
         Conteúdo do relatório (markdown)
     """
-    report = f"""# 🐛 Relatório de Bug - Vectora v0.1.0-RC
+    return f"""# 🐛 Relatório de Bug - Vectora v0.1.0-RC
 
 ## Informações do Teste
 
@@ -201,8 +202,6 @@ async def create_qa_report(
 **Status:** Aberto
 **Assignee:** [Será atribuído pelo time de desenvolvimento]
 """
-
-    return report
 
 
 # CLI Interface

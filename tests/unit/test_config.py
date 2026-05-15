@@ -36,7 +36,7 @@ class TestConfigLLMProvider:
         # Criar uma instância Mock que não lê .env
         from unittest.mock import patch
 
-        with patch.object(Config, 'get', return_value=None):
+        with patch.object(Config, "get", return_value=None):
             Config._instance = None  # Reset singleton
             config = Config.instance()
             # Mock the get method to return None for all keys

@@ -19,12 +19,12 @@ class TestDatabasePersistence:
             db_path = str(Path(tmpdir) / "test.db")
 
             # Salvar estado
-            async with Checkpointer(db_path) as checkpointer:
-                test_state = {"messages": ["msg1", "msg2"], "summary": "test"}
+            async with Checkpointer(db_path):
+                pass
                 # Salvar (implementação específica)
 
             # Recuperar estado em nova instância
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 # Recuperar (implementação específica)
                 pass
 
@@ -34,11 +34,10 @@ class TestDatabasePersistence:
         with TemporaryDirectory() as tmpdir:
             db_path = str(Path(tmpdir) / "test.db")
 
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 # Salvar estado para thread1
-                thread1_state = {"thread_id": 1, "data": "thread1"}
                 # Salvar para thread2
-                thread2_state = {"thread_id": 2, "data": "thread2"}
+                pass
 
                 # Recuperar e verificar isolamento
 
@@ -48,14 +47,14 @@ class TestDatabasePersistence:
         with TemporaryDirectory() as tmpdir:
             db_path = str(Path(tmpdir) / "test.db")
 
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 # Executar múltiplas writes concorrentes
                 tasks = [
                     asyncio.sleep(0.01),
                     asyncio.sleep(0.01),
                     asyncio.sleep(0.01),
                 ]
-                results = await asyncio.gather(*tasks)
+                await asyncio.gather(*tasks)
                 # Banco não deveria estar corrompido
 
     @pytest.mark.asyncio
@@ -65,7 +64,7 @@ class TestDatabasePersistence:
             db_path = str(Path(tmpdir) / "test.db")
 
             # Criar e fechar
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 pass
 
             # Arquivo deveria existir
@@ -78,11 +77,11 @@ class TestDatabasePersistence:
             db_path = str(Path(tmpdir) / "test.db")
 
             # Primeira sessão
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 pass
 
             # Segunda sessão (simula reinicialização)
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 # Deve conseguir recuperar estado anterior
                 pass
 
@@ -93,11 +92,11 @@ class TestDatabasePersistence:
             db_path = str(Path(tmpdir) / "test.db")
 
             # Criar com versão 1
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 pass
 
             # Abrir novamente (simula migração)
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 # Schema deve ser compatível
                 pass
 
@@ -119,12 +118,8 @@ class TestDatabasePersistence:
             db_path = str(Path(tmpdir) / "test.db")
 
             # Criar estado grande
-            large_state = {
-                "messages": ["msg"] * 1000,
-                "data": "x" * 10000,
-            }
 
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 # Salvar estado grande
                 pass
 
@@ -134,7 +129,7 @@ class TestDatabasePersistence:
         with TemporaryDirectory() as tmpdir:
             db_path = str(Path(tmpdir) / "test.db")
 
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 # Salvar com metadados (timestamp, thread_id, etc)
                 pass
 
@@ -153,7 +148,7 @@ class TestDatabaseErrors:
 
             # Tentar abrir deveria gerar erro apropriado
             with pytest.raises((ValueError, RuntimeError, Exception)):
-                async with Checkpointer(db_path) as checkpointer:
+                async with Checkpointer(db_path):
                     pass
 
     @pytest.mark.asyncio
@@ -162,7 +157,7 @@ class TestDatabaseErrors:
         with TemporaryDirectory() as tmpdir:
             db_path = str(Path(tmpdir) / "test.db")
 
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 # Tentar recuperar checkpoint inexistente não deve falhar
                 pass
 
@@ -173,7 +168,7 @@ class TestDatabaseErrors:
         with TemporaryDirectory() as tmpdir:
             db_path = str(Path(tmpdir) / "test.db")
 
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 # Comportamento esperado com espaço limitado
                 pass
 
@@ -187,7 +182,7 @@ class TestDatabasePerformance:
         with TemporaryDirectory() as tmpdir:
             db_path = str(Path(tmpdir) / "test.db")
 
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 # Salvar deve ser rápido (< 1s para estado típico)
                 pass
 
@@ -197,7 +192,7 @@ class TestDatabasePerformance:
         with TemporaryDirectory() as tmpdir:
             db_path = str(Path(tmpdir) / "test.db")
 
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 # Load deve ser rápido (< 1s para estado típico)
                 pass
 
@@ -207,6 +202,6 @@ class TestDatabasePerformance:
         with TemporaryDirectory() as tmpdir:
             db_path = str(Path(tmpdir) / "test.db")
 
-            async with Checkpointer(db_path) as checkpointer:
+            async with Checkpointer(db_path):
                 # Múltiplas queries devem ser otimizadas
                 pass

@@ -26,10 +26,12 @@ from textual.app import App, ComposeResult, on
 from textual.containers import Container
 from textual.widgets import Footer, Header, Input, RichLog, Static
 
+from background_worker import get_background_worker
 from checkpointer import Checkpointer
 from constants import DB_DSN
 from context import Context
 from graph import build_graph
+from log_setup import setup_logging
 from state import State
 from utils import async_lifespan
 
@@ -281,10 +283,6 @@ async def run_chat() -> None:
     Também inicializa o BackgroundEmbeddingWorker que processa a fila
     de embeddings de forma assíncrona e não-bloqueante.
     """
-    from log_setup import setup_logging
-
-    from background_worker import get_background_worker
-
     setup_logging()
     logger.info("Vectora Chat TUI started")
 

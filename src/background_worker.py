@@ -120,9 +120,7 @@ class BackgroundEmbeddingWorker:
                     await asyncio.sleep(POLLING_INTERVAL)
                     continue
 
-                logger.debug(
-                    "Batch encontrado", extra={"count": len(pending)}
-                )
+                logger.debug("Batch encontrado", extra={"count": len(pending)})
 
                 # Processar batch em paralelo (limitado por Semaphore)
                 await asyncio.gather(
@@ -140,9 +138,7 @@ class BackgroundEmbeddingWorker:
                 logger.exception("Erro no loop principal do worker")
                 await asyncio.sleep(POLLING_INTERVAL)
 
-    async def _process_record(
-        self, record: EmbeddingQueueRecord
-    ) -> None:
+    async def _process_record(self, record: EmbeddingQueueRecord) -> None:
         """Processa um registro individual com retry exponencial.
 
         Args:
@@ -158,14 +154,10 @@ class BackgroundEmbeddingWorker:
                     await self.queue.mark_processing(queue_id)
 
                     # Gerar embedding via Voyage AI
-                    embedding_vector = await self._generate_embedding(
-                        record.text
-                    )
+                    embedding_vector = await self._generate_embedding(record.text)
 
                     # Escrever em LanceDB (idempotente via queue_id)
-                    await self._write_to_lancedb(
-                        record, embedding_vector
-                    )
+                    await self._write_to_lancedb(record, embedding_vector)
 
                     # Marcar como success
                     await self.queue.mark_success(queue_id)
@@ -286,9 +278,7 @@ class BackgroundEmbeddingWorker:
         try:
             table = await db.open_table(record.collection)
         except Exception:
-            table = await db.create_table(
-                record.collection, schema=schema
-            )
+            table = await db.create_table(record.collection, schema=schema)
             logger.info(
                 "lancedb_table_created",
                 extra={"collection": record.collection},

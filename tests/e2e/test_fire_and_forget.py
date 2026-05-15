@@ -153,7 +153,7 @@ class TestBackgroundWorker:
         )
 
         queue = await get_embedding_queue(config.embedding_queue_url)
-        queue_id = await queue.enqueue(
+        await queue.enqueue(
             text="Test retry document",
             collection="articles",
         )
@@ -165,7 +165,8 @@ class TestBackgroundWorker:
             nonlocal call_count
             call_count += 1
             if call_count < 3:
-                raise Exception(f"API error (attempt {call_count})")
+                msg = f"API error (attempt {call_count})"
+                raise Exception(msg)
             return [0.1, 0.2] * 600  # Success on 3rd attempt
 
         with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
@@ -205,14 +206,15 @@ class TestBackgroundWorker:
         )
 
         queue = await get_embedding_queue(config.embedding_queue_url)
-        queue_id = await queue.enqueue(
+        await queue.enqueue(
             text="Test DLQ document",
             collection="articles",
         )
 
         # Mock sempre falha
         async def mock_embed_query_fail(text: str) -> list[float]:
-            raise Exception("Permanent API failure")
+            msg = "Permanent API failure"
+            raise Exception(msg)
 
         with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
             mock_instance = AsyncMock()
@@ -242,7 +244,7 @@ class TestBackgroundWorker:
         )
 
         queue = await get_embedding_queue(config.embedding_queue_url)
-        queue_id = await queue.enqueue(
+        await queue.enqueue(
             text="Idempotent test document",
             collection="articles",
         )

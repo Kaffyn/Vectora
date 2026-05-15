@@ -11,11 +11,17 @@ from datetime import UTC, datetime
 from typing import Any
 
 from langchain.tools import BaseTool, tool
-from langchain_community.document_loaders import DirectoryLoader, TextLoader, WebBaseLoader
+from langchain_community.document_loaders import (
+    DirectoryLoader,
+    TextLoader,
+    WebBaseLoader,
+)
 from langchain_core.documents import Document as LCDoc
 
 try:
-    from langchain_community.tools.duckduckgo_search import DuckDuckGoSearchResults  # type: ignore
+    from langchain_community.tools.duckduckgo_search import (
+        DuckDuckGoSearchResults,  # type: ignore
+    )
 except ImportError:
     DuckDuckGoSearchResults = None
 
@@ -240,7 +246,7 @@ async def call_mcp_tool(tool_name: str, arguments: str) -> str:
         return str(result)
 
     except TimeoutError:
-        logger.error(f"MCP tool {tool_name} timed out after {config.mcp_timeout}s")
+        logger.exception(f"MCP tool {tool_name} timed out after {config.mcp_timeout}s")
         return f"Error: MCP tool {tool_name} timed out."
     except Exception as e:
         logger.exception("call_mcp_tool_failed", extra={"tool": tool_name})
@@ -536,7 +542,7 @@ async def ingest_docs(
     try:
         docs = loader.load()
     except Exception as e:
-        logger.error(f"Error loading documents from {directory_path}: {e}")
+        logger.exception(f"Error loading documents from {directory_path}: {e}")
         return f"Error loading documents: {e!s}"
 
     if not docs:

@@ -87,7 +87,7 @@ async def run_graph(checkpointer: BaseCheckpointSaver) -> None:
         print(last_message)
         print(Markdown("\n\n  ---  \n\n"))
 
-        all_messages = result["messages"]  # noqa: F841
+        all_messages = result["messages"]
 
     print(await graph.aget_state(config=config))
 
