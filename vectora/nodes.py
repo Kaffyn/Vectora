@@ -206,7 +206,7 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     # Create AIMessage from collected response, preserving tool_calls
     result = AIMessage(
         content=response_content,
-        tool_calls=tool_calls_collected or None,
+        tool_calls=tool_calls_collected,
     )
 
     logger.debug(
