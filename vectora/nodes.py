@@ -154,9 +154,12 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     with nullcontext():
         # LangSmith automatically captures duration, tokens, and model info
         # No need for manual timing—let the trace context handle metrics
+        # Create clean config to prevent LangGraph metadata from leaking to the model
+        clean_config = RunnableConfig(configurable={})
         # Iterate async generator to collect streamed tokens
         async for event in llm_with_tools.astream_events(
             messages_with_system,
+            config=clean_config,
         ):
             if event.get("event") == "on_chat_model_stream":
                 chunk = event.get("data", {}).get("chunk")
