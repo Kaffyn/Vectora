@@ -142,6 +142,12 @@ class TestReconciliation:
         Simula crash: record marcado em 'processing' há >2 min.
         Esperado: reconcile() move de volta para 'pending'.
         """
+        from datetime import UTC, datetime, timedelta
+
+        from sqlalchemy import update
+
+        from embedding_queue import EmbeddingQueueRecord
+
         config = ToolConfig(
             enable_rag=True,
             embedding_queue_enabled=True,
@@ -162,6 +168,18 @@ class TestReconciliation:
         # Verificar está em processing (não em pending)
         pending_before = await queue.get_pending(limit=10)
         assert len(pending_before) == 0
+
+        # Manualmente setar updated_at para >2 minutos atrás (simular crash)
+        if queue.AsyncSessionLocal:
+            async with queue.AsyncSessionLocal() as session:
+                old_time = datetime.now(UTC) - timedelta(minutes=5)
+                stmt = (
+                    update(EmbeddingQueueRecord)
+                    .where(EmbeddingQueueRecord.queue_id == queue_id)
+                    .values(updated_at=old_time)
+                )
+                await session.execute(stmt)
+                await session.commit()
 
         # Rodar reconciliação
         await queue.reconcile()

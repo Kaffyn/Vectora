@@ -11,7 +11,7 @@ Testes críticos que validam:
 
 import json
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -22,7 +22,7 @@ from tools import embedding, ingest_docs
 
 
 @pytest.fixture(autouse=True)
-def reset_embedding_queue_singleton() -> None:
+async def reset_embedding_queue_singleton() -> None:
     """Reset module-level _queue singleton before each test.
 
     The embedding_queue module uses a singleton pattern that caches
@@ -33,8 +33,12 @@ def reset_embedding_queue_singleton() -> None:
 
     embedding_queue._queue = None
     yield
-    # Cleanup
+    # Cleanup - close the queue if it exists
     if embedding_queue._queue:
+        try:
+            await embedding_queue._queue.close()
+        except Exception:
+            pass
         embedding_queue._queue = None
 
 
@@ -97,7 +101,7 @@ class TestFireAndForgetBasic:
             embedding_queue_db=":memory:",
         )
 
-        with patch("tool_config.get_tool_config", return_value=config):
+        with patch("tools.get_tool_config", return_value=config):
             result = ""
             async for chunk in embedding.astream(
                 {
@@ -117,9 +121,14 @@ class TestFireAndForgetBasic:
             pending = await queue.get_pending(limit=10)
 
             assert len(pending) > 0
-            assert pending[0].queue_id == queue_id
-            assert pending[0].text == "Test document for queueing"
-            assert pending[0].collection == "articles"
+            # Find the record with the correct queue_id
+            matching_records = [r for r in pending if r.queue_id == queue_id]
+            assert len(matching_records) > 0, (
+                f"Queue ID {queue_id} not found in pending records"
+            )
+            record = matching_records[0]
+            assert record.text == "Test document for queueing"
+            assert record.collection == "articles"
 
     @pytest.mark.asyncio
     async def test_embedding_disabled_returns_error(self) -> None:
@@ -150,7 +159,6 @@ class TestBackgroundWorker:
             embedding_queue_enabled=True,
             embedding_queue_db=":memory:",
             voyage_api_key="test-key",
-            lancedb_dir=Path(":memory:"),  # In-memory LanceDB
         )
 
         # Enfileirar documento
@@ -165,26 +173,45 @@ class TestBackgroundWorker:
         mock_vector = [0.1, 0.2, 0.3] * 400  # 1200-dim vector
 
         with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
-            mock_instance = AsyncMock()
-            mock_instance.embed_query.return_value = mock_vector
+            mock_instance = MagicMock()
+            mock_instance.embed_query = MagicMock(return_value=mock_vector)
             mock_voyage.return_value = mock_instance
 
-            # Criar e processar worker
-            worker = BackgroundEmbeddingWorker(config)
+            with patch("background_worker.lancedb") as mock_lancedb:
+                mock_db = AsyncMock()
+                mock_table = AsyncMock()
+                mock_db.open_table = AsyncMock(return_value=mock_table)
+                mock_db.create_table = AsyncMock(return_value=mock_table)
+                mock_table.add = AsyncMock()
+                mock_lancedb.connect_async = AsyncMock(return_value=mock_db)
 
-            # Processar apenas este record manualmente
-            pending = await queue.get_pending(limit=1)
-            assert len(pending) == 1
+                with patch("background_worker.pa") as mock_pa:
+                    # Mock pyarrow schema creation
+                    mock_schema = MagicMock()
+                    mock_pa.schema = MagicMock(return_value=mock_schema)
+                    mock_pa.field = MagicMock(
+                        side_effect=lambda *args, **kwargs: MagicMock()
+                    )
+                    mock_pa.string = MagicMock(return_value=MagicMock())
+                    mock_pa.list_ = MagicMock(return_value=MagicMock())
+                    mock_pa.float32 = MagicMock(return_value=MagicMock())
 
-            # Simular processamento
-            await worker._process_record(pending[0])
+                    # Criar e processar worker
+                    worker = BackgroundEmbeddingWorker(config)
 
-            # Verificar que foi marcado como success
-            failed = await queue.get_failed(limit=10)
-            assert len(failed) == 0  # Nenhuma falha
+                    # Processar apenas este record manualmente
+                    pending = await queue.get_pending(limit=1)
+                    assert len(pending) == 1
 
-            success_record = pending[0]
-            assert success_record.queue_id == queue_id
+                    # Simular processamento
+                    await worker._process_record(pending[0])
+
+                    # Verificar que foi marcado como success
+                    failed = await queue.get_failed(limit=10)
+                    assert len(failed) == 0  # Nenhuma falha
+
+                    success_record = pending[0]
+                    assert success_record.queue_id == queue_id
 
     @pytest.mark.asyncio
     async def test_worker_retry_with_exponential_backoff(self) -> None:
@@ -194,6 +221,7 @@ class TestBackgroundWorker:
             embedding_queue_enabled=True,
             embedding_queue_db=":memory:",
             voyage_api_key="test-key",
+            lancedb_dir=Path(":memory:"),
         )
 
         queue = await get_embedding_queue(config.embedding_queue_url)
@@ -205,7 +233,7 @@ class TestBackgroundWorker:
         # Mock para falhar 2x, depois suceder
         call_count = 0
 
-        async def mock_embed_query(text: str) -> list[float]:
+        def mock_embed_query(text: str) -> list[float]:
             nonlocal call_count
             call_count += 1
             if call_count < 3:
@@ -214,30 +242,38 @@ class TestBackgroundWorker:
             return [0.1, 0.2] * 600  # Success on 3rd attempt
 
         with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
-            mock_instance = AsyncMock()
-            mock_instance.embed_query.side_effect = mock_embed_query
+            mock_instance = MagicMock()
+            mock_instance.embed_query = MagicMock(side_effect=mock_embed_query)
             mock_voyage.return_value = mock_instance
 
-            worker = BackgroundEmbeddingWorker(config)
+            with patch("background_worker.lancedb") as mock_lancedb:
+                mock_db = AsyncMock()
+                mock_table = AsyncMock()
+                mock_db.open_table = AsyncMock(return_value=mock_table)
+                mock_db.create_table = AsyncMock(return_value=mock_table)
+                mock_table.add = AsyncMock()
+                mock_lancedb.connect_async = AsyncMock(return_value=mock_db)
 
-            import time
+                worker = BackgroundEmbeddingWorker(config)
 
-            start = time.time()
+                import time
 
-            pending = await queue.get_pending(limit=1)
-            await worker._process_record(pending[0])
+                start = time.time()
 
-            elapsed = time.time() - start
+                pending = await queue.get_pending(limit=1)
+                await worker._process_record(pending[0])
 
-            # Deve ter esperado ~3 segundos (1s + 2s)
-            assert elapsed >= 2.5, (
-                f"Retry não esperou backoff suficiente: {elapsed:.1f}s"
-            )
-            assert call_count == 3, f"Esperado 3 chamadas, got {call_count}"
+                elapsed = time.time() - start
 
-            # Record deve estar em success
-            pending = await queue.get_pending(limit=10)
-            assert len(pending) == 0  # Nenhum pendente
+                # Deve ter esperado ~3 segundos (1s + 2s)
+                assert elapsed >= 2.5, (
+                    f"Retry não esperou backoff suficiente: {elapsed:.1f}s"
+                )
+                assert call_count == 3, f"Esperado 3 chamadas, got {call_count}"
+
+                # Record deve estar em success
+                pending = await queue.get_pending(limit=10)
+                assert len(pending) == 0  # Nenhum pendente
 
     @pytest.mark.asyncio
     async def test_worker_moves_to_dlq_after_3_failures(self) -> None:
@@ -247,6 +283,7 @@ class TestBackgroundWorker:
             embedding_queue_enabled=True,
             embedding_queue_db=":memory:",
             voyage_api_key="test-key",
+            lancedb_dir=Path(":memory:"),
         )
 
         queue = await get_embedding_queue(config.embedding_queue_url)
@@ -256,25 +293,33 @@ class TestBackgroundWorker:
         )
 
         # Mock sempre falha
-        async def mock_embed_query_fail(text: str) -> list[float]:
+        def mock_embed_query_fail(text: str) -> list[float]:
             msg = "Permanent API failure"
             raise Exception(msg)
 
         with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
-            mock_instance = AsyncMock()
-            mock_instance.embed_query.side_effect = mock_embed_query_fail
+            mock_instance = MagicMock()
+            mock_instance.embed_query = MagicMock(side_effect=mock_embed_query_fail)
             mock_voyage.return_value = mock_instance
 
-            worker = BackgroundEmbeddingWorker(config)
+            with patch("background_worker.lancedb") as mock_lancedb:
+                mock_db = AsyncMock()
+                mock_table = AsyncMock()
+                mock_db.open_table = AsyncMock(return_value=mock_table)
+                mock_db.create_table = AsyncMock(return_value=mock_table)
+                mock_table.add = AsyncMock()
+                mock_lancedb.connect_async = AsyncMock(return_value=mock_db)
 
-            pending = await queue.get_pending(limit=1)
-            await worker._process_record(pending[0])
+                worker = BackgroundEmbeddingWorker(config)
 
-            # Record deve estar em DLQ
-            failed = await queue.get_failed(limit=10)
-            assert len(failed) == 1
-            assert failed[0].status == "dlq"
-            assert "Permanent API failure" in failed[0].dlq_reason
+                pending = await queue.get_pending(limit=1)
+                await worker._process_record(pending[0])
+
+                # Record deve estar em DLQ
+                failed = await queue.get_failed(limit=10)
+                assert len(failed) == 1
+                assert failed[0].status == "dlq"
+                assert "Permanent API failure" in failed[0].dlq_reason
 
     @pytest.mark.asyncio
     async def test_worker_idempotent_writes(self) -> None:
@@ -296,28 +341,36 @@ class TestBackgroundWorker:
         mock_vector = [0.1, 0.2] * 600
 
         with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
-            mock_instance = AsyncMock()
-            mock_instance.embed_query.return_value = mock_vector
+            mock_instance = MagicMock()
+            mock_instance.embed_query = MagicMock(return_value=mock_vector)
             mock_voyage.return_value = mock_instance
 
-            worker = BackgroundEmbeddingWorker(config)
+            with patch("background_worker.lancedb") as mock_lancedb:
+                mock_db = AsyncMock()
+                mock_table = AsyncMock()
+                mock_db.open_table = AsyncMock(return_value=mock_table)
+                mock_db.create_table = AsyncMock(return_value=mock_table)
+                mock_table.add = AsyncMock()
+                mock_lancedb.connect_async = AsyncMock(return_value=mock_db)
 
-            # Process 3x vezes (simular reprocessing)
-            for _ in range(3):
-                pending = await queue.get_pending(limit=1)
-                if pending:
-                    await worker._process_record(pending[0])
-                    # Re-enfileirar para teste (na prática não acontece)
-                    await queue.enqueue(
-                        text="Idempotent test document",
-                        collection="articles",
-                    )
+                worker = BackgroundEmbeddingWorker(config)
 
-            # Verificar que foi escrito apenas 1 documento em LanceDB
-            # (via queue_id como document ID, não há duplicatas)
-            # Este é um teste conceitual — a idempotência é garantida
-            # pelo schema onde id = queue_id
-            assert True  # Idempotência implementada em LanceDB schema
+                # Process 3x vezes (simular reprocessing)
+                for _ in range(3):
+                    pending = await queue.get_pending(limit=1)
+                    if pending:
+                        await worker._process_record(pending[0])
+                        # Re-enfileirar para teste (na prática não acontece)
+                        await queue.enqueue(
+                            text="Idempotent test document",
+                            collection="articles",
+                        )
+
+                # Verificar que foi escrito apenas 1 documento em LanceDB
+                # (via queue_id como document ID, não há duplicatas)
+                # Este é um teste conceitual — a idempotência é garantida
+                # pelo schema onde id = queue_id
+                assert True  # Idempotência implementada em LanceDB schema
 
 
 class TestReconciliation:
@@ -326,6 +379,11 @@ class TestReconciliation:
     @pytest.mark.asyncio
     async def test_reconciliation_recovers_stalled_records(self) -> None:
         """Test que reconciliação recupera records em 'processing' há >2min."""
+        from datetime import UTC, datetime, timedelta
+
+        from sqlalchemy import update
+
+        from embedding_queue import EmbeddingQueueRecord
 
         config = ToolConfig(
             enable_rag=True,
@@ -345,6 +403,18 @@ class TestReconciliation:
         # Verificar que está em "processing"
         pending_before = await queue.get_pending(limit=10)
         assert len(pending_before) == 0  # Não em pending, em processing
+
+        # Manualmente setar updated_at para >2 minutos atrás (simular crash)
+        if queue.AsyncSessionLocal:
+            async with queue.AsyncSessionLocal() as session:
+                old_time = datetime.now(UTC) - timedelta(minutes=5)
+                stmt = (
+                    update(EmbeddingQueueRecord)
+                    .where(EmbeddingQueueRecord.queue_id == queue_id)
+                    .values(updated_at=old_time)
+                )
+                await session.execute(stmt)
+                await session.commit()
 
         # Rodar reconciliação
         await queue.reconcile()
@@ -460,24 +530,32 @@ async def test_full_fire_and_forget_workflow() -> None:
     mock_vector = [0.1, 0.2] * 600
 
     with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
-        mock_instance = AsyncMock()
-        mock_instance.embed_query.return_value = mock_vector
+        mock_instance = MagicMock()
+        mock_instance.embed_query = MagicMock(return_value=mock_vector)
         mock_voyage.return_value = mock_instance
 
-        worker = BackgroundEmbeddingWorker(config)
+        with patch("background_worker.lancedb") as mock_lancedb:
+            mock_db = AsyncMock()
+            mock_table = AsyncMock()
+            mock_db.open_table = AsyncMock(return_value=mock_table)
+            mock_db.create_table = AsyncMock(return_value=mock_table)
+            mock_table.add = AsyncMock()
+            mock_lancedb.connect_async = AsyncMock(return_value=mock_db)
 
-        # Processar todos os 3
-        for _ in range(3):
-            pending = await queue.get_pending(limit=1)
-            if pending:
-                await worker._process_record(pending[0])
+            worker = BackgroundEmbeddingWorker(config)
 
-    # Step 3: Verificar que tudo foi indexado (nenhuma falha)
-    pending = await queue.get_pending(limit=10)
-    assert len(pending) == 0  # Nenhum pendente
+            # Processar todos os 3
+            for _ in range(3):
+                pending = await queue.get_pending(limit=1)
+                if pending:
+                    await worker._process_record(pending[0])
 
-    failed = await queue.get_failed(limit=10)
-    assert len(failed) == 0  # Nenhuma falha
+            # Step 3: Verificar que tudo foi indexado (nenhuma falha)
+            pending = await queue.get_pending(limit=10)
+            assert len(pending) == 0  # Nenhum pendente
+
+            failed = await queue.get_failed(limit=10)
+            assert len(failed) == 0  # Nenhuma falha
 
 
 if __name__ == "__main__":
