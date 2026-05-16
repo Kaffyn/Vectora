@@ -117,7 +117,15 @@ async def _process_user_turn(
             if event.get("event") == "on_chat_model_stream":
                 chunk = event.get("data", {}).get("chunk")
                 if chunk and hasattr(chunk, "content") and chunk.content:
-                    response_content += chunk.content
+                    # Handle content as string or list of content blocks
+                    content = chunk.content
+                    if isinstance(content, list):
+                        # If content is list, join string representations
+                        response_content += "".join(
+                            str(c) if not isinstance(c, str) else c for c in content
+                        )
+                    else:
+                        response_content += str(content)
 
     if response_content:
         console.print(ChatMessage("Vectora", response_content).to_panel())
