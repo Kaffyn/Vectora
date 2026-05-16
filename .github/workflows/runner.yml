@@ -112,8 +112,9 @@ jobs:
 
       - name: Verify package structure
         run: |
-          uv run python -m py_compile vectora/main.py
+          uv run python -m py_compile vectora/chat.py
           uv run python -m py_compile vectora/tools.py
+          uv run python -m py_compile vectora/graph.py
 
   test-unit:
     name: Unit Tests
@@ -329,7 +330,7 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
           VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
         run: |
-          ssh -i ~/.ssh/deploy_key -p $VPS_PORT $VPS_USER@$VPS_HOST "cd /opt/vectora && git fetch origin main && git reset --hard origin/main && docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest && docker compose down || true && docker compose up -d && docker compose exec -T vectora uv run python vectora/main.py --init-db || true"
+          ssh -i ~/.ssh/deploy_key -p $VPS_PORT $VPS_USER@$VPS_HOST "cd /opt/vectora && git fetch origin main && git reset --hard origin/main && docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest && docker compose down || true && docker compose up -d"
 
       - name: Verify deployment
         env:
