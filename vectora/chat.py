@@ -16,9 +16,14 @@ Features:
 import asyncio
 import logging
 import os
+import warnings
 from pathlib import Path
 from queue import Queue
 from typing import TYPE_CHECKING
+
+# Suppress UserWarnings from external libraries in quiet mode
+if os.getenv("QUIET_MODE", "true").lower() == "true":
+    warnings.filterwarnings("ignore", category=UserWarning)
 
 from background_worker import get_background_worker
 from checkpointer import Checkpointer

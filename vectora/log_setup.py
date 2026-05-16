@@ -109,17 +109,23 @@ def setup_logging(
     # Suppress external library logs by default (QUIET_MODE)
     quiet_mode = os.getenv("QUIET_MODE", "true").lower() == "true"
     if quiet_mode:
-        # Silence verbose external libraries
-        logging.getLogger("langchain").setLevel(logging.ERROR)
-        logging.getLogger("langchain_core").setLevel(logging.ERROR)
-        logging.getLogger("langchain_google_genai").setLevel(logging.ERROR)
-        logging.getLogger("langgraph").setLevel(logging.ERROR)
-        logging.getLogger("google").setLevel(logging.ERROR)
-        logging.getLogger("google.genai").setLevel(logging.ERROR)
-        logging.getLogger("google.genai._api_client").setLevel(logging.ERROR)
-        logging.getLogger("httpx").setLevel(logging.ERROR)
-        logging.getLogger("urllib3").setLevel(logging.ERROR)
-        logging.getLogger("requests").setLevel(logging.ERROR)
+        # Silence verbose external libraries - set to ERROR to only show critical issues
+        silent_loggers = [
+            "langchain",
+            "langchain_core",
+            "langchain_google_genai",
+            "langgraph",
+            "google",
+            "google.genai",
+            "google.genai._api_client",
+            "google.genai._api_client.BaseApiClient",
+            "httpx",
+            "urllib3",
+            "requests",
+            "asyncio",
+        ]
+        for logger_name in silent_loggers:
+            logging.getLogger(logger_name).setLevel(logging.CRITICAL)
 
     if json_output:
         log_file_path = Path(log_file)
