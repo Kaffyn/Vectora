@@ -16,16 +16,18 @@ import logging
 from collections.abc import Sequence
 from contextlib import nullcontext
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Self
 
 from background_worker import get_background_worker
 from checkpointer import Checkpointer
-from constants import DB_DSN
+from constants import DB_DSN, LOGS_DIR
 from context import Context
 from graph import build_graph
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 from log_setup import setup_logging
+from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.text import Text
@@ -324,6 +326,49 @@ class VectoraChatApp(App[Any]):
         yield Footer()
 
 
+def _format_message_for_audit(msg: BaseMessage, index: int) -> str:
+    """Format a single message for markdown audit output.
+
+    Args:
+        msg: BaseMessage to format
+        index: Message index (1-based)
+
+    Returns:
+        Markdown formatted string for the message
+    """
+    msg_type = type(msg).__name__
+    content = msg.content if isinstance(msg.content, str) else str(msg.content)
+
+    # Truncate long content for display
+    display_content = (
+        content if len(content) <= 500 else content[:500] + "\n... (truncated)"
+    )
+
+    if isinstance(msg, HumanMessage):
+        return f"### [{index}] 👤 Human Message\n\n```\n{display_content}\n```\n"
+    elif isinstance(msg, AIMessage):
+        tool_calls = getattr(msg, "tool_calls", None)
+        tools_info = ""
+        if tool_calls:
+            tool_names = [t.get("name", "unknown") for t in tool_calls]
+            tools_info = f"\n**Tools Called:** {', '.join(tool_names)}\n"
+
+        return (
+            f"### [{index}] 🤖 Vectora AI Message\n"
+            f"{tools_info}\n"
+            f"```\n{display_content}\n```\n"
+        )
+    elif isinstance(msg, ToolMessage):
+        tool_name = getattr(msg, "name", "unknown")
+        return (
+            f"### [{index}] 🔧 Tool Result ({tool_name})\n\n"
+            f"```\n{display_content}\n```\n"
+        )
+    else:
+        # Fallback for SystemMessage or other types
+        return f"### [{index}] ⚙️ {msg_type}\n\n```\n{display_content}\n```\n"
+
+
 async def _export_message_audit(
     graph: CompiledStateGraph[State, Context, State, State],
     checkpointer: Checkpointer,
@@ -331,7 +376,8 @@ async def _export_message_audit(
     """Export and display full message audit for verification.
 
     Extracts all messages from the latest checkpoint and formats them
-    for human-readable auditing: system, human, tool, AI messages.
+    with Rich markdown for both terminal display and file persistence.
+    Saves complete audit to ~/.vectora/logs/session_audit.md
     """
     try:
         # Get all thread IDs from checkpointer
@@ -353,37 +399,89 @@ async def _export_message_audit(
             logger.info("No messages in final state")
             return
 
-        # Format audit output
-        print("\n" + "=" * 80)
-        print("📋 MESSAGE AUDIT - Vectora Chat Session")
-        print("=" * 80)
+        # Create console for rich output
+        console = Console()
 
+        # Format title
+        session_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        title_text = (
+            f"📋 MESSAGE AUDIT - Vectora Chat Session\n"
+            f"Thread ID: {latest_thread_id} | Timestamp: {session_timestamp}"
+        )
+        title_panel = Panel(
+            title_text,
+            style="bold blue",
+            expand=False,
+        )
+
+        # Display title in terminal
+        console.print(title_panel)
+        console.print()
+
+        # Build markdown content for both display and file storage
+        markdown_content = f"""# 📋 MESSAGE AUDIT - Vectora Chat Session
+
+**Session Details:**
+- Thread ID: {latest_thread_id}
+- Timestamp: {session_timestamp}
+- Total Messages: {len(messages)}
+
+---
+
+## Conversation History
+
+"""
+
+        # Format and display each message
         for i, msg in enumerate(messages, 1):
-            msg_type = type(msg).__name__
-            print(f"\n[{i}] {msg_type}")
-            print("-" * 40)
+            formatted = _format_message_for_audit(msg, i)
+            markdown_content += formatted + "\n"
 
-            if hasattr(msg, "content"):
-                content = msg.content
-                if isinstance(content, str):
-                    print(f"Content: {content[:500]}")
-                    if len(content) > 500:
-                        print(f"... (+{len(content) - 500} chars)")
-                else:
-                    print(f"Content: {content}")
+            # Display in terminal with Rich
+            msg_markdown = Markdown(formatted)
+            console.print(msg_markdown)
 
-            if hasattr(msg, "tool_calls") and msg.tool_calls:
-                print(f"Tool Calls: {msg.tool_calls}")
+        # Add footer with statistics
+        footer_text = f"\n✓ **Total Messages Audited:** {len(messages)}\n"
+        markdown_content += f"\n---\n\n## Summary\n\n{footer_text}"
 
-            if hasattr(msg, "name"):
-                print(f"Name: {msg.name}")
+        # Display footer
+        footer_panel = Panel(
+            f"✓ Total Messages: {len(messages)}",
+            style="bold green",
+            expand=False,
+        )
+        console.print(footer_panel)
+        console.print()
 
-        print("\n" + "=" * 80)
-        print(f"✓ Total Messages: {len(messages)}")
-        print("=" * 80 + "\n")
+        # Ensure logs directory exists
+        LOGS_DIR.mkdir(parents=True, exist_ok=True)
+
+        # Save to persistent audit file
+        audit_file = LOGS_DIR / "session_audit.md"
+        audit_file.write_text(markdown_content, encoding="utf-8")
+
+        logger.info(
+            "Message audit exported",
+            extra={
+                "audit_file": str(audit_file),
+                "message_count": len(messages),
+                "thread_id": latest_thread_id,
+            },
+        )
+
+        # Inform user where audit was saved
+        audit_info = (
+            f"\n📄 Full audit saved to: {audit_file}\n"
+            f"   (Use `cat {audit_file}` to view offline)\n"
+        )
+        console.print(audit_info, style="dim yellow")
 
     except Exception as e:
-        logger.warning(f"Could not export message audit: {e}")
+        logger.warning(
+            f"Could not export message audit: {e}",
+            exc_info=True,
+        )
 
 
 async def run_chat() -> None:
