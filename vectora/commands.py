@@ -4,7 +4,9 @@ Handles system commands (e.g., /quit, /model) separately from chat input.
 Provides clean separation between user input and control flow.
 """
 
+import json
 import logging
+from pathlib import Path
 from typing import Any
 
 from config import Config
@@ -13,6 +15,41 @@ from rich.table import Table
 from ui import SuccessPanel
 
 logger = logging.getLogger(__name__)
+
+# Config file path for persistent settings
+CONFIG_FILE = Path.home() / ".vectora" / "chat_config.json"
+
+
+def _load_debug_config() -> bool:
+    """Load debug mode setting from config file.
+
+    Returns:
+        Saved debug_mode value or False if not found
+    """
+    try:
+        if CONFIG_FILE.exists():
+            data = json.loads(CONFIG_FILE.read_text())
+            return data.get("debug_mode", False)
+    except Exception as e:
+        logger.warning(f"Could not load debug config: {e}")
+    return False
+
+
+def _save_debug_config(debug_mode: bool) -> None:
+    """Save debug mode setting to config file.
+
+    Args:
+        debug_mode: Debug mode state to persist
+    """
+    try:
+        CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        data = {}
+        if CONFIG_FILE.exists():
+            data = json.loads(CONFIG_FILE.read_text())
+        data["debug_mode"] = debug_mode
+        CONFIG_FILE.write_text(json.dumps(data, indent=2))
+    except Exception as e:
+        logger.warning(f"Could not save debug config: {e}")
 
 
 # Available models by LLM provider
@@ -99,6 +136,12 @@ async def handle_command(
     elif cmd == "/session":
         context = await _handle_switch_session(args, context, console)
 
+    elif cmd == "/tools" or cmd == "/tool":
+        await _handle_tools_command(console)
+
+    elif cmd == "/list":
+        _display_command_list(console)
+
     else:
         console.print(f"[dim][red]Unknown command:[/red] {cmd}[/dim]")
 
@@ -132,6 +175,7 @@ async def _handle_debug_command(
             )
         )
         logger.info(f"Debug mode toggled to: {new_debug_mode}")
+        _save_debug_config(new_debug_mode)
         return new_debug_mode
 
     elif args == "true" or args == "on" or args == "yes":
@@ -145,6 +189,7 @@ async def _handle_debug_command(
             )
         )
         logger.info("Debug mode enabled")
+        _save_debug_config(True)
         return True
 
     elif args == "false" or args == "off" or args == "no":
@@ -158,6 +203,7 @@ async def _handle_debug_command(
             )
         )
         logger.info("Debug mode disabled")
+        _save_debug_config(False)
         return False
 
     else:
@@ -349,13 +395,45 @@ async def _handle_switch_session(args: str, context: Any, console: Any) -> Any:
         return context
 
 
-def _display_help(console: Any) -> None:
-    """Display help for available commands.
+async def _handle_tools_command(console: Any) -> None:
+    """List all available tools in Vectora.
 
     Args:
         console: Rich console for output
     """
-    help_text = """
+    try:
+        from tools import TOOLS
+
+        table = Table(title="Available Tools", style="cyan")
+        table.add_column("Tool Name", style="bold green")
+        table.add_column("Description", style="dim")
+
+        for tool in TOOLS:
+            # Get tool description
+            description = ""
+            if hasattr(tool, "description"):
+                description = tool.description
+            elif hasattr(tool, "docstring"):
+                # Try to get first line of docstring
+                doc = tool.docstring or ""
+                description = doc.split("\n")[0] if doc else ""
+
+            table.add_row(tool.name, description)
+
+        console.print(Panel(table, style="cyan", expand=False))
+        logger.info(f"Tools listed: {len(TOOLS)} available")
+    except Exception as e:
+        console.print(f"[red]Error listing tools: {e}[/red]")
+        logger.exception("Failed to list tools")
+
+
+def _display_command_list(console: Any) -> None:
+    """Display all available commands in Vectora.
+
+    Args:
+        console: Rich console for output
+    """
+    commands_text = """
 [bold cyan]Available Commands:[/bold cyan]
 
 [bold]/model[/bold]
@@ -374,6 +452,10 @@ def _display_help(console: Any) -> None:
   Enable or disable debug mode
   Usage: [dim]/debug true[/dim] or [dim]/debug false[/dim]
 
+[bold]/tools[/bold] or [bold]/tool[/bold]
+  List all available tools
+  Usage: [dim]/tools[/dim]
+
 [bold]/new[/bold]
   Create a new chat session
   Usage: [dim]/new[/dim]
@@ -386,11 +468,39 @@ def _display_help(console: Any) -> None:
   Switch to a specific session by ID
   Usage: [dim]/session 1[/dim]
 
+[bold]/list[/bold]
+  Show this list of all available commands
+  Usage: [dim]/list[/dim]
+
 [bold]/quit[/bold], [bold]/sair[/bold], [bold]/q[/bold]
   Exit the chat
 
 [bold]/help[/bold]
-  Show this help message
+  Show basic help message
+"""
+
+    console.print(Panel(commands_text, title="Commands", style="cyan", expand=False))
+
+
+def _display_help(console: Any) -> None:
+    """Display basic help message pointing to /list for full commands.
+
+    Args:
+        console: Rich console for output
+    """
+    help_text = """
+[bold cyan]Welcome to Vectora Chat![/bold cyan]
+
+Type your message to chat, or use these commands:
+
+[bold]/list[/bold] - Show all available commands
+[bold]/help[/bold] - Show this message
+[bold]/quit[/bold] - Exit the chat
+[bold]/new[/bold] - Create new session
+[bold]/tools[/bold] - List available tools
+[bold]/debug[/bold] - Toggle debug mode
+
+For complete command reference, type [bold]/list[/bold]
 """
 
     console.print(Panel(help_text, title="Help", style="cyan", expand=False))

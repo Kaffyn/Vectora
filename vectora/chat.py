@@ -218,8 +218,10 @@ async def chat_loop(
     provider: str = "unset",
 ) -> None:
     """Rich Gorda chat loop with dashboard layout and live rendering."""
-    # Initialize Debug Mode (default: disabled, can be toggled with /debug command)
-    debug_mode = False
+    # Initialize Debug Mode (load from persistent config)
+    from commands import _load_debug_config
+
+    debug_mode = _load_debug_config()
     log_queue: Queue | None = None
     log_panel_obj: LogPanel | None = None
 
