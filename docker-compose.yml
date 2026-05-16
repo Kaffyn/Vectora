@@ -1,9 +1,8 @@
-version: "3.8"
+name: vectora
 
 services:
-  vectora-mcp:
+  vectora:
     image: ghcr.io/kaffyn/vectora:latest
-    container_name: vectora-mcp
     restart: unless-stopped
     environment:
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}

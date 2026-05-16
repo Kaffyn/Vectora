@@ -32,6 +32,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Instalar UV no runtime
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
 # Copiar venv do builder
 COPY --from=builder /build/.venv /app/.venv
 
@@ -45,6 +49,7 @@ RUN mkdir -p /root/.vectora && chmod 777 /root/.vectora
 
 # Setup PATH
 ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app" \
     PYTHONUNBUFFERED=1 \
     LOG_LEVEL=INFO \
     VERSION=${VERSION}
@@ -53,6 +58,5 @@ ENV PATH="/app/.venv/bin:$PATH" \
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import sys; sys.exit(0)" || exit 1
 
-# Default: rodar como MCP server
-ENTRYPOINT ["/app/.venv/bin/python", "-m"]
-CMD ["mcp.server", "src/mcp_server.py"]
+# O comando para rodar seu servidor MCP via UV
+ENTRYPOINT ["uv", "run", "vectora-mcp"]

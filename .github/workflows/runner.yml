@@ -242,7 +242,7 @@ jobs:
     needs: [test-unit, test-mcp, security]
     if: |
       (github.ref_name == 'main' || github.ref_name == 'master') &&
-      (contains(github.event.head_commit.message, '[deploy]') || contains(github.event.commits[0].message, '[deploy]'))
+      (contains(github.event.head_commit.message, '[deploy]') || contains(github.event.commits[0].message, '[deploy]') || github.event_name == 'workflow_dispatch')
     permissions:
       contents: read
       packages: write
@@ -276,8 +276,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=0.1.0
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          secrets: |
+            GIT_AUTH_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
   report:
     name: Test Report
