@@ -343,6 +343,16 @@ class Settings(BaseSettings):
         }
         return key_map.get(self.llm_provider)
 
+    def get_voyage_api_key(self) -> str | None:
+        """Get the API key for Voyage AI embeddings.
+
+        Returns:
+            Voyage API key from VOYAGE_API_KEY environment variable or None
+        """
+        import os
+
+        return os.getenv("VOYAGE_API_KEY")
+
     def get_available_providers(self) -> list[str]:
         """Get list of providers with API keys configured.
 
