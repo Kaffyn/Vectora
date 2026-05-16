@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 
 from context import Context
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import SystemMessage, ToolMessage, trim_messages
+from langchain_core.messages import AIMessage, SystemMessage, ToolMessage, trim_messages
 from langchain_core.runnables import Runnable, RunnableConfig
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
@@ -58,18 +58,11 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
 
     # Usar configuração baseada no provedor real do config
     model_provider = "google-genai"  # Use o provedor padrão do config
-    model = "gemini-2.0-flash"  # Use o modelo padrão do config
+    model = "gemini-3.1-flash-lite"  # Use o modelo padrão do config
 
     # Obtém LLM em cache com ferramentas (vinculado uma vez, reutilizado por invocação)
+    # Don't use with_config() as it leaks configurable dict to model kwargs
     llm_with_tools = _get_llm_with_tools()
-    llm_with_config = llm_with_tools.with_config(
-        config={
-            "configurable": {
-                "model": model,
-                "model_provider": model_provider,
-            }
-        }
-    )
 
     # Prepara prompt do sistema Vectora com detecção automática de idioma
     system_content = get_system_prompt()
@@ -118,22 +111,32 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
         state["messages"],
         max_tokens=1000,
         strategy="last",
-        token_counter=llm_with_config,
+        token_counter=llm_with_tools,
     )
 
     messages_with_system = [system_prompt, *memory_messages, *trimmed_messages]
 
     # LangSmith tracing é auto-injetado via env vars (LANGSMITH_API_KEY, etc)
+    response_content = ""
     with nullcontext():
         # LangSmith automatically captures duration, tokens, and model info
         # No need for manual timing—let the trace context handle metrics
-        result = await llm_with_config.ainvoke(
+        # Iterate async generator to collect streamed tokens
+        async for event in llm_with_tools.astream_events(
             messages_with_system,
-        )
+        ):
+            if event.get("event") == "on_chat_model_stream":
+                chunk = event.get("data", {}).get("chunk")
+                if chunk and hasattr(chunk, "content") and chunk.content:
+                    response_content += chunk.content
+
+    # Create AIMessage from collected response
+    result = AIMessage(content=response_content)
 
     logger.debug(
         "Resposta do LLM gerada",
         extra={
+            "response_length": len(response_content),
             "tem_chamadas_de_ferramentas": bool(getattr(result, "tool_calls", None)),
         },
     )
