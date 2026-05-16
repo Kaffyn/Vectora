@@ -15,6 +15,21 @@ from embedding_queue import get_embedding_queue
 from tool_config import ToolConfig
 
 
+@pytest.fixture(autouse=True)
+async def reset_embedding_queue_singleton() -> None:
+    """Reset module-level _queue singleton before each test."""
+    import embedding_queue
+
+    embedding_queue._queue = None
+    yield
+    if embedding_queue._queue:
+        try:
+            await embedding_queue._queue.close()
+        except Exception:
+            pass
+        embedding_queue._queue = None
+
+
 @pytest.mark.stress
 class TestConcurrency:
     """Testes de concorrência sob carga."""
@@ -172,7 +187,7 @@ class TestReconciliation:
         # Manualmente setar updated_at para >2 minutos atrás (simular crash)
         if queue.AsyncSessionLocal:
             async with queue.AsyncSessionLocal() as session:
-                old_time = datetime.now(UTC) - timedelta(minutes=5)
+                old_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=5)
                 stmt = (
                     update(EmbeddingQueueRecord)
                     .where(EmbeddingQueueRecord.queue_id == queue_id)

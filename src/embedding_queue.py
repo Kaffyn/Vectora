@@ -8,7 +8,7 @@ and reconciliation for crash recovery.
 import asyncio
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Self
 from uuid import uuid4
 
@@ -345,10 +345,9 @@ class EmbeddingQueue:
                 from sqlalchemy import and_, select, update
 
                 # Encontrar registros em processing há mais de 2 minutos
-                cutoff_time = datetime.now(UTC)
-                cutoff_time = cutoff_time.replace(second=0, microsecond=0) - __import__(
-                    "datetime"
-                ).timedelta(minutes=2)
+                cutoff_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(
+                    minutes=2
+                )
 
                 # Primeiro, contar quantos serão recuperados
                 count_query = select(EmbeddingQueueRecord).where(

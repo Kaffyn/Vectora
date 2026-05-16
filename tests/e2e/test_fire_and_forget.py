@@ -407,7 +407,7 @@ class TestReconciliation:
         # Manualmente setar updated_at para >2 minutos atrás (simular crash)
         if queue.AsyncSessionLocal:
             async with queue.AsyncSessionLocal() as session:
-                old_time = datetime.now(UTC) - timedelta(minutes=5)
+                old_time = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=5)
                 stmt = (
                     update(EmbeddingQueueRecord)
                     .where(EmbeddingQueueRecord.queue_id == queue_id)
@@ -509,7 +509,6 @@ async def test_full_fire_and_forget_workflow() -> None:
         embedding_queue_enabled=True,
         embedding_queue_db=":memory:",
         voyage_api_key="test-key",
-        lancedb_dir=Path(":memory:"),
     )
 
     # Step 1: Simulate user search → enqueue documents
@@ -535,27 +534,31 @@ async def test_full_fire_and_forget_workflow() -> None:
         mock_voyage.return_value = mock_instance
 
         with patch("background_worker.lancedb") as mock_lancedb:
-            mock_db = AsyncMock()
-            mock_table = AsyncMock()
-            mock_db.open_table = AsyncMock(return_value=mock_table)
-            mock_db.create_table = AsyncMock(return_value=mock_table)
-            mock_table.add = AsyncMock()
-            mock_lancedb.connect_async = AsyncMock(return_value=mock_db)
+            with patch("background_worker.pa") as mock_pa:
+                mock_db = AsyncMock()
+                mock_table = AsyncMock()
+                mock_db.open_table = AsyncMock(return_value=mock_table)
+                mock_db.create_table = AsyncMock(return_value=mock_table)
+                mock_table.add = AsyncMock()
+                mock_lancedb.connect_async = AsyncMock(return_value=mock_db)
 
-            worker = BackgroundEmbeddingWorker(config)
+                # Mock pyarrow schema
+                mock_pa.schema.return_value = MagicMock()
 
-            # Processar todos os 3
-            for _ in range(3):
-                pending = await queue.get_pending(limit=1)
-                if pending:
-                    await worker._process_record(pending[0])
+                worker = BackgroundEmbeddingWorker(config)
 
-            # Step 3: Verificar que tudo foi indexado (nenhuma falha)
-            pending = await queue.get_pending(limit=10)
-            assert len(pending) == 0  # Nenhum pendente
+                # Processar todos os 3
+                for _ in range(3):
+                    pending = await queue.get_pending(limit=1)
+                    if pending:
+                        await worker._process_record(pending[0])
 
-            failed = await queue.get_failed(limit=10)
-            assert len(failed) == 0  # Nenhuma falha
+                # Step 3: Verificar que tudo foi indexado (nenhuma falha)
+                pending = await queue.get_pending(limit=10)
+                assert len(pending) == 0  # Nenhum pendente
+
+                failed = await queue.get_failed(limit=10)
+                assert len(failed) == 0  # Nenhuma falha
 
 
 if __name__ == "__main__":
