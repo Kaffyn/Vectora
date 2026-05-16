@@ -90,49 +90,49 @@ class Settings(BaseSettings):
     vectora_home: Path = Path.home() / ".vectora"
     """Base directory for Vectora user data (~/.vectora/)."""
 
-    data_dir: Path = None  # Set in __init__
+    data_dir: Path | None = None
     """Vector store, databases, embeddings (~/.vectora/data/)."""
 
-    logs_dir: Path = None  # Set in __init__
+    logs_dir: Path | None = None
     """Application logs (~/.vectora/logs/)."""
 
-    keys_dir: Path = None  # Set in __init__
+    keys_dir: Path | None = None
     """Sensitive credentials (~/.vectora/keys/)."""
 
     # ============================================================================
     # DATABASE CONNECTIONS
     # ============================================================================
 
-    db_file: Path = None  # Set in __init__
+    db_file: Path | None = None
     """SQLite database for sessions/checkpoints (~/.vectora/data/vectora.db)."""
 
-    embedding_queue_file: Path = None  # Set in __init__
+    embedding_queue_file: Path | None = None
     """SQLite database for embedding queue (~/.vectora/data/embedding_queue.db)."""
 
-    lancedb_dir: str = None  # Set in __init__
+    lancedb_dir: str | None = None
     """LanceDB vector store directory (~/.vectora/data/lancedb/)."""
 
     # Derived connection strings
-    db_dsn: str = None  # Set in __init__
+    db_dsn: str | None = None
     """Database connection string for AsyncSqliteSaver."""
 
-    embedding_queue_dsn: str = None  # Set in __init__
+    embedding_queue_dsn: str | None = None
     """Embedding queue connection string."""
 
     # ============================================================================
     # FILE PATHS
     # ============================================================================
 
-    env_file: Path = None  # Set in __init__
+    env_file: Path | None = None
     """User configuration file (~/.vectora/.env)."""
 
-    log_file: Path = None  # Set in __init__
+    log_file: Path | None = None
     """Main application log file (JSON lines format)."""
 
-    mcp_config_file: Path = None  # Set in __init__
+    mcp_config_file: Path | None = None
     """MCP server configuration (~/.vectora/mcp.config.json)."""
 
-    chat_config_file: Path = None  # Set in __init__
+    chat_config_file: Path | None = None
     """Persistent chat settings (~/.vectora/chat_config.json)."""
 
     # ============================================================================

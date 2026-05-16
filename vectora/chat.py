@@ -423,45 +423,56 @@ async def chat_loop(
     await _export_audit(audit)
 
 
-async def run_chat() -> None:
-    """Initialize and run chat with Rich Gorda dashboard."""
-    setup_logging()
+async def run_chat(agent=None, settings=None) -> None:
+    """Run chat with Rich Gorda dashboard.
+
+    Args:
+        agent: AgentManager instance (from main.py dependency injection)
+        settings: Settings instance (from main.py dependency injection)
+
+    When called without arguments, falls back to legacy initialization
+    (for backward compatibility during migration to Phase 2).
+    """
+    from core.agent import AgentManager
+    from settings import Settings as SettingsClass
+
+    # Dependency injection: Use provided agent/settings or fallback to legacy
+    if agent is None:
+        logger.warning("No AgentManager provided, using legacy initialization")
+        setup_logging()
+        settings = SettingsClass()
+        agent = AgentManager(settings)
+        await agent.initialize()
+    else:
+        logger.info("Using injected AgentManager and Settings")
+
     logger.info("Chat started")
 
     # Display startup info
     startup_panel = Panel(
         "[bold cyan]Initializing Vectora...[/bold cyan]\n"
-        "[dim]Loading graph, checkpointer, and background worker[/dim]",
+        "[dim]Using injected AgentManager and settings[/dim]",
         style="blue",
         expand=False,
     )
     console.print(startup_panel)
 
-    async with (
-        async_lifespan(),
-        Checkpointer(DB_DSN) as checkpointer,
-    ):
-        # Build graph and start worker
-        graph = build_graph(checkpointer)
-        worker = await get_background_worker()
-        await worker.start()
-
+    async with async_lifespan():
         console.print("[green][*][/green] System initialized successfully\n")
 
-        # Get LLM provider from config
-        provider = "unset"
-        try:
-            from config import Config
-
-            config_instance = Config.instance()
-            provider = config_instance.get_llm_provider() or "unset"
-        except Exception as e:
-            logger.warning(f"Could not load provider config: {e}")
+        # Get LLM provider from settings
+        provider = settings.get_llm_provider() if settings else "unset"
 
         context = Context(user_type="default", thread_id=1)
 
         try:
-            await chat_loop(graph, checkpointer, context, provider=provider)
+            # For now, still use legacy graph/checkpointer from agent
+            # TODO Week 2: Replace with agent.chat() method
+            from checkpointer import Checkpointer
+
+            async with Checkpointer(settings.db_dsn) as checkpointer:
+                graph = build_graph(checkpointer)
+                await chat_loop(graph, checkpointer, context, provider=provider)
         except Exception as e:
             error_panel = Panel(
                 f"[red]Critical error: {e!s}[/red]",
@@ -471,8 +482,6 @@ async def run_chat() -> None:
             console.print(error_panel)
             logger.exception("Critical chat error")
         finally:
-            console.print("\n[dim]Shutting down background worker...[/dim]")
-            await worker.stop(timeout_seconds=30)
             logger.info("Chat ended")
 
 
