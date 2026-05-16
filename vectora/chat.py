@@ -34,6 +34,7 @@ from ui import (
     VectoraStatusPanel,
     WelcomeScreen,
 )
+from version import __version__
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -156,7 +157,7 @@ async def chat_loop(
         main_layout = layout.get_main_layout()
         main_layout["header"].update(
             Panel(
-                f"[bold cyan]🚀 Vectora v0.1.0[/bold cyan] | "
+                f"[bold cyan]🚀 Vectora v{__version__}[/bold cyan] | "
                 f"[yellow]Provider: {provider}[/yellow] | "
                 f"[magenta]Thread: {context.thread_id}[/magenta] | "
                 f"[green]Messages: {message_count}[/green] | "
@@ -207,7 +208,7 @@ async def chat_loop(
                 main_layout = layout.get_main_layout()
                 main_layout["header"].update(
                     Panel(
-                        f"[bold cyan]🚀 Vectora v0.1.0[/bold cyan] | "
+                        f"[bold cyan]🚀 Vectora v{__version__}[/bold cyan] | "
                         f"[yellow]Provider: {provider}[/yellow] | "
                         f"[magenta]Thread: {context.thread_id}[/magenta] | "
                         f"[green]Messages: {len(audit.messages)}[/green] | "

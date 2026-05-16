@@ -18,6 +18,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
+from version import __version__
 
 
 class VectoraLayout:
@@ -44,7 +45,7 @@ class VectoraLayout:
     ) -> None:
         """Update header with session info."""
         header_text = (
-            f"[bold cyan]🚀 Vectora v0.1.0[/bold cyan] | "
+            f"[bold cyan]🚀 Vectora v{__version__}[/bold cyan] | "
             f"[yellow]Provider: {provider}[/yellow] | "
             f"[magenta]Thread: {thread_id}[/magenta] | "
             f"[green]Messages: {message_count}[/green]"

@@ -17,6 +17,7 @@ from io import BytesIO
 from pathlib import Path
 
 from tool_config import get_tool_config
+from version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +155,7 @@ async def create_qa_report(
     Returns:
         Conteúdo do relatório (markdown)
     """
-    return f"""# 🐛 Relatório de Bug - Vectora v0.1.0-RC
+    return f"""# 🐛 Relatório de Bug - Vectora v{__version__}
 
 ## Informações do Teste
 
