@@ -63,16 +63,29 @@ async def _export_audit(
 
         os.system("cls" if os.name == "nt" else "clear")
 
-        console.print("\n")
-        console.print(SeparatorLine.render("[LIST] SESSION AUDIT"))
+        try:
+            console.print("\n")
+            console.print(SeparatorLine.render("[LIST] SESSION AUDIT"))
 
-        # Display audit messages using chat format
-        for msg in audit_panel.messages:
-            console.print(msg.to_panel())
+            # Display audit messages using chat format
+            for msg in audit_panel.messages:
+                console.print(msg.to_panel())
 
-        # Save to file
-        audit_file = audit_panel.save_to_file()
-        console.print(f"\n[green][OK] Audit saved to[/green] [dim]{audit_file}[/dim]")
+            # Save to file
+            audit_file = audit_panel.save_to_file()
+            console.print(
+                f"\n[green][OK] Audit saved to[/green] [dim]{audit_file}[/dim]"
+            )
+        except UnicodeEncodeError:
+            # Fallback for Windows encoding issues - print without rich formatting
+            print("\n=== SESSION AUDIT ===\n")
+            for msg in audit_panel.messages:
+                print(f"[{msg.role}]")
+                print(msg.content)
+                print("-" * 40)
+            # Save to file
+            audit_file = audit_panel.save_to_file()
+            print(f"\nAudit saved to {audit_file}")
 
     except Exception as e:
         logger.warning(f"Audit failed: {e}")
