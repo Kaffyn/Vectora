@@ -128,7 +128,15 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
             if event.get("event") == "on_chat_model_stream":
                 chunk = event.get("data", {}).get("chunk")
                 if chunk and hasattr(chunk, "content") and chunk.content:
-                    response_content += chunk.content
+                    # Handle content as string or list of content blocks
+                    content = chunk.content
+                    if isinstance(content, list):
+                        # If content is list, join string representations
+                        response_content += "".join(
+                            str(c) if not isinstance(c, str) else c for c in content
+                        )
+                    else:
+                        response_content += str(content)
 
     # Create AIMessage from collected response
     result = AIMessage(content=response_content)
