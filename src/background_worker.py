@@ -52,7 +52,10 @@ class BackgroundEmbeddingWorker:
         self.running = False
         self.task: asyncio.Task[None] | None = None
         self.semaphore = asyncio.Semaphore(MAX_PARALLEL)
-        self.queue: Any = None
+
+    async def _get_queue(self) -> Any:
+        """Obtém a queue (singleton lazy-loaded)."""
+        return await get_embedding_queue(self.config.embedding_queue_db)
 
     async def start(self) -> None:
         """Inicia o worker como asyncio.Task."""
@@ -65,7 +68,6 @@ class BackgroundEmbeddingWorker:
             return
 
         self.running = True
-        self.queue = await get_embedding_queue(self.config.embedding_queue_db)
 
         # Executar reconciliação na startup (recuperar records travados)
         await self._reconcile_startup()
@@ -103,7 +105,8 @@ class BackgroundEmbeddingWorker:
     async def _reconcile_startup(self) -> None:
         """Recupera records travados em 'processing' na startup."""
         try:
-            await self.queue.reconcile()
+            queue = await self._get_queue()
+            await queue.reconcile()
             logger.info("Reconciliação de startup concluída")
         except Exception:
             logger.exception("Erro ao reconciliar startup")
@@ -112,8 +115,11 @@ class BackgroundEmbeddingWorker:
         """Loop principal: fetch pending → process → retry/success/dlq."""
         while self.running:
             try:
+                # Obter queue (lazy-loaded do singleton)
+                queue = await self._get_queue()
+
                 # Buscar até BATCH_SIZE documentos pendentes
-                pending = await self.queue.get_pending(limit=BATCH_SIZE)
+                pending = await queue.get_pending(limit=BATCH_SIZE)
 
                 if not pending:
                     # Nenhum documento para processar, aguardar POLLING_INTERVAL
@@ -124,7 +130,7 @@ class BackgroundEmbeddingWorker:
 
                 # Processar batch em paralelo (limitado por Semaphore)
                 await asyncio.gather(
-                    *[self._process_record(record) for record in pending],
+                    *[self._process_record(record, queue) for record in pending],
                     return_exceptions=True,
                 )
 
@@ -138,12 +144,18 @@ class BackgroundEmbeddingWorker:
                 logger.exception("Erro no loop principal do worker")
                 await asyncio.sleep(POLLING_INTERVAL)
 
-    async def _process_record(self, record: EmbeddingQueueRecord) -> None:
+    async def _process_record(
+        self, record: EmbeddingQueueRecord, queue: Any | None = None
+    ) -> None:
         """Processa um registro individual com retry exponencial.
 
         Args:
             record: Registro da fila de embedding
+            queue: Fila de embedding (obtém do singleton se None)
         """
+        if queue is None:
+            queue = await self._get_queue()
+
         queue_id = record.queue_id
         attempt = 0
 
@@ -151,7 +163,7 @@ class BackgroundEmbeddingWorker:
             try:
                 async with self.semaphore:
                     # Marcar como processing
-                    await self.queue.mark_processing(queue_id)
+                    await queue.mark_processing(queue_id)
 
                     # Gerar embedding via Voyage AI
                     embedding_vector = await self._generate_embedding(record.text)
@@ -160,7 +172,7 @@ class BackgroundEmbeddingWorker:
                     await self._write_to_lancedb(record, embedding_vector)
 
                     # Marcar como success
-                    await self.queue.mark_success(queue_id)
+                    await queue.mark_success(queue_id)
 
                     logger.info(
                         "embedding_processed_success",
@@ -201,7 +213,7 @@ class BackgroundEmbeddingWorker:
                     # 3 falhas, mover para DLQ com stack trace completo
                     dlq_reason = f"{e!s}\n\nStack trace:\n{error_trace}"
                     try:
-                        await self.queue.mark_dlq(queue_id, dlq_reason)
+                        await queue.mark_dlq(queue_id, dlq_reason)
                     except Exception:
                         logger.exception(
                             "Erro ao mover para DLQ",
