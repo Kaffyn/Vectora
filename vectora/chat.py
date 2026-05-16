@@ -28,7 +28,6 @@ if os.getenv("QUIET_MODE", "true").lower() == "true":
 from background_worker import get_background_worker
 from checkpointer import Checkpointer
 from commands import handle_command
-from constants import DB_DSN
 from context import Context
 from graph import build_graph
 from ui import (

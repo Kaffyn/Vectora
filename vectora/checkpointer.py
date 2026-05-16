@@ -8,8 +8,8 @@ import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from constants import DB_DSN
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +27,9 @@ async def Checkpointer(
     leituras simultâneas enquanto o BackgroundWorker escreve embeddings.
 
     Args:
-        db_dsn: Caminho para o arquivo SQLite. Se None, usa o padrão de `constants.DB_DSN`.
+        db_dsn: Caminho para o arquivo SQLite. Se None, usa o padrão de `settings.db_dsn`.
     """
-    conn_string = db_dsn or DB_DSN
+    conn_string = db_dsn or settings.db_dsn
     async with AsyncSqliteSaver.from_conn_string(conn_string) as checkpointer:
         # Enable WAL mode for concurrent reads + writes
         # Critical: Chat reads/writes messages while BackgroundWorker accesses queue

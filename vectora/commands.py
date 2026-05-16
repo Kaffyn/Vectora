@@ -9,9 +9,9 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from config import Config
 from rich.panel import Panel
 from rich.table import Table
+from settings import settings
 from ui import SuccessPanel
 
 logger = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ def get_available_models(provider: str | None = None) -> dict[str, list[str]]:
 
 async def handle_command(
     user_input: str,
-    config: Config,
+    config: Any,
     console: Any,
     context: Any = None,
     debug_mode: bool = False,
@@ -102,7 +102,7 @@ async def handle_command(
 
     Args:
         user_input: Raw user input (should start with /)
-        config: Config instance for reading/writing settings
+        config: Config instance for reading/writing settings (kept for backward compatibility)
         console: Rich console for output
         context: Context object that may be modified by commands
         debug_mode: Current debug mode state
@@ -119,7 +119,7 @@ async def handle_command(
         return True, context, debug_mode
 
     elif cmd == "/model":
-        await _handle_model_command(args, config, console)
+        await _handle_model_command(args, console)
 
     elif cmd == "/help":
         _display_help(console)
@@ -216,17 +216,15 @@ async def _handle_debug_command(
 
 async def _handle_model_command(
     args: str,
-    config: Config,
     console: Any,
 ) -> None:
     """Handle /model command for listing and switching models.
 
     Args:
         args: Arguments after /model (empty for list, model name to switch)
-        config: Config instance
         console: Rich console for output
     """
-    current_provider = config.get_llm_provider()
+    current_provider = settings.get_llm_provider()
     available = get_available_models(current_provider)
 
     if not args.strip():
@@ -264,7 +262,7 @@ async def _handle_model_command(
 
 
 def _set_model_for_provider(provider: str, model: str) -> None:
-    """Set model for a specific provider in config.
+    """Set model for a specific provider in settings.
 
     Args:
         provider: LLM provider (google-genai, openai, anthropic, ollama)
@@ -273,28 +271,27 @@ def _set_model_for_provider(provider: str, model: str) -> None:
     Raises:
         ValueError: If provider is unknown
     """
-    env_var_map = {
-        "google-genai": "GOOGLE_MODEL",
-        "openai": "OPENAI_MODEL",
-        "anthropic": "ANTHROPIC_MODEL",
-        "ollama": "OLLAMA_MODEL",
-    }
+    # Update settings directly using set_model method
+    try:
+        settings.set_model(provider, model)
 
-    if provider not in env_var_map:
-        raise ValueError(f"Unknown provider: {provider}")
+        # Also update environment
+        import os
 
-    env_var = env_var_map[provider]
+        env_var_map = {
+            "google-genai": "GOOGLE_MODEL",
+            "openai": "OPENAI_MODEL",
+            "anthropic": "ANTHROPIC_MODEL",
+            "ollama": "OLLAMA_MODEL",
+        }
 
-    # Update in-memory config
-    config = Config.instance()
-    config.set(env_var, model)
-
-    # Also update environment
-    import os
-
-    os.environ[env_var] = model
-
-    logger.info(f"Set {env_var}={model}")
+        if provider in env_var_map:
+            env_var = env_var_map[provider]
+            os.environ[env_var] = model
+            logger.info(f"Set {env_var}={model}")
+    except ValueError as e:
+        logger.exception(f"Failed to set model for provider {provider}: {e}")
+        raise
 
 
 async def _handle_new_session(context: Any, console: Any) -> Any:
@@ -336,10 +333,9 @@ async def _handle_list_sessions(context: Any, console: Any) -> None:
         console: Rich console for output
     """
     from checkpointer import Checkpointer
-    from constants import DB_DSN
 
     try:
-        async with Checkpointer(DB_DSN) as checkpointer:
+        async with Checkpointer(settings.db_dsn) as checkpointer:
             # Get list of all thread_ids that have data
             # For now, we'll create a simple list showing the current session
             # In the future, this could query the checkpointer for all threads

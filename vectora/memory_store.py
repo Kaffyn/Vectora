@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import aiosqlite
-from constants import DB_DSN
+from settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +22,9 @@ class MemoryStore:
         """Inicializa o store de memórias.
 
         Args:
-            db_dsn: Caminho do SQLite. Se None, usa o padrão de constants.DB_DSN.
+            db_dsn: Caminho do SQLite. Se None, usa o padrão de settings.db_dsn.
         """
-        dsn = db_dsn or DB_DSN
+        dsn = db_dsn or settings.db_dsn
         # Converte file:/// URLs para caminhos normais se necessário
         if dsn.startswith("file:///"):
             self.db_dsn = dsn[8:]  # Remove file:///

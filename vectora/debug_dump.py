@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
 
-from tool_config import get_tool_config
+from settings import settings
 from version import __version__
 
 logger = logging.getLogger(__name__)
@@ -57,15 +57,14 @@ async def generate_debug_dump(
     logger.info("Gerando debug dump", extra={"output_file": output_file})
 
     # Coletar metadados do sistema
-    config = get_tool_config()
     metadata = {
         "timestamp": datetime.now(UTC).isoformat(),
         "python_version": sys.version,
         "python_executable": sys.executable,
         "platform": platform.platform(),
         "architecture": platform.machine(),
-        "llm_provider": config.llm_provider,
-        "rag_enabled": config.enable_rag,
+        "llm_provider": settings.get_llm_provider(),
+        "rag_enabled": settings.enable_rag,
         "include_databases": include_databases,
         "include_logs": include_logs,
     }

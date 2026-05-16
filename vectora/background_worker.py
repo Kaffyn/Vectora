@@ -13,6 +13,7 @@ import asyncio
 import contextlib
 import logging
 import traceback
+from pathlib import Path
 from typing import Any
 
 from pydantic import SecretStr
@@ -33,7 +34,7 @@ except ImportError:
     VoyageAIEmbeddings = None
 
 from embedding_queue import EmbeddingQueueRecord, get_embedding_queue
-from tool_config import ToolConfig, get_tool_config
+from settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +49,9 @@ BATCH_SIZE = 10  # Processa até 10 registros por batch
 class BackgroundEmbeddingWorker:
     """Worker assíncrono para processamento de embeddings em larga escala."""
 
-    def __init__(self, config: ToolConfig | None = None) -> None:
-        """Inicializa o worker.
-
-        Args:
-            config: Configuração (usa get_tool_config() se None)
-        """
-        self.config = config or get_tool_config()
+    def __init__(self) -> None:
+        """Inicializa o worker com configuração global."""
+        self.config = settings
         self.running = False
         self.task: asyncio.Task[None] | None = None
         self.semaphore = asyncio.Semaphore(MAX_PARALLEL)
@@ -283,7 +280,7 @@ class BackgroundEmbeddingWorker:
             msg = "lancedb não está instalado"
             raise ImportError(msg)
 
-        db = await lancedb.connect_async(str(self.config.lancedb_path))
+        db = await lancedb.connect_async(str(Path(self.config.lancedb_dir)))
 
         # Schema para documento
         schema = pa.schema(
@@ -331,13 +328,8 @@ _worker: BackgroundEmbeddingWorker | None = None
 _worker_lock: asyncio.Lock = asyncio.Lock()
 
 
-async def get_background_worker(
-    config: ToolConfig | None = None,
-) -> BackgroundEmbeddingWorker:
+async def get_background_worker() -> BackgroundEmbeddingWorker:
     """Obtém ou cria instância singleton do worker (thread-safe).
-
-    Args:
-        config: Configuração (usa get_tool_config() se None)
 
     Returns:
         Instância do BackgroundEmbeddingWorker
@@ -354,6 +346,6 @@ async def get_background_worker(
     async with _worker_lock:
         # Double-check após adquirir lock
         if _worker is None:
-            _worker = BackgroundEmbeddingWorker(config)
+            _worker = BackgroundEmbeddingWorker()
 
     return _worker

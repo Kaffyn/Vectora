@@ -505,3 +505,7 @@ def get_settings() -> Settings:
     if _settings_instance is None:
         _settings_instance = Settings()
     return _settings_instance
+
+
+# Module-level singleton for convenient access
+settings = get_settings()

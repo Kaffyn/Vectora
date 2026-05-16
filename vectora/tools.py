@@ -21,7 +21,7 @@ except ImportError:
     MultiServerMCPClient = None
 
 from embedding_queue import get_embedding_queue
-from tool_config import get_tool_config
+from settings import settings
 
 # Heavy RAG imports moved to top for better initialization
 try:
@@ -55,13 +55,11 @@ def web_search(query: str) -> str:
     Returns:
         JSON com resultados estruturados (url, title, content) prontos para embedding
     """
-    config = get_tool_config()
-
-    if not config.enable_web_search:
+    if not settings.enable_web_search:
         logger.warning("web_search tool called but disabled")
         return "Web search is disabled. Enable ENABLE_WEB_SEARCH=true to use this tool."
 
-    if not config.tavily_api_key:
+    if not settings.tavily_api_key:
         logger.error("TAVILY_API_KEY not configured")
         return json.dumps(
             {
@@ -73,7 +71,7 @@ def web_search(query: str) -> str:
     logger.info("web_search tool called", extra={"query": query})
 
     try:
-        client = TavilyClient(api_key=config.tavily_api_key)
+        client = TavilyClient(api_key=settings.tavily_api_key)
         # search_depth="advanced" garante que o Tavily extraia e limpe o conteúdo
         response = client.search(query=query, search_depth="advanced", max_results=5)
 
@@ -107,13 +105,11 @@ def fetch_url(url: str) -> str:
     Returns:
         Conteúdo de texto extraído da página
     """
-    config = get_tool_config()
-
     if not url.startswith(("http://", "https://")):
         logger.warning("fetch_url called with invalid URL", extra={"url": url})
         return "Error: URL must start with http:// or https://"
 
-    if not config.tavily_api_key:
+    if not settings.tavily_api_key:
         logger.error("TAVILY_API_KEY not configured")
         return "Error: TAVILY_API_KEY not configured. Cannot fetch URL."
 
@@ -121,7 +117,7 @@ def fetch_url(url: str) -> str:
 
     try:
         # Tavily retorna conteúdo extraído direto do URL
-        client = TavilyClient(api_key=config.tavily_api_key)
+        client = TavilyClient(api_key=settings.tavily_api_key)
         response = client.search(query=url, search_depth="advanced", max_results=1)
 
         if not response.get("results"):
@@ -156,24 +152,22 @@ async def _get_mcp_client() -> Any | None:
         logger.warning("MultiServerMCPClient not available")
         return None
 
-    config = get_tool_config()
-
-    if not config.mcp_server_url and not config.mcp_command:
+    if not settings.mcp_server_url and not settings.mcp_command:
         logger.debug("No MCP servers configured")
         return None
 
     try:
-        # Constrói dicionário de servidores com base nos campos reais do ToolConfig
+        # Constrói dicionário de servidores com base nos campos reais do Settings
         servers: dict[str, Any] = {}
-        if config.mcp_server_url:
+        if settings.mcp_server_url:
             servers["default"] = {
-                "url": config.mcp_server_url,
-                "transport": config.mcp_transport_type,
+                "url": settings.mcp_server_url,
+                "transport": settings.mcp_transport_type,
             }
-        if config.mcp_command:
+        if settings.mcp_command:
             servers["local"] = {
-                "command": config.mcp_command,
-                "args": config.mcp_command_args or [],
+                "command": settings.mcp_command,
+                "args": settings.mcp_command_args or [],
                 "transport": "stdio",
             }
 
@@ -225,15 +219,15 @@ async def call_mcp_tool(tool_name: str, arguments: str) -> str:
     if MultiServerMCPClient is None:
         return "MCP client not available. Install: pip install langchain-mcp-adapters"
 
-    config = get_tool_config()
-    if not config.enable_mcp or not config.mcp_server_url:
+    # Using global settings singleton instead of get_tool_config()
+    if not settings.enable_mcp or not settings.mcp_server_url:
         return "MCP is disabled or server URL not configured."
 
     try:
         if _mcp_client is None:
             _mcp_client = MultiServerMCPClient()
-            if config.mcp_transport_type == "http":
-                await _mcp_client.connect_sse(config.mcp_server_url)
+            if settings.mcp_transport_type == "http":
+                await _mcp_client.connect_sse(settings.mcp_server_url)
             else:
                 pass
 
@@ -241,7 +235,7 @@ async def call_mcp_tool(tool_name: str, arguments: str) -> str:
 
         args_dict = json.loads(arguments)
 
-        async with asyncio.timeout(config.mcp_timeout):
+        async with asyncio.timeout(settings.mcp_timeout):
             result_text = ""
             async for event in _mcp_client.astream_events(
                 {"tool_name": tool_name, "arguments": args_dict}, version="v1"
@@ -254,7 +248,9 @@ async def call_mcp_tool(tool_name: str, arguments: str) -> str:
         return result_text or str(args_dict)
 
     except TimeoutError:
-        logger.exception(f"MCP tool {tool_name} timed out after {config.mcp_timeout}s")
+        logger.exception(
+            f"MCP tool {tool_name} timed out after {settings.mcp_timeout}s"
+        )
         return f"Error: MCP tool {tool_name} timed out."
     except Exception as e:
         logger.exception("call_mcp_tool_failed", extra={"tool": tool_name})
@@ -280,9 +276,9 @@ async def embedding(
         String JSON com status: fire_and_forget + queue_id ou error
     """
 
-    config = get_tool_config()
+    # Using global settings singleton instead of get_tool_config()
 
-    if not config.enable_rag:
+    if not settings.enable_rag:
         logger.warning("embedding tool called but RAG disabled")
         return json.dumps(
             {
@@ -291,7 +287,7 @@ async def embedding(
             }
         )
 
-    if not config.embedding_queue_enabled:
+    if not settings.embedding_queue_enabled:
         logger.error("embedding called but queue not enabled")
         return json.dumps(
             {
@@ -301,7 +297,7 @@ async def embedding(
         )
 
     try:
-        queue = await get_embedding_queue(config.embedding_queue_url)
+        queue = await get_embedding_queue(settings.embedding_queue_url)
         queue_id = await queue.enqueue(text, collection, metadata)
 
         logger.info(
@@ -352,9 +348,9 @@ async def vector_search(
     Returns:
         Resultados da busca em formato JSON com documentos e scores
     """
-    config = get_tool_config()
+    # Using global settings singleton instead of get_tool_config()
 
-    if not config.enable_rag:
+    if not settings.enable_rag:
         logger.warning("vector_search tool called but RAG disabled")
         return "RAG is disabled. Enable ENABLE_RAG=true to use this tool."
 
@@ -362,7 +358,7 @@ async def vector_search(
         if lancedb is None or VoyageAIEmbeddings is None:
             return "LanceDB or Voyage AI dependencies missing."
 
-        if not config.voyage_api_key:
+        if not settings.voyage_api_key:
             logger.error("vector_search called but VOYAGE_API_KEY not configured")
             return json.dumps(
                 {
@@ -372,14 +368,14 @@ async def vector_search(
             )
 
         embeddings_model = VoyageAIEmbeddings(
-            api_key=SecretStr(config.voyage_api_key),
-            model=config.embedding_model,
+            api_key=SecretStr(settings.voyage_api_key),
+            model=settings.embedding_model,
         )
 
         # embed_query is synchronous (no timeout needed)
         query_vector = embeddings_model.embed_query(query)
 
-        db = await lancedb.connect_async(str(config.lancedb_path))
+        db = await lancedb.connect_async(str(settings.lancedb_path))
 
         try:
             async with asyncio.timeout(10):  # 10s timeout para LanceDB
@@ -429,12 +425,12 @@ async def vector_search(
         ]
 
         # Reranking (opcional, melhora precisão)
-        if results and config.reranker_type == "voyage" and VoyageAIRerank:
+        if results and settings.reranker_type == "voyage" and VoyageAIRerank:
             try:
                 reranker = VoyageAIRerank(
-                    api_key=SecretStr(config.voyage_api_key),
-                    model=config.reranker_model,
-                    top_k=config.reranker_top_k,
+                    api_key=SecretStr(settings.voyage_api_key),
+                    model=settings.reranker_model,
+                    top_k=settings.reranker_top_k,
                 )
 
                 docs_to_rerank = [
@@ -503,8 +499,8 @@ def file_read(file_path: str) -> str:
 
     if not is_safe_file_path(file_path):
         return f"Access denied: {file_path} is outside allowed directory"
-    config = get_tool_config()
-    if not config.enable_file_operations:
+    # Using global settings singleton instead of get_tool_config()
+    if not settings.enable_file_operations:
         return "File operations are disabled. Enable ENABLE_FILE_OPERATIONS=true to use this tool."
 
     if not is_safe_file_path(file_path, allowed_dirs=["."]):
@@ -548,8 +544,8 @@ async def ingest_docs(
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     from tool_safety import is_safe_file_path
 
-    config = get_tool_config()
-    if not config.enable_file_operations:
+    # Using global settings singleton instead of get_tool_config()
+    if not settings.enable_file_operations:
         return "File operations are disabled. Enable ENABLE_FILE_OPERATIONS=true to use this tool."
 
     if not is_safe_file_path(directory_path):
@@ -644,9 +640,9 @@ def file_edit(file_path: str, old_text: str, new_text: str) -> str:
 
     from tool_safety import is_safe_file_path
 
-    config = get_tool_config()
+    # Using global settings singleton instead of get_tool_config()
 
-    if not config.enable_file_operations:
+    if not settings.enable_file_operations:
         return "File operations are disabled."
 
     if not is_safe_file_path(file_path, allowed_dirs=["."]):
@@ -693,9 +689,9 @@ def grep(pattern: str, path: str = ".") -> str:
 
     from tool_safety import is_safe_regex_pattern
 
-    config = get_tool_config()
+    # Using global settings singleton instead of get_tool_config()
 
-    if not config.enable_file_operations:
+    if not settings.enable_file_operations:
         return "File operations are disabled."
 
     if not is_safe_regex_pattern(pattern):
@@ -742,9 +738,9 @@ def list_dir(path: str = ".", *, recursive: bool = False) -> str:
     """
     from pathlib import Path
 
-    config = get_tool_config()
+    # Using global settings singleton instead of get_tool_config()
 
-    if not config.enable_file_operations:
+    if not settings.enable_file_operations:
         return "File operations are disabled."
 
     try:
@@ -794,9 +790,9 @@ def terminal(command: str) -> str:
 
     from tool_safety import is_safe_shell_command
 
-    config = get_tool_config()
+    # Using global settings singleton instead of get_tool_config()
 
-    if not config.enable_file_operations:
+    if not settings.enable_file_operations:
         return "File operations are disabled."
 
     if not is_safe_shell_command(command):
@@ -993,7 +989,7 @@ def _build_tools_list() -> list[BaseTool]:
     Returns:
         Lista de instâncias BaseTool
     """
-    config = get_tool_config()
+    # Using global settings singleton instead of get_tool_config()
     tools: list[BaseTool] = []
 
     # Core tools (sempre disponíveis)
@@ -1005,11 +1001,11 @@ def _build_tools_list() -> list[BaseTool]:
     tools.append(delete_memory)
 
     # RAG tools
-    if config.enable_rag:
+    if settings.enable_rag:
         tools.append(embedding)
 
     # File operations
-    if config.enable_file_operations:
+    if settings.enable_file_operations:
         tools.append(file_read)
         tools.append(file_edit)
         tools.append(grep)
@@ -1017,7 +1013,7 @@ def _build_tools_list() -> list[BaseTool]:
         tools.append(terminal)
 
     # MCP tool
-    if config.enable_mcp:
+    if settings.enable_mcp:
         tools.append(call_mcp_tool)
 
     logger.info("Tools initialized", extra={"count": len(tools)})

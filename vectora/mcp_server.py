@@ -34,9 +34,8 @@ logger = logging.getLogger("vectora-mcp")
 
 try:
     from checkpointer import Checkpointer
-    from constants import VERSION
     from mcp.server.fastmcp import FastMCP
-    from tool_config import get_tool_config
+    from settings import settings
     from tools import (
         call_mcp_tool,
         embedding,
@@ -246,21 +245,20 @@ async def get_server_status() -> str:
     logger.info("Resource requested: get_server_status")
 
     try:
-        config = get_tool_config()
         uptime = datetime.now(UTC).isoformat()
 
         status_content = json.dumps(
             {
                 "server": "Vectora-SubAgent",
-                "version": VERSION,
+                "version": settings.version,
                 "status": "ready",
                 "timestamp": uptime,
                 "capabilities": {
-                    "rag_enabled": config.enable_rag,
-                    "web_search_enabled": config.enable_web_search,
-                    "file_operations_enabled": config.enable_file_operations,
-                    "mcp_enabled": config.enable_mcp,
-                    "embedding_queue_enabled": config.embedding_queue_enabled,
+                    "rag_enabled": settings.enable_rag,
+                    "web_search_enabled": settings.enable_web_search,
+                    "file_operations_enabled": settings.enable_file_operations,
+                    "mcp_enabled": settings.enable_mcp,
+                    "embedding_queue_enabled": settings.embedding_queue_enabled,
                 },
                 "tools_count": 11,
                 "resources_count": 3,
