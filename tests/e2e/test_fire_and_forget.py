@@ -29,16 +29,16 @@ async def reset_embedding_queue_singleton() -> None:
     the queue instance. Tests need to reset this to avoid state
     pollution between tests.
     """
+    import contextlib
+
     import embedding_queue
 
     embedding_queue._queue = None
     yield
     # Cleanup - close the queue if it exists
     if embedding_queue._queue:
-        try:
+        with contextlib.suppress(Exception):
             await embedding_queue._queue.close()
-        except Exception:
-            pass
         embedding_queue._queue = None
 
 

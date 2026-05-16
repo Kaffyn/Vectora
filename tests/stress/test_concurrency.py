@@ -18,15 +18,15 @@ from tool_config import ToolConfig
 @pytest.fixture(autouse=True)
 async def reset_embedding_queue_singleton() -> None:
     """Reset module-level _queue singleton before each test."""
+    import contextlib
+
     import embedding_queue
 
     embedding_queue._queue = None
     yield
     if embedding_queue._queue:
-        try:
+        with contextlib.suppress(Exception):
             await embedding_queue._queue.close()
-        except Exception:
-            pass
         embedding_queue._queue = None
 
 
