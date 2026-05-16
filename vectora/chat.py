@@ -59,7 +59,7 @@ async def _export_audit(
     """Display and save final message audit with rich formatting."""
     try:
         console.print("\n")
-        console.print(SeparatorLine("[LIST] SESSION AUDIT"))
+        console.print(SeparatorLine.render("[LIST] SESSION AUDIT"))
 
         # Display the audit table
         console.print(audit_panel.render())
@@ -266,7 +266,7 @@ async def chat_loop(
                 )
                 console.print(audit.render())
                 layout.update_footer(embedding_queue=0, worker_active=True)
-                console.print(SeparatorLine())
+                console.print(SeparatorLine.render())
 
         except KeyboardInterrupt:
             logger.info("Chat interrupted by user")
