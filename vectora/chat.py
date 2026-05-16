@@ -67,8 +67,8 @@ async def _export_audit(
         console.print(SeparatorLine.render("[LIST] SESSION AUDIT"))
 
         # Display audit messages using chat format
-        for role, content in audit_panel.messages:
-            console.print(ChatMessage(role, content).to_panel())
+        for msg in audit_panel.messages:
+            console.print(msg.to_panel())
 
         # Save to file
         audit_file = audit_panel.save_to_file()
@@ -220,8 +220,8 @@ async def chat_loop(
 
     # Display prior messages on screen
     if message_count > 0:
-        for role, content in audit.messages:
-            console.print(ChatMessage(role, content).to_panel())
+        for msg in audit.messages:
+            console.print(msg.to_panel())
 
     # Main chat loop
     prompt = Prompt()
