@@ -79,6 +79,7 @@ def setup_logging(
         LOG_LEVEL: Set logging level (default: INFO)
         LOG_JSON: Set to "true" to enable JSON output (default: false)
         LOG_FILE: Path to JSON log file
+        QUIET_MODE: Set to "true" to suppress external library logs (default: true)
     """
     if json_output is None:
         json_output = os.getenv("LOG_JSON", "false").lower() == "true"
@@ -104,6 +105,21 @@ def setup_logging(
     handler_console.setFormatter(formatter_text)
     handler_console.setLevel(getattr(logging, log_level))
     root_logger.addHandler(handler_console)
+
+    # Suppress external library logs by default (QUIET_MODE)
+    quiet_mode = os.getenv("QUIET_MODE", "true").lower() == "true"
+    if quiet_mode:
+        # Silence verbose external libraries
+        logging.getLogger("langchain").setLevel(logging.ERROR)
+        logging.getLogger("langchain_core").setLevel(logging.ERROR)
+        logging.getLogger("langchain_google_genai").setLevel(logging.ERROR)
+        logging.getLogger("langgraph").setLevel(logging.ERROR)
+        logging.getLogger("google").setLevel(logging.ERROR)
+        logging.getLogger("google.genai").setLevel(logging.ERROR)
+        logging.getLogger("google.genai._api_client").setLevel(logging.ERROR)
+        logging.getLogger("httpx").setLevel(logging.ERROR)
+        logging.getLogger("urllib3").setLevel(logging.ERROR)
+        logging.getLogger("requests").setLevel(logging.ERROR)
 
     if json_output:
         log_file_path = Path(log_file)
