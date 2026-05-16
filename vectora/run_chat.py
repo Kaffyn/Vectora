@@ -38,10 +38,9 @@ async def _run_chat_async() -> None:
 
     validate_voyage_ai()
 
-    from config import Config
+    from settings import settings
 
-    config = Config.instance()
-    if not config.get_llm_provider():
+    if not settings.get_llm_provider():
         from setup_wizard import run_setup_sync
 
         run_setup_sync()
