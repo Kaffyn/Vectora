@@ -278,7 +278,12 @@ async def get_server_status() -> str:
         )
 
 
-if __name__ == "__main__":
+def mcp_run() -> None:
+    """Entry point para o daemon Vectora MCP (CLI: vectora-mcp).
+
+    Inicia o servidor MCP em modo daemon via stdio JSON-RPC.
+    Logging é redirecionado para arquivo para não poluir stdout.
+    """
     logger.info("=" * 80)
     logger.info("Iniciando servidor MCP Vectora (Sub-Agent Pattern)")
     logger.info("=" * 80)
@@ -297,3 +302,7 @@ if __name__ == "__main__":
     except Exception:
         logger.exception("Erro crítico no servidor MCP")
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    mcp_run()

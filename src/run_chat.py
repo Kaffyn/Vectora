@@ -7,7 +7,9 @@ Initializes graph, checkpointer, and message loop.
 import asyncio
 import os
 
-if __name__ == "__main__":
+
+async def _run_chat_async() -> None:
+    """Lógica assíncrona principal da TUI."""
     os.environ.setdefault("LOG_LEVEL", "INFO")
     os.environ.setdefault("LOG_JSON", "false")
 
@@ -24,6 +26,18 @@ if __name__ == "__main__":
 
         run_setup()
     else:
-        from chat import run_chat
+        from chat import run_chat as start_chat_app
 
-        asyncio.run(run_chat())
+        await start_chat_app()
+
+
+def run_chat() -> None:
+    """Entry point para a TUI interativa (CLI: vectora).
+
+    Wrapper síncrono que executa a lógica assíncrona via asyncio.run().
+    """
+    asyncio.run(_run_chat_async())
+
+
+if __name__ == "__main__":
+    run_chat()

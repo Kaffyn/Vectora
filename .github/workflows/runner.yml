@@ -234,7 +234,9 @@ jobs:
     name: Docker Build & Push
     runs-on: ubuntu-latest
     needs: [test-unit, test-mcp, security]
-    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[deploy]')
+    if: |
+      (github.ref_name == 'main' || github.ref_name == 'master') &&
+      (contains(github.event.head_commit.message, '[deploy]') || contains(github.event.commits[0].message, '[deploy]'))
     permissions:
       contents: read
       packages: write
@@ -293,7 +295,8 @@ jobs:
     name: Deploy to VPS
     runs-on: ubuntu-latest
     needs: [report, docker-build]
-    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[deploy]') && success()
+    # O deploy só deve rodar se o docker-build foi executado com sucesso na branch principal
+    if: (github.ref_name == 'main' || github.ref_name == 'master') && always() && needs.docker-build.result == 'success'
     environment:
       name: production
     steps:

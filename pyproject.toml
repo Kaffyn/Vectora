@@ -59,7 +59,7 @@ dev = [
 [project.scripts]
 vectora = "run_chat:run_chat"
 vectora-cli = "run_main:main"
-vectora-mcp = "mcp_server:mcp.run"
+vectora-mcp = "mcp_server:mcp_run"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
