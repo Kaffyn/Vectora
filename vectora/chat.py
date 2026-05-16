@@ -77,7 +77,7 @@ async def _load_prior_messages(
     context: Context,
     audit: AuditPanel,
 ) -> int:
-    """Load prior messages from checkpointer into audit."""
+    """Load prior messages from checkpointer into audit and display them."""
     config = RunnableConfig(
         configurable={
             "thread_id": context.thread_id,
@@ -90,6 +90,8 @@ async def _load_prior_messages(
         for msg in prior_messages:
             role = "User" if isinstance(msg, HumanMessage) else "Vectora"
             audit.add_message(role, msg.content)
+            # Display the message to the user
+            console.print(ChatMessage(role, msg.content).to_panel())
         return len(prior_messages)
     except Exception as e:
         logger.warning(f"Could not load prior messages: {e}")
@@ -209,6 +211,11 @@ async def chat_loop(
 
     console.print(layout.render())
     console.print()
+
+    # Display prior messages on screen
+    if message_count > 0:
+        for role, content in audit.messages:
+            console.print(ChatMessage(role, content).to_panel())
 
     # Main chat loop
     prompt = Prompt()
