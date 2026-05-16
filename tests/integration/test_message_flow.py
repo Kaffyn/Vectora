@@ -17,7 +17,7 @@ initial_messages = [
     HumanMessage(content="List files"),
 ]
 
-print(f"\n1. Initial state:")
+print("\n1. Initial state:")
 print(f"   Messages: {[type(m).__name__ for m in initial_messages]}")
 
 # Simulate what call_llm returns
@@ -26,7 +26,7 @@ ai_message = AIMessage(
     tool_calls=[{"name": "list_dir", "args": {"path": "."}, "id": "call_1"}],
 )
 
-print(f"\n2. call_llm returns AIMessage with tool_calls")
+print("\n2. call_llm returns AIMessage with tool_calls")
 result_from_call_llm = {"messages": [ai_message]}
 updated_1 = add_messages(initial_messages, result_from_call_llm["messages"])
 print(f"   After add_messages: {[type(m).__name__ for m in updated_1]}")
@@ -39,20 +39,20 @@ tool_message = ToolMessage(
     content="[FILE] file1.txt\n[FILE] file2.py", tool_call_id="call_1", name="list_dir"
 )
 
-print(f"\n3. tools node (ToolNode) returns ToolMessage")
+print("\n3. tools node (ToolNode) returns ToolMessage")
 result_from_tools = {"messages": [tool_message]}
 updated_2 = add_messages(updated_1, result_from_tools["messages"])
 print(f"   After add_messages: {[type(m).__name__ for m in updated_2]}")
 print(f"   ToolMessage present: {any(isinstance(m, ToolMessage) for m in updated_2)}")
 
 # Check what process_retrieval would return
-print(f"\n4. process_retrieval returns retrieval_results")
+print("\n4. process_retrieval returns retrieval_results")
 result_from_process = {"retrieval_results": {}}
 # Note: process_retrieval doesn't add messages, only updates retrieval_results
-print(f"   Retrieval updates state but not messages")
+print("   Retrieval updates state but not messages")
 
 # Simulate the next call_llm seeing all messages
-print(f"\n5. call_llm sees all messages in next call:")
+print("\n5. call_llm sees all messages in next call:")
 all_messages_at_next_call = updated_2
 print(f"   Messages available: {[type(m).__name__ for m in all_messages_at_next_call]}")
 
@@ -62,6 +62,6 @@ print(f"\n6. ToolMessages in final state: {len(tool_messages)}")
 if tool_messages:
     for tm in tool_messages:
         print(f"   - {tm.name}: {tm.content[:50]}")
-    print(f"\n[OK] ToolMessages are preserved through add_messages!")
+    print("\n[OK] ToolMessages are preserved through add_messages!")
 else:
-    print(f"[ERROR] No ToolMessages found!")
+    print("[ERROR] No ToolMessages found!")

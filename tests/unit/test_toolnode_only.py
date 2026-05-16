@@ -11,6 +11,8 @@ sys.path.insert(0, str(Path(__file__).parent / "vectora"))
 # Set up debug logging
 import os
 
+from state import State  # noqa: TC002
+
 os.environ["LOG_LEVEL"] = "DEBUG"
 os.environ["QUIET_MODE"] = "false"
 
@@ -31,7 +33,6 @@ async def test_toolnode():
 
     from langchain_core.messages import AIMessage, HumanMessage
     from langgraph.prebuilt.tool_node import ToolNode
-    from state import State
     from tools import TOOLS
 
     # Create a tool node

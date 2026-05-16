@@ -22,7 +22,11 @@ os.environ["LOG_JSON"] = "false"
 # Add vectora to path
 sys.path.insert(0, str(Path(__file__).parent / "vectora"))
 
+from collections.abc import AsyncGenerator
+from typing import Any
+
 from log_setup import setup_logging
+from state import State  # noqa: TC002
 
 setup_logging(json_output=False, log_level="DEBUG")
 
@@ -44,7 +48,6 @@ async def test_embedding_with_mock():
     from langchain_core.messages import AIMessage, HumanMessage
     from langgraph.checkpoint.memory import MemorySaver
     from settings import settings
-    from state import State
 
     ensure_vectora_initialized()
     load_dotenv()
@@ -86,7 +89,7 @@ Use a ferramenta ingest_docs para isso."""
 
         original_llm = _get_llm_with_tools()
 
-        async def mock_astream(*args, **kwargs):
+        async def mock_astream(*args: Any, **kwargs: Any) -> AsyncGenerator[AIMessage]:
             """Mock astream that yields chunks with tool_calls at the end."""
             # Create a chunk with tool_calls
             chunk_with_tools = AIMessage(

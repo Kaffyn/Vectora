@@ -30,7 +30,7 @@ print("ToolNode class:", type(tn))
 print("Has run method?:", hasattr(tn, "run"))
 print("Has ainvoke method?:", hasattr(tn, "ainvoke"))
 print("Has invoke method?:", hasattr(tn, "invoke"))
-print("Has __call__?:", hasattr(tn, "__call__"))
+print("Has __call__?:", callable(tn))
 
 # Let's see what ToolNode actually is
 print("\nToolNode base classes:", tn.__class__.__bases__)

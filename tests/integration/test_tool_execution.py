@@ -16,6 +16,8 @@ sys.path.insert(0, str(Path(__file__).parent / "vectora"))
 # Set up debug logging BEFORE importing anything else
 import os
 
+from state import State  # noqa: TC002
+
 os.environ["LOG_LEVEL"] = "DEBUG"
 os.environ["QUIET_MODE"] = "false"  # Enable all logs
 
@@ -48,14 +50,13 @@ async def test_tool_execution():
     from langchain_core.messages import HumanMessage
     from langgraph.checkpoint.memory import MemorySaver
     from settings import settings
-    from state import State
 
     # Ensure LLM is configured
     if not settings.get_llm_provider():
         logger.error(
             "LLM provider not configured. Please set VECTORA_LLM_PROVIDER and required API keys."
         )
-        return
+        return None
 
     logger.info(f"Using LLM provider: {settings.get_llm_provider()}")
     logger.info(f"File operations enabled: {settings.enable_file_operations}")

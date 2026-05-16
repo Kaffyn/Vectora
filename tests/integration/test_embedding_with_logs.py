@@ -15,6 +15,7 @@ os.environ["LOG_JSON"] = "false"
 sys.path.insert(0, str(Path(__file__).parent / "vectora"))
 
 from log_setup import setup_logging
+from state import State  # noqa: TC002
 
 setup_logging(json_output=False, log_level="DEBUG")
 
@@ -36,7 +37,6 @@ async def test_embedding():
     from langchain_core.messages import HumanMessage
     from langgraph.checkpoint.memory import MemorySaver
     from settings import settings
-    from state import State
 
     ensure_vectora_initialized()
     load_dotenv()
