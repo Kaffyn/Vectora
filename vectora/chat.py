@@ -17,12 +17,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from background_worker import get_background_worker
+from checkpointer import Checkpointer
+from constants import DB_DSN
+from context import Context
+from graph import build_graph
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-from checkpointer import Checkpointer
-from context import Context
-from graph import build_graph
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 from log_setup import setup_logging
@@ -218,7 +219,7 @@ async def run_chat() -> None:
 
     async with (
         async_lifespan(),
-        Checkpointer("sqlite+aiosqlite:///~/.vectora/data/vectora.db") as checkpointer,
+        Checkpointer(DB_DSN) as checkpointer,
     ):
         graph = build_graph(checkpointer)
         worker = await get_background_worker()

@@ -14,9 +14,10 @@ async def _run_chat_async() -> None:
     from pathlib import Path
 
     from dotenv import load_dotenv
-    from initialization import ensure_vectora_initialized
 
     # Ensure Vectora home directory structure is initialized
+    from vectora.initialization import ensure_vectora_initialized
+
     ensure_vectora_initialized()
 
     # Load .env automatically before everything
