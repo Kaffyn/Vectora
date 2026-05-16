@@ -37,9 +37,9 @@ async def _run_chat_async() -> None:
 
     config = Config.instance()
     if not config.get_llm_provider():
-        from setup_wizard import run_setup
+        from setup_wizard import run_setup_sync
 
-        run_setup()
+        run_setup_sync()
     else:
         from chat import run_chat as start_chat_app
 

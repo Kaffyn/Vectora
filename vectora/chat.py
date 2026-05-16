@@ -1,27 +1,26 @@
-"""Textual TUI Chat Interface for Vectora.
+"""Rich CLI Chat Interface for Vectora.
 
-Implements the interactive chat terminal UI with real-time message rendering,
-conversation history, and status display. Uses Textual framework for responsive,
-cross-platform CLI experience.
+Implements a simple command-line chat interface using Rich for formatted output.
+No Textual TUI - pure CLI with streaming message rendering.
 
-Components:
-    - MessageDisplay: Rich formatted message rendering
-    - InputBox: User input with history and autocomplete
-    - StatusBar: Real-time status and metrics display
-    - ChatApp: Main Textual application class
+Features:
+    - Real-time message display with Rich formatting
+    - Conversation history loading and persistence
+    - Message audit with markdown export
+    - Background embedding worker integration
+    - Simple command-based interface (/sair, /quit, /q to exit)
 """
 
 import asyncio
 import logging
 from collections.abc import Sequence
-from contextlib import nullcontext
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Self
+from typing import Any
 
 from background_worker import get_background_worker
 from checkpointer import Checkpointer
-from constants import DB_DSN, LOGS_DIR
+from constants import LOGS_DIR
 from context import Context
 from graph import build_graph
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
@@ -30,300 +29,10 @@ from log_setup import setup_logging
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
-from rich.text import Text
 from state import State
-from textual.app import App, ComposeResult, on
-from textual.containers import Container
-from textual.widgets import Footer, Header, Input, RichLog, Static
 from utils import async_lifespan
 
 logger = logging.getLogger(__name__)
-
-
-class ChatHeader(Static):
-    """Header widget for the chat application."""
-
-    def __init__(self, context: Context | None = None) -> None:
-        """Initialize header with optional context for displaying correlation_id."""
-        super().__init__()
-        self.context = context
-
-    def render(self) -> Panel:
-        """Render the header with version and optional correlation_id."""
-        title_text = "⚡ Vectora Chat v0.0.1dev1"
-        title = Text(title_text, style="bold cyan")
-
-        if self.context:
-            # Display correlation_id for debugging (useful for QA/support)
-            correlation_info = Text(
-                f"Thread: {self.context.thread_id} | Trace: {self.context.correlation_id}",
-                style="dim white",
-            )
-            return Panel(
-                title,
-                subtitle=correlation_info,
-                style="blue",
-                height=4,
-            )
-
-        return Panel(
-            title,
-            style="blue",
-            height=3,
-        )
-
-
-class ChatMessages(RichLog):
-    """Widget to display chat messages."""
-
-    def add_human_message(self: Self, text: str) -> None:
-        """Add a human message to the log."""
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        header = Text(f"[{timestamp}] Você:", style="bold green")
-        self.write(header)
-        self.write(Markdown(text))
-        self.write(Text(""))
-
-    def add_ai_message(self: Self, text: str, model: str = "") -> None:
-        """Add an AI message to the log."""
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        model_info = f" ({model})" if model else ""
-        header = Text(f"[{timestamp}] Vectora{model_info}:", style="bold cyan")
-        self.write(header)
-        self.write(Markdown(text))
-        self.write(Text(""))
-
-    def add_system_message(self: Self, text: str) -> None:
-        """Add a system message to the log."""
-        msg = Text(f"ℹ️  {text}", style="dim yellow")
-        self.write(msg)
-        self.write(Text(""))
-
-
-class ChatInput(Input):
-    """Input widget for the chat."""
-
-    def __init__(self) -> None:
-        """Initialize the input widget."""
-        super().__init__(
-            placeholder="Digite sua mensagem (ou 'sair' para encerrar)...",
-            id="chat-input",
-        )
-
-
-class ChatContainer(Static):
-    """Container for chat components.
-
-    Recebe o grafo já compilado via injeção de dependência no construtor.
-    O log é uma view do estado do checkpointer (Pull Model) — não há estado
-    paralelo de mensagens nesta classe.
-    """
-
-    thread_id: int = 1
-    context: Context
-
-    def __init__(self, graph: CompiledStateGraph[State, Context, State, State]) -> None:
-        """Initialize the chat container with an injected, pre-built graph."""
-        super().__init__()
-        self.graph = graph
-        self.context = Context(user_type="plus", thread_id=self.thread_id)
-
-    async def on_mount(self) -> None:
-        """Display welcome message and focus input on mount.
-
-        A inicialização de recursos pesados (checkpointer, grafo) é feita
-        externamente em `run_chat()`, antes de instanciar este widget.
-        O `on_mount` apenas configura a UI inicial.
-        """
-        chat_log = self.query_one(ChatMessages)
-
-        # Update header with correlation info for debugging/support
-        try:
-            header = self.app.query_one(ChatHeader)
-            header.context = self.context
-            header.refresh()
-        except Exception:
-            pass  # Header might not be available, continue anyway
-
-        config = RunnableConfig(configurable={"thread_id": self.thread_id})
-        try:
-            # Pull Model: verifica se há histórico anterior no checkpointer
-            existing_state = await self.graph.aget_state(config)
-            prior_messages: Sequence[BaseMessage] = existing_state.values.get(
-                "messages", []
-            )
-
-            if prior_messages:
-                chat_log.add_system_message(
-                    f"Sessão retomada — {len(prior_messages)} mensagem(s) carregada(s) do banco."
-                )
-                self._render_messages(chat_log, prior_messages)
-            else:
-                chat_log.add_system_message(
-                    "Bem-vindo ao Vectora! 🤖 Digite suas perguntas abaixo."
-                )
-        except Exception:
-            logger.exception("Falha ao verificar estado anterior")
-            chat_log.add_system_message(
-                "Bem-vindo ao Vectora! 🤖 Digite suas perguntas abaixo."
-            )
-
-        self.query_one(ChatInput).focus()
-
-    def _render_messages(
-        self, chat_log: ChatMessages, messages: Sequence[BaseMessage]
-    ) -> None:
-        """Re-renderiza o log completo a partir de uma sequência de mensagens.
-
-        O log é limpo e reconstruído a partir do estado lido do checkpointer,
-        garantindo que a view seja sempre um reflexo fiel do banco de dados.
-        """
-        chat_log.clear()
-        for msg in messages:
-            content = msg.content if hasattr(msg, "content") else str(msg)
-            if not isinstance(content, str):
-                content = str(content)
-
-            if isinstance(msg, HumanMessage):
-                chat_log.add_human_message(content)
-            elif isinstance(msg, AIMessage):
-                model_name = (
-                    msg.response_metadata.get("model", "")
-                    if hasattr(msg, "response_metadata")
-                    else ""
-                )
-                chat_log.add_ai_message(content, model_name)
-            # ToolMessages e outros tipos são silenciados na UI (detalhes de implementação)
-
-    @on(Input.Submitted)
-    async def on_submit(self, event: Input.Submitted) -> None:
-        """Handle input submission using reactive streaming (astream_events).
-
-        Fluxo reativo:
-        1. Dispara astream_events (Fire-and-forget, sem bloquear)
-        2. Consome eventos em tempo real (chunks, node start/end)
-        3. Atualiza UI progressivamente (streaming de resposta)
-        4. Persiste no checkpointer automaticamente
-        """
-        event.stop()
-        user_input = event.value
-        chat_log = self.query_one(ChatMessages)
-        chat_input = self.query_one(ChatInput)
-
-        if not user_input.strip():
-            return
-
-        if user_input.lower() in ["sair", "quit", "q"]:
-            logger.info("Chat encerrado pelo usuário")
-            self.app.exit()
-            return
-
-        try:
-            chat_input.value = ""
-            chat_log.add_human_message(user_input)
-
-            config = RunnableConfig(
-                configurable={"thread_id": self.thread_id},
-            )
-
-            logger.debug(
-                "Processing user input",
-                extra={"thread_id": self.thread_id, "input_length": len(user_input)},
-            )
-
-            human_message = HumanMessage(user_input)
-
-            # LangSmith tracing é auto-injetado via env vars (LANGSMITH_API_KEY, etc)
-            # Streaming reativo com astream_events
-            ai_response = ""
-            with nullcontext():
-                async for graph_event in self.graph.astream_events(
-                    {"messages": [human_message]},
-                    config=config,
-                    version="v2",
-                ):
-                    event_type = graph_event.get("event")
-                    data = graph_event.get("data", {})
-
-                    # Streaming de tokens do LLM
-                    if event_type == "on_chat_model_stream":
-                        chunk = data.get("chunk")
-                        if chunk and hasattr(chunk, "content"):
-                            content = chunk.content
-                            if content:
-                                ai_response += content
-                                chat_log.write(content)
-
-                    # Nó iniciando
-                    elif event_type == "on_node_start":
-                        node_name = graph_event.get("name", "")
-                        if node_name:
-                            logger.debug(f"Node started: {node_name}")
-
-                    # Nó terminando
-                    elif event_type == "on_node_end":
-                        node_name = graph_event.get("name", "")
-                        if node_name:
-                            logger.debug(f"Node ended: {node_name}")
-
-            # Garantir que mensagem de IA foi adicionada ao log
-            if ai_response:
-                chat_log.write("")
-
-            logger.info(
-                "User input processed",
-                extra={
-                    "thread_id": self.thread_id,
-                    "response_length": len(ai_response),
-                },
-            )
-
-        except Exception:
-            logger.exception("Error processing input", exc_info=True)
-            chat_log.add_system_message("Erro ao processar: <error>")
-
-    def compose(self) -> ComposeResult:
-        """Compose the layout."""
-        yield ChatMessages(highlight=True, markup=True, id="chat-log")
-        yield Container(ChatInput())
-
-
-class VectoraChatApp(App[Any]):
-    """Main Vectora Chat TUI application."""
-
-    CSS = """
-    Screen {
-        layout: vertical;
-    }
-
-    #chat-log {
-        width: 1fr;
-        height: 1fr;
-        border: solid $primary;
-    }
-
-    #chat-input {
-        width: 1fr;
-        height: auto;
-        border: solid $accent;
-    }
-    """
-
-    BINDINGS = [
-        ("ctrl+c", "quit", "Sair"),
-    ]
-
-    def __init__(self, graph: CompiledStateGraph[State, Context, State, State]) -> None:
-        """Initialize with a pre-built graph (dependency injection)."""
-        super().__init__()
-        self.graph = graph
-
-    def compose(self) -> ComposeResult:
-        """Compose the main layout."""
-        yield Header()
-        yield ChatHeader()
-        yield ChatContainer(self.graph)
-        yield Footer()
 
 
 def _format_message_for_audit(msg: BaseMessage, index: int) -> str:
@@ -484,40 +193,153 @@ async def _export_message_audit(
         )
 
 
+def _display_chat_header(console: Console, context: Context) -> None:
+    """Display formatted header with session info."""
+    title = f"📋 Vectora Chat Session | Thread: {context.thread_id}"
+    console.print(Panel(title, style="bold blue"))
+
+
+async def _load_chat_history(
+    graph: CompiledStateGraph[State, Context, State, State],
+    checkpointer: Checkpointer,
+    context: Context,
+) -> Sequence[BaseMessage]:
+    """Load prior messages from checkpointer."""
+    config = RunnableConfig(configurable={"thread_id": context.thread_id})
+    try:
+        state_snapshot = await graph.aget_state(config)
+        return state_snapshot.values.get("messages", [])
+    except Exception as e:
+        logger.warning(f"Could not load chat history: {e}")
+        return []
+
+
+def _render_message_history(console: Console, messages: Sequence[BaseMessage]) -> None:
+    """Render prior messages from database."""
+    if not messages:
+        console.print("[dim]No prior messages. Type /help for commands.[/dim]\n")
+        return
+
+    console.print(f"[dim]Loaded {len(messages)} prior message(s):[/dim]\n")
+    for msg in messages:
+        formatted = _format_message_for_audit(msg, 0)
+        console.print(Markdown(formatted))
+
+
+async def chat_loop(
+    graph: CompiledStateGraph[State, Context, State, State],
+    checkpointer: Checkpointer,
+    context: Context,
+) -> None:
+    """Simple CLI chat loop with Rich display.
+
+    Args:
+        graph: Compiled LangGraph instance
+        checkpointer: State checkpointer for persistence
+        context: Execution context with thread_id
+    """
+    console = Console()
+
+    # Display header
+    _display_chat_header(console, context)
+
+    # Load and render prior messages
+    messages = await _load_chat_history(graph, checkpointer, context)
+    _render_message_history(console, messages)
+
+    # Main chat loop
+    while True:
+        try:
+            # Read user input
+            user_input = input("\n👤 You:\n> ").strip()
+
+            # Handle exit commands
+            if user_input.lower() in ["/sair", "/quit", "/q"]:
+                logger.info("Chat ended by user")
+                break
+
+            # Skip empty input
+            if not user_input:
+                continue
+
+            # Display user message
+            console.print(f"[bold green]{user_input}[/bold green]")
+
+            # Invoke graph and stream response
+            config = RunnableConfig(configurable={"thread_id": context.thread_id})
+            ai_response = ""
+
+            console.print("[bold cyan]🤖 Vectora:[/bold cyan]")
+
+            async for event in graph.astream_events(
+                {"messages": [HumanMessage(user_input)]},
+                config=config,
+                version="v2",
+            ):
+                event_type = event.get("event")
+
+                # Stream LLM tokens
+                if event_type == "on_chat_model_stream":
+                    chunk = event.get("data", {}).get("chunk")
+                    if chunk and hasattr(chunk, "content") and chunk.content:
+                        console.print(chunk.content, end="", highlight=False)
+                        ai_response += chunk.content
+
+            console.print()
+
+            logger.info(
+                "User input processed",
+                extra={
+                    "thread_id": context.thread_id,
+                    "response_length": len(ai_response),
+                },
+            )
+
+        except KeyboardInterrupt:
+            logger.info("Chat interrupted by user (Ctrl+C)")
+            break
+        except Exception as e:
+            console.print(f"[red]Error: {e}[/red]")
+            logger.exception("Chat error", exc_info=True)
+
+    # Export audit on exit
+    await _export_message_audit(graph, checkpointer)
+
+
 async def run_chat() -> None:
-    """Inicializa recursos assíncronos e executa o chat TUI.
+    """Initialize resources and run chat CLI.
 
-    O checkpointer e o grafo são construídos aqui, fora do Textual,
-    no mesmo event loop que o App irá usar via `run_async()`. Isso evita
-    deadlocks causados por `async with` dentro de `on_mount`.
-
-    Também inicializa o BackgroundEmbeddingWorker que processa a fila
-    de embeddings de forma assíncrona e não-bloqueante.
+    Sets up logging, checkpointer, graph, and background worker,
+    then starts the chat loop.
     """
     setup_logging()
-    logger.info("Vectora Chat TUI started")
+    logger.info("Vectora Chat started")
 
-    async with async_lifespan(), Checkpointer(DB_DSN) as checkpointer:
-        logger.info("Checkpointer SQLite initialized")
+    async with (
+        async_lifespan(),
+        Checkpointer("sqlite+aiosqlite:///~/.vectora/data/vectora.db") as checkpointer,
+    ):
+        logger.info("Checkpointer initialized")
+
+        # Build graph
         graph = build_graph(checkpointer)
-        logger.info("Graph compiled, starting TUI")
+        logger.info("Graph compiled")
 
-        # Inicializar e iniciar background worker para embeddings fire-and-forget
+        # Initialize and start background worker
         worker = await get_background_worker()
         await worker.start()
-        logger.info("BackgroundEmbeddingWorker iniciado")
+        logger.info("BackgroundEmbeddingWorker started")
 
-        app = VectoraChatApp(graph)
+        # Create context
+        context = Context(user_type="default", thread_id=1)
+
         try:
-            await app.run_async()
+            # Run chat loop
+            await chat_loop(graph, checkpointer, context)
         finally:
-            # Graceful shutdown do worker
+            # Graceful shutdown of worker
             await worker.stop(timeout_seconds=30)
-
-            # Audit: Extract and display full message history
-            await _export_message_audit(graph, checkpointer)
-
-            logger.info("Vectora Chat TUI ended")
+            logger.info("Vectora Chat ended")
 
 
 if __name__ == "__main__":

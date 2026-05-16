@@ -1,280 +1,216 @@
-"""Setup Wizard TUI usando Textual para interface profissional."""
+"""Setup Wizard for Vectora Configuration.
+
+Simple CLI wizard for configuring LLM provider, API keys, and testing connection.
+No Textual TUI - pure linear CLI with Rich formatting.
+
+Features:
+    - Provider selection (Google Gemini, OpenAI, Anthropic, Ollama)
+    - Secure API key input with getpass
+    - Connection testing with async spinner
+    - .env file creation
+    - Automatic chat launch after setup
+"""
 
 import asyncio
-import subprocess
+import getpass
+import logging
 import sys
+from pathlib import Path
+from typing import Any
 
-from config import Config
-from textual.app import App, ComposeResult, on
-from textual.screen import Screen
-from textual.widgets import Button, Input, Label, RadioButton, RadioSet
-from utils import load_llm
+from rich.console import Console
+from rich.panel import Panel
 
+logger = logging.getLogger(__name__)
 
-class WelcomeScreen(Screen):
-    """Tela de boas-vindas do Vectora."""
-
-    BINDINGS = [("q", "quit", "Sair")]
-
-    def compose(self) -> ComposeResult:
-        """Renderiza a tela de boas-vindas."""
-        yield Label("🚀 Bem-vindo ao Vectora")
-        yield Label("")
-        yield Label("Assistente de IA avançado com RAG,")
-        yield Label("manipulação de código e integração de ferramentas.")
-        yield Label("")
-        yield Button("Iniciar Setup", id="start_btn", variant="primary")
-        yield Button("Sair", id="quit_btn", variant="error")
-
-    @on(Button.Pressed, "#start_btn")
-    def start_setup(self) -> None:
-        """Inicia o setup."""
-        self.app.push_screen(ProviderSelectScreen())
-
-    @on(Button.Pressed, "#quit_btn")
-    def quit_app(self) -> None:
-        """Encerra o app."""
-        self.app.exit()
-
-
-class ProviderSelectScreen(Screen):
-    """Tela de seleção de provedor LLM."""
-
-    BINDINGS = [("q", "quit", "Sair")]
-
-    def compose(self) -> ComposeResult:
-        """Renderiza seleção de provedores."""
-        yield Label("Selecione um provedor LLM:")
-        yield Label("")
-
-        config = Config.instance()
-        with RadioSet(id="provider_selection"):
-            providers = [
-                ("google-genai", "🔵 Google Gemini"),
-                ("openai", "🟢 OpenAI GPT-4"),
-                ("anthropic", "🔴 Anthropic Claude"),
-                ("ollama", "🟠 Ollama (Local)"),
-            ]
-
-            configured = config.get_available_providers()
-
-            for provider_id, label in providers:
-                status = " (✓ Configurado)" if provider_id in configured else ""
-                yield RadioButton(
-                    f"{label}{status}",
-                    id=provider_id,
-                    value=provider_id,
-                )
-
-        yield Label("")
-        yield Button("Continuar", id="continue_btn", variant="primary")
-        yield Button("Voltar", id="back_btn")
-
-    def on_mount(self) -> None:
-        """Marca o primeiro RadioButton como padrão."""
-        first_button = self.query_one("RadioButton")
-        first_button.value = True
-
-    @on(Button.Pressed, "#continue_btn")
-    def continue_to_api_key(self) -> None:
-        """Vai para entrada de API key."""
-        radio_set = self.query_one(RadioSet)
-        pressed = radio_set.pressed_button
-
-        if pressed:
-            provider = pressed.id
-            self.app.push_screen(ApiKeyScreen(provider))
-
-    @on(Button.Pressed, "#back_btn")
-    def go_back(self) -> None:
-        """Volta para tela anterior."""
-        self.app.pop_screen()
+# Provider configuration
+PROVIDERS = {
+    "1": {
+        "name": "Google Gemini",
+        "provider_id": "google-genai",
+        "env_var": "GOOGLE_API_KEY",
+        "url": "https://ai.google.dev/apikey",
+        "model": "gemini-2.0-flash",
+    },
+    "2": {
+        "name": "OpenAI GPT-4",
+        "provider_id": "openai",
+        "env_var": "OPENAI_API_KEY",
+        "url": "https://platform.openai.com/api-keys",
+        "model": "gpt-4-turbo",
+    },
+    "3": {
+        "name": "Anthropic Claude",
+        "provider_id": "anthropic",
+        "env_var": "ANTHROPIC_API_KEY",
+        "url": "https://console.anthropic.com/",
+        "model": "claude-3-5-sonnet-20241022",
+    },
+    "4": {
+        "name": "Ollama (Local)",
+        "provider_id": "ollama",
+        "env_var": "",
+        "url": "https://ollama.ai",
+        "model": "mistral",
+    },
+}
 
 
-class ApiKeyScreen(Screen):
-    """Tela para entrada de API key."""
+def _load_llm_for_test(provider_id: str, api_key: str | None = None) -> Any:
+    """Load LLM instance for connection test.
 
-    BINDINGS = [("q", "quit", "Sair")]
+    Args:
+        provider_id: Provider identifier (google-genai, openai, anthropic, ollama)
+        api_key: API key for the provider (if applicable)
 
-    def __init__(self, provider: str) -> None:
-        """Inicializa tela com provedor selecionado."""
-        super().__init__()
-        self.provider = provider
-        self.config = Config.instance()
-        self.provider_info = self._get_provider_info(provider)
+    Returns:
+        LLM instance ready for testing
 
-    def _get_provider_info(self, provider: str) -> dict[str, str]:
-        """Retorna informações do provedor."""
-        providers = {
-            "google-genai": {
-                "name": "Google Gemini",
-                "key_name": "GOOGLE_API_KEY",
-                "get_key_url": "https://aistudio.google.com/app/apikeys",
-                "model_env": "GOOGLE_MODEL",
-                "default_model": "gemini-2.0-flash",
-            },
-            "openai": {
-                "name": "OpenAI GPT-4",
-                "key_name": "OPENAI_API_KEY",
-                "get_key_url": "https://platform.openai.com/api-keys",
-                "model_env": "OPENAI_MODEL",
-                "default_model": "gpt-4o",
-            },
-            "anthropic": {
-                "name": "Anthropic Claude",
-                "key_name": "ANTHROPIC_API_KEY",
-                "get_key_url": "https://console.anthropic.com/account/keys",
-                "model_env": "ANTHROPIC_MODEL",
-                "default_model": "claude-opus-4-1",
-            },
-            "ollama": {
-                "name": "Ollama (Local)",
-                "key_name": "OLLAMA_BASE_URL",
-                "get_key_url": "https://ollama.ai/download",
-                "model_env": "OLLAMA_MODEL",
-                "default_model": "llama2",
-            },
-        }
-        return providers.get(provider, {})
-
-    def compose(self) -> ComposeResult:
-        """Renderiza entrada de API key."""
-        yield Label(f"Configurar {self.provider_info['name']}")
-        yield Label("")
-        yield Label(f"Digite sua {self.provider_info['key_name']}:")
-
-        yield Input(
-            id="api_key_input",
-            password=True,
-        )
-
-        yield Label("")
-        yield Label(f"🔗 Obter chave: {self.provider_info['get_key_url']}")
-        yield Label("")
-        yield Button("Testar e Salvar", id="test_btn", variant="primary")
-        yield Button("Voltar", id="back_btn")
-        yield Label("", id="status")
-
-    @on(Button.Pressed, "#test_btn")
-    def test_and_save(self) -> None:
-        """Testa conexão e salva config."""
-        api_key_input = self.query_one(Input)
-        api_key = api_key_input.value
+    Raises:
+        ValueError: If provider_id is unknown
+        ImportError: If required LangChain package is not installed
+    """
+    if provider_id == "google-genai":
+        from langchain_google_genai import ChatGoogleGenerativeAI
 
         if not api_key:
-            status_label = self.query_one("#status", Label)
-            status_label.update("❌ API key não pode estar vazia")
-            return
-
-        status_label = self.query_one("#status", Label)
-        status_label.update("⏳ Testando conexão...")
-
-        task = asyncio.ensure_future(self._async_test_and_save(api_key, status_label))
-        # task is tracked by event loop
-
-    async def _async_test_and_save(self, api_key: str, status_label: Label) -> None:
-        """Testa e salva de forma assíncrona."""
-        try:
-            self.config.set(self.provider_info["key_name"], api_key)
-            self.config.set("LLM_PROVIDER", self.provider)
-
-            llm = load_llm()
-
-            response_text = ""
-            async for chunk in llm.astream([("user", "teste")]):
-                if isinstance(chunk, str):
-                    response_text += chunk
-
-            if response_text:
-                self.config.save_to_env(
-                    {
-                        "LLM_PROVIDER": self.provider,
-                        self.provider_info["key_name"]: api_key,
-                        self.provider_info["model_env"]: self.provider_info[
-                            "default_model"
-                        ],
-                        "LOG_LEVEL": "INFO",
-                    }
-                )
-                status_label.update("✅ Configuração salva com sucesso!")
-
-                await asyncio.sleep(1)
-                self.app.push_screen(CompleteScreen())
-            else:
-                status_label.update("❌ LLM não retornou resposta")
-
-        except Exception as e:
-            status_label.update(f"❌ Erro: {str(e)[:50]}")
-
-    @on(Button.Pressed, "#back_btn")
-    def go_back(self) -> None:
-        """Volta para tela anterior."""
-        self.app.pop_screen()
-
-
-class CompleteScreen(Screen):
-    """Tela de conclusão do setup."""
-
-    BINDINGS: list[tuple[str, str, str]] = []
-
-    def compose(self) -> ComposeResult:
-        """Renderiza tela de conclusão."""
-        yield Label("🎉 Setup Concluído!")
-        yield Label("")
-        yield Label("Seu Vectora está pronto para usar.")
-        yield Label("")
-        yield Button("Iniciar Chat", id="chat_btn", variant="primary")
-        yield Button("Sair", id="quit_btn")
-
-    @on(Button.Pressed, "#chat_btn")
-    def start_chat(self) -> None:
-        """Inicia o chat após setup concluído."""
-        self.app.exit(return_code=0)
-        subprocess.run(
-            [sys.executable, "vectora/run_chat.py"],
-            check=False,
-            shell=False,
+            msg = "API key required for Google Gemini"
+            raise ValueError(msg)
+        return ChatGoogleGenerativeAI(
+            api_key=api_key,
+            model="gemini-2.0-flash",
         )
+    elif provider_id == "openai":
+        from langchain_openai import ChatOpenAI
 
-    @on(Button.Pressed, "#quit_btn")
-    def quit_app(self) -> None:
-        """Encerra."""
-        self.app.exit()
+        if not api_key:
+            msg = "API key required for OpenAI"
+            raise ValueError(msg)
+        return ChatOpenAI(
+            api_key=api_key,
+            model="gpt-4-turbo",
+        )
+    elif provider_id == "anthropic":
+        from langchain_anthropic import ChatAnthropic
+
+        if not api_key:
+            msg = "API key required for Anthropic"
+            raise ValueError(msg)
+        return ChatAnthropic(
+            api_key=api_key,
+            model="claude-3-5-sonnet-20241022",
+        )
+    elif provider_id == "ollama":
+        from langchain_ollama import ChatOllama
+
+        return ChatOllama(model="mistral")
+    else:
+        msg = f"Unknown provider: {provider_id}"
+        raise ValueError(msg)
 
 
-class SetupWizardApp(App):
-    """App principal do setup wizard."""
+def _save_to_env(provider_id: str, api_key: str | None = None) -> None:
+    """Save configuration to ~/.vectora/.env file.
 
-    BINDINGS = [("q", "quit", "Sair")]
-    CSS = """
-    Screen {
-        align: center middle;
-    }
-
-    Label {
-        margin-bottom: 1;
-    }
-
-    Input {
-        margin-bottom: 1;
-        width: 50;
-    }
-
-    Button {
-        margin-right: 2;
-    }
+    Args:
+        provider_id: Provider identifier
+        api_key: API key to save (if applicable)
     """
+    env_file = Path.home() / ".vectora" / ".env"
+    env_file.parent.mkdir(parents=True, exist_ok=True)
 
-    def on_mount(self) -> None:
-        """Inicia na tela de boas-vindas."""
-        self.push_screen(WelcomeScreen())
+    content = f"LLM_PROVIDER={provider_id}\n"
+    if api_key and provider_id != "ollama":
+        # Find the provider info to get env_var
+        provider_key = next(
+            (k for k, v in PROVIDERS.items() if v["provider_id"] == provider_id),
+            None,
+        )
+        if provider_key:
+            provider_info = PROVIDERS[provider_key]
+            content += f"{provider_info['env_var']}={api_key}\n"
+
+    env_file.write_text(content, encoding="utf-8")
+    logger.info("Configuration saved to .env", extra={"file": str(env_file)})
 
 
-def run_setup() -> None:
-    """Executa o setup wizard Textual."""
-    app = SetupWizardApp()
-    app.run()
+async def run_setup() -> None:
+    """Run the setup wizard flow."""
+    console = Console()
+
+    # Welcome
+    console.print(Panel("🚀 Vectora Setup Wizard", style="bold cyan"))
+    console.print("\nWelcome to Vectora! Let's configure your LLM provider.\n")
+
+    # Provider selection
+    console.print("Available providers:")
+    for key, info in PROVIDERS.items():
+        console.print(f"  {key}) {info['name']}")
+
+    # Get provider choice
+    provider_choice = None
+    while provider_choice not in PROVIDERS:
+        choice_input = input("\nSelect a provider (1-4): ").strip()
+        if choice_input in PROVIDERS:
+            provider_choice = choice_input
+        else:
+            console.print("[red]Invalid choice. Please select 1-4.[/red]")
+
+    provider_info = PROVIDERS[provider_choice]
+    provider_id = provider_info["provider_id"]
+    provider_name = provider_info["name"]
+
+    console.print(f"\n[green]✓ Selected:[/green] {provider_name}\n")
+
+    # Get API key (if needed)
+    api_key = None
+    if provider_id != "ollama":
+        console.print(f"Get your API key from: {provider_info['url']}\n")
+        api_key = getpass.getpass(f"Enter {provider_name} API key (hidden): ").strip()
+
+        if not api_key:
+            console.print("[red]✗ API key is required for this provider.[/red]")
+            sys.exit(1)
+
+    # Test connection
+    console.print("\n[bold]Testing connection...[/bold]")
+
+    try:
+        llm = _load_llm_for_test(provider_id, api_key)
+
+        # Create a test task
+        async def _test_connection() -> str:
+            """Test LLM connection asynchronously."""
+            return await llm.ainvoke("Say 'Connected!' in one word.")
+
+        # Run test
+        with console.status("[bold green]Connecting to LLM...", spinner="dots"):
+            response = await _test_connection()
+
+        console.print(f"[green]✓ Connected! Response:[/green] {response.content}\n")
+
+    except Exception as e:
+        console.print(f"[red]✗ Connection failed:[/red] {e}")
+        logger.error(f"Connection test failed: {e}", exc_info=True)
+        sys.exit(1)
+
+    # Save configuration
+    _save_to_env(provider_id, api_key)
+    console.print("[green]✓ Configuration saved to ~/.vectora/.env[/green]\n")
+
+    # Launch chat
+    console.print("[bold]Launching Vectora Chat...[/bold]\n")
+
+    # Import and run chat
+    from chat import run_chat
+
+    await run_chat()
+
+
+def run_setup_sync() -> None:
+    """Synchronous entry point for setup wizard."""
+    asyncio.run(run_setup())
 
 
 if __name__ == "__main__":
-    run_setup()
+    run_setup_sync()
