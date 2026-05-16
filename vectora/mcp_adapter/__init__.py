@@ -6,12 +6,13 @@ Exposes Vectora capabilities via MCP protocol:
 
 Usage:
     # Start as MCP server (via pyproject.toml entry point):
-    vectora-mcp  →  vectora.mcp.server:run
+    vectora-mcp  →  vectora.mcp_adapter.server:run
 
     # Connect to other MCP servers (via call_mcp_tool tool):
-    from vectora.mcp.client import MCPClient
+    from vectora.mcp_adapter.client import MCPClient
 """
 
-from vectora.mcp.server import run
+from vectora.mcp_adapter.client import MCPClient
+from vectora.mcp_adapter.server import run
 
-__all__ = ["run"]
+__all__ = ["MCPClient", "run"]

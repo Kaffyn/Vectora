@@ -16,7 +16,7 @@ class TestMCPResourcesExist:
     def test_server_has_context_resource(self):
         """Verificar que servidor expõe recurso de contexto de thread."""
         # Importar mcp do servidor
-        from vectora.mcp_server import get_thread_context, mcp
+        from vectora.mcp_adapter.server import get_thread_context, mcp
 
         # Verificar que os recursos foram importados com sucesso
         assert callable(get_thread_context)
@@ -24,14 +24,14 @@ class TestMCPResourcesExist:
 
     def test_server_has_history_resource(self):
         """Verificar que servidor expõe histórico de conversa."""
-        from vectora.mcp_server import get_thread_history, mcp
+        from vectora.mcp_adapter.server import get_thread_history, mcp
 
         assert callable(get_thread_history)
         assert mcp is not None
 
     def test_server_has_status_resource(self):
         """Verificar que servidor expõe status do servidor."""
-        from vectora.mcp_server import get_server_status, mcp
+        from vectora.mcp_adapter.server import get_server_status, mcp
 
         assert callable(get_server_status)
         assert mcp is not None
@@ -43,10 +43,12 @@ class TestMCPResourceImplementations:
     @pytest.mark.asyncio
     async def test_get_thread_context_empty_thread(self):
         """Verificar get_thread_context retorna JSON válido para thread vazia."""
-        from vectora.mcp_server import get_thread_context
+        from vectora.mcp_adapter.server import get_thread_context
 
         # Mock do Checkpointer para retornar None (thread não existe)
-        with patch("vectora.mcp_server.Checkpointer") as mock_checkpointer_class:
+        with patch(
+            "vectora.mcp_adapter.server.Checkpointer"
+        ) as mock_checkpointer_class:
             mock_checkpointer = AsyncMock()
             mock_checkpointer.aget = AsyncMock(return_value=None)
             mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
@@ -66,10 +68,12 @@ class TestMCPResourceImplementations:
         """Verificar get_thread_context retorna contexto para thread ativa."""
         from langchain_core.messages import AIMessage, HumanMessage
 
-        from vectora.mcp_server import get_thread_context
+        from vectora.mcp_adapter.server import get_thread_context
 
         # Mock do Checkpointer com estado
-        with patch("vectora.mcp_server.Checkpointer") as mock_checkpointer_class:
+        with patch(
+            "vectora.mcp_adapter.server.Checkpointer"
+        ) as mock_checkpointer_class:
             mock_messages = [
                 HumanMessage(content="Olá"),
                 AIMessage(content="Oi! Como posso ajudar?"),
@@ -101,9 +105,11 @@ class TestMCPResourceImplementations:
     @pytest.mark.asyncio
     async def test_get_thread_history_empty_thread(self):
         """Verificar get_thread_history retorna JSON válido para thread vazia."""
-        from vectora.mcp_server import get_thread_history
+        from vectora.mcp_adapter.server import get_thread_history
 
-        with patch("vectora.mcp_server.Checkpointer") as mock_checkpointer_class:
+        with patch(
+            "vectora.mcp_adapter.server.Checkpointer"
+        ) as mock_checkpointer_class:
             mock_checkpointer = AsyncMock()
             mock_checkpointer.aget = AsyncMock(return_value=None)
             mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)
@@ -122,12 +128,14 @@ class TestMCPResourceImplementations:
         """Verificar que history retorna apenas as últimas 5 mensagens."""
         from langchain_core.messages import HumanMessage
 
-        from vectora.mcp_server import get_thread_history
+        from vectora.mcp_adapter.server import get_thread_history
 
         # Criar 10 mensagens
         messages = [HumanMessage(content=f"Mensagem {i}") for i in range(10)]
 
-        with patch("vectora.mcp_server.Checkpointer") as mock_checkpointer_class:
+        with patch(
+            "vectora.mcp_adapter.server.Checkpointer"
+        ) as mock_checkpointer_class:
             mock_checkpointer = AsyncMock()
             mock_checkpointer.aget = AsyncMock(
                 return_value={"values": {"messages": messages}}
@@ -146,7 +154,7 @@ class TestMCPResourceImplementations:
     @pytest.mark.asyncio
     async def test_get_server_status(self):
         """Verificar que status resource retorna informações do servidor."""
-        from vectora.mcp_server import get_server_status
+        from vectora.mcp_adapter.server import get_server_status
 
         result = await get_server_status()
 
@@ -165,7 +173,7 @@ class TestMCPSubAgentPattern:
 
     def test_mcp_server_has_tools(self):
         """Verificar que MCP server tem as 11 ferramentas registradas."""
-        from vectora.mcp_server import mcp
+        from vectora.mcp_adapter.server import mcp
 
         # FastMCP deveria ter os tools registrados
         assert mcp is not None
@@ -174,7 +182,7 @@ class TestMCPSubAgentPattern:
 
     def test_mcp_server_description_matches_subagent(self):
         """Verificar que descrição do servidor menciona padrão de Sub-Agente."""
-        from vectora.mcp_server import mcp
+        from vectora.mcp_adapter.server import mcp
 
         # A descrição deve mencionar RAG, colaborativo, etc
         description = getattr(mcp, "description", "")
@@ -183,13 +191,15 @@ class TestMCPSubAgentPattern:
     @pytest.mark.asyncio
     async def test_resources_return_json_format(self):
         """Verificar que todos os recursos retornam JSON válido."""
-        from vectora.mcp_server import (
+        from vectora.mcp_adapter.server import (
             get_server_status,
             get_thread_context,
             get_thread_history,
         )
 
-        with patch("vectora.mcp_server.Checkpointer") as mock_checkpointer_class:
+        with patch(
+            "vectora.mcp_adapter.server.Checkpointer"
+        ) as mock_checkpointer_class:
             mock_checkpointer = AsyncMock()
             mock_checkpointer.aget = AsyncMock(return_value=None)
             mock_checkpointer.__aenter__ = AsyncMock(return_value=mock_checkpointer)

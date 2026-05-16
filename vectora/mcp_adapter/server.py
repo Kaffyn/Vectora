@@ -27,7 +27,7 @@ logging.basicConfig(
     ],
 )
 
-logger = logging.getLogger("vectora.mcp.server")
+logger = logging.getLogger("vectora.mcp_adapter.server")
 
 try:
     from mcp.server.fastmcp import FastMCP

@@ -6,7 +6,7 @@ successfully orchestrate Vectora via the MCP (Model Context Protocol) protocol.
 Why this matters:
 - Validates the MCP server contract (JSON-RPC serialization, stdio communication)
 - Simulates real-world usage where external agents interact with Vectora
-- Ensures the server entrypoint works correctly (`python -m vectora.mcp_server`)
+- Ensures the server entrypoint works correctly (`python -m vectora.mcp_adapter.server`)
 - Provides integration-level coverage for the MCP transport layer
 """
 
@@ -25,7 +25,7 @@ class TestGeminiCLIMCPIntegration:
     async def test_mcp_server_stdio_communication(self) -> None:
         """Test that MCP server responds to JSON-RPC calls via stdio."""
         # Check if MCP server module is available
-        if importlib.util.find_spec("vectora.mcp_server") is None:
+        if importlib.util.find_spec("vectora.mcp_adapter.server") is None:
             pytest.skip("MCP server module not available")
 
         # Module is available, test passes
@@ -35,7 +35,7 @@ class TestGeminiCLIMCPIntegration:
     async def test_mcp_server_lists_tools(self) -> None:
         """Test that MCP server exposes Vectora tools via list_tools."""
         # Check if MCP server module is available
-        if importlib.util.find_spec("vectora.mcp_server") is None:
+        if importlib.util.find_spec("vectora.mcp_adapter.server") is None:
             pytest.skip("MCP server module not available")
 
         from vectora.tools import get_tools
@@ -69,12 +69,12 @@ class TestGeminiCLIMCPIntegration:
     def test_mcp_server_subprocess_startup(self) -> None:
         """Test that MCP server can be started as subprocess (like Gemini CLI would).
 
-        Este teste valida que `python -m vectora.mcp_server` não falha na inicialização.
+        Este teste valida que `python -m vectora.mcp_adapter.server` não falha na inicialização.
         """
         try:
             # Tenta iniciar o servidor como subprocess
             result = subprocess.run(
-                [sys.executable, "-m", "vectora.mcp_server", "--help"],
+                [sys.executable, "-m", "vectora.mcp_adapter.server", "--help"],
                 capture_output=True,
                 timeout=5,
                 check=False,
@@ -100,7 +100,7 @@ class TestGeminiCLIMCPIntegration:
         This test validates that the server correctly handles the protocol.
         """
         # Check if MCP server module is available
-        if importlib.util.find_spec("vectora.mcp_server") is None:
+        if importlib.util.find_spec("vectora.mcp_adapter.server") is None:
             pytest.skip("MCP server not properly configured")
 
         # Module is available, test passes
@@ -135,7 +135,7 @@ class TestGeminiCLIMCPIntegration:
         the server must not crash but return a proper JSON-RPC error.
         """
         # Check if MCP server module is available
-        if importlib.util.find_spec("vectora.mcp_server") is None:
+        if importlib.util.find_spec("vectora.mcp_adapter.server") is None:
             pytest.skip("MCP server import failed")
 
         # Module is available, test passes
@@ -199,7 +199,7 @@ class TestMCPServerContractValidation:
     def test_mcp_server_has_tools_resource(self) -> None:
         """Valida que server expõe o resource /tools (MCP spec)."""
         # Check if MCP server module is available
-        if importlib.util.find_spec("vectora.mcp_server") is None:
+        if importlib.util.find_spec("vectora.mcp_adapter.server") is None:
             pytest.skip("MCP server not available")
 
         # MCP servers devem expor ferramentas via um resource padrão
@@ -209,7 +209,7 @@ class TestMCPServerContractValidation:
     def test_mcp_server_has_context_resource(self) -> None:
         """Valida que server expõe context (thread state, user info)."""
         # Check if MCP server module is available
-        if importlib.util.find_spec("vectora.mcp_server") is None:
+        if importlib.util.find_spec("vectora.mcp_adapter.server") is None:
             pytest.skip("MCP server not available")
 
         # MCP spec recomenda expor contexto de execução
