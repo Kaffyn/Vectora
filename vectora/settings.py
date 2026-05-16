@@ -148,6 +148,12 @@ class Settings(BaseSettings):
     enable_file_tools: bool = True
     """Enable file manipulation tools."""
 
+    enable_mcp: bool = False
+    """Enable MCP (Model Context Protocol) server integration."""
+
+    enable_file_operations: bool = True
+    """Enable file operations tools (file_read, file_edit, grep, etc)."""
+
     max_context_tokens: int = 1000
     """Maximum tokens to keep in message history (sliding window)."""
 
@@ -156,6 +162,63 @@ class Settings(BaseSettings):
 
     embedding_batch_size: int = 32
     """Number of documents to embed per batch."""
+
+    # ============================================================================
+    # WEB SEARCH (TAVILY)
+    # ============================================================================
+
+    tavily_api_key: str | None = None
+    """API key for Tavily web search service."""
+
+    # ============================================================================
+    # EMBEDDINGS (VOYAGE AI) & RAG
+    # ============================================================================
+
+    voyage_api_key: str | None = None
+    """API key for Voyage AI embeddings service."""
+
+    embedding_model: str = "voyage-3-lite"
+    """Embedding model name (Voyage AI)."""
+
+    embedding_dims: int = 512
+    """Embedding vector dimensions."""
+
+    embedding_queue_enabled: bool = True
+    """Enable asynchronous embedding queue processing."""
+
+    default_search_top_k: int = 10
+    """Default number of top-k results for vector search."""
+
+    search_min_score: float = 0.5
+    """Minimum similarity score threshold for search results."""
+
+    reranker_type: str = "voyage"
+    """Reranking model type (voyage, none)."""
+
+    reranker_model: str = "reranker-2-lite"
+    """Reranking model name."""
+
+    reranker_top_k: int = 5
+    """Number of results to rerank."""
+
+    # ============================================================================
+    # MCP (MODEL CONTEXT PROTOCOL)
+    # ============================================================================
+
+    mcp_server_url: str | None = None
+    """URL for MCP server (if using HTTP transport)."""
+
+    mcp_transport_type: str = "stdio"
+    """MCP transport type (stdio, http)."""
+
+    mcp_command: str | None = None
+    """MCP server command to execute (stdio mode)."""
+
+    mcp_command_args: list[str] | None = None
+    """MCP server command arguments."""
+
+    mcp_timeout: int = 30
+    """MCP request timeout in seconds."""
 
     # ============================================================================
     # PYDANTIC CONFIGURATION
