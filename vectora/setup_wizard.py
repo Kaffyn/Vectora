@@ -1,13 +1,13 @@
 """Setup Wizard for Vectora Configuration.
 
-Simple CLI wizard for configuring LLM provider, API keys, and testing connection.
-No Textual TUI - pure linear CLI with Rich formatting.
+Enhanced CLI wizard for configuring LLM provider, API keys, and testing connection.
+Rich formatting with provider selection, secure API key input, and connection testing.
 
 Features:
-    - Provider selection (Google Gemini, OpenAI, Anthropic, Ollama)
+    - Provider selection with table display (Google Gemini, OpenAI, Anthropic, Ollama)
     - Secure API key input with getpass
     - Connection testing with async spinner
-    - .env file creation
+    - .env file creation with summary
     - Automatic chat launch after setup
 """
 
@@ -20,6 +20,8 @@ from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
+from rich.rule import Rule
+from rich.table import Table
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +82,7 @@ def _load_llm_for_test(provider_id: str, api_key: str | None = None) -> Any:
             api_key=api_key,
             model="gemini-2.0-flash",
         )
-    elif provider_id == "openai":
+    if provider_id == "openai":
         from langchain_openai import ChatOpenAI
 
         if not api_key:
@@ -90,7 +92,7 @@ def _load_llm_for_test(provider_id: str, api_key: str | None = None) -> Any:
             api_key=api_key,
             model="gpt-4-turbo",
         )
-    elif provider_id == "anthropic":
+    if provider_id == "anthropic":
         from langchain_anthropic import ChatAnthropic
 
         if not api_key:
@@ -100,13 +102,12 @@ def _load_llm_for_test(provider_id: str, api_key: str | None = None) -> Any:
             api_key=api_key,
             model="claude-3-5-sonnet-20241022",
         )
-    elif provider_id == "ollama":
+    if provider_id == "ollama":
         from langchain_ollama import ChatOllama
 
         return ChatOllama(model="mistral")
-    else:
-        msg = f"Unknown provider: {provider_id}"
-        raise ValueError(msg)
+    msg = f"Unknown provider: {provider_id}"
+    raise ValueError(msg)
 
 
 def _save_to_env(provider_id: str, api_key: str | None = None) -> None:
@@ -135,45 +136,89 @@ def _save_to_env(provider_id: str, api_key: str | None = None) -> None:
 
 
 async def run_setup() -> None:
-    """Run the setup wizard flow."""
+    """Run the setup wizard flow with enhanced Rich formatting."""
     console = Console()
 
-    # Welcome
-    console.print(Panel("🚀 Vectora Setup Wizard", style="bold cyan"))
-    console.print("\nWelcome to Vectora! Let's configure your LLM provider.\n")
+    # Welcome banner
+    welcome_panel = Panel(
+        "[bold cyan]🚀 Vectora Setup Wizard[/bold cyan]\n"
+        "[dim]Configure your LLM provider and test the connection[/dim]",
+        style="bold blue",
+        expand=False,
+    )
+    console.print(welcome_panel)
+    console.print(
+        "\n[cyan]Welcome to Vectora![/cyan] Let's set up your AI assistant.\n"
+    )
 
-    # Provider selection
-    console.print("Available providers:")
+    # Provider selection with table
+    console.print("[bold]Available LLM Providers:[/bold]\n")
+
+    table = Table(show_header=True, header_style="bold cyan")
+    table.add_column("#", style="dim")
+    table.add_column("Provider", style="bold")
+    table.add_column("Model", style="yellow")
+
     for key, info in PROVIDERS.items():
-        console.print(f"  {key}) {info['name']}")
+        table.add_row(key, info["name"], info["model"])
 
-    # Get provider choice
+    console.print(table)
+    console.print()
+
+    # Get provider choice with validation
     provider_choice = None
     while provider_choice not in PROVIDERS:
-        choice_input = input("\nSelect a provider (1-4): ").strip()
+        choice_input = input(
+            "\n[bold cyan]Select a provider (1-4):[/bold cyan] "
+        ).strip()
         if choice_input in PROVIDERS:
             provider_choice = choice_input
         else:
-            console.print("[red]Invalid choice. Please select 1-4.[/red]")
+            console.print("[red]❌ Invalid choice. Please select 1-4.[/red]")
 
     provider_info = PROVIDERS[provider_choice]
     provider_id = provider_info["provider_id"]
     provider_name = provider_info["name"]
+    model_name = provider_info["model"]
 
-    console.print(f"\n[green]✓ Selected:[/green] {provider_name}\n")
+    # Confirmation
+    selection_panel = Panel(
+        f"[bold cyan]{provider_name}[/bold cyan]\n[dim]Model: {model_name}[/dim]",
+        title="[green]✓ Selected[/green]",
+        style="green",
+        expand=False,
+    )
+    console.print(selection_panel)
+    console.print()
 
     # Get API key (if needed)
     api_key = None
     if provider_id != "ollama":
-        console.print(f"Get your API key from: {provider_info['url']}\n")
-        api_key = getpass.getpass(f"Enter {provider_name} API key (hidden): ").strip()
+        info_panel = Panel(
+            f"[cyan]{provider_info['url']}[/cyan]",
+            title="[bold]API Key Location[/bold]",
+            style="blue",
+            expand=False,
+        )
+        console.print(info_panel)
+        console.print()
+
+        api_key = getpass.getpass(
+            f"[bold cyan]Enter {provider_name} API key (hidden):[/bold cyan] "
+        ).strip()
 
         if not api_key:
-            console.print("[red]✗ API key is required for this provider.[/red]")
+            error_panel = Panel(
+                "[red]API key is required for this provider.[/red]",
+                title="[bold red]❌ Error[/bold red]",
+                style="red",
+                expand=False,
+            )
+            console.print(error_panel)
             sys.exit(1)
 
-    # Test connection
-    console.print("\n[bold]Testing connection...[/bold]")
+    # Test connection with visual feedback
+    console.print("\n[bold]Testing connection...[/bold]\n")
 
     try:
         llm = _load_llm_for_test(provider_id, api_key)
@@ -183,23 +228,48 @@ async def run_setup() -> None:
             """Test LLM connection asynchronously."""
             return await llm.ainvoke("Say 'Connected!' in one word.")
 
-        # Run test
-        with console.status("[bold green]Connecting to LLM...", spinner="dots"):
+        # Run test with spinner
+        with console.status(
+            "[bold cyan]Connecting to LLM... This may take a moment[/bold cyan]",
+            spinner="dots",
+        ):
             response = await _test_connection()
 
-        console.print(f"[green]✓ Connected! Response:[/green] {response.content}\n")
+        success_panel = Panel(
+            f"[green]✓ Connection successful![/green]\n"
+            f"[cyan]Response: {response.content}[/cyan]",
+            title="[bold green]Connection Test[/bold green]",
+            style="green",
+            expand=False,
+        )
+        console.print(success_panel)
+        console.print()
 
     except Exception as e:
-        console.print(f"[red]✗ Connection failed:[/red] {e}")
+        error_panel = Panel(
+            f"[red]{e!s}[/red]",
+            title="[bold red]❌ Connection Failed[/bold red]",
+            style="red",
+        )
+        console.print(error_panel)
         logger.error(f"Connection test failed: {e}", exc_info=True)
         sys.exit(1)
 
     # Save configuration
     _save_to_env(provider_id, api_key)
-    console.print("[green]✓ Configuration saved to ~/.vectora/.env[/green]\n")
 
-    # Launch chat
-    console.print("[bold]Launching Vectora Chat...[/bold]\n")
+    save_panel = Panel(
+        f"[green]✓ Configuration saved[/green]\n[dim]Location: ~/.vectora/.env[/dim]",
+        title="[bold]Setup Complete[/bold]",
+        style="green",
+        expand=False,
+    )
+    console.print(save_panel)
+    console.print()
+
+    # Transition to chat
+    console.print(Rule("[bold cyan]Launching Vectora Chat[/bold cyan]", style="cyan"))
+    console.print()
 
     # Import and run chat
     from chat import run_chat
