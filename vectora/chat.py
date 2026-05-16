@@ -64,14 +64,31 @@ class SafeConsole(Console):
             if args:
                 import re
                 import sys
+                from io import StringIO
 
-                # Extract text from renderables if possible
-                text = str(args[0])
+                # Try to render the renderable to plain text
+                try:
+                    # Create a temporary non-file console to extract text
+                    temp_buffer = StringIO()
+                    temp_console = Console(
+                        file=temp_buffer,
+                        force_terminal=False,
+                        width=120,
+                    )
+                    temp_console.print(args[0], **kwargs)
+                    text = temp_buffer.getvalue().rstrip("\n")
+                except Exception:
+                    # If that fails, just convert to string
+                    text = str(args[0])
+
                 # Remove rich markup tags for cleaner output
                 text = re.sub(r"\[/?[^\]]*\]", "", text)
                 # Write directly to stdout buffer with UTF-8 encoding
                 # This bypasses the console's cp1252 encoding on Windows
-                sys.stdout.buffer.write((text + "\n").encode("utf-8", errors="replace"))
+                if text:
+                    sys.stdout.buffer.write(
+                        (text + "\n").encode("utf-8", errors="replace")
+                    )
 
 
 # Configure console for Windows compatibility
