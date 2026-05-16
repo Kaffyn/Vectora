@@ -1,7 +1,7 @@
 """Chat Application Launcher.
 
-Entry point for starting the interactive Textual chat interface.
-Initializes graph, checkpointer, and message loop.
+Entry point for starting the interactive chat interface.
+Initializes directories, loads configuration, and starts the chat loop.
 """
 
 import asyncio
@@ -9,16 +9,20 @@ import os
 
 
 async def _run_chat_async() -> None:
-    """Lógica assíncrona principal da TUI."""
+    """Main async logic for chat initialization and execution."""
     import sys
     from pathlib import Path
 
     from dotenv import load_dotenv
+    from initialization import ensure_vectora_initialized
 
-    # Carregar .env automaticamente antes de tudo
-    # Procura em: .env (local), ~/.vectora/.env (global)
-    load_dotenv()  # Carrega .env da CWD
-    load_dotenv(Path.home() / ".vectora" / ".env")  # Carrega config global
+    # Ensure Vectora home directory structure is initialized
+    ensure_vectora_initialized()
+
+    # Load .env automatically before everything
+    # Search in: .env (local), ~/.vectora/.env (global)
+    load_dotenv()  # Load .env from CWD
+    load_dotenv(Path.home() / ".vectora" / ".env")  # Load global config
 
     # Adicionar vectora ao PYTHONPATH para imports internos funcionarem
     vectora_dir = Path(__file__).parent
