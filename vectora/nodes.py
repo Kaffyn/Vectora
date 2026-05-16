@@ -173,6 +173,7 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
 
     # LangSmith tracing é auto-injetado via env vars (LANGSMITH_API_KEY, etc)
     response_content = ""
+    tool_calls_collected = []
     with nullcontext():
         # LangSmith automatically captures duration, tokens, and model info
         # Use astream() to get complete messages without the event overhead
@@ -180,7 +181,7 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
         async for chunk in llm_with_tools.astream(
             messages_with_system,
         ):
-            # astream() returns AIMessage chunks with partial content
+            # astream() returns AIMessage chunks with partial content and tool_calls
             if hasattr(chunk, "content") and chunk.content:
                 # Handle content as string or list of content blocks
                 content = chunk.content
@@ -198,8 +199,15 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
                 else:
                     response_content += str(content)
 
-    # Create AIMessage from collected response
-    result = AIMessage(content=response_content)
+            # Capture tool_calls from chunks (may accumulate across multiple chunks)
+            if hasattr(chunk, "tool_calls") and chunk.tool_calls:
+                tool_calls_collected = chunk.tool_calls
+
+    # Create AIMessage from collected response, preserving tool_calls
+    result = AIMessage(
+        content=response_content,
+        tool_calls=tool_calls_collected if tool_calls_collected else None,
+    )
 
     logger.debug(
         "Resposta do LLM gerada",
