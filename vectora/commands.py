@@ -312,8 +312,10 @@ async def _handle_new_session(context: Any, console: Any) -> Any:
     # Generate new thread_id by finding the max existing and adding 1
     new_thread_id = (context.thread_id or 1) + 1
 
-    # Create new context with the new thread_id
-    new_context = Context(user_type="default", thread_id=new_thread_id)
+    # Create new context preserving user_type from previous context
+    new_context = Context(
+        user_type=context.user_type or "default", thread_id=new_thread_id
+    )
 
     console.print(
         SuccessPanel.render(
@@ -378,8 +380,10 @@ async def _handle_switch_session(args: str, context: Any, console: Any) -> Any:
         new_thread_id = int(args.strip())
         old_thread_id = context.thread_id
 
-        # Create new context with the specified thread_id
-        new_context = Context(user_type="default", thread_id=new_thread_id)
+        # Create new context preserving user_type from current context
+        new_context = Context(
+            user_type=context.user_type or "default", thread_id=new_thread_id
+        )
 
         console.print(
             SuccessPanel.render(

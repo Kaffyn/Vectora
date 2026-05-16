@@ -137,6 +137,24 @@ class Config:
             return "ollama"
         return None
 
+    def get_llm_model(self) -> str | None:
+        """Get the configured LLM model for the current provider."""
+        provider = self.get_llm_provider()
+        if not provider:
+            return None
+
+        model_env_map = {
+            "google-genai": "GOOGLE_MODEL",
+            "openai": "OPENAI_MODEL",
+            "anthropic": "ANTHROPIC_MODEL",
+            "ollama": "OLLAMA_MODEL",
+        }
+
+        env_var = model_env_map.get(provider)
+        if env_var:
+            return self.get(env_var)
+        return None
+
     def get_available_providers(self) -> list[str]:
         """Retorna lista de provedores com API keys configuradas."""
         available = []

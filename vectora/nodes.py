@@ -89,9 +89,17 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     else:
         user_type = ctx.user_type
 
-    # Usar configuração baseada no provedor real do config
-    model_provider = "google-genai"  # Use o provedor padrão do config
-    model = "gemini-3.1-flash-lite"  # Use o modelo padrão do config
+    # Ler configuração do modelo dinamicamente (permite /model command)
+    from config import Config
+
+    config = Config.instance()
+    model_provider = config.get_llm_provider() or "google-genai"
+    model_name = config.get_llm_model() or "gemini-3.1-flash-lite"
+
+    logger.debug(
+        "LLM configuration loaded",
+        extra={"provider": model_provider, "model": model_name},
+    )
 
     # Obtém LLM em cache com ferramentas (vinculado uma vez, reutilizado por invocação)
     # Don't use with_config() as it leaks configurable dict to model kwargs
