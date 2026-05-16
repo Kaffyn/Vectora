@@ -1,11 +1,25 @@
-"""Rich CLI Chat Interface for Vectora - Enhanced with Rich Features."""
+"""Rich CLI Chat Interface for Vectora.
+
+Implements a simple command-line chat interface using Rich for formatted output.
+No Textual TUI - pure CLI with streaming message rendering.
+
+Features:
+    - Real-time message display with Rich formatting
+    - Conversation history loading and persistence
+    - Message audit with markdown export
+    - Background embedding worker integration
+    - Simple command-based interface (/sair, /quit, /q to exit)
+"""
 
 import asyncio
 import logging
-from collections.abc import Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from background_worker import get_background_worker
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 from checkpointer import Checkpointer
 from context import Context
 from graph import build_graph
@@ -81,7 +95,7 @@ async def _export_audit(
         log_dir.mkdir(parents=True, exist_ok=True)
         audit_file = log_dir / "session_audit.md"
 
-        with open(audit_file, "w", encoding="utf-8") as f:
+        with audit_file.open("w", encoding="utf-8") as f:
             f.write(f"# Session Audit - {len(messages)} messages\n\n")
             for i, msg in enumerate(messages, 1):
                 role = "**User**" if isinstance(msg, HumanMessage) else "**Vectora**"

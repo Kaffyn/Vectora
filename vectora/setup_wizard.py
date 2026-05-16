@@ -135,11 +135,10 @@ def _save_to_env(provider_id: str, api_key: str | None = None) -> None:
     logger.info("Configuration saved to .env", extra={"file": str(env_file)})
 
 
-async def run_setup() -> None:
-    """Run the setup wizard flow with enhanced Rich formatting."""
+async def _display_welcome() -> None:
+    """Display welcome banner and provider table."""
     console = Console()
 
-    # Welcome banner
     welcome_panel = Panel(
         "[bold cyan]🚀 Vectora Setup Wizard[/bold cyan]\n"
         "[dim]Configure your LLM provider and test the connection[/dim]",
@@ -151,9 +150,7 @@ async def run_setup() -> None:
         "\n[cyan]Welcome to Vectora![/cyan] Let's set up your AI assistant.\n"
     )
 
-    # Provider selection with table
     console.print("[bold]Available LLM Providers:[/bold]\n")
-
     table = Table(show_header=True, header_style="bold cyan")
     table.add_column("#", style="dim")
     table.add_column("Provider", style="bold")
@@ -165,11 +162,17 @@ async def run_setup() -> None:
     console.print(table)
     console.print()
 
-    # Get provider choice with validation
+
+async def _select_provider() -> tuple[str, dict[str, str]]:
+    """Get user's provider selection and return provider info."""
+    console = Console()
     provider_choice = None
+
     while provider_choice not in PROVIDERS:
-        choice_input = input(
-            "\n[bold cyan]Select a provider (1-4):[/bold cyan] "
+        choice_input = (
+            await asyncio.to_thread(
+                input, "\n[bold cyan]Select a provider (1-4):[/bold cyan] "
+            )
         ).strip()
         if choice_input in PROVIDERS:
             provider_choice = choice_input
@@ -177,13 +180,9 @@ async def run_setup() -> None:
             console.print("[red]❌ Invalid choice. Please select 1-4.[/red]")
 
     provider_info = PROVIDERS[provider_choice]
-    provider_id = provider_info["provider_id"]
-    provider_name = provider_info["name"]
-    model_name = provider_info["model"]
-
-    # Confirmation
     selection_panel = Panel(
-        f"[bold cyan]{provider_name}[/bold cyan]\n[dim]Model: {model_name}[/dim]",
+        f"[bold cyan]{provider_info['name']}[/bold cyan]\n"
+        f"[dim]Model: {provider_info['model']}[/dim]",
         title="[green]✓ Selected[/green]",
         style="green",
         expand=False,
@@ -191,49 +190,61 @@ async def run_setup() -> None:
     console.print(selection_panel)
     console.print()
 
-    # Get API key (if needed)
-    api_key = None
-    if provider_id != "ollama":
-        info_panel = Panel(
-            f"[cyan]{provider_info['url']}[/cyan]",
-            title="[bold]API Key Location[/bold]",
-            style="blue",
+    return provider_choice, provider_info
+
+
+async def _get_api_key(provider_info: dict[str, str]) -> str:
+    """Get and validate API key for the selected provider."""
+    console = Console()
+    provider_id = provider_info["provider_id"]
+    provider_name = provider_info["name"]
+
+    if provider_id == "ollama":
+        return ""
+
+    info_panel = Panel(
+        f"[cyan]{provider_info['url']}[/cyan]",
+        title="[bold]API Key Location[/bold]",
+        style="blue",
+        expand=False,
+    )
+    console.print(info_panel)
+    console.print()
+
+    api_key = getpass.getpass(
+        f"[bold cyan]Enter {provider_name} API key (hidden):[/bold cyan] "
+    ).strip()
+
+    if not api_key:
+        error_panel = Panel(
+            "[red]API key is required for this provider.[/red]",
+            title="[bold red]❌ Error[/bold red]",
+            style="red",
             expand=False,
         )
-        console.print(info_panel)
-        console.print()
+        console.print(error_panel)
+        sys.exit(1)
 
-        api_key = getpass.getpass(
-            f"[bold cyan]Enter {provider_name} API key (hidden):[/bold cyan] "
-        ).strip()
+    return api_key
 
-        if not api_key:
-            error_panel = Panel(
-                "[red]API key is required for this provider.[/red]",
-                title="[bold red]❌ Error[/bold red]",
-                style="red",
-                expand=False,
-            )
-            console.print(error_panel)
-            sys.exit(1)
 
-    # Test connection with visual feedback
+async def _test_connection(provider_id: str, api_key: str | None) -> None:
+    """Test LLM connection and save configuration on success."""
+    console = Console()
     console.print("\n[bold]Testing connection...[/bold]\n")
 
     try:
         llm = _load_llm_for_test(provider_id, api_key)
 
-        # Create a test task
-        async def _test_connection() -> str:
+        async def _test_llm() -> str:
             """Test LLM connection asynchronously."""
             return await llm.ainvoke("Say 'Connected!' in one word.")
 
-        # Run test with spinner
         with console.status(
             "[bold cyan]Connecting to LLM... This may take a moment[/bold cyan]",
             spinner="dots",
         ):
-            response = await _test_connection()
+            response = await _test_llm()
 
         success_panel = Panel(
             f"[green]✓ Connection successful![/green]\n"
@@ -252,14 +263,17 @@ async def run_setup() -> None:
             style="red",
         )
         console.print(error_panel)
-        logger.error(f"Connection test failed: {e}", exc_info=True)
+        logger.exception(f"Connection test failed: {e}")
         sys.exit(1)
 
-    # Save configuration
+
+async def _finalize_setup(provider_id: str, api_key: str | None) -> None:
+    """Save configuration and launch chat."""
+    console = Console()
     _save_to_env(provider_id, api_key)
 
     save_panel = Panel(
-        f"[green]✓ Configuration saved[/green]\n[dim]Location: ~/.vectora/.env[/dim]",
+        "[green]✓ Configuration saved[/green]\n[dim]Location: ~/.vectora/.env[/dim]",
         title="[bold]Setup Complete[/bold]",
         style="green",
         expand=False,
@@ -267,14 +281,23 @@ async def run_setup() -> None:
     console.print(save_panel)
     console.print()
 
-    # Transition to chat
     console.print(Rule("[bold cyan]Launching Vectora Chat[/bold cyan]", style="cyan"))
     console.print()
 
-    # Import and run chat
     from chat import run_chat
 
     await run_chat()
+
+
+async def run_setup() -> None:
+    """Run the setup wizard flow with enhanced Rich formatting."""
+    await _display_welcome()
+
+    _, provider_info = await _select_provider()
+    provider_id = provider_info["provider_id"]
+    api_key = await _get_api_key(provider_info)
+    await _test_connection(provider_id, api_key)
+    await _finalize_setup(provider_id, api_key)
 
 
 def run_setup_sync() -> None:
