@@ -36,6 +36,19 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Cache Python dependencies
+        uses: actions/cache@v4
+        id: cache-venv
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
+
+      - name: Sync dependencies (if cache miss)
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+        run: uv sync --frozen --all-extras
+
   lint:
     name: Lint & Format Check
     runs-on: ubuntu-latest
@@ -54,8 +67,13 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Sync dependencies
-        run: uv sync --frozen --all-extras
+      - name: Restore Python dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
 
       - name: Run Ruff check
         run: uv run ruff check src tests
@@ -78,8 +96,13 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Sync dependencies
-        run: uv sync --frozen --all-extras
+      - name: Restore Python dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
 
       - name: Verify package structure
         run: |
@@ -104,6 +127,14 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Restore Python dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
+
       - name: Create .env from Secrets
         run: |
           cat <<'EOF' > .env
@@ -115,9 +146,6 @@ jobs:
           ENABLE_WEB_SEARCH=false
           ENABLE_WEB_FETCH=false
           EOF
-
-      - name: Sync dependencies
-        run: uv sync --frozen --all-extras
 
       - name: Run unit tests
         run: uv run pytest tests/ -v --cov=src --cov-report=xml
@@ -145,6 +173,14 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Restore Python dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
+
       - name: Create .env from Secrets
         run: |
           cat <<'EOF' > .env
@@ -156,9 +192,6 @@ jobs:
           ENABLE_WEB_SEARCH=false
           ENABLE_WEB_FETCH=false
           EOF
-
-      - name: Sync dependencies
-        run: uv sync --frozen --all-extras
 
       - name: Run MCP Integration Tests
         run: uv run pytest tests/e2e/test_mcp_resources.py tests/e2e/test_mcp_server_routes.py -v --tb=short
@@ -184,8 +217,13 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Sync dependencies
-        run: uv sync --frozen --all-extras
+      - name: Restore Python dependencies cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
 
       - name: Check for vulnerable dependencies
         run: |
