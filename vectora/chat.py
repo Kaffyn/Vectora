@@ -50,7 +50,34 @@ from state import State
 from utils import async_lifespan
 
 logger = logging.getLogger(__name__)
-console = Console()
+
+
+class SafeConsole(Console):
+    """Console wrapper that gracefully handles Unicode encoding errors on Windows."""
+
+    def print(self, *args, **kwargs):
+        """Print with fallback to plain text if encoding fails."""
+        try:
+            super().print(*args, **kwargs)
+        except UnicodeEncodeError:
+            # Fallback: print plain text without rich formatting using UTF-8 binary output
+            if args:
+                import re
+                import sys
+
+                # Extract text from renderables if possible
+                text = str(args[0])
+                # Remove rich markup tags for cleaner output
+                text = re.sub(r"\[/?[^\]]*\]", "", text)
+                # Write directly to stdout buffer with UTF-8 encoding
+                # This bypasses the console's cp1252 encoding on Windows
+                sys.stdout.buffer.write((text + "\n").encode("utf-8", errors="replace"))
+
+
+# Configure console for Windows compatibility
+import sys
+
+console = SafeConsole()
 
 
 async def _export_audit(

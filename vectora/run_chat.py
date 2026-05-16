@@ -56,6 +56,8 @@ def run_chat() -> None:
 
     Wrapper síncrono que executa a lógica assíncrona via asyncio.run().
     """
+    # Force UTF-8 encoding on Windows for proper console output
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
     asyncio.run(_run_chat_async())
 
 
