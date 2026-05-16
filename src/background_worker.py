@@ -15,16 +15,22 @@ import logging
 import traceback
 from typing import Any
 
+from pydantic import SecretStr
+
 try:
     import lancedb
-    import pyarrow as pa
-    from langchain_voyageai import VoyageAIEmbeddings
-    from pydantic import SecretStr
 except ImportError:
     lancedb = None
+
+try:
+    import pyarrow as pa
+except ImportError:
     pa = None
+
+try:
+    from langchain_voyageai import VoyageAIEmbeddings
+except ImportError:
     VoyageAIEmbeddings = None
-    SecretStr = None
 
 from embedding_queue import EmbeddingQueueRecord, get_embedding_queue
 from tool_config import ToolConfig, get_tool_config
