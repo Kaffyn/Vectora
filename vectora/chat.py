@@ -250,8 +250,9 @@ async def chat_loop(
     # Initialize dashboard
     layout = VectoraLayout()
 
-    # Split layout if Debug Mode is enabled
-    if debug_mode and log_queue is not None:
+    # Set up debug mode if enabled
+    if debug_mode:
+        _setup_debug_mode()
         layout.split_with_debug(log_queue)
 
     status_panel = VectoraStatusPanel(console)
