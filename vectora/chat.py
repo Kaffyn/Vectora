@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 
 from background_worker import get_background_worker
 from checkpointer import Checkpointer
+from commands import handle_command
 from constants import DB_DSN
 from context import Context
 from graph import build_graph
@@ -192,10 +193,13 @@ async def chat_loop(
         try:
             user_input = prompt.ask("[bold cyan]You[/bold cyan]")
 
-            if user_input.lower() in ["/sair", "/quit", "/q"]:
-                logger.info("Chat ended by user")
-                console.print("\n[yellow]👋 Goodbye![/yellow]")
-                break
+            # Handle system commands (/, /model, /help, etc)
+            if user_input.startswith("/"):
+                should_exit = await handle_command(user_input, config, console)
+                if should_exit:
+                    console.print("\n[yellow]👋 Goodbye![/yellow]")
+                    break
+                continue
 
             if not user_input.strip():
                 continue
