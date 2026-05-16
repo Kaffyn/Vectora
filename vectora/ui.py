@@ -288,58 +288,26 @@ class WelcomeScreen:
 
     @staticmethod
     def render(provider: str = "unset", model: str = "unknown") -> Panel:
-        """Render welcome screen with complete command list."""
+        """Render welcome screen with command reference."""
         welcome_text = f"""
 [bold cyan]Welcome to Vectora![/bold cyan]
 
-[yellow]Provider:[/yellow] [bold]{provider}[/bold]
-[yellow]Model:[/yellow] [bold]{model}[/bold]
+[yellow]Provider:[/yellow] {provider}  |  [yellow]Model:[/yellow] {model}
 
-[bold cyan]Available Commands:[/bold cyan]
+[bold cyan]📋 Available Commands:[/bold cyan]
 
-[bold]/model[/bold]
-  List available models for current provider
-  Usage: [dim]/model[/dim]
+[bold green]/list[/bold green]         [cyan]Show ALL commands with help[/cyan]
+[bold green]/tools[/bold green]        [cyan]List available tools[/cyan]
+[bold green]/model[/bold green]        [cyan]List/switch models[/cyan]
+[bold green]/debug[/bold green]        [cyan]Toggle debug mode[/cyan]
+[bold green]/new[/bold green]          [cyan]Create new session[/cyan]
+[bold green]/session <id>[/bold green] [cyan]Switch session[/cyan]
+[bold green]/help[/bold green]         [cyan]Quick help[/cyan]
+[bold green]/quit[/bold green]         [cyan]Exit chat[/cyan]
 
-[bold]/model <model_name>[/bold]
-  Switch to a different model
-  Usage: [dim]/model gemini-2.5-flash[/dim]
+[dim]Type [bold green]/list[/bold green] for complete command documentation[/dim]
 
-[bold]/debug[/bold]
-  Toggle debug mode (shows logs from all components)
-  Usage: [dim]/debug[/dim]
-
-[bold]/debug true|false[/bold]
-  Enable or disable debug mode
-  Usage: [dim]/debug true[/dim] or [dim]/debug false[/dim]
-
-[bold]/tools[/bold] or [bold]/tool[/bold]
-  List all available tools
-  Usage: [dim]/tools[/dim]
-
-[bold]/new[/bold]
-  Create a new chat session
-  Usage: [dim]/new[/dim]
-
-[bold]/sessions[/bold]
-  List all available sessions
-  Usage: [dim]/sessions[/dim]
-
-[bold]/session <id>[/bold]
-  Switch to a specific session by ID
-  Usage: [dim]/session 1[/dim]
-
-[bold]/list[/bold]
-  Show this list of all available commands
-  Usage: [dim]/list[/dim]
-
-[bold]/quit[/bold], [bold]/sair[/bold], [bold]/q[/bold]
-  Exit the chat
-
-[bold]/help[/bold]
-  Show basic help message
-
-[green][OK] Ready to chat![/green]
+[green]✓ Ready to chat![/green]
 """
         return Panel(welcome_text, title="[bold cyan][ROCKET] Vectora Chat[/bold cyan]")
 
