@@ -52,7 +52,7 @@ def load_llm() -> BaseLanguageModel:
         model = cast(
             "BaseLanguageModel",
             init_chat_model(
-                model=_get_env_with_default("GOOGLE_MODEL", "gemini-3.0-flash"),
+                model=_get_env_with_default("GOOGLE_MODEL", "gemini-2.5-flash"),
                 model_provider="google-genai",
                 api_key=get_env("GOOGLE_API_KEY"),
                 temperature=temperature,

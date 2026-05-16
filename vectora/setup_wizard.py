@@ -46,7 +46,7 @@ PROVIDERS = {
         "provider_id": "anthropic",
         "env_var": "ANTHROPIC_API_KEY",
         "url": "https://console.anthropic.com/",
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "claude-3-5-sonnet",
     },
     "4": {
         "name": "Ollama (Local)",
@@ -100,7 +100,7 @@ def _load_llm_for_test(provider_id: str, api_key: str | None = None) -> Any:
             raise ValueError(msg)
         return ChatAnthropic(
             api_key=api_key,
-            model="claude-3-5-sonnet-20241022",
+            model="claude-3-5-sonnet",
         )
     if provider_id == "ollama":
         from langchain_ollama import ChatOllama

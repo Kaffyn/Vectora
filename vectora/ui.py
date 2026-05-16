@@ -215,7 +215,7 @@ class ChatMessage:
         markdown = Markdown(self.content)
         return Panel(
             markdown,
-            title="[bold magenta][BOT] Vectora[/bold magenta]",
+            title="[bold magenta][Vectora][/bold magenta]",
             style="magenta",
             expand=False,
             border_style="magenta",
@@ -251,7 +251,7 @@ class AuditPanel:
             content_preview = (
                 msg.content[:50] + "..." if len(msg.content) > 50 else msg.content
             )
-            role_emoji = "[USER]" if msg.role.lower() == "user" else "[BOT]"
+            role_emoji = "[USER]" if msg.role.lower() == "user" else "[Vectora]"
             table.add_row(str(i), f"{role_emoji} {msg.role}", content_preview)
 
         return Panel(

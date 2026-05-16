@@ -42,7 +42,7 @@ O Vectora suporta múltiplos provedores de LLM. Recomendamos **Google Gemini** (
 
 | Provider          | API Key                                                       | Modelo Padrão    | Recomendação               |
 | ----------------- | ------------------------------------------------------------- | ---------------- | -------------------------- |
-| **Google Gemini** | [Obter gratuitamente](https://aistudio.google.com/app/apikey) | gemini-3.0-flash | ✅ Recomendado (free tier) |
+| **Google Gemini** | [Obter gratuitamente](https://aistudio.google.com/app/apikey) | gemini-2.5-flash | ✅ Recomendado (free tier) |
 | **Ollama**        | Nenhuma (local)                                               | gpt-oss:20b      | Local sem custos           |
 | **OpenAI**        | [Obter aqui](https://platform.openai.com/api-keys)            | gpt-4o           | Pago                       |
 | **Anthropic**     | [Obter aqui](https://console.anthropic.com/)                  | claude-opus-4-1  | Pago                       |
