@@ -2,10 +2,7 @@
   "mcpServers": {
     "Vectora-MCP": {
       "command": "uv",
-      "args": ["run", "vectora-mcp"],
-      "env": {
-        "PATH": "/usr/local/bin:/usr/bin:/bin"
-      }
+      "args": ["run", "--project", "/path/to/vectora", "vectora-mcp"]
     }
   }
 }
