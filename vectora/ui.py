@@ -288,18 +288,56 @@ class WelcomeScreen:
 
     @staticmethod
     def render(provider: str = "unset", model: str = "unknown") -> Panel:
-        """Render welcome screen."""
+        """Render welcome screen with complete command list."""
         welcome_text = f"""
 [bold cyan]Welcome to Vectora![/bold cyan]
 
 [yellow]Provider:[/yellow] [bold]{provider}[/bold]
 [yellow]Model:[/yellow] [bold]{model}[/bold]
 
-[dim]Commands:[/dim]
-  [cyan]/sair[/cyan]  - Exit the chat
-  [cyan]/quit[/cyan]  - Exit the chat
-  [cyan]/q[/cyan]     - Exit the chat
-  [cyan]Ctrl+C[/cyan] - Interrupt current operation
+[bold cyan]Available Commands:[/bold cyan]
+
+[bold]/model[/bold]
+  List available models for current provider
+  Usage: [dim]/model[/dim]
+
+[bold]/model <model_name>[/bold]
+  Switch to a different model
+  Usage: [dim]/model gemini-2.5-flash[/dim]
+
+[bold]/debug[/bold]
+  Toggle debug mode (shows logs from all components)
+  Usage: [dim]/debug[/dim]
+
+[bold]/debug true|false[/bold]
+  Enable or disable debug mode
+  Usage: [dim]/debug true[/dim] or [dim]/debug false[/dim]
+
+[bold]/tools[/bold] or [bold]/tool[/bold]
+  List all available tools
+  Usage: [dim]/tools[/dim]
+
+[bold]/new[/bold]
+  Create a new chat session
+  Usage: [dim]/new[/dim]
+
+[bold]/sessions[/bold]
+  List all available sessions
+  Usage: [dim]/sessions[/dim]
+
+[bold]/session <id>[/bold]
+  Switch to a specific session by ID
+  Usage: [dim]/session 1[/dim]
+
+[bold]/list[/bold]
+  Show this list of all available commands
+  Usage: [dim]/list[/dim]
+
+[bold]/quit[/bold], [bold]/sair[/bold], [bold]/q[/bold]
+  Exit the chat
+
+[bold]/help[/bold]
+  Show basic help message
 
 [green][OK] Ready to chat![/green]
 """
