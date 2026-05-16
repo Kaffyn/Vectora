@@ -218,16 +218,32 @@ async def chat_loop(
     provider: str = "unset",
 ) -> None:
     """Rich Gorda chat loop with dashboard layout and live rendering."""
-    # Detect Debug Mode
-    debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
+    # Initialize Debug Mode (default: disabled, can be toggled with /debug command)
+    debug_mode = False
     log_queue: Queue | None = None
     log_panel_obj: LogPanel | None = None
 
-    if debug_mode:
+    def _setup_debug_mode() -> None:
+        """Set up debug mode components (queue and panel)."""
+        nonlocal log_queue, log_panel_obj
         log_queue = Queue()
         setup_queue_handler(log_queue)
         log_panel_obj = LogPanel(log_queue, max_lines=15)
         logger.info("🔧 Debug Mode enabled - God-Mode dashboard active")
+
+    def _teardown_debug_mode() -> None:
+        """Clean up debug mode components."""
+        nonlocal log_queue, log_panel_obj
+        if log_queue is not None:
+            # Drain the queue to prevent lingering handler
+            try:
+                while not log_queue.empty():
+                    log_queue.get_nowait()
+            except Exception:
+                pass
+        log_queue = None
+        log_panel_obj = None
+        logger.info("Debug Mode disabled")
 
     # Initialize dashboard
     layout = VectoraLayout()
@@ -298,12 +314,46 @@ async def chat_loop(
 
             # Handle system commands (/, /model, /help, etc)
             if user_input.startswith("/"):
-                should_exit, context = await handle_command(
-                    user_input, config, console, context
+                should_exit, context, debug_mode = await handle_command(
+                    user_input, config, console, context, debug_mode
                 )
                 if should_exit:
                     console.print("\n[yellow][WAVE] Goodbye![/yellow]")
                     break
+
+                # Handle debug mode changes
+                old_debug_mode = log_queue is not None
+                if debug_mode and not old_debug_mode:
+                    # Debug mode was enabled
+                    _setup_debug_mode()
+                    main_layout = layout.get_main_layout()
+                    layout.split_with_debug(log_queue)
+                elif not debug_mode and old_debug_mode:
+                    # Debug mode was disabled
+                    _teardown_debug_mode()
+                    layout = VectoraLayout()
+                    main_layout = layout.get_main_layout()
+                    main_layout["header"].update(
+                        Panel(
+                            f"[bold cyan][ROCKET] Vectora v{__version__}[/bold cyan] | "
+                            f"[yellow]Provider: {provider}[/yellow] | "
+                            f"[magenta]Thread: {context.thread_id}[/magenta] | "
+                            f"[green]Messages: {len(audit.messages)}[/green]",
+                            style="blue",
+                            expand=False,
+                        )
+                    )
+                    main_layout["body"].update(audit.render())
+                    main_layout["footer"].update(
+                        Panel(
+                            f"[green]*[/green] Background Worker | "
+                            f"[cyan]Embedding Queue: 0[/cyan] | "
+                            f"[yellow]RAG: Ready[/yellow]",
+                            style="dim",
+                            expand=False,
+                        )
+                    )
+                    console.print(layout.render())
 
                 # If context changed (new session), reset audit and update config
                 if context.thread_id != current_thread_id:

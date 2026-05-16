@@ -59,7 +59,8 @@ async def handle_command(
     config: Config,
     console: Any,
     context: Any = None,
-) -> tuple[bool, Any]:
+    debug_mode: bool = False,
+) -> tuple[bool, Any, bool]:
     """Process system commands.
 
     Args:
@@ -67,9 +68,10 @@ async def handle_command(
         config: Config instance for reading/writing settings
         console: Rich console for output
         context: Context object that may be modified by commands
+        debug_mode: Current debug mode state
 
     Returns:
-        Tuple of (should_exit, updated_context)
+        Tuple of (should_exit, updated_context, debug_mode)
     """
     parts = user_input.split(maxsplit=1)
     cmd = parts[0].lower()
@@ -77,13 +79,16 @@ async def handle_command(
 
     if cmd == "/quit" or cmd == "/sair" or cmd == "/q":
         logger.info(f"Chat ended by command: {cmd}")
-        return True, context
+        return True, context, debug_mode
 
     elif cmd == "/model":
         await _handle_model_command(args, config, console)
 
     elif cmd == "/help":
         _display_help(console)
+
+    elif cmd == "/debug":
+        debug_mode = await _handle_debug_command(args, console, debug_mode)
 
     elif cmd == "/new":
         context = await _handle_new_session(context, console)
@@ -97,7 +102,70 @@ async def handle_command(
     else:
         console.print(f"[dim][red]Unknown command:[/red] {cmd}[/dim]")
 
-    return False, context
+    return False, context, debug_mode
+
+
+async def _handle_debug_command(
+    args: str,
+    console: Any,
+    current_debug_mode: bool,
+) -> bool:
+    """Handle /debug command for toggling debug mode.
+
+    Args:
+        args: Arguments after /debug (empty to toggle, "true"/"false" to set)
+        console: Rich console for output
+        current_debug_mode: Current debug mode state
+
+    Returns:
+        New debug mode state
+    """
+    args = args.strip().lower()
+
+    if not args:
+        # Toggle mode
+        new_debug_mode = not current_debug_mode
+        console.print(
+            SuccessPanel.render(
+                f"Debug Mode toggled: {new_debug_mode}",
+                title="Debug Mode",
+            )
+        )
+        logger.info(f"Debug mode toggled to: {new_debug_mode}")
+        return new_debug_mode
+
+    elif args == "true" or args == "on" or args == "yes":
+        if current_debug_mode:
+            console.print("[yellow]Debug Mode is already enabled[/yellow]")
+            return current_debug_mode
+        console.print(
+            SuccessPanel.render(
+                "Debug Mode enabled",
+                title="Debug Mode",
+            )
+        )
+        logger.info("Debug mode enabled")
+        return True
+
+    elif args == "false" or args == "off" or args == "no":
+        if not current_debug_mode:
+            console.print("[yellow]Debug Mode is already disabled[/yellow]")
+            return current_debug_mode
+        console.print(
+            SuccessPanel.render(
+                "Debug Mode disabled",
+                title="Debug Mode",
+            )
+        )
+        logger.info("Debug mode disabled")
+        return False
+
+    else:
+        console.print(
+            f"[red]Invalid argument: {args}[/red]\n"
+            "[dim]Usage: /debug [true|false] or /debug to toggle[/dim]"
+        )
+        return current_debug_mode
 
 
 async def _handle_model_command(
@@ -297,6 +365,14 @@ def _display_help(console: Any) -> None:
 [bold]/model <model_name>[/bold]
   Switch to a different model
   Usage: [dim]/model gemini-2.5-flash[/dim]
+
+[bold]/debug[/bold]
+  Toggle debug mode (shows logs from all components)
+  Usage: [dim]/debug[/dim]
+
+[bold]/debug true|false[/bold]
+  Enable or disable debug mode
+  Usage: [dim]/debug true[/dim] or [dim]/debug false[/dim]
 
 [bold]/new[/bold]
   Create a new chat session
