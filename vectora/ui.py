@@ -2,10 +2,12 @@
 
 Advanced visual components using Rich for a professional, real-time CLI experience.
 Includes layouts, status indicators, panels, and live rendering capabilities.
+Features Debug Mode with real-time log panel for production monitoring.
 """
 
 from datetime import datetime
 from pathlib import Path
+from queue import Queue
 from typing import Any
 
 from rich.console import Console
@@ -72,6 +74,92 @@ class VectoraLayout:
     def render(self) -> Layout:
         """Return the layout for rendering."""
         return self.layout
+
+    def split_with_debug(self, log_queue: Queue) -> Layout:
+        """Return layout with debug panel in right sidebar (Debug Mode)."""
+        self.layout.split_column(
+            Layout(name="main"),
+            Layout(name="debug", size=40),
+        )
+        self.layout["main"].split_column(
+            Layout(name="header", size=4),
+            Layout(name="body"),
+            Layout(name="footer", size=3),
+        )
+        return self.layout
+
+    def get_main_layout(self) -> Layout:
+        """Get the main layout area (for use in split mode)."""
+        return self.layout["main"]
+
+    def update_debug_panel(self, log_panel: Panel) -> None:
+        """Update debug panel with log data."""
+        if "debug" in self.layout.children:
+            self.layout["debug"].update(log_panel)
+
+
+class LogPanel:
+    """Real-time log display panel for Debug Mode."""
+
+    def __init__(self, log_queue: Queue, max_lines: int = 20) -> None:
+        """Initialize log panel.
+
+        Args:
+            log_queue: Queue containing log records
+            max_lines: Maximum lines to display (circular buffer)
+        """
+        self.log_queue = log_queue
+        self.max_lines = max_lines
+        self.logs: list[tuple[str, str]] = []  # (level, message) tuples
+
+    def _get_log_color(self, level: str) -> str:
+        """Get color for log level."""
+        level_colors = {
+            "DEBUG": "cyan",
+            "INFO": "green",
+            "WARNING": "yellow",
+            "ERROR": "red",
+            "CRITICAL": "bold red",
+        }
+        return level_colors.get(level, "white")
+
+    def update_logs(self) -> None:
+        """Pull new logs from queue (non-blocking)."""
+        while not self.log_queue.empty():
+            try:
+                record = self.log_queue.get_nowait()
+                level = record.levelname
+                message = record.getMessage()
+                self.logs.append((level, message))
+
+                # Keep only the last N lines
+                if len(self.logs) > self.max_lines:
+                    self.logs.pop(0)
+            except Exception:
+                break
+
+    def render(self) -> Panel:
+        """Render log panel as styled table."""
+        self.update_logs()
+
+        table = Table(show_header=False, box=None, padding=(0, 1))
+
+        if not self.logs:
+            table.add_row("[dim]No logs yet...[/dim]")
+        else:
+            # Show most recent logs at the bottom
+            for level, message in self.logs[-self.max_lines :]:
+                color = self._get_log_color(level)
+                level_badge = f"[{color}][{level:7}][/{color}]"
+                table.add_row(f"{level_badge} {message}")
+
+        return Panel(
+            table,
+            title="[bold cyan]⚙️ DEBUG LOGS[/bold cyan]",
+            style="cyan",
+            expand=True,
+            border_style="cyan",
+        )
 
 
 class VectoraStatusPanel:

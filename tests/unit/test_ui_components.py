@@ -1,7 +1,9 @@
 """Tests for Rich UI components - "Rich Gorda" dashboard."""
 
+import logging
 from datetime import datetime
 from pathlib import Path
+from queue import Queue
 
 import pytest
 from rich.console import Console
@@ -10,6 +12,7 @@ from vectora.ui import (
     AuditPanel,
     ChatMessage,
     ErrorPanel,
+    LogPanel,
     ProgressIndicator,
     SeparatorLine,
     SuccessPanel,
@@ -268,3 +271,146 @@ class TestProgressIndicator:
         indicator = progress.stream_indicator()
         assert indicator is not None
         assert "▌" in str(indicator)
+
+
+class TestLogPanel:
+    """Test LogPanel for Debug Mode."""
+
+    def test_log_panel_creation(self):
+        """Test creating a log panel."""
+        log_queue = Queue()
+        log_panel = LogPanel(log_queue, max_lines=10)
+        assert log_panel.log_queue is not None
+        assert log_panel.max_lines == 10
+        assert len(log_panel.logs) == 0
+
+    def test_log_panel_render_empty(self):
+        """Test rendering empty log panel."""
+        log_queue = Queue()
+        log_panel = LogPanel(log_queue)
+        panel = log_panel.render()
+        assert panel is not None
+        assert hasattr(panel, "title")
+
+    def test_log_panel_with_log_record(self):
+        """Test adding log records to panel."""
+        log_queue = Queue()
+        log_panel = LogPanel(log_queue, max_lines=5)
+
+        # Create a log record and put it in the queue
+        record = logging.LogRecord(
+            name="test.logger",
+            level=logging.INFO,
+            pathname="test.py",
+            lineno=1,
+            msg="Test log message",
+            args=(),
+            exc_info=None,
+        )
+        log_queue.put(record)
+
+        # Update and render
+        log_panel.update_logs()
+        assert len(log_panel.logs) == 1
+        assert log_panel.logs[0][0] == "INFO"
+        assert log_panel.logs[0][1] == "Test log message"
+
+    def test_log_panel_circular_buffer(self):
+        """Test that log panel maintains max lines."""
+        log_queue = Queue()
+        log_panel = LogPanel(log_queue, max_lines=3)
+
+        # Add 5 log records
+        for i in range(5):
+            record = logging.LogRecord(
+                name="test.logger",
+                level=logging.INFO,
+                pathname="test.py",
+                lineno=i,
+                msg=f"Message {i}",
+                args=(),
+                exc_info=None,
+            )
+            log_queue.put(record)
+
+        log_panel.update_logs()
+
+        # Should only have 3 most recent logs
+        assert len(log_panel.logs) == 3
+        assert log_panel.logs[0][1] == "Message 2"
+        assert log_panel.logs[2][1] == "Message 4"
+
+    def test_log_panel_color_levels(self):
+        """Test log level coloring."""
+        log_queue = Queue()
+        log_panel = LogPanel(log_queue)
+
+        assert log_panel._get_log_color("DEBUG") == "cyan"
+        assert log_panel._get_log_color("INFO") == "green"
+        assert log_panel._get_log_color("WARNING") == "yellow"
+        assert log_panel._get_log_color("ERROR") == "red"
+        assert log_panel._get_log_color("CRITICAL") == "bold red"
+
+    def test_log_panel_render_with_logs(self):
+        """Test rendering panel with log entries."""
+        log_queue = Queue()
+        log_panel = LogPanel(log_queue)
+
+        for level in ["DEBUG", "INFO", "WARNING", "ERROR"]:
+            record = logging.LogRecord(
+                name="test",
+                level=getattr(logging, level),
+                pathname="test.py",
+                lineno=1,
+                msg=f"Test {level}",
+                args=(),
+                exc_info=None,
+            )
+            log_queue.put(record)
+
+        log_panel.update_logs()
+        panel = log_panel.render()
+        assert panel is not None
+
+
+class TestVectoraLayoutDebugMode:
+    """Test VectoraLayout debug mode functionality."""
+
+    def test_split_with_debug(self):
+        """Test creating debug split layout."""
+        layout = VectoraLayout()
+        log_queue = Queue()
+        layout.split_with_debug(log_queue)
+
+        # Verify debug layout was created by checking child names
+        child_names = [child.name for child in layout.layout.children]
+        assert "debug" in child_names
+        assert "main" in child_names
+
+    def test_get_main_layout(self):
+        """Test getting main layout from split."""
+        layout = VectoraLayout()
+        log_queue = Queue()
+        layout.split_with_debug(log_queue)
+
+        main = layout.get_main_layout()
+        assert main is not None
+        # Verify the main layout has the expected structure
+        main_child_names = [child.name for child in main.children]
+        assert "header" in main_child_names
+        assert "body" in main_child_names
+        assert "footer" in main_child_names
+
+    def test_update_debug_panel(self):
+        """Test updating debug panel."""
+        layout = VectoraLayout()
+        log_queue = Queue()
+        layout.split_with_debug(log_queue)
+
+        from rich.panel import Panel
+
+        debug_panel = Panel("Test content")
+        layout.update_debug_panel(debug_panel)
+
+        # Should not raise exception
+        assert layout is not None

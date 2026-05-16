@@ -10,11 +10,14 @@ Features:
     - Live audit panel with conversation history
     - Conversation export to markdown files
     - Professional error and success panels
+    - Debug Mode with real-time log monitoring (God-Mode dashboard)
 """
 
 import asyncio
 import logging
+import os
 from pathlib import Path
+from queue import Queue
 from typing import TYPE_CHECKING
 
 from background_worker import get_background_worker
@@ -25,6 +28,7 @@ from graph import build_graph
 from ui import (
     AuditPanel,
     ChatMessage,
+    LogPanel,
     SeparatorLine,
     VectoraLayout,
     VectoraStatusPanel,
@@ -35,7 +39,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
-from log_setup import setup_logging
+from log_setup import setup_logging, setup_queue_handler
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
@@ -122,8 +126,24 @@ async def chat_loop(
     provider: str = "unset",
 ) -> None:
     """Rich Gorda chat loop with dashboard layout and live rendering."""
+    # Detect Debug Mode
+    debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
+    log_queue: Queue | None = None
+    log_panel_obj: LogPanel | None = None
+
+    if debug_mode:
+        log_queue = Queue()
+        setup_queue_handler(log_queue)
+        log_panel_obj = LogPanel(log_queue, max_lines=15)
+        logger.info("🔧 Debug Mode enabled - God-Mode dashboard active")
+
     # Initialize dashboard
     layout = VectoraLayout()
+
+    # Split layout if Debug Mode is enabled
+    if debug_mode and log_queue is not None:
+        layout.split_with_debug(log_queue)
+
     status_panel = VectoraStatusPanel(console)
     audit = AuditPanel(max_visible=3)
     config = RunnableConfig(configurable={"thread_id": context.thread_id})
@@ -131,10 +151,35 @@ async def chat_loop(
     # Load prior messages
     message_count = await _load_prior_messages(graph, context, audit)
 
-    # Show welcome screen
-    layout.update_header(provider=provider, message_count=message_count)
-    layout.update_body(WelcomeScreen.render(provider=provider))
-    layout.update_footer()
+    # Update header and body based on mode
+    if debug_mode:
+        main_layout = layout.get_main_layout()
+        main_layout["header"].update(
+            Panel(
+                f"[bold cyan]🚀 Vectora v0.1.0[/bold cyan] | "
+                f"[yellow]Provider: {provider}[/yellow] | "
+                f"[magenta]Thread: {context.thread_id}[/magenta] | "
+                f"[green]Messages: {message_count}[/green] | "
+                f"[cyan]🔧 DEBUG MODE[/cyan]",
+                style="blue",
+                expand=False,
+            )
+        )
+        main_layout["body"].update(WelcomeScreen.render(provider=provider))
+        main_layout["footer"].update(
+            Panel(
+                f"[green]●[/green] Background Worker | "
+                f"[cyan]Embedding Queue: 0[/cyan] | "
+                f"[yellow]RAG: Ready[/yellow]",
+                style="dim",
+                expand=False,
+            )
+        )
+    else:
+        layout.update_header(provider=provider, message_count=message_count)
+        layout.update_body(WelcomeScreen.render(provider=provider))
+        layout.update_footer()
+
     console.print(layout.render())
     console.print()
 
@@ -158,10 +203,40 @@ async def chat_loop(
             await _process_user_turn(user_input, graph, config, audit, status_panel)
 
             # Update display
-            layout.update_header(provider=provider, message_count=len(audit.messages))
-            console.print(audit.render())
-            layout.update_footer(embedding_queue=0, worker_active=True)
-            console.print(SeparatorLine())
+            if debug_mode:
+                main_layout = layout.get_main_layout()
+                main_layout["header"].update(
+                    Panel(
+                        f"[bold cyan]🚀 Vectora v0.1.0[/bold cyan] | "
+                        f"[yellow]Provider: {provider}[/yellow] | "
+                        f"[magenta]Thread: {context.thread_id}[/magenta] | "
+                        f"[green]Messages: {len(audit.messages)}[/green] | "
+                        f"[cyan]🔧 DEBUG MODE[/cyan]",
+                        style="blue",
+                        expand=False,
+                    )
+                )
+                main_layout["body"].update(audit.render())
+                main_layout["footer"].update(
+                    Panel(
+                        f"[green]●[/green] Background Worker | "
+                        f"[cyan]Embedding Queue: 0[/cyan] | "
+                        f"[yellow]RAG: Ready[/yellow]",
+                        style="dim",
+                        expand=False,
+                    )
+                )
+                # Update debug panel with latest logs
+                if log_panel_obj:
+                    layout.update_debug_panel(log_panel_obj.render())
+                console.print(layout.render())
+            else:
+                layout.update_header(
+                    provider=provider, message_count=len(audit.messages)
+                )
+                console.print(audit.render())
+                layout.update_footer(embedding_queue=0, worker_active=True)
+                console.print(SeparatorLine())
 
         except KeyboardInterrupt:
             logger.info("Chat interrupted by user")

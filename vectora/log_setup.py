@@ -2,13 +2,16 @@
 
 Sets up structured JSON logging with correlation IDs for production observability.
 Supports multiple log levels, file rotation, and console output.
+Includes QueueHandler for real-time UI log streaming in Debug Mode.
 """
 
 import json
 import logging
+import logging.handlers
 import os
 from datetime import UTC, datetime
 from pathlib import Path
+from queue import Queue
 from typing import Any
 
 
@@ -111,3 +114,24 @@ def setup_logging(
         handler_file.setFormatter(formatter_json)
         handler_file.setLevel(getattr(logging, log_level))
         root_logger.addHandler(handler_file)
+
+
+def setup_queue_handler(log_queue: Queue) -> None:
+    """
+    Add a QueueHandler to the root logger for Debug Mode UI streaming.
+
+    This allows the UI to consume logs in real-time via the queue.
+    Each log record is formatted as {level, logger, message, timestamp}.
+
+    Args:
+        log_queue: A queue.Queue instance to receive log records
+    """
+    root_logger = logging.getLogger()
+
+    handler_queue = logging.handlers.QueueHandler(log_queue)
+    formatter_text = TextFormatter(
+        fmt="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    handler_queue.setFormatter(formatter_text)
+    root_logger.addHandler(handler_queue)
