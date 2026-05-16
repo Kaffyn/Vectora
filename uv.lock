@@ -548,6 +548,15 @@ wheels = [
 ]
 
 [[package]]
+name = "dotfiles"
+version = "0.6.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/0b/e8ee1bf71d9ec4e65106dae462ecca05077a5a0d6b60ef6dc289f901702e/dotfiles-0.6.5.tar.gz", hash = "sha256:7e47bc94d8f262db3a708ace34015de6bdb0025a56a8985dfaeb0500f08ee49e", size = 18424, upload-time = "2024-07-25T12:20:04.321Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a4/50/6c884676f4ed950aa0a6d59262990aa79ea4f0851d81519c6fe8dc06de60/dotfiles-0.6.5-py2.py3-none-any.whl", hash = "sha256:368ccb6f7c724086cbc575078549a3a591d9f980ef070b609fbffd349518c86b", size = 14029, upload-time = "2024-07-25T12:20:02.542Z" },
+]
+
+[[package]]
 name = "ffmpeg-python"
 version = "0.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2779,6 +2788,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
     { name = "deepagents" },
+    { name = "dotfiles" },
     { name = "lancedb" },
     { name = "langchain" },
     { name = "langchain-community" },
@@ -2820,6 +2830,7 @@ requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20.0" },
     { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7.5" },
     { name = "deepagents", specifier = ">=0.6.1" },
+    { name = "dotfiles", specifier = ">=0.6.5" },
     { name = "lancedb", specifier = ">=0.14.0" },
     { name = "langchain", specifier = ">=0.3.0" },
     { name = "langchain-community", specifier = ">=0.3.0" },

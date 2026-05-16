@@ -13,6 +13,13 @@ async def _run_chat_async() -> None:
     import sys
     from pathlib import Path
 
+    from dotenv import load_dotenv
+
+    # Carregar .env automaticamente antes de tudo
+    # Procura em: .env (local), ~/.vectora/.env (global)
+    load_dotenv()  # Carrega .env da CWD
+    load_dotenv(Path.home() / ".vectora" / ".env")  # Carrega config global
+
     # Adicionar vectora ao PYTHONPATH para imports internos funcionarem
     vectora_dir = Path(__file__).parent
     if str(vectora_dir) not in sys.path:

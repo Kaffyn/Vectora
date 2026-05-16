@@ -324,6 +324,68 @@ class VectoraChatApp(App[Any]):
         yield Footer()
 
 
+async def _export_message_audit(
+    graph: CompiledStateGraph[State, Context, State, State],
+    checkpointer: Checkpointer,
+) -> None:
+    """Export and display full message audit for verification.
+
+    Extracts all messages from the latest checkpoint and formats them
+    for human-readable auditing: system, human, tool, AI messages.
+    """
+    try:
+        # Get all thread IDs from checkpointer
+        all_tuples = list(checkpointer._get_all_history())
+
+        if not all_tuples:
+            logger.info("No messages to audit")
+            return
+
+        # Get latest checkpoint
+        latest_thread_id = all_tuples[-1][0]
+        config = RunnableConfig(configurable={"thread_id": latest_thread_id})
+
+        # Extract state
+        state_snapshot = await graph.aget_state(config)
+        messages: Sequence[BaseMessage] = state_snapshot.values.get("messages", [])
+
+        if not messages:
+            logger.info("No messages in final state")
+            return
+
+        # Format audit output
+        print("\n" + "=" * 80)
+        print("📋 MESSAGE AUDIT - Vectora Chat Session")
+        print("=" * 80)
+
+        for i, msg in enumerate(messages, 1):
+            msg_type = type(msg).__name__
+            print(f"\n[{i}] {msg_type}")
+            print("-" * 40)
+
+            if hasattr(msg, "content"):
+                content = msg.content
+                if isinstance(content, str):
+                    print(f"Content: {content[:500]}")
+                    if len(content) > 500:
+                        print(f"... (+{len(content) - 500} chars)")
+                else:
+                    print(f"Content: {content}")
+
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                print(f"Tool Calls: {msg.tool_calls}")
+
+            if hasattr(msg, "name"):
+                print(f"Name: {msg.name}")
+
+        print("\n" + "=" * 80)
+        print(f"✓ Total Messages: {len(messages)}")
+        print("=" * 80 + "\n")
+
+    except Exception as e:
+        logger.warning(f"Could not export message audit: {e}")
+
+
 async def run_chat() -> None:
     """Inicializa recursos assíncronos e executa o chat TUI.
 
@@ -352,7 +414,11 @@ async def run_chat() -> None:
             await app.run_async()
         finally:
             # Graceful shutdown do worker
-            await worker.stop(timeout=30)
+            await worker.stop(timeout_seconds=30)
+
+            # Audit: Extract and display full message history
+            await _export_message_audit(graph, checkpointer)
+
             logger.info("Vectora Chat TUI ended")
 
 
