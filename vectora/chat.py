@@ -78,7 +78,12 @@ async def _load_prior_messages(
     audit: AuditPanel,
 ) -> int:
     """Load prior messages from checkpointer into audit."""
-    config = RunnableConfig(configurable={"thread_id": context.thread_id})
+    config = RunnableConfig(
+        configurable={
+            "thread_id": context.thread_id,
+            "context": context,
+        }
+    )
     try:
         state = await graph.aget_state(config)
         prior_messages = state.values.get("messages", [])
@@ -148,7 +153,13 @@ async def chat_loop(
 
     status_panel = VectoraStatusPanel(console)
     audit = AuditPanel(max_visible=3)
-    config = RunnableConfig(configurable={"thread_id": context.thread_id})
+    # Injetar contexto no configurable para que os nós possam acessá-lo
+    config = RunnableConfig(
+        configurable={
+            "thread_id": context.thread_id,
+            "context": context,
+        }
+    )
 
     # Load prior messages
     message_count = await _load_prior_messages(graph, context, audit)
@@ -191,7 +202,7 @@ async def chat_loop(
 
     while True:
         try:
-            user_input = prompt.ask("[bold cyan]You[/bold cyan]")
+            user_input = prompt.ask("[bold cyan]You: [/bold cyan]")
 
             # Handle system commands (/, /model, /help, etc)
             if user_input.startswith("/"):

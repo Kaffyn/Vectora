@@ -206,7 +206,7 @@ class ChatMessage:
         if self.role.lower() == "user":
             return Panel(
                 self.content,
-                title="[bold cyan]👤 You[/bold cyan]",
+                title="[bold cyan]👤 You: [/bold cyan]",
                 style="cyan",
                 expand=False,
                 border_style="cyan",

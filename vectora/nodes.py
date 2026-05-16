@@ -48,11 +48,17 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     sem exigir todos os campos do State TypedDict.
     O retorno `{"messages": [result]}` faz append via reducer `add_messages`.
     """
+    # Defensivo: obter contexto do runtime com fallback
     ctx = runtime.context
-    user_type = ctx.user_type
+    if ctx is None:
+        logger.warning("Contexto não injetado - usando padrão")
+        user_type = "default"
+    else:
+        user_type = ctx.user_type
 
-    model_provider = "ollama"
-    model = "gpt-oss:20b" if user_type == "plus" else "qwen3-coder:30b"
+    # Usar configuração baseada no provedor real do config
+    model_provider = "google-genai"  # Use o provedor padrão do config
+    model = "gemini-2.0-flash"  # Use o modelo padrão do config
 
     # Obtém LLM em cache com ferramentas (vinculado uma vez, reutilizado por invocação)
     llm_with_tools = _get_llm_with_tools()
