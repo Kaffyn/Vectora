@@ -326,33 +326,16 @@ async def chat_loop(
                 if debug_mode and not old_debug_mode:
                     # Debug mode was enabled
                     _setup_debug_mode()
-                    main_layout = layout.get_main_layout()
                     layout.split_with_debug(log_queue)
                 elif not debug_mode and old_debug_mode:
                     # Debug mode was disabled
                     _teardown_debug_mode()
                     layout = VectoraLayout()
-                    main_layout = layout.get_main_layout()
-                    main_layout["header"].update(
-                        Panel(
-                            f"[bold cyan][ROCKET] Vectora v{__version__}[/bold cyan] | "
-                            f"[yellow]Provider: {provider}[/yellow] | "
-                            f"[magenta]Thread: {context.thread_id}[/magenta] | "
-                            f"[green]Messages: {len(audit.messages)}[/green]",
-                            style="blue",
-                            expand=False,
-                        )
+                    layout.update_header(
+                        provider=provider, message_count=len(audit.messages)
                     )
-                    main_layout["body"].update(audit.render())
-                    main_layout["footer"].update(
-                        Panel(
-                            f"[green]*[/green] Background Worker | "
-                            f"[cyan]Embedding Queue: 0[/cyan] | "
-                            f"[yellow]RAG: Ready[/yellow]",
-                            style="dim",
-                            expand=False,
-                        )
-                    )
+                    layout.update_body(audit.render())
+                    layout.update_footer(embedding_queue=0, worker_active=True)
                     console.print(layout.render())
 
                 # If context changed (new session), reset audit and update config
