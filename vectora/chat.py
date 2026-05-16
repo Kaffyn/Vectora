@@ -58,15 +58,21 @@ async def _export_audit(
 ) -> None:
     """Display and save final message audit with rich formatting."""
     try:
+        # Clear terminal
+        import os
+
+        os.system("cls" if os.name == "nt" else "clear")
+
         console.print("\n")
         console.print(SeparatorLine.render("[LIST] SESSION AUDIT"))
 
-        # Display the audit table
-        console.print(audit_panel.render())
+        # Display audit messages using chat format
+        for role, content in audit_panel.messages:
+            console.print(ChatMessage(role, content).to_panel())
 
         # Save to file
         audit_file = audit_panel.save_to_file()
-        console.print(f"[green][OK] Audit saved to[/green] [dim]{audit_file}[/dim]")
+        console.print(f"\n[green][OK] Audit saved to[/green] [dim]{audit_file}[/dim]")
 
     except Exception as e:
         logger.warning(f"Audit failed: {e}")
@@ -271,7 +277,6 @@ async def chat_loop(
                 layout.update_header(
                     provider=provider, message_count=len(audit.messages)
                 )
-                console.print(audit.render())
                 layout.update_footer(embedding_queue=0, worker_active=True)
                 console.print(SeparatorLine.render())
 
