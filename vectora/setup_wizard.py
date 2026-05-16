@@ -140,7 +140,7 @@ async def _display_welcome() -> None:
     console = Console()
 
     welcome_panel = Panel(
-        "[bold cyan]🚀 Vectora Setup Wizard[/bold cyan]\n"
+        "[bold cyan][ROCKET] Vectora Setup Wizard[/bold cyan]\n"
         "[dim]Configure your LLM provider and test the connection[/dim]",
         style="bold blue",
         expand=False,
@@ -177,13 +177,13 @@ async def _select_provider() -> tuple[str, dict[str, str]]:
         if choice_input in PROVIDERS:
             provider_choice = choice_input
         else:
-            console.print("[red]❌ Invalid choice. Please select 1-4.[/red]")
+            console.print("[red][X] Invalid choice. Please select 1-4.[/red]")
 
     provider_info = PROVIDERS[provider_choice]
     selection_panel = Panel(
         f"[bold cyan]{provider_info['name']}[/bold cyan]\n"
         f"[dim]Model: {provider_info['model']}[/dim]",
-        title="[green]✓ Selected[/green]",
+        title="[green][OK] Selected[/green]",
         style="green",
         expand=False,
     )
@@ -218,7 +218,7 @@ async def _get_api_key(provider_info: dict[str, str]) -> str:
     if not api_key:
         error_panel = Panel(
             "[red]API key is required for this provider.[/red]",
-            title="[bold red]❌ Error[/bold red]",
+            title="[bold red][X] Error[/bold red]",
             style="red",
             expand=False,
         )
@@ -247,7 +247,7 @@ async def _test_connection(provider_id: str, api_key: str | None) -> None:
             response = await _test_llm()
 
         success_panel = Panel(
-            f"[green]✓ Connection successful![/green]\n"
+            f"[green][OK] Connection successful![/green]\n"
             f"[cyan]Response: {response.content}[/cyan]",
             title="[bold green]Connection Test[/bold green]",
             style="green",
@@ -259,7 +259,7 @@ async def _test_connection(provider_id: str, api_key: str | None) -> None:
     except Exception as e:
         error_panel = Panel(
             f"[red]{e!s}[/red]",
-            title="[bold red]❌ Connection Failed[/bold red]",
+            title="[bold red][X] Connection Failed[/bold red]",
             style="red",
         )
         console.print(error_panel)
@@ -273,7 +273,7 @@ async def _finalize_setup(provider_id: str, api_key: str | None) -> None:
     _save_to_env(provider_id, api_key)
 
     save_panel = Panel(
-        "[green]✓ Configuration saved[/green]\n[dim]Location: ~/.vectora/.env[/dim]",
+        "[green][OK] Configuration saved[/green]\n[dim]Location: ~/.vectora/.env[/dim]",
         title="[bold]Setup Complete[/bold]",
         style="green",
         expand=False,

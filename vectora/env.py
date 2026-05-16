@@ -17,7 +17,7 @@ class VoyageAIMissingError(GetEnvError):
     def __init__(self) -> None:
         msg = (
             "\n"
-            "❌ ERRO: Vectora depende 100% do Voyage AI para funcionar\n"
+            "[X] ERRO: Vectora depende 100% do Voyage AI para funcionar\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             "Vectora utiliza Voyage AI para:\n"
             "  • Embedding (gerar vetores dos documentos)\n"

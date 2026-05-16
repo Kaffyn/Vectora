@@ -59,14 +59,14 @@ async def _export_audit(
     """Display and save final message audit with rich formatting."""
     try:
         console.print("\n")
-        console.print(SeparatorLine("📋 SESSION AUDIT"))
+        console.print(SeparatorLine("[LIST] SESSION AUDIT"))
 
         # Display the audit table
         console.print(audit_panel.render())
 
         # Save to file
         audit_file = audit_panel.save_to_file()
-        console.print(f"[green]✓ Audit saved to[/green] [dim]{audit_file}[/dim]")
+        console.print(f"[green][OK] Audit saved to[/green] [dim]{audit_file}[/dim]")
 
     except Exception as e:
         logger.warning(f"Audit failed: {e}")
@@ -169,7 +169,7 @@ async def chat_loop(
         main_layout = layout.get_main_layout()
         main_layout["header"].update(
             Panel(
-                f"[bold cyan]🚀 Vectora v{__version__}[/bold cyan] | "
+                f"[bold cyan][ROCKET] Vectora v{__version__}[/bold cyan] | "
                 f"[yellow]Provider: {provider}[/yellow] | "
                 f"[magenta]Thread: {context.thread_id}[/magenta] | "
                 f"[green]Messages: {message_count}[/green] | "
@@ -181,7 +181,7 @@ async def chat_loop(
         main_layout["body"].update(WelcomeScreen.render(provider=provider))
         main_layout["footer"].update(
             Panel(
-                f"[green]●[/green] Background Worker | "
+                f"[green]*[/green] Background Worker | "
                 f"[cyan]Embedding Queue: 0[/cyan] | "
                 f"[yellow]RAG: Ready[/yellow]",
                 style="dim",
@@ -208,7 +208,7 @@ async def chat_loop(
             if user_input.startswith("/"):
                 should_exit = await handle_command(user_input, config, console)
                 if should_exit:
-                    console.print("\n[yellow]👋 Goodbye![/yellow]")
+                    console.print("\n[yellow][WAVE] Goodbye![/yellow]")
                     break
                 continue
 
@@ -223,7 +223,7 @@ async def chat_loop(
                 main_layout = layout.get_main_layout()
                 main_layout["header"].update(
                     Panel(
-                        f"[bold cyan]🚀 Vectora v{__version__}[/bold cyan] | "
+                        f"[bold cyan][ROCKET] Vectora v{__version__}[/bold cyan] | "
                         f"[yellow]Provider: {provider}[/yellow] | "
                         f"[magenta]Thread: {context.thread_id}[/magenta] | "
                         f"[green]Messages: {len(audit.messages)}[/green] | "
@@ -235,7 +235,7 @@ async def chat_loop(
                 main_layout["body"].update(audit.render())
                 main_layout["footer"].update(
                     Panel(
-                        f"[green]●[/green] Background Worker | "
+                        f"[green]*[/green] Background Worker | "
                         f"[cyan]Embedding Queue: 0[/cyan] | "
                         f"[yellow]RAG: Ready[/yellow]",
                         style="dim",
@@ -256,14 +256,14 @@ async def chat_loop(
 
         except KeyboardInterrupt:
             logger.info("Chat interrupted by user")
-            console.print("\n[yellow]⚠️ Chat interrupted[/yellow]")
+            console.print("\n[yellow][!] Chat interrupted[/yellow]")
             break
         except Exception as e:
             logger.exception("Chat error")
             console.print(
                 Panel(
                     f"[red]{e!s}[/red]",
-                    title="[bold red]❌ Error[/bold red]",
+                    title="[bold red][X] Error[/bold red]",
                     style="red",
                 )
             )
@@ -295,7 +295,7 @@ async def run_chat() -> None:
         worker = await get_background_worker()
         await worker.start()
 
-        console.print("[green]✓[/green] System initialized successfully\n")
+        console.print("[green][*][/green] System initialized successfully\n")
 
         # Get LLM provider from config
         provider = "unset"
@@ -314,7 +314,7 @@ async def run_chat() -> None:
         except Exception as e:
             error_panel = Panel(
                 f"[red]Critical error: {e!s}[/red]",
-                title="[bold red]❌ Fatal Error[/bold red]",
+                title="[bold red][X] Fatal Error[/bold red]",
                 style="red",
             )
             console.print(error_panel)

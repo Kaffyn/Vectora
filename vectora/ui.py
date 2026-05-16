@@ -45,7 +45,7 @@ class VectoraLayout:
     ) -> None:
         """Update header with session info."""
         header_text = (
-            f"[bold cyan]🚀 Vectora v{__version__}[/bold cyan] | "
+            f"[bold cyan][ROCKET] Vectora v{__version__}[/bold cyan] | "
             f"[yellow]Provider: {provider}[/yellow] | "
             f"[magenta]Thread: {thread_id}[/magenta] | "
             f"[green]Messages: {message_count}[/green]"
@@ -64,7 +64,7 @@ class VectoraLayout:
         worker_active: bool = False,
     ) -> None:
         """Update footer with background worker status."""
-        worker_indicator = "[green]●[/green]" if worker_active else "[dim]○[/dim]"
+        worker_indicator = "[green]*[/green]" if worker_active else "[dim]o[/dim]"
         footer_text = (
             f"{worker_indicator} Background Worker | "
             f"[cyan]Embedding Queue: {embedding_queue}[/cyan] | "
@@ -156,7 +156,7 @@ class LogPanel:
 
         return Panel(
             table,
-            title="[bold cyan]⚙️ DEBUG LOGS[/bold cyan]",
+            title="[bold cyan][GEAR] DEBUG LOGS[/bold cyan]",
             style="cyan",
             expand=True,
             border_style="cyan",
@@ -206,7 +206,7 @@ class ChatMessage:
         if self.role.lower() == "user":
             return Panel(
                 self.content,
-                title="[bold cyan]👤 You: [/bold cyan]",
+                title="[bold cyan][USER] You: [/bold cyan]",
                 style="cyan",
                 expand=False,
                 border_style="cyan",
@@ -215,7 +215,7 @@ class ChatMessage:
         markdown = Markdown(self.content)
         return Panel(
             markdown,
-            title="[bold magenta]🤖 Vectora[/bold magenta]",
+            title="[bold magenta][BOT] Vectora[/bold magenta]",
             style="magenta",
             expand=False,
             border_style="magenta",
@@ -251,12 +251,12 @@ class AuditPanel:
             content_preview = (
                 msg.content[:50] + "..." if len(msg.content) > 50 else msg.content
             )
-            role_emoji = "👤" if msg.role.lower() == "user" else "🤖"
+            role_emoji = "[USER]" if msg.role.lower() == "user" else "[BOT]"
             table.add_row(str(i), f"{role_emoji} {msg.role}", content_preview)
 
         return Panel(
             table,
-            title="[bold]📋 Recent Messages[/bold]",
+            title="[bold][LIST] Recent Messages[/bold]",
             style="green",
             expand=False,
         )
@@ -301,9 +301,9 @@ class WelcomeScreen:
   [cyan]/q[/cyan]     - Exit the chat
   [cyan]Ctrl+C[/cyan] - Interrupt current operation
 
-[green]✓ Ready to chat![/green]
+[green][OK] Ready to chat![/green]
 """
-        return Panel(welcome_text, title="[bold cyan]🚀 Vectora Chat[/bold cyan]")
+        return Panel(welcome_text, title="[bold cyan][ROCKET] Vectora Chat[/bold cyan]")
 
 
 class ProgressIndicator:
@@ -336,7 +336,7 @@ class ErrorPanel:
         error_text = str(error)
         return Panel(
             f"[red]{error_text}[/red]",
-            title=f"[bold red]❌ {title}[/bold red]",
+            title=f"[bold red][X] {title}[/bold red]",
             style="red",
             expand=False,
             border_style="red",
@@ -351,7 +351,7 @@ class SuccessPanel:
         """Render success as styled panel."""
         return Panel(
             f"[green]{message}[/green]",
-            title=f"[bold green]✓ {title}[/bold green]",
+            title=f"[bold green][OK] {title}[/bold green]",
             style="green",
             expand=False,
             border_style="green",

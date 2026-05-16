@@ -63,7 +63,7 @@ This is a critical optimization to minimize API calls and improve response speed
 
 **Example flows:**
 - User: "Research Next.js 16" → web_search (5 queries) → embedding (fire-and-forget) → respond
-- User (5 min later): "What about Next.js 16 performance?" → vector_search (on indexed docs) → answer immediately ✓ (NOT web_search)
+- User (5 min later): "What about Next.js 16 performance?" → vector_search (on indexed docs) → answer immediately [OK] (NOT web_search)
 - User: "Latest Next.js changes in 2025?" → vector_search (find indexed info) + web_search (latest updates) → merge results
 
 This pattern avoids redundant searches and keeps the knowledge base fresh and relevant.

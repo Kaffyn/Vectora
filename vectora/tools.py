@@ -671,7 +671,7 @@ def file_edit(file_path: str, old_text: str, new_text: str) -> str:
                 "new_len": len(new_text),
             },
         )
-        return "✓ File edited successfully"
+        return "[OK] File edited successfully"
     except Exception:
         logger.exception("file_edit failed", extra={"path": file_path})
         return "Error editing file. Check logs."
