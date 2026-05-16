@@ -31,6 +31,7 @@ from ui import (
     ChatMessage,
     LogPanel,
     SeparatorLine,
+    SuccessPanel,
     VectoraLayout,
     VectoraStatusPanel,
     WelcomeScreen,
@@ -239,6 +240,8 @@ async def chat_loop(
             "context": context,
         }
     )
+    # Track current thread_id to detect session changes
+    current_thread_id = context.thread_id
 
     # Load prior messages
     message_count = await _load_prior_messages(graph, context, audit)
@@ -298,7 +301,9 @@ async def chat_loop(
                     break
 
                 # If context changed (new session), reset audit and update config
-                if context.thread_id != config.configurable.get("thread_id"):
+                if context.thread_id != current_thread_id:
+                    old_thread_id = current_thread_id
+                    current_thread_id = context.thread_id
                     audit = AuditPanel(max_visible=3)
                     config = RunnableConfig(
                         configurable={
@@ -306,7 +311,16 @@ async def chat_loop(
                             "context": context,
                         }
                     )
-                    logger.info(f"Session switched to thread_id={context.thread_id}")
+                    console.print(
+                        SuccessPanel.render(
+                            f"Switched to session {context.thread_id} "
+                            f"(from {old_thread_id})",
+                            title="Session Switched",
+                        )
+                    )
+                    logger.info(
+                        f"Session switched: {old_thread_id} → {context.thread_id}"
+                    )
                 continue
 
             if not user_input.strip():
