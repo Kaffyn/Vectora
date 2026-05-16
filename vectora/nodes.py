@@ -153,32 +153,28 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     response_content = ""
     with nullcontext():
         # LangSmith automatically captures duration, tokens, and model info
-        # No need for manual timing—let the trace context handle metrics
-        # Create clean config to prevent LangGraph metadata from leaking to the model
-        clean_config = RunnableConfig(configurable={})
-        # Iterate async generator to collect streamed tokens
-        async for event in llm_with_tools.astream_events(
+        # Use astream() to get complete messages without the event overhead
+        # which may bypass some of the config leakage issues from astream_events()
+        async for chunk in llm_with_tools.astream(
             messages_with_system,
-            config=clean_config,
         ):
-            if event.get("event") == "on_chat_model_stream":
-                chunk = event.get("data", {}).get("chunk")
-                if chunk and hasattr(chunk, "content") and chunk.content:
-                    # Handle content as string or list of content blocks
-                    content = chunk.content
-                    if isinstance(content, list):
-                        # Extract text from content blocks
-                        for item in content:
-                            if isinstance(item, dict) and "text" in item:
-                                response_content += item["text"]
-                            elif isinstance(item, str):
-                                response_content += item
-                            else:
-                                response_content += str(item)
-                    elif isinstance(content, dict) and "text" in content:
-                        response_content += content["text"]
-                    else:
-                        response_content += str(content)
+            # astream() returns AIMessage chunks with partial content
+            if hasattr(chunk, "content") and chunk.content:
+                # Handle content as string or list of content blocks
+                content = chunk.content
+                if isinstance(content, list):
+                    # Extract text from content blocks
+                    for item in content:
+                        if isinstance(item, dict) and "text" in item:
+                            response_content += item["text"]
+                        elif isinstance(item, str):
+                            response_content += item
+                        else:
+                            response_content += str(item)
+                elif isinstance(content, dict) and "text" in content:
+                    response_content += content["text"]
+                else:
+                    response_content += str(content)
 
     # Create AIMessage from collected response
     result = AIMessage(content=response_content)
