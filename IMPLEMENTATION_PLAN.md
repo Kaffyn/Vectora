@@ -425,12 +425,17 @@ async def call_llm(state: State, config: RunnableConfig) -> dict:
 
 ## Phase 3: Rollout Timeline
 
-### Week 1: Foundation
+### Week 1: Foundation ✅ COMPLETED
 
-- [ ] Create `settings.py` (Pydantic)
-- [ ] Create `core/agent.py` (AgentManager)
-- [ ] Create service stubs (SessionService, EmbeddingService, etc.)
-- [ ] **Tests:** Unit test AgentManager in isolation
+- [x] Create `settings.py` (Pydantic) — 430+ lines, single source of truth
+- [x] Create `core/agent.py` (AgentManager) — 350+ lines, pure Python orchestrator
+- [x] Create service stubs:
+  - [x] `services/session.py` — SessionService (140 lines)
+  - [x] `services/embedding.py` — EmbeddingService (180 lines)
+  - [x] `services/telemetry.py` — TelemetryService (220 lines)
+  - [x] `services/security.py` — SecurityService (240 lines)
+- [x] Create module `__init__.py` files for clean imports
+- [x] **Status:** Architecture foundation complete, ready for Week 2 implementation
 
 ### Week 2: Services Implementation
 
