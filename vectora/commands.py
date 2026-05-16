@@ -18,29 +18,23 @@ logger = logging.getLogger(__name__)
 # Available models by LLM provider
 AVAILABLE_MODELS = {
     "google-genai": [
+        "gemini-3.1-flash-lite",
+        "gemini-3.1-flash-lite-preview",
+        "gemini-3.1-flash-image-preview",
+        "gemini-3.1-pro-preview",
         "gemini-3-flash-preview",
-        "gemini-2.0-flash",
-        "gemini-1.5-pro",
-        "gemini-1.5-flash",
+        "gemini-3-pro-image-preview",
     ],
     "openai": [
         "gpt-5.5",
         "gpt-5.4",
         "gpt-5.4-mini",
         "gpt-5.3-codex",
-        "gpt-4o",
-        "gpt-4-turbo",
     ],
     "anthropic": [
-        "claude-opus-4-1",
-        "claude-opus-4",
-        "claude-sonnet-4-1",
-        "claude-haiku-4-1",
-    ],
-    "ollama": [
-        "gpt-oss:20b",
-        "qwen3-coder:30b",
-        "llama2:latest",
+        "claude-3-5-sonnet-20241022",
+        "claude-3-opus-20240229",
+        "claude-3-haiku-20240307",
     ],
 }
 
@@ -193,7 +187,7 @@ def _display_help(console: Any) -> None:
 
 [bold]/model <model_name>[/bold]
   Switch to a different model
-  Usage: [dim]/model gemini-3-flash-preview[/dim]
+  Usage: [dim]/model gemini-2.5-flash[/dim]
 
 [bold]/quit[/bold], [bold]/sair[/bold], [bold]/q[/bold]
   Exit the chat

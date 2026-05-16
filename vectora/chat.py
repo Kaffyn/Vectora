@@ -120,10 +120,16 @@ async def _process_user_turn(
                     # Handle content as string or list of content blocks
                     content = chunk.content
                     if isinstance(content, list):
-                        # If content is list, join string representations
-                        response_content += "".join(
-                            str(c) if not isinstance(c, str) else c for c in content
-                        )
+                        # Extract text from content blocks
+                        for item in content:
+                            if isinstance(item, dict) and "text" in item:
+                                response_content += item["text"]
+                            elif isinstance(item, str):
+                                response_content += item
+                            else:
+                                response_content += str(item)
+                    elif isinstance(content, dict) and "text" in content:
+                        response_content += content["text"]
                     else:
                         response_content += str(content)
 
