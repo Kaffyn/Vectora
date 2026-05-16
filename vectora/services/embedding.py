@@ -13,6 +13,7 @@ Provides fire-and-forget pattern for document ingestion and vector persistence.
 
 import asyncio
 import logging
+from pathlib import Path
 from typing import Any
 
 try:
@@ -25,6 +26,7 @@ try:
 except ImportError:
     VoyageAIEmbeddings = None
 
+from ignore_validator import get_ignore_validator
 from settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -67,6 +69,9 @@ class EmbeddingService:
         # Retry configuration (exponential backoff)
         self.retry_backoff = [1, 2, 4]  # seconds
         self.max_retries = 3
+
+        # Ignore pattern validator (prevents embedding of secrets, node_modules, etc)
+        self.ignore_validator = get_ignore_validator()
 
         logger.debug("EmbeddingService initialized")
 
@@ -129,21 +134,46 @@ class EmbeddingService:
             logger.warning(f"Error stopping embedding worker: {e}")
 
     async def queue_document(
-        self, doc_id: str, text: str, collection: str = "documents"
-    ) -> None:
+        self,
+        doc_id: str,
+        text: str,
+        collection: str = "documents",
+        file_path: str | Path | None = None,
+    ) -> bool:
         """Queue document for embedding (fire-and-forget).
+
+        Validates that document respects .gitignore, .npmignore, .dockerignore, etc.
+        Rejects documents from ignored paths (node_modules, .env, secrets, etc).
 
         Args:
             doc_id: Unique document identifier
             text: Document text content
             collection: Vector collection name
+            file_path: Optional file path (used for ignore validation)
+
+        Returns:
+            True if document was queued, False if ignored/rejected
 
         Raises:
             RuntimeError: If queue is at capacity
         """
         if not self.worker_running:
             logger.warning("Worker not running, document not queued")
-            return
+            return False
+
+        # Validar contra ignore patterns se file_path foi fornecido
+        if file_path:
+            file_path_obj = Path(file_path)
+            if self.ignore_validator.should_ignore(file_path_obj):
+                logger.warning(
+                    "Document rejected: matches ignore pattern",
+                    extra={
+                        "doc_id": doc_id,
+                        "file_path": str(file_path_obj),
+                        "reason": "File matches .gitignore, .npmignore, or security patterns",
+                    },
+                )
+                return False
 
         try:
             # Placeholder implementation - in production would write to queue
@@ -154,10 +184,13 @@ class EmbeddingService:
                     "doc_id": doc_id,
                     "collection": collection,
                     "text_length": len(text),
+                    "file_path": str(file_path) if file_path else None,
                 },
             )
+            return True
         except Exception as e:
             logger.warning(f"Failed to queue document {doc_id}: {e}")
+            return False
 
     async def search(
         self, query: str, collection: str = "documents", limit: int = 5

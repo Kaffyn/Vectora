@@ -23,6 +23,17 @@ from utils import load_llm
 
 logger = logging.getLogger(__name__)
 
+
+def _simple_token_counter(messages: list) -> int:
+    """Simple token counter without requiring LLM initialization.
+
+    Estimates tokens as ~4 characters per token (rough approximation).
+    Avoids triggering lazy LLM initialization which causes config leakage.
+    """
+    total_length = sum(len(str(msg.content or "")) for msg in messages)
+    return total_length // 4
+
+
 tool_node = ToolNode(tools=TOOLS)
 
 # Inicializa LLM com ferramentas uma única vez no carregamento do módulo (não por invocação)
@@ -148,12 +159,14 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
         )
 
     # Gerencia o histórico de mensagens (sliding window) para evitar estouro de contexto
-    # Mantém as últimas mensagens até ~1000 tokens (estimado pelo modelo)
+    # Mantém as últimas mensagens até ~1000 tokens (estimado por contador simples)
+    # NÃO usar llm_with_tools como token_counter pois força inicialização lazy do LLM
+    # com argumentos inválidos do LangGraph (__pregel_*, thread_id, etc)
     trimmed_messages = trim_messages(
         state["messages"],
         max_tokens=1000,
         strategy="last",
-        token_counter=llm_with_tools,
+        token_counter=_simple_token_counter,
     )
 
     messages_with_system = [system_prompt, *memory_messages, *trimmed_messages]

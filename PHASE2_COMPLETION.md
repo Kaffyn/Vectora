@@ -402,7 +402,7 @@ All commits follow **Conventional Commits** format (feat:, refactor:, docs:, etc
 ## Contact & Attribution
 
 - **Phase 2 Implementation**: Claude (Anthropic)
-- **Project Lead**: Bruno Soares (@bssnem)
+- **Project Lead**: Bruno Soares
 - **Target Release**: June 2026 (PyPI)
 
 ---

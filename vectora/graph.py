@@ -11,8 +11,10 @@ from langgraph.constants import END, START
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 from langgraph.prebuilt.tool_node import tools_condition
 from langgraph.pregel.main import BaseCheckpointSaver
-from nodes import call_llm, handle_sub_node, process_retrieval, tool_node
+from nodes import handle_sub_node, process_retrieval
+from nodes_debug import DiagnosticToolNode, call_llm_debug
 from state import State
+from tools import TOOLS
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +37,11 @@ def build_graph(
         output_schema=State,
     )
 
-    builder.add_node("call_llm", call_llm)
-    builder.add_node("tools", tool_node)
+    # Create diagnostic nodes for debugging message loss
+    diagnostic_tool_node = DiagnosticToolNode(tools=TOOLS)
+
+    builder.add_node("call_llm", call_llm_debug)
+    builder.add_node("tools", diagnostic_tool_node)
     builder.add_node("process_retrieval", process_retrieval)
     builder.add_node("sub_node", handle_sub_node)
 
