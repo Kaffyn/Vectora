@@ -314,3 +314,4 @@ htmlcov/
 .coverage
 dist/
 build/
+/.tests
