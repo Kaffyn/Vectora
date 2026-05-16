@@ -13,6 +13,12 @@ on:
 
 permissions:
   contents: read
+  packages: write
+  id-token: write
+  pull-requests: read
+  checks: write
+  statuses: write
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
@@ -258,11 +264,10 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ghcr.io/${{ github.repository }}
           tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            latest
+            type=raw,value=latest
+            type=sha,format=long
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5

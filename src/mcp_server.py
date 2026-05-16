@@ -14,6 +14,11 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
+# Adicionar diretório corrente ao PYTHONPATH para imports internos funcionarem
+# quando executado como entry point via uv run vectora-mcp
+if str(Path(__file__).parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent))
+
 # Configuração de logging rigorosa: redireciona tudo para arquivo para não poluir o stdout (JSON-RPC)
 log_dir = Path("logs")
 log_dir.mkdir(exist_ok=True)

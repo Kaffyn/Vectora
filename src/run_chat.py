@@ -10,6 +10,14 @@ import os
 
 async def _run_chat_async() -> None:
     """Lógica assíncrona principal da TUI."""
+    import sys
+    from pathlib import Path
+
+    # Adicionar src ao PYTHONPATH para imports internos funcionarem
+    src_dir = Path(__file__).parent
+    if str(src_dir) not in sys.path:
+        sys.path.insert(0, str(src_dir))
+
     os.environ.setdefault("LOG_LEVEL", "INFO")
     os.environ.setdefault("LOG_JSON", "false")
 
