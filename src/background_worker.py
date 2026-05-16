@@ -58,6 +58,9 @@ class BackgroundEmbeddingWorker:
         self.running = False
         self.task: asyncio.Task[None] | None = None
         self.semaphore = asyncio.Semaphore(MAX_PARALLEL)
+        # Semaphore(1) para proteger escritas em LanceDB contra race conditions
+        # LanceDB não suporta múltiplas escritas simultâneas no mesmo diretório
+        self.lancedb_semaphore = asyncio.Semaphore(1)
 
     async def _get_queue(self) -> Any:
         """Obtém a queue (singleton lazy-loaded)."""
@@ -310,7 +313,9 @@ class BackgroundEmbeddingWorker:
             "metadata": record.doc_metadata or "{}",
         }
 
-        await table.add([doc])
+        # Protege escrita em LanceDB com semaphore(1) contra race conditions
+        async with self.lancedb_semaphore:
+            await table.add([doc])
 
         logger.debug(
             "lancedb_document_written",
