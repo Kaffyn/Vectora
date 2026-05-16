@@ -39,6 +39,7 @@ class SessionService:
         """
         self.settings = settings
         self.checkpointer: AsyncSqliteSaver | None = None
+        self._checkpointer_context = None  # Keep context manager alive
         self._session_cache: dict[int, dict] = {}  # In-memory cache
 
         logger.debug("SessionService initialized")
@@ -50,9 +51,11 @@ class SessionService:
         Sets up AsyncSqliteSaver with WAL mode.
         """
         try:
-            self.checkpointer = await AsyncSqliteSaver.from_conn_string(
+            # Create context manager and enter it (keep it alive during app lifetime)
+            self._checkpointer_context = AsyncSqliteSaver.from_conn_string(
                 self.settings.db_dsn
-            ).__aenter__()
+            )
+            self.checkpointer = await self._checkpointer_context.__aenter__()
 
             # Enable WAL mode for concurrent access
             await self.checkpointer.conn.execute("PRAGMA journal_mode=WAL;")
@@ -217,9 +220,12 @@ class SessionService:
 
         Called from AgentManager.shutdown().
         """
-        if self.checkpointer:
+        if self._checkpointer_context:
             try:
-                await self.checkpointer.__aexit__(None, None, None)
+                await self._checkpointer_context.__aexit__(None, None, None)
                 logger.info("SessionService: Database connection closed")
             except Exception as e:
                 logger.exception(f"Error closing database: {e}")
+
+        self.checkpointer = None
+        self._checkpointer_context = None
