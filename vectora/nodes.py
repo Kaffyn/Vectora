@@ -40,6 +40,39 @@ def _get_llm_with_tools() -> Runnable:
     return _llm_with_tools
 
 
+def _filter_llm_config(config: dict) -> dict:
+    """Remove metadados internos do LangGraph/LangChain que causam erros nos modelos.
+
+    O ChatGoogleGenerativeAI e outros modelos são estritamente tipados e
+    rejeitam argumentos desconhecidos. O LangGraph injeta variáveis de controle
+    internas (thread_id, __pregel_*, checkpoint_*) que não são parâmetros válidos
+    do modelo. Este filtro remove essas chaves, deixando apenas o que o LLM entende.
+
+    Args:
+        config: Dicionário configurable do RunnableConfig
+
+    Returns:
+        Dicionário filtrado sem metadados do LangGraph
+    """
+    # Lista de chaves que o LangGraph injeta e que causam "Unexpected argument" errors
+    blacklist = {
+        "thread_id",
+        "context",
+        "__pregel_runtime",
+        "__pregel_replay_state",
+        "__pregel_task_id",
+        "__pregel_send",
+        "__pregel_read",
+        "__pregel_checkpointer",
+        "checkpoint_map",
+        "checkpoint_id",
+        "checkpoint_ns",
+        "__pregel_scratchpad",
+        "__pregel_call",
+    }
+    return {k: v for k, v in config.items() if k not in blacklist}
+
+
 async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     """Nó principal: invoca o LLM com o histórico completo e ferramentas vinculadas.
 
@@ -85,7 +118,7 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     memory_messages: list[SystemMessage] = []
     try:
         memory_store = await get_memory_store()
-        user_id = ctx.thread_id or "default_user"
+        user_id = (ctx.thread_id if ctx else None) or "default_user"
         memories = await memory_store.get_all(user_id)
 
         if memories:
