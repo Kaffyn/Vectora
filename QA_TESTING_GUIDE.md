@@ -51,7 +51,7 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
 
 5. **Iniciar Vectora**
    ```bash
-   python src/run_chat.py
+   python vectora/run_chat.py
    ```
 
 ---
@@ -67,7 +67,7 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
 1. Inicie o Vectora:
 
    ```bash
-   python src/run_chat.py
+   python vectora/run_chat.py
    ```
 
 2. Digite este comando:
@@ -92,7 +92,7 @@ Executar 5 cenários de teste estruturados e reportar qualquer bug, travamento o
 
 - Salve um debug dump:
   ```bash
-  python -m src.debug_dump
+  python -m vectora.debug_dump
   ```
 - Copie o arquivo `vectora_debug_*.tar.gz` gerado
 
@@ -291,7 +291,7 @@ Quando encontrar um bug:
 
 ```bash
 # Comando para gerar dump
-python -c "import asyncio; from src.debug_dump import generate_debug_dump; asyncio.run(generate_debug_dump())"
+python -c "import asyncio; from vectora.debug_dump import generate_debug_dump; asyncio.run(generate_debug_dump())"
 
 # Ou se tiver CLI integrada
 vectora --debug-dump

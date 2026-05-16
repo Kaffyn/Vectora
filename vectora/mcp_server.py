@@ -33,10 +33,9 @@ logging.basicConfig(
 logger = logging.getLogger("vectora-mcp")
 
 try:
-    from mcp.server.fastmcp import FastMCP
-
     from checkpointer import Checkpointer
     from constants import VERSION
+    from mcp.server.fastmcp import FastMCP
     from tool_config import get_tool_config
     from tools import (
         call_mcp_tool,

@@ -113,7 +113,7 @@ Claude Code sintetiza resposta ao usuário
   "mcpServers": {
     "vectora": {
       "command": "python",
-      "args": ["-m", "mcp.server", "src/mcp_server.py"],
+      "args": ["-m", "mcp.server", "vectora/mcp_server.py"],
       "env": {
         "GOOGLE_API_KEY": "sk-...",
         "VOYAGE_API_KEY": "pa-...",
@@ -128,7 +128,7 @@ Claude Code sintetiza resposta ao usuário
 
 ```bash
 # Vectora como standalone MCP Server
-python -m mcp.server src/mcp_server.py
+python -m mcp.server vectora/mcp_server.py
 
 # Ou via Docker
 docker run -e GOOGLE_API_KEY=xxx vectora:0.1.0 mcp-server
@@ -231,7 +231,7 @@ Mais eficiente, menos buscas redundantes
 
 ```dockerfile
 # MCP Server rodando em stdio
-CMD ["python", "-m", "mcp.server", "src/mcp_server.py"]
+CMD ["python", "-m", "mcp.server", "vectora/mcp_server.py"]
 ```
 
 ### Claude Code Local

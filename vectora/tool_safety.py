@@ -14,7 +14,7 @@ def is_safe_file_path(path: str, allowed_dirs: list[str] | None = None) -> bool:
 
     Args:
         path: Caminho do arquivo
-        allowed_dirs: Diretórios permitidos (ex: ["./src", "./data"])
+        allowed_dirs: Diretórios permitidos (ex: ["./vectora", "./data"])
 
     Returns:
         True se caminho é seguro

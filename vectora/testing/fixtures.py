@@ -4,11 +4,10 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 
 import pytest
+from context import Context
 from langchain_core.messages import SystemMessage
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph.state import CompiledStateGraph
-
-from context import Context
 from prompts import get_system_prompt
 from state import State
 from testing.mocks import MockLLM
@@ -97,7 +96,6 @@ async def test_graph(
     from langgraph.constants import END, START
     from langgraph.graph.state import StateGraph
     from langgraph.prebuilt.tool_node import ToolNode, tools_condition
-
     from tools import TOOLS
 
     builder = StateGraph(

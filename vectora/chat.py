@@ -18,22 +18,21 @@ from contextlib import nullcontext
 from datetime import datetime
 from typing import Any, Self
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
-from langgraph.graph.state import CompiledStateGraph, RunnableConfig
-from rich.markdown import Markdown
-from rich.panel import Panel
-from rich.text import Text
-from textual.app import App, ComposeResult, on
-from textual.containers import Container
-from textual.widgets import Footer, Header, Input, RichLog, Static
-
 from background_worker import get_background_worker
 from checkpointer import Checkpointer
 from constants import DB_DSN
 from context import Context
 from graph import build_graph
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 from log_setup import setup_logging
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.text import Text
 from state import State
+from textual.app import App, ComposeResult, on
+from textual.containers import Container
+from textual.widgets import Footer, Header, Input, RichLog, Static
 from utils import async_lifespan
 
 logger = logging.getLogger(__name__)

@@ -482,12 +482,12 @@ Migration path:
 
 ## Related Files
 
-- **src/context.py** — Context class definitions
-- **src/main.py** — Context instantiation for CLI
-- **src/chat.py** — Context instantiation for TUI
-- **src/nodes.py** — Accessing context in call_llm node
-- **src/tools.py** — Using context in tools
-- **src/testing/fixtures.py** — Test fixture
+- **vectora/context.py** — Context class definitions
+- **vectora/main.py** — Context instantiation for CLI
+- **vectora/chat.py** — Context instantiation for TUI
+- **vectora/nodes.py** — Accessing context in call_llm node
+- **vectora/tools.py** — Using context in tools
+- **vectora/testing/fixtures.py** — Test fixture
 - **docs/PROMPTS.md** — Language detection and system prompt integration
 
 ---

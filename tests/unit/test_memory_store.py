@@ -6,7 +6,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-
 from memory_store import MemoryStore, get_memory_store
 
 

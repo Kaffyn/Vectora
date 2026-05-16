@@ -5,16 +5,11 @@ for all tests: mock_llm, temp_db, test_context, test_graph, checkpointer, etc.
 """
 
 import os
-import sys
-from pathlib import Path
 
 import pytest
 
-src_path = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_path))
-
-from log_setup import setup_logging
-from testing.fixtures import (
+from vectora.log_setup import setup_logging
+from vectora.testing.fixtures import (
     checkpointer,
     mock_llm,
     temp_db,

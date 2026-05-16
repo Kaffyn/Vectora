@@ -43,7 +43,7 @@ Claude Code (Agente Principal)
 
 ### Core MCP Server
 
-**`src/mcp_server.py`** (320 linhas)
+**`vectora/mcp_server.py`** (320 linhas)
 
 - MCP Server implementado com FastMCP
 - 3 Resources para exposição de estado
@@ -71,12 +71,12 @@ Claude Code (Agente Principal)
 
 ### Bug Fixes
 
-**`src/constants.py`**
+**`vectora/constants.py`**
 
 - Adicionada constante `VERSION = "0.1.0"`
 - Sincroniza com `pyproject.toml`
 
-**`src/tools.py`** (linha 37)
+**`vectora/tools.py`** (linha 37)
 
 - Corrigido bug: `pa = pa` → `pa = None` em fallback de import
 
@@ -130,7 +130,7 @@ Validam os 3 Resources implementados:
 
 ```bash
 # Via CLI
-python src/mcp_server.py
+python vectora/mcp_server.py
 
 # Via entrada de MCP (stdio JSON-RPC)
 # O servidor responde a requisições JSON-RPC em stdin/stdout
@@ -146,7 +146,7 @@ Criar arquivo `claude_config.json`:
     "vectora": {
       "type": "stdio",
       "command": "python",
-      "args": ["/path/to/src/mcp_server.py"]
+      "args": ["/path/to/vectora/mcp_server.py"]
     }
   }
 }

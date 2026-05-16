@@ -53,7 +53,7 @@ fi
 # Check dependencies
 echo ""
 echo "Verificando dependencias..."
-uv run python -c "import src.main; print('Importacao OK')" > /dev/null 2>&1
+uv run python -c "import vectora.main; print('Importacao OK')" > /dev/null 2>&1
 check "Dependencias Python instaladas"
 
 # Check Docker

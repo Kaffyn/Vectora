@@ -211,7 +211,7 @@ docker compose exec valkey redis-cli
 
 ```bash
 # Inicializar banco de dados
-docker compose exec vectora python -m src.main --init-db
+docker compose exec vectora python -m vectora.main --init-db
 
 # Rodar testes
 docker compose exec vectora pytest tests/
@@ -261,7 +261,7 @@ scp seu-host:/path/to/.env .env
 docker compose up -d
 
 # Inicializar banco
-docker compose exec -T vectora python -m src.main --init-db
+docker compose exec -T vectora python -m vectora.main --init-db
 
 # Verificar status
 docker compose ps

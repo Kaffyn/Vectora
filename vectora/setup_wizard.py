@@ -4,11 +4,10 @@ import asyncio
 import subprocess
 import sys
 
+from config import Config
 from textual.app import App, ComposeResult, on
 from textual.screen import Screen
 from textual.widgets import Button, Input, Label, RadioButton, RadioSet
-
-from config import Config
 from utils import load_llm
 
 
@@ -232,7 +231,7 @@ class CompleteScreen(Screen):
         """Inicia o chat após setup concluído."""
         self.app.exit(return_code=0)
         subprocess.run(
-            [sys.executable, "src/run_chat.py"],
+            [sys.executable, "vectora/run_chat.py"],
             check=False,
             shell=False,
         )

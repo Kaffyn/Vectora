@@ -107,7 +107,7 @@ uv run python -c "import pytest; import pytest_asyncio; print('OK')"
 uv run pytest tests/ -v
 
 # Com coverage
-uv run pytest tests/ -v --cov=src --cov-report=html
+uv run pytest tests/ -v --cov=vectora --cov-report=html
 ```
 
 ### Executar Testes Específicos
@@ -159,7 +159,7 @@ cp .env.example .env
 nano .env  # Adicionar GOOGLE_API_KEY (de https://ai.google.dev)
 
 # Rodar
-uv run python src/run_main.py
+uv run python vectora/run_main.py
 
 # Ou com alias instalado
 uv sync  # Instala scripts em pyproject.toml
@@ -184,7 +184,7 @@ _
 ### Opção 2: TUI Textual (Interface Gráfica)
 
 ```bash
-uv run python src/run_chat.py
+uv run python vectora/run_chat.py
 
 # Ou com alias
 vectora-tui
@@ -262,9 +262,9 @@ async def call_graph(state: State) -> dict:
 ### Testing
 
 - Use `pytest` + `pytest-asyncio`
-- Fixtures em `src/testing/fixtures.py`
-- Mocks em `src/testing/mocks.py`
-- Testes em `tests/` com estrutura espelhando `src/`
+- Fixtures em `vectora/testing/fixtures.py`
+- Mocks em `vectora/testing/mocks.py`
+- Testes em `tests/` com estrutura espelhando `vectora/`
 
 ```python
 # tests/test_my_feature.py
@@ -303,7 +303,7 @@ git checkout -b feature/my-feature
 Siga [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```bash
-git add src/my_feature.py
+git add vectora/my_feature.py
 git commit -m "feat: Add my awesome feature"
 ```
 
@@ -333,12 +333,12 @@ Ruff, isort, mypy, prettier são executados automaticamente:
 ```bash
 # Se falhar, o commit é rejeitado
 # Corrija os erros:
-uv run ruff check src/ --fix
-uv run ruff format src/
-uv run isort src/
+uv run ruff check vectora/ --fix
+uv run ruff format vectora/
+uv run isort vectora/
 
 # Tente novamente
-git add src/
+git add vectora/
 git commit -m "feat: Add feature"
 ```
 

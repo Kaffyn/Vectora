@@ -34,15 +34,15 @@ pytest tests/e2e/ -v
 ### Todos os Testes com Coverage
 
 ```bash
-pytest tests/ --cov=src --cov-report=html --cov-report=term
+pytest tests/ --cov=vectora --cov-report=html --cov-report=term
 ```
 
 ## Coverage Target
 
-Objetivo: > 80% coverage em src/
+Objetivo: > 80% coverage em vectora/
 
 ```bash
-pytest tests/ --cov=src --cov-report=term-missing
+pytest tests/ --cov=vectora --cov-report=term-missing
 ```
 
 ## LangSmith Integration

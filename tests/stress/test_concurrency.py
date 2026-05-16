@@ -9,7 +9,6 @@ Testes críticos que simulam cenários de produção:
 import asyncio
 
 import pytest
-
 from background_worker import BackgroundEmbeddingWorker
 from embedding_queue import get_embedding_queue
 from tool_config import ToolConfig
@@ -159,9 +158,8 @@ class TestReconciliation:
         """
         from datetime import UTC, datetime, timedelta
 
-        from sqlalchemy import update
-
         from embedding_queue import EmbeddingQueueRecord
+        from sqlalchemy import update
 
         config = ToolConfig(
             enable_rag=True,

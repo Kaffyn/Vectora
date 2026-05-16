@@ -5,7 +5,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
-
 from checkpointer import Checkpointer
 
 

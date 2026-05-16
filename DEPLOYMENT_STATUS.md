@@ -26,7 +26,7 @@
 
 - [x] Code Quality
 
-  - All src/ files have module docstrings
+  - All vectora/ files have module docstrings
   - Type hints on all functions
   - Comprehensive error handling
   - Structured logging

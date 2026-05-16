@@ -40,7 +40,7 @@ ENV PATH="/root/.local/bin:$PATH"
 COPY --from=builder /build/.venv /app/.venv
 
 # Copiar código do builder
-COPY --from=builder /build/src /app/src
+COPY --from=builder /build/vectora /app/vectora
 COPY --from=builder /build/pyproject.toml /app/pyproject.toml
 COPY --from=builder /build/README.md /app/README.md
 

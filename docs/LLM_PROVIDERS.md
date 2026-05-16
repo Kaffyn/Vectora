@@ -22,7 +22,7 @@ No code changes needed — just set environment variables and Vectora auto-loads
 $env:GOOGLE_API_KEY="sk-..."
 
 # Run Vectora (uses gemini-2.0-flash by default)
-uv run python src/run_chat.py
+uv run python vectora/run_chat.py
 ```
 
 ### Ollama (Local)
@@ -32,7 +32,7 @@ uv run python src/run_chat.py
 $env:LLM_PROVIDER="ollama"
 
 # Run Vectora
-uv run python src/run_chat.py
+uv run python vectora/run_chat.py
 ```
 
 ### OpenAI
@@ -41,7 +41,7 @@ uv run python src/run_chat.py
 $env:LLM_PROVIDER="openai"
 $env:OPENAI_API_KEY="sk-..."
 
-uv run python src/run_chat.py
+uv run python vectora/run_chat.py
 ```
 
 ### Anthropic
@@ -50,7 +50,7 @@ uv run python src/run_chat.py
 $env:LLM_PROVIDER="anthropic"
 $env:ANTHROPIC_API_KEY="sk-ant-..."
 
-uv run python src/run_chat.py
+uv run python vectora/run_chat.py
 ```
 
 ---
@@ -198,7 +198,7 @@ When Vectora starts:
 4. **Bind tools** → Add available tools to the LLM
 5. **Ready** → Use LLM in graph invocations
 
-**Code location:** `src/utils.py` — `load_llm()` function
+**Code location:** `vectora/utils.py` — `load_llm()` function
 
 ```python
 def load_llm() -> BaseChatModel:
@@ -226,16 +226,16 @@ def load_llm() -> BaseChatModel:
 # Test Google Gemini
 $env:LLM_PROVIDER="google-genai"
 $env:GOOGLE_API_KEY="your-key"
-uv run python src/main.py
+uv run python vectora/main.py
 
 # Test Ollama
 $env:LLM_PROVIDER="ollama"
-uv run python src/main.py
+uv run python vectora/main.py
 
 # Test OpenAI
 $env:LLM_PROVIDER="openai"
 $env:OPENAI_API_KEY="your-key"
-uv run python src/main.py
+uv run python vectora/main.py
 ```
 
 ### Test with Chat TUI
@@ -243,7 +243,7 @@ uv run python src/main.py
 ```powershell
 $env:LLM_PROVIDER="google-genai"
 $env:GOOGLE_API_KEY="your-key"
-uv run python src/run_chat.py
+uv run python vectora/run_chat.py
 ```
 
 ### Test in Code
@@ -273,7 +273,7 @@ $env:LLM_PROVIDER="google-genai"
 $env:LLM_PROVIDER="ollama"
 
 # Restart app
-uv run python src/run_chat.py
+uv run python vectora/run_chat.py
 ```
 
 ### Persistent: Update .env file
@@ -428,7 +428,7 @@ ollama list
 
 ## Advanced: Custom Provider
 
-To add a new provider, edit `src/utils.py`:
+To add a new provider, edit `vectora/utils.py`:
 
 ```python
 def load_llm() -> BaseChatModel:
@@ -463,9 +463,9 @@ $env:CUSTOM_MODEL="your-model"
 
 ## Related Files
 
-- **src/utils.py** — Provider loading logic
-- **src/nodes.py** — LLM usage in call_llm node
-- **src/graph.py** — Graph definition
+- **vectora/utils.py** — Provider loading logic
+- **vectora/nodes.py** — LLM usage in call_llm node
+- **vectora/graph.py** — Graph definition
 - **.env.example** — Configuration template
 - **docs/CONTEXT.md** — User preferences and model overrides
 

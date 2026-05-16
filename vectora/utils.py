@@ -9,9 +9,8 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, cast
 
-from langchain.chat_models import init_chat_model
-
 from env import get_env
+from langchain.chat_models import init_chat_model
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator

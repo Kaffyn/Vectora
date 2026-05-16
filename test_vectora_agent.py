@@ -12,9 +12,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Setup paths and logging FIRST
-sys.path.insert(0, "src")
+sys.path.insert(0, str(Path(__file__).parent / "vectora"))
 
-# Now import from src
+# Now import from vectora
 from checkpointer import Checkpointer
 from context import Context
 from graph import build_graph

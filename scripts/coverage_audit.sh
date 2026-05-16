@@ -21,7 +21,7 @@ if ! command -v pytest &> /dev/null; then
 fi
 
 # Diretórios
-SRC_DIR="src"
+vectora_DIR="vectora"
 TESTS_DIR="tests"
 COVERAGE_DIR="htmlcov"
 COVERAGE_REPORT="coverage.txt"
@@ -31,7 +31,7 @@ echo ""
 
 # Executar testes com coverage
 python -m pytest \
-    --cov=$SRC_DIR \
+    --cov=$vectora_DIR \
     --cov-report=html \
     --cov-report=term-missing:skip-covered \
     --cov-report=json \

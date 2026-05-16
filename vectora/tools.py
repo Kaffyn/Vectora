@@ -546,7 +546,6 @@ async def ingest_docs(
     from pathlib import Path
 
     from langchain_text_splitters import RecursiveCharacterTextSplitter
-
     from tool_safety import is_safe_file_path
 
     config = get_tool_config()

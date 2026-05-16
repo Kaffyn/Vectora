@@ -59,7 +59,7 @@ Sim, o **Tavily** substitui suas `web_search` e `fetch_url`. Ele foi treinado pa
 ### 4. Estrutura do Projeto (v0.2+)
 
 ```text
-src/
+vectora/
 ├── agents/            # Os "Deep Agents" especialistas
 │   ├── supervisor.py  # Orquestrador
 │   ├── researcher.py  # RAG/Tavily

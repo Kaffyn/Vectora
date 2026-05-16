@@ -8,9 +8,8 @@ import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-
 from constants import DB_DSN
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 logger = logging.getLogger(__name__)
 

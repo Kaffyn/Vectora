@@ -7,7 +7,6 @@ graceful shutdown, and reconciliation recovery.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from background_worker import BackgroundEmbeddingWorker
 
 

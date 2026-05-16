@@ -163,7 +163,7 @@ MCP_COMMAND_ARGS=/path/to/meu_servidor.py
 
 ### Funções Auxiliares (internas)
 
-`src/tools.py` fornece duas funções auxiliares para gerenciar conexões MCP:
+`vectora/tools.py` fornece duas funções auxiliares para gerenciar conexões MCP:
 
 ```python
 async def _get_mcp_client() -> Optional[Any]:

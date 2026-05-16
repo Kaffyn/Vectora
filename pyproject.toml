@@ -14,7 +14,6 @@ requires-python = ">=3.13"
 dependencies = [
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
-    # Agentic Framework (Core)
     "langchain>=0.3.0",
     "langchain-core>=0.3.0",
     "langchain-community>=0.3.0",
@@ -22,51 +21,35 @@ dependencies = [
     "langgraph-checkpoint-sqlite>=2.0.0",
     "langchain-voyageai>=0.1.0",
     "langchain-ollama>=0.2.0",
-    # Storage & Persistence
     "aiosqlite>=0.20.0",
     "lancedb>=0.14.0",
     "pyarrow>=17.0.0",
     "sqlalchemy>=2.0.0",
-    # Sub-Agent Protocol & Search (Core Contract)
     "mcp>=0.1.0",
     "tavily-python>=0.7.24",
     "langchain-mcp-adapters>=0.1.0",
     "trio>=0.27.0",
-    # UI & Utilities
     "rich>=13.0.0",
     "textual>=0.70.0",
     "rank-bm25>=0.2.2",
     "python-dotenv>=1.0.0",
+    "langsmith>=0.8.4",
+    "deepagents>=0.6.1",
 ]
 
 [project.optional-dependencies]
-observability = [
-    "langsmith>=0.8.4",
-    "deepagents>=0.6.1"
-]
-test = [
-    "pytest>=8.0",
-    "pytest-asyncio>=0.23.0",
-    "pytest-cov>=4.0.0"
-]
-dev = [
-    "ruff>=0.5.0",
-    "mypy>=1.10.0",
-    "bandit>=1.7.5",
-    "types-python-dateutil"
-]
+test = ["pytest>=8.0", "pytest-asyncio>=0.23.0", "pytest-cov>=4.0.0"]
+dev = ["ruff>=0.5.0", "mypy>=1.10.0", "bandit>=1.7.5", "types-python-dateutil"]
 
 [project.scripts]
-vectora = "src.run_chat:run_chat"
-vectora-cli = "src.run_main:main"
-vectora-mcp = "src.mcp_server:mcp_run"
+vectora = "vectora.run_chat:run_chat"
+vectora-mcp = "vectora.mcp_server:mcp_run"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["vectora"]
 
-# Garante que o arquivo defaults.env seja incluído dentro do pacote Python
 [tool.hatch.build.targets.wheel.force-include]
-"src/defaults.env" = "vectora/defaults.env"
+"vectora/defaults.env" = "defaults.env"
 
 [tool.ruff]
 line-length = 88
@@ -89,11 +72,11 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["ANN201", "ANN001", "ARG001", "ARG002", "S101"]
-"src/prompts.py" = ["E501"]
-"src/tools.py" = ["PLR0911", "S602"]
-"src/nodes.py" = ["E501"]
-"src/setup_wizard.py" = ["S603", "RUF006", "F841"]
-"src/checkpointer.py" = ["N802"]
+"vectora/prompts.py" = ["E501"]
+"vectora/tools.py" = ["PLR0911", "S602"]
+"vectora/nodes.py" = ["E501"]
+"vectora/setup_wizard.py" = ["S603", "RUF006", "F841"]
+"vectora/checkpointer.py" = ["N802"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -103,15 +86,15 @@ line-ending = "lf"
 [tool.pyright]
 typeCheckingMode = "standard"
 pythonVersion = "3.13"
-include = ["src", "tests"]
+include = ["vectora", "tests"]
 exclude = ["**/venv", "**/.venv", "**/env", "**/.env", "**/node_modules", "**/__pycache__"]
 venv = ".venv"
 venvPath = "."
-executionEnvironments = [{ root = "src" }]
+executionEnvironments = [{ root = "vectora" }]
 
 [tool.pytest.ini_options]
 addopts = "-s --color=yes --tb=short"
-pythonpath = ["src"]
+pythonpath = ["vectora"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"

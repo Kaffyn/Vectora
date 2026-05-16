@@ -74,7 +74,7 @@ And automatically interprets this as Portuguese (Brazil) and responds accordingl
 
 The system prompt is injected into the LLM conversation in two places:
 
-#### 1. Production (src/nodes.py)
+#### 1. Production (vectora/nodes.py)
 
 ```python
 def call_llm(state: State, runtime: Runtime[Context]) -> State:
@@ -89,7 +89,7 @@ def call_llm(state: State, runtime: Runtime[Context]) -> State:
     return {"messages": [result]}
 ```
 
-#### 2. Testing (src/testing/fixtures.py)
+#### 2. Testing (vectora/testing/fixtures.py)
 
 ```python
 async def call_llm_with_mock(state: State, runtime):
@@ -141,7 +141,7 @@ export LANG=hi_IN.UTF-8
 # Settings → Region & Language → Language (choose desired language)
 
 # Then run Vectora
-uv run src/main.py
+uv run vectora/main.py
 ```
 
 The AI will automatically receive `hi_IN` in the prompt and respond in Hindi.
@@ -159,7 +159,7 @@ The AI interprets all of these automatically.
 
 To modify the prompt content:
 
-1. Edit `SYSTEM_PROMPT` in `src/prompts.py`
+1. Edit `SYSTEM_PROMPT` in `vectora/prompts.py`
 2. Keep the `{language_code}` placeholder at the end
 3. Restart Vectora to apply changes
 
@@ -248,9 +248,9 @@ The AI automatically understands this is Hindi (India) and responds in Hindi ✅
 
 ## Related Files
 
-- **src/prompts.py** - Simple prompt template and language detection (just 2 functions!)
-- **src/nodes.py** - LLM invocation with system prompt injection
-- **src/testing/fixtures.py** - Test fixtures with system prompt
+- **vectora/prompts.py** - Simple prompt template and language detection (just 2 functions!)
+- **vectora/nodes.py** - LLM invocation with system prompt injection
+- **vectora/testing/fixtures.py** - Test fixtures with system prompt
 - **docs/PROMPTS.md** - This documentation
 
 ## Future Enhancements

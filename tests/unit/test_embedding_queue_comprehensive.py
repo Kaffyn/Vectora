@@ -8,7 +8,6 @@ import asyncio
 import contextlib
 
 import pytest
-
 from embedding_queue import EmbeddingQueue
 
 

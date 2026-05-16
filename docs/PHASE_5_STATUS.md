@@ -68,7 +68,7 @@ Todos os testes do padrão Sub-Agent estão passando:
 
 ### Prioridade 3: Cobertura
 
-- [ ] Atingir coverage > 80% em src/
+- [ ] Atingir coverage > 80% em vectora/
 - [ ] Documentar testes faltantes
 
 ---

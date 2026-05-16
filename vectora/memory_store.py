@@ -10,7 +10,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import aiosqlite
-
 from constants import DB_DSN
 
 logger = logging.getLogger(__name__)
