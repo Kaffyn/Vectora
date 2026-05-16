@@ -1,14 +1,15 @@
-"""Rich CLI Chat Interface for Vectora.
+"""Rich CLI Chat Interface for Vectora - "Rich Gorda" Dashboard.
 
-Implements a simple command-line chat interface using Rich for formatted output.
-No Textual TUI - pure CLI with streaming message rendering.
+Professional agent dashboard using Rich components for real-time rendering.
+Features advanced layout, status indicators, and audit trails.
 
 Features:
-    - Real-time message display with Rich formatting
-    - Conversation history loading and persistence
-    - Message audit with markdown export
-    - Background embedding worker integration
-    - Simple command-based interface (/sair, /quit, /q to exit)
+    - Three-panel dashboard (header, body, footer)
+    - Real-time status updates for background workers
+    - Markdown rendering for AI responses
+    - Live audit panel with conversation history
+    - Conversation export to markdown files
+    - Professional error and success panels
 """
 
 import asyncio
@@ -21,6 +22,14 @@ from checkpointer import Checkpointer
 from constants import DB_DSN
 from context import Context
 from graph import build_graph
+from ui import (
+    AuditPanel,
+    ChatMessage,
+    SeparatorLine,
+    VectoraLayout,
+    VectoraStatusPanel,
+    WelcomeScreen,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -28,11 +37,9 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 from log_setup import setup_logging
 from rich.console import Console
-from rich.markdown import Markdown
+from rich.live import Live
 from rich.panel import Panel
 from rich.prompt import Prompt
-from rich.rule import Rule
-from rich.table import Table
 from state import State
 from utils import async_lifespan
 
@@ -41,170 +48,141 @@ console = Console()
 
 
 async def _export_audit(
-    graph: CompiledStateGraph[State, Context, State, State],
-    checkpointer: Checkpointer,
+    audit_panel: AuditPanel,
 ) -> None:
     """Display and save final message audit with rich formatting."""
     try:
-        all_tuples = list(checkpointer._get_all_history())
-        if not all_tuples:
-            return
-
-        latest_thread_id = all_tuples[-1][0]
-        config = RunnableConfig(configurable={"thread_id": latest_thread_id})
-        state_snapshot = await graph.aget_state(config)
-        messages: Sequence[BaseMessage] = state_snapshot.values.get("messages", [])
-
-        if not messages:
-            return
-
         console.print("\n")
-        console.print(Rule("[bold blue]📋 SESSION AUDIT[/bold blue]", style="blue"))
+        console.print(SeparatorLine("📋 SESSION AUDIT"))
 
-        # Create rich table for audit
-        table = Table(
-            show_header=True, header_style="bold cyan", title="Message History"
-        )
-        table.add_column("#", style="dim", width=4)
-        table.add_column("Role", style="bold")
-        table.add_column("Content", style="white")
-
-        for i, msg in enumerate(messages, 1):
-            role = "👤 User" if isinstance(msg, HumanMessage) else "🤖 Vectora"
-            content = (
-                msg.content[:100] + "..." if len(msg.content) > 100 else msg.content
-            )
-            table.add_row(str(i), role, content)
-
-        console.print(table)
-
-        # Summary stats
-        human_count = sum(1 for m in messages if isinstance(m, HumanMessage))
-        ai_count = sum(1 for m in messages if isinstance(m, AIMessage))
-
-        stats_panel = Panel(
-            f"[green]✓[/green] Total Messages: [bold]{len(messages)}[/bold]\n"
-            f"[cyan]User Messages: {human_count}[/cyan] | "
-            f"[magenta]AI Messages: {ai_count}[/magenta]",
-            title="[bold]Statistics[/bold]",
-            style="green",
-        )
-        console.print(stats_panel)
+        # Display the audit table
+        console.print(audit_panel.render())
 
         # Save to file
-        log_dir = Path.home() / ".vectora" / "logs"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        audit_file = log_dir / "session_audit.md"
-
-        with audit_file.open("w", encoding="utf-8") as f:
-            f.write(f"# Session Audit - {len(messages)} messages\n\n")
-            for i, msg in enumerate(messages, 1):
-                role = "**User**" if isinstance(msg, HumanMessage) else "**Vectora**"
-                f.write(f"## [{i}] {role}\n\n{msg.content}\n\n---\n\n")
-
-        console.print(f"[dim]Audit saved to {audit_file}[/dim]")
+        audit_file = audit_panel.save_to_file()
+        console.print(f"[green]✓ Audit saved to[/green] [dim]{audit_file}[/dim]")
 
     except Exception as e:
         logger.warning(f"Audit failed: {e}")
+
+
+async def _load_prior_messages(
+    graph: CompiledStateGraph[State, Context, State, State],
+    context: Context,
+    audit: AuditPanel,
+) -> int:
+    """Load prior messages from checkpointer into audit."""
+    config = RunnableConfig(configurable={"thread_id": context.thread_id})
+    try:
+        state = await graph.aget_state(config)
+        prior_messages = state.values.get("messages", [])
+        for msg in prior_messages:
+            role = "User" if isinstance(msg, HumanMessage) else "Vectora"
+            audit.add_message(role, msg.content)
+        return len(prior_messages)
+    except Exception as e:
+        logger.warning(f"Could not load prior messages: {e}")
+        return 0
+
+
+async def _process_user_turn(
+    user_input: str,
+    graph: CompiledStateGraph[State, Context, State, State],
+    config: RunnableConfig,
+    audit: AuditPanel,
+    status_panel: VectoraStatusPanel,
+) -> str:
+    """Process a single user turn and return AI response."""
+    audit.add_message("User", user_input)
+    console.print(ChatMessage("User", user_input).to_panel())
+
+    response_content = ""
+    with status_panel.thinking("Processing your message..."):
+        async for event in graph.astream_events(
+            {"messages": [HumanMessage(user_input)]},
+            config=config,
+            version="v2",
+        ):
+            if event.get("event") == "on_chat_model_stream":
+                chunk = event.get("data", {}).get("chunk")
+                if chunk and hasattr(chunk, "content") and chunk.content:
+                    response_content += chunk.content
+
+    if response_content:
+        console.print(ChatMessage("Vectora", response_content).to_panel())
+        audit.add_message("Vectora", response_content)
+
+    return response_content
 
 
 async def chat_loop(
     graph: CompiledStateGraph[State, Context, State, State],
     checkpointer: Checkpointer,
     context: Context,
+    provider: str = "unset",
 ) -> None:
-    """Enhanced chat loop with Rich formatting and interactive features."""
-    # Header with title and info
-    header_panel = Panel(
-        "[bold cyan]🚀 Vectora Chat[/bold cyan]\n"
-        "[dim]Type /sair, /quit, or /q to exit | Ctrl+C to interrupt[/dim]",
-        style="bold blue",
-        expand=False,
-    )
-    console.print(header_panel)
-
-    # Load and display prior history
+    """Rich Gorda chat loop with dashboard layout and live rendering."""
+    # Initialize dashboard
+    layout = VectoraLayout()
+    status_panel = VectoraStatusPanel(console)
+    audit = AuditPanel(max_visible=3)
     config = RunnableConfig(configurable={"thread_id": context.thread_id})
-    message_count = 0
-    try:
-        state = await graph.aget_state(config)
-        prior_messages = state.values.get("messages", [])
-        if prior_messages:
-            message_count = len(prior_messages)
-            console.print(
-                f"[bold green]✓[/bold green] Loaded [cyan]{message_count}[/cyan] prior messages from session\n"
-            )
-    except Exception:
-        pass
+
+    # Load prior messages
+    message_count = await _load_prior_messages(graph, context, audit)
+
+    # Show welcome screen
+    layout.update_header(provider=provider, message_count=message_count)
+    layout.update_body(WelcomeScreen.render(provider=provider))
+    layout.update_footer()
+    console.print(layout.render())
+    console.print()
 
     # Main chat loop
     prompt = Prompt()
     Prompt.prompt_suffix = ""
-    turn_count = 0
 
     while True:
         try:
-            turn_count += 1
-            # User input with rich formatting
             user_input = prompt.ask("[bold cyan]You[/bold cyan]")
 
-            # Exit commands
             if user_input.lower() in ["/sair", "/quit", "/q"]:
                 logger.info("Chat ended by user")
-                console.print("[yellow]Goodbye! 👋[/yellow]")
+                console.print("\n[yellow]👋 Goodbye![/yellow]")
                 break
 
             if not user_input.strip():
                 continue
 
-            # Display user message in a panel
-            console.print(
-                Panel(
-                    user_input,
-                    title="[bold cyan]📝 You[/bold cyan]",
-                    style="cyan",
-                    expand=False,
-                )
-            )
+            # Process turn
+            await _process_user_turn(user_input, graph, config, audit, status_panel)
 
-            # Stream response with rich formatting
-            console.print("[bold magenta]🤖 Vectora[/bold magenta]", end=" ")
-            response_content = ""
-
-            async for event in graph.astream_events(
-                {"messages": [HumanMessage(user_input)]},
-                config=config,
-                version="v2",
-            ):
-                if event.get("event") == "on_chat_model_stream":
-                    chunk = event.get("data", {}).get("chunk")
-                    if chunk and hasattr(chunk, "content") and chunk.content:
-                        console.print(chunk.content, end="", highlight=False)
-                        response_content += chunk.content
-
-            console.print()  # newline after response
-            console.print(Rule(style="dim"), end="")
+            # Update display
+            layout.update_header(provider=provider, message_count=len(audit.messages))
+            console.print(audit.render())
+            layout.update_footer(embedding_queue=0, worker_active=True)
+            console.print(SeparatorLine())
 
         except KeyboardInterrupt:
             logger.info("Chat interrupted by user")
-            console.print("\n[yellow]⚠️  Chat interrupted[/yellow]")
+            console.print("\n[yellow]⚠️ Chat interrupted[/yellow]")
             break
         except Exception as e:
-            error_panel = Panel(
-                f"[red]{e!s}[/red]",
-                title="[bold red]❌ Error[/bold red]",
-                style="red",
-                expand=False,
-            )
-            console.print(error_panel)
             logger.exception("Chat error")
+            console.print(
+                Panel(
+                    f"[red]{e!s}[/red]",
+                    title="[bold red]❌ Error[/bold red]",
+                    style="red",
+                )
+            )
 
-    # Audit on exit
-    await _export_audit(graph, checkpointer)
+    # Export audit on exit
+    await _export_audit(audit)
 
 
 async def run_chat() -> None:
-    """Initialize and run chat with rich startup display."""
+    """Initialize and run chat with Rich Gorda dashboard."""
     setup_logging()
     logger.info("Chat started")
 
@@ -221,16 +199,27 @@ async def run_chat() -> None:
         async_lifespan(),
         Checkpointer(DB_DSN) as checkpointer,
     ):
+        # Build graph and start worker
         graph = build_graph(checkpointer)
         worker = await get_background_worker()
         await worker.start()
 
         console.print("[green]✓[/green] System initialized successfully\n")
 
+        # Get LLM provider from config
+        provider = "unset"
+        try:
+            from config import Config
+
+            config_instance = Config.instance()
+            provider = config_instance.get_llm_provider() or "unset"
+        except Exception as e:
+            logger.warning(f"Could not load provider config: {e}")
+
         context = Context(user_type="default", thread_id=1)
 
         try:
-            await chat_loop(graph, checkpointer, context)
+            await chat_loop(graph, checkpointer, context, provider=provider)
         except Exception as e:
             error_panel = Panel(
                 f"[red]Critical error: {e!s}[/red]",
