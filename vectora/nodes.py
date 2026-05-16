@@ -76,29 +76,30 @@ def _filter_llm_config(config: dict) -> dict:
 async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     """Nó principal: invoca o LLM com o histórico completo e ferramentas vinculadas.
 
+    Phase 2 Refactor: Lê session_metadata de state ao invés de Context no runtime.
+    Isso torna o state JSON-serializable e remove dependência de objetos complexos
+    no RunnableConfig.
+
     Assíncrono para não bloquear o event loop durante a chamada de rede ao LLM.
     Retorna um dict parcial — o LangGraph atualiza apenas as chaves presentes,
     sem exigir todos os campos do State TypedDict.
     O retorno `{"messages": [result]}` faz append via reducer `add_messages`.
     """
-    # Defensivo: obter contexto do runtime com fallback
-    ctx = runtime.context
-    if ctx is None:
-        logger.warning("Contexto não injetado - usando padrão")
-        user_type = "default"
-    else:
-        user_type = ctx.user_type
-
-    # Ler configuração do modelo dinamicamente (permite /model command)
-    from config import Config
-
-    config = Config.instance()
-    model_provider = config.get_llm_provider() or "google-genai"
-    model_name = config.get_llm_model() or "gemini-3.1-flash-lite"
+    # Lê session metadata de state (JSON-serializable, sem Context)
+    session_metadata = state.get("session_metadata", {})
+    user_type = session_metadata.get("user_type", "default")
+    thread_id = session_metadata.get("thread_id", 1)
+    llm_provider = session_metadata.get("llm_provider", "google-genai")
+    llm_model = session_metadata.get("llm_model", "gemini-3.1-flash-lite")
 
     logger.debug(
-        "LLM configuration loaded",
-        extra={"provider": model_provider, "model": model_name},
+        "LLM configuration loaded from state",
+        extra={
+            "provider": llm_provider,
+            "model": llm_model,
+            "thread_id": thread_id,
+            "user_type": user_type,
+        },
     )
 
     # Obtém LLM em cache com ferramentas (vinculado uma vez, reutilizado por invocação)
@@ -126,7 +127,7 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     memory_messages: list[SystemMessage] = []
     try:
         memory_store = await get_memory_store()
-        user_id = (ctx.thread_id if ctx else None) or "default_user"
+        user_id = f"user_{thread_id}" if thread_id else "default_user"
         memories = await memory_store.get_all(user_id)
 
         if memories:

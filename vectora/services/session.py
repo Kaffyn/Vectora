@@ -112,25 +112,18 @@ class SessionService:
     def get_runnable_config(self, thread_id: int) -> RunnableConfig:
         """Get LangGraph runnable config for session.
 
+        Phase 2 Refactor: No longer injects Context in configurable.
+        Instead, session_metadata is part of State (JSON-serializable).
+
         Args:
             thread_id: Session ID
 
         Returns:
-            RunnableConfig with thread_id and context
+            RunnableConfig with just thread_id (configurable metadata goes in State)
         """
-        # TODO: Implement in Week 2
-        # 1. Create RunnableConfig with thread_id
-        # 2. Inject settings as configurable
-        # 3. Return config for graph.ainvoke()
-
-        from context import Context
-
-        context = Context(thread_id=thread_id, user_type="default")
-
         return RunnableConfig(
             configurable={
                 "thread_id": thread_id,
-                "context": context,
             }
         )
 
