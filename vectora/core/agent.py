@@ -48,15 +48,16 @@ class AgentManager:
         """
         self.settings = settings or self._load_settings()
 
-        # Initialize services
+        # Initialize services (Phase 2 completion)
+        from services.embedding import EmbeddingService
+        from services.security import SecurityService
+        from services.session import SessionService
         from services.telemetry import TelemetryService
 
         self.telemetry_service = TelemetryService(self.settings)
-
-        # Other services (will be implemented in Week 2)
-        self.session_service = None  # SessionService(self.settings)
-        self.embedding_service = None  # EmbeddingService(self.settings)
-        self.security_service = None  # SecurityService(self.settings)
+        self.session_service = SessionService(self.settings)
+        self.embedding_service = EmbeddingService(self.settings)
+        self.security_service = SecurityService(self.settings)
 
         # Initialize graph (will be implemented in Week 4)
         self.graph = None  # build_graph(self.settings)
@@ -378,34 +379,52 @@ class AgentManager:
 
         Called after AgentManager creation to set up dependencies.
         This happens asynchronously to avoid blocking CLI startup.
+        Initializes in dependency order:
+        1. SessionService (database)
+        2. EmbeddingService (background worker)
+        3. Graph (LangGraph computation)
         """
         logger.info("Initializing AgentManager services...")
 
-        # TODO: Initialize services in Week 2
-        # self.session_service = SessionService(self.settings)
-        # self.embedding_service = EmbeddingService(self.settings)
-        # self.telemetry_service = TelemetryService(self.settings)
-        # self.security_service = SecurityService(self.settings)
+        try:
+            # Initialize SessionService with database
+            await self.session_service.initialize()
+            logger.info("SessionService initialized")
 
-        # TODO: Start background services
-        # await self.embedding_service.start()
+            # Start background embedding worker
+            await self.embedding_service.start()
+            logger.info("EmbeddingService started")
 
-        # TODO: Build graph in Week 4
-        # self.graph = build_graph(self.settings)
+            # TODO: Build graph in Week 4
+            # self.graph = build_graph(self.settings)
 
-        logger.info("AgentManager initialization complete")
+            logger.info("AgentManager initialization complete")
+        except Exception as e:
+            logger.exception("Failed to initialize AgentManager services")
+            raise
 
     async def shutdown(self) -> None:
         """Graceful shutdown: stop workers, close connections.
 
         Should be called on application exit.
+        Shuts down in reverse initialization order for clean resource cleanup.
         """
         logger.info("Shutting down AgentManager...")
 
+        # Stop embedding worker first
         if self.embedding_service:
             try:
                 await self.embedding_service.stop()
+                logger.info("EmbeddingService stopped")
             except Exception as e:
                 logger.warning(f"Error stopping EmbeddingService: {e}")
+
+        # Close session database
+        if self.session_service:
+            try:
+                await self.session_service.shutdown()
+                logger.info("SessionService shutdown complete")
+            except Exception as e:
+                logger.warning(f"Error shutting down SessionService: {e}")
 
         logger.info("AgentManager shutdown complete")
