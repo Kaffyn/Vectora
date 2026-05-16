@@ -290,10 +290,23 @@ async def chat_loop(
 
             # Handle system commands (/, /model, /help, etc)
             if user_input.startswith("/"):
-                should_exit = await handle_command(user_input, config, console)
+                should_exit, context = await handle_command(
+                    user_input, config, console, context
+                )
                 if should_exit:
                     console.print("\n[yellow][WAVE] Goodbye![/yellow]")
                     break
+
+                # If context changed (new session), reset audit and update config
+                if context.thread_id != config.configurable.get("thread_id"):
+                    audit = AuditPanel(max_visible=3)
+                    config = RunnableConfig(
+                        configurable={
+                            "thread_id": context.thread_id,
+                            "context": context,
+                        }
+                    )
+                    logger.info(f"Session switched to thread_id={context.thread_id}")
                 continue
 
             if not user_input.strip():
