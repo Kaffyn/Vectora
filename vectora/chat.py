@@ -19,7 +19,7 @@ import os
 import warnings
 from pathlib import Path
 from queue import Queue
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 # Suppress UserWarnings from external libraries in quiet mode
 if os.getenv("QUIET_MODE", "true").lower() == "true":
@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 class SafeConsole(Console):
     """Console wrapper that gracefully handles Unicode encoding errors on Windows."""
 
-    def print(self, *args, **kwargs):
+    def print(self, *args: object, **kwargs: object) -> None:  # type: ignore[override]
         """Print with fallback to plain text if encoding fails."""
         try:
             super().print(*args, **kwargs)
@@ -110,7 +110,7 @@ async def _export_audit(
         # Clear terminal
         import os
 
-        os.system("cls" if os.name == "nt" else "clear")
+        os.system("cls" if os.name == "nt" else "clear")  # noqa: S605 ASYNC221
 
         try:
             console.print("\n")
@@ -286,9 +286,9 @@ async def chat_loop(
         main_layout["body"].update(WelcomeScreen.render(provider=provider))
         main_layout["footer"].update(
             Panel(
-                f"[green]*[/green] Background Worker | "
-                f"[cyan]Embedding Queue: 0[/cyan] | "
-                f"[yellow]RAG: Ready[/yellow]",
+                "[green]*[/green] Background Worker | "
+                "[cyan]Embedding Queue: 0[/cyan] | "
+                "[yellow]RAG: Ready[/yellow]",
                 style="dim",
                 expand=False,
             )
@@ -386,9 +386,9 @@ async def chat_loop(
                 main_layout["body"].update(audit.render())
                 main_layout["footer"].update(
                     Panel(
-                        f"[green]*[/green] Background Worker | "
-                        f"[cyan]Embedding Queue: 0[/cyan] | "
-                        f"[yellow]RAG: Ready[/yellow]",
+                        "[green]*[/green] Background Worker | "
+                        "[cyan]Embedding Queue: 0[/cyan] | "
+                        "[yellow]RAG: Ready[/yellow]",
                         style="dim",
                         expand=False,
                     )
@@ -422,7 +422,7 @@ async def chat_loop(
     await _export_audit(audit)
 
 
-async def run_chat(agent=None, settings=None) -> None:
+async def run_chat(agent: Any | None = None, settings: Any | None = None) -> None:
     """Run chat with Rich Gorda dashboard.
 
     Args:

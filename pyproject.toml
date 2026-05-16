@@ -81,7 +81,17 @@ ignore = [
     "ARG002", "BLE001", "RUF001", "PGH003", "SLF001", "S110", "PLR2004",
     "E501", "PD011", "DTZ005", "TRY004", "PLC0415", "F841", "ASYNC240",
     "F401", "PT011", "PT017", "FBT001", "G004", "TRY401", "TRY002",
-    "ARG005", "C901", "A004", "ASYNC230", "PLR0913", "E402"
+    "ARG005", "C901", "A004", "ASYNC230", "PLR0913", "E402",
+    # Exception message style — too strict for this codebase
+    "TRY003", "EM101", "EM102",
+    # TODO comment formatting — subjective style rules
+    "TD002", "TD003", "TD004", "FIX002",
+    # Boolean args are acceptable in internal Python APIs
+    "FBT002", "FBT003",
+    # PLR complexity — chat_loop and commands are intentionally large
+    "PLR0912", "PLR0915",
+    # ANN for __init__ return type — implied None, not needed
+    "ANN204"
 ]
 
 [tool.ruff.lint.per-file-ignores]

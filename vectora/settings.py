@@ -284,10 +284,10 @@ class Settings(BaseSettings):
             defaults_text = defaults_env.read_text(encoding="utf-8")
 
             for line in defaults_text.split("\n"):
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    if "=" in line:
-                        key, value = line.split("=", 1)
+                stripped = line.strip()
+                if stripped and not stripped.startswith("#"):
+                    if "=" in stripped:
+                        key, value = stripped.split("=", 1)
                         os.environ.setdefault(key.strip(), value.strip())
             logger.debug("Loaded defaults.env from package")
         except (FileNotFoundError, TypeError, ModuleNotFoundError, AttributeError):

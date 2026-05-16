@@ -16,8 +16,8 @@ from services.session import SessionService
 from services.telemetry import TelemetryService
 
 __all__ = [
-    "SessionService",
     "EmbeddingService",
-    "TelemetryService",
     "SecurityService",
+    "SessionService",
+    "TelemetryService",
 ]

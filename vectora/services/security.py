@@ -170,7 +170,7 @@ class SecurityService:
                 return False, reason
 
         # Check for deletion patterns
-        if command_lower.startswith("rm") or command_lower.startswith("del"):
+        if command_lower.startswith(("rm", "del")):
             reason = "[BLOCKED] File deletion commands not allowed for safety"
             logger.warning(f"Deletion command blocked: {command}")
             return False, reason

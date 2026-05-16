@@ -114,11 +114,11 @@ async def handle_command(
     cmd = parts[0].lower()
     args = parts[1] if len(parts) > 1 else ""
 
-    if cmd == "/quit" or cmd == "/sair" or cmd == "/q":
+    if cmd in {"/quit", "/sair", "/q"}:
         logger.info(f"Chat ended by command: {cmd}")
         return True, context, debug_mode
 
-    elif cmd == "/model":
+    if cmd == "/model":
         await _handle_model_command(args, console)
 
     elif cmd == "/help":
@@ -136,7 +136,7 @@ async def handle_command(
     elif cmd == "/session":
         context = await _handle_switch_session(args, context, console)
 
-    elif cmd == "/tools" or cmd == "/tool":
+    elif cmd in {"/tools", "/tool"}:
         await _handle_tools_command(console)
 
     elif cmd == "/list":
@@ -178,7 +178,7 @@ async def _handle_debug_command(
         _save_debug_config(new_debug_mode)
         return new_debug_mode
 
-    elif args == "true" or args == "on" or args == "yes":
+    if args in {"true", "on", "yes"}:
         if current_debug_mode:
             console.print("[yellow]Debug Mode is already enabled[/yellow]")
             return current_debug_mode
@@ -192,7 +192,7 @@ async def _handle_debug_command(
         _save_debug_config(True)
         return True
 
-    elif args == "false" or args == "off" or args == "no":
+    if args in {"false", "off", "no"}:
         if not current_debug_mode:
             console.print("[yellow]Debug Mode is already disabled[/yellow]")
             return current_debug_mode
@@ -206,12 +206,11 @@ async def _handle_debug_command(
         _save_debug_config(False)
         return False
 
-    else:
-        console.print(
-            f"[red]Invalid argument: {args}[/red]\n"
-            "[dim]Usage: /debug [true|false] or /debug to toggle[/dim]"
-        )
-        return current_debug_mode
+    console.print(
+        f"[red]Invalid argument: {args}[/red]\n"
+        "[dim]Usage: /debug [true|false] or /debug to toggle[/dim]"
+    )
+    return current_debug_mode
 
 
 async def _handle_model_command(

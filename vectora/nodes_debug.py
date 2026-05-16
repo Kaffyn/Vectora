@@ -4,7 +4,9 @@ import json
 import logging
 from typing import Any
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.prebuilt.tool_node import ToolNode
+from langgraph.runtime import Runtime
 from state import State
 
 logger = logging.getLogger(__name__)
@@ -13,23 +15,25 @@ logger = logging.getLogger(__name__)
 class DiagnosticToolNode(ToolNode):
     """ToolNode com logging detalhado para diagnosticar perda de ToolMessages."""
 
-    async def ainvoke(self, input: State, config=None, **kwargs: Any) -> dict[str, Any]:
+    async def ainvoke(
+        self, state_input: State, config: RunnableConfig | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
         """Executa tools com logging de entrada e saída."""
         logger.info(
             "[TOOL_NODE] ENTRADA",
             extra={
-                "messages_count": len(input.get("messages", [])),
+                "messages_count": len(state_input.get("messages", [])),
                 "last_message_type": (
-                    type(input["messages"][-1]).__name__
-                    if input.get("messages")
+                    type(state_input["messages"][-1]).__name__
+                    if state_input.get("messages")
                     else None
                 ),
             },
         )
 
         # Log do AIMessage com tool_calls
-        if input.get("messages"):
-            last_msg = input["messages"][-1]
+        if state_input.get("messages"):
+            last_msg = state_input["messages"][-1]
             if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
                 logger.info(
                     "[TOOL_NODE] Detectadas tool_calls",
@@ -48,7 +52,7 @@ class DiagnosticToolNode(ToolNode):
 
         # Chama ToolNode original
         try:
-            result = await super().ainvoke(input, config, **kwargs)
+            result = await super().ainvoke(state_input, config, **kwargs)
 
             logger.info(
                 "[TOOL_NODE] SAÍDA",
@@ -94,22 +98,24 @@ class DiagnosticToolNode(ToolNode):
             )
             raise
 
-    def invoke(self, input: State, config=None, **kwargs: Any) -> dict[str, Any]:
+    def invoke(
+        self, state_input: State, config: RunnableConfig | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
         """Sync wrapper para invoke."""
         logger.info(
             "[TOOL_NODE-SYNC] ENTRADA",
             extra={
-                "messages_count": len(input.get("messages", [])),
+                "messages_count": len(state_input.get("messages", [])),
                 "last_message_type": (
-                    type(input["messages"][-1]).__name__
-                    if input.get("messages")
+                    type(state_input["messages"][-1]).__name__
+                    if state_input.get("messages")
                     else None
                 ),
             },
         )
 
         try:
-            result = super().invoke(input, config, **kwargs)
+            result = super().invoke(state_input, config, **kwargs)
 
             logger.info(
                 "[TOOL_NODE-SYNC] SAÍDA",
@@ -131,7 +137,9 @@ class DiagnosticToolNode(ToolNode):
             raise
 
 
-async def call_llm_debug(state: State, runtime=None, **kwargs: Any) -> dict[str, Any]:
+async def call_llm_debug(
+    state: State, runtime: Runtime | None = None, **kwargs: Any
+) -> dict[str, Any]:
     """Wrapper de call_llm com logging de entrada/saída para debugging."""
     from nodes import call_llm as original_call_llm
 

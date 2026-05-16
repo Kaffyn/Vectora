@@ -124,7 +124,7 @@ class EmbeddingService:
             if self.worker_task:
                 try:
                     await asyncio.wait_for(self.worker_task, timeout=30.0)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     logger.warning("Worker task did not complete within timeout")
                     if self.worker_task and not self.worker_task.done():
                         self.worker_task.cancel()
@@ -438,10 +438,9 @@ class EmbeddingService:
 
         for attempt, backoff in enumerate(self.retry_backoff, 1):
             try:
-                embedding = await asyncio.to_thread(
+                return await asyncio.to_thread(
                     lambda: self.embeddings.embed_query(text)
                 )
-                return embedding
             except Exception as e:
                 if attempt < self.max_retries:
                     logger.warning(

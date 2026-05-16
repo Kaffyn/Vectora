@@ -156,8 +156,8 @@ def test_ignore_summary(temp_dir):
 
 if __name__ == "__main__":
     # Run tests manually
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmpdir = Path(tmpdir)
+    with tempfile.TemporaryDirectory() as tmpdir_str:
+        tmpdir = Path(tmpdir_str)
         test_builtin_patterns(tmpdir)
         test_gitignore_file(tmpdir)
         test_npmignore_file(tmpdir)

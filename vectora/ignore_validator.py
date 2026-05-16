@@ -20,7 +20,6 @@ Previne que Vectora faça embedding de:
 import logging
 import re
 from pathlib import Path
-from typing import Set
 
 logger = logging.getLogger(__name__)
 
@@ -122,8 +121,8 @@ class IgnorePatternValidator:
             ignore_path: Caminho do arquivo de ignore
         """
         with ignore_path.open(encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
+            for raw_line in f:
+                line = raw_line.strip()
 
                 # Ignorar linhas vazias e comentários
                 if not line or line.startswith("#"):

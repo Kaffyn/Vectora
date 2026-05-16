@@ -10,9 +10,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from vectora.tool_config import ToolConfig, _parse_comma_separated
 
 from vectora.prompts import get_system_language, get_system_prompt
-from vectora.tool_config import ToolConfig, _parse_comma_separated
 from vectora.tool_safety import is_safe_file_path, is_safe_regex_pattern
 from vectora.utils import init_chat_model
 

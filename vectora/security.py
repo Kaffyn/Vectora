@@ -153,8 +153,8 @@ def validate_terminal_command(command: str) -> tuple[bool, str]:
             )
 
     # Check for suspicious patterns
-    if command_lower.startswith("rm") or command_lower.startswith("del"):
-        return False, f"[BLOCKED] File deletion commands are not allowed for safety"
+    if command_lower.startswith(("rm", "del")):
+        return False, "[BLOCKED] File deletion commands are not allowed for safety"
 
     return True, f"[OK] Safe to execute: {command}"
 

@@ -155,7 +155,7 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
         logger.warning(
             "Falha ao carregar memórias: %s",
             e,
-            extra={"user_id": getattr(ctx, "thread_id", "unknown")},
+            extra={"user_id": f"user_{thread_id}"},
         )
 
     # Gerencia o histórico de mensagens (sliding window) para evitar estouro de contexto
@@ -206,7 +206,7 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     # Create AIMessage from collected response, preserving tool_calls
     result = AIMessage(
         content=response_content,
-        tool_calls=tool_calls_collected if tool_calls_collected else None,
+        tool_calls=tool_calls_collected or None,
     )
 
     logger.debug(

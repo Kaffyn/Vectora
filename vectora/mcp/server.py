@@ -288,7 +288,7 @@ async def call_mcp_tool_tool(tool_name: str, arguments: str) -> str:
 
 logger.info(
     "11 tools registered: web_search, fetch_url, vector_search, embedding, ingest_docs, file_read, file_edit, grep, list_dir, terminal, call_mcp_tool"
-)  # noqa: E501
+)
 
 
 # ============================================================================
