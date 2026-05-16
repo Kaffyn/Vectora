@@ -48,10 +48,14 @@ class AgentManager:
         """
         self.settings = settings or self._load_settings()
 
-        # Initialize services (will be implemented in Week 2)
+        # Initialize services
+        from services.telemetry import TelemetryService
+
+        self.telemetry_service = TelemetryService(self.settings)
+
+        # Other services (will be implemented in Week 2)
         self.session_service = None  # SessionService(self.settings)
         self.embedding_service = None  # EmbeddingService(self.settings)
-        self.telemetry_service = None  # TelemetryService(self.settings)
         self.security_service = None  # SecurityService(self.settings)
 
         # Initialize graph (will be implemented in Week 4)

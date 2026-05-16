@@ -12,7 +12,6 @@ Week 2 implementation task: Port session management from checkpointer.py
 import logging
 from typing import Any
 
-from langgraph.graph.graph import CompiledGraph
 from langgraph.types import RunnableConfig
 from settings import Settings
 
