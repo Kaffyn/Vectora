@@ -68,9 +68,40 @@ mcp = FastMCP(
     "Vectora",
     instructions=(
         "Vectora é um agente de IA avançado com RAG, busca vetorial, "
-        "manipulação de arquivos e capacidades de embedding. "
-        "Use as ferramentas disponíveis para ajudar com pesquisas, "
-        "análise de código e gestão de conhecimento."
+        "manipulação de arquivos e capacidades de embedding.\n\n"
+        "QUANDO USAR CADA FERRAMENTA:\n\n"
+        "🌐 WEB SEARCH (web_search_tool):\n"
+        "- Buscar informações ATUAIS e em tempo real da internet\n"
+        "- Quando o usuário pergunta sobre notícias, eventos recentes, dados de hoje\n"
+        "- NÃO usar para informações já indexadas no Vectora\n\n"
+        "📚 VECTOR SEARCH (vector_search_tool):\n"
+        "- Buscar documentos/conhecimento JÁ INDEXADO no Vectora\n"
+        "- Busca semântica em base de conhecimento persistente\n"
+        "- Usa reranking automático para melhor relevância\n"
+        "- Preferir sobre web_search quando informação já foi ingerida\n\n"
+        "📄 FILE TOOLS (file_read, file_edit, file_write):\n"
+        "- file_read: Ler arquivos do disco (projetos, docs, código)\n"
+        "- file_edit: Editar trecho específico com replace_all para múltiplas ocorrências\n"
+        "- file_write: Criar novo arquivo ou sobrescrever completo\n\n"
+        "⚙️ EMBEDDING (embedding_tool):\n"
+        "- Indexar novo documento no Vectora para busca semântica futura\n"
+        "- Fire-and-forget: retorna queue_id, processa em background\n"
+        "- Usar ANTES de vector_search se novo conteúdo foi adicionado\n\n"
+        "🔍 INGEST (ingest_docs_tool):\n"
+        "- Indexar pasta inteira de documentos de uma vez\n"
+        "- Ideal para popular conhecimento base (docs, wiki, code)\n"
+        "- Processa em batch com splitting automático\n\n"
+        "🌐 FETCH URL (fetch_url_tool):\n"
+        "- Extrair conteúdo textual de UMA URL específica\n"
+        "- Use quando precisa ler um artigo/doc específico\n"
+        "- Melhor que web_search quando você já sabe a URL\n\n"
+        "FLUXO RECOMENDADO:\n"
+        "1. Entender a pergunta do usuário\n"
+        "2. SE é sobre algo em tempo real → web_search_tool\n"
+        "3. SE é sobre conhecimento já indexado → vector_search_tool\n"
+        "4. SE precisa ler um arquivo → file_read\n"
+        "5. SE quer indexar novo conteúdo → embedding_tool ou ingest_docs_tool\n"
+        "6. Sempre verificar resources primeiro: /vectora/thread/{id}/history"
     ),
 )
 
@@ -449,12 +480,62 @@ async def get_server_status() -> str:
                 "embedding_queue_enabled": settings.embedding_queue_enabled,
             },
             "tools_count": 12,
-            "resources_count": 3,
+            "resources_count": 4,
         }
     )
 
 
-logger.info("3 resources registered: context, history, status")
+@mcp.resource("vectora://collections")
+async def list_vector_collections() -> str:
+    """Returns available vector search collections in LanceDB.
+
+    Useful for understanding what knowledge bases are indexed and ready for search.
+
+    Returns:
+        JSON string with list of collections and their status
+    """
+    logger.info("Resource: list_vector_collections")
+
+    try:
+        import lancedb
+
+        if lancedb is None or settings.lancedb_dir is None:
+            return json.dumps(
+                {"status": "unavailable", "reason": "LanceDB not configured"}
+            )
+
+        db = await lancedb.connect_async(str(settings.lancedb_dir))
+        table_names = await db.table_names()
+
+        collections = []
+        for table_name in table_names:
+            try:
+                table = await db.open_table(table_name)
+                count = await table.count_rows()
+                collections.append(
+                    {"name": table_name, "documents": count, "status": "ready"}
+                )
+            except Exception as e:
+                logger.warning(f"Error reading collection {table_name}: {e}")
+                collections.append(
+                    {"name": table_name, "documents": 0, "status": "error"}
+                )
+
+        return json.dumps(
+            {
+                "status": "success",
+                "collections_count": len(collections),
+                "collections": collections,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
+
+    except Exception:
+        logger.exception("Failed to list vector collections")
+        return json.dumps({"status": "error", "error": "Unable to list collections"})
+
+
+logger.info("4 resources registered: context, history, status, collections")
 
 
 # ============================================================================
@@ -480,7 +561,7 @@ def run() -> None:
         Panel(
             "[bold green]✓ Vectora MCP Server pronto[/bold green]\n"
             "[dim]Transport:[/dim] stdio JSON-RPC  "
-            "[dim]Tools:[/dim] 12  [dim]Resources:[/dim] 3\n"
+            "[dim]Tools:[/dim] 12  [dim]Resources:[/dim] 4\n"
             f"[dim]Logs:[/dim] {_log_dir / 'mcp.log'}",
             title="[bold cyan]Vectora MCP[/bold cyan]",
             border_style="cyan",
@@ -488,7 +569,7 @@ def run() -> None:
     )
 
     logger.info("Starting Vectora MCP server (stdio JSON-RPC)")
-    logger.info("Tools: 12 | Resources: 3 | Transport: stdio")
+    logger.info("Tools: 12 | Resources: 4 | Transport: stdio")
 
     try:
         mcp.run()
