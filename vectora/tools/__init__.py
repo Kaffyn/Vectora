@@ -15,12 +15,13 @@ com qualquer código que importe direto de `tools`.
 import logging
 
 from langchain.tools import BaseTool
-from settings import settings
-from tools.fs import file_edit, file_read, file_write, grep, list_dir, terminal
-from tools.mcp import call_mcp_tool
-from tools.memory import delete_memory, get_memory, save_memory
-from tools.rag import embedding, ingest_docs, vector_search
-from tools.web import fetch_url, web_search
+
+from vectora.settings import settings
+from vectora.tools.fs import file_edit, file_read, file_write, grep, list_dir, terminal
+from vectora.tools.mcp import call_mcp_tool
+from vectora.tools.memory import delete_memory, get_memory, save_memory
+from vectora.tools.rag import embedding, ingest_docs, vector_search
+from vectora.tools.web import fetch_url, web_search
 
 logger = logging.getLogger(__name__)
 
