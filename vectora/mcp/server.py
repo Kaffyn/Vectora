@@ -737,35 +737,76 @@ logger.info("4 resources registered: context, history, status, collections")
 
 
 def run() -> None:
-    """Start Vectora as a stdio MCP server.
+    """Start Vectora as MCP server with configurable transport.
 
     Entry point: vectora-mcp → vectora.mcp.server:run
 
-    Starts the FastMCP server listening on stdin/stdout using JSON-RPC 2.0.
-    All logging is redirected to ~/.vectora/logs/mcp.log to avoid polluting
-    the stdio channel. Status feedback goes to stderr (safe for MCP clients).
+    Suporta dois modos de transport via env var MCP_TRANSPORT:
+    - "stdio" (default): para clientes locais (Claude Desktop, Claude Code)
+    - "sse": para múltiplos agentes remotos via HTTP/SSE (Paperclip, etc.)
+
+    Em modo stdio:
+        Lê/escreve JSON-RPC via stdin/stdout. Logs vão para arquivo.
+        Status feedback via stderr (não interfere com protocolo).
+
+    Em modo sse:
+        Escuta em MCP_HOST:MCP_PORT (default: 0.0.0.0:8000).
+        Múltiplos agentes podem conectar simultaneamente via HTTP.
+        Cada agente passa seu próprio thread_id para isolamento de sessão.
     """
+    import os
+
     from rich.console import Console
     from rich.panel import Panel
 
-    # stderr é seguro — o protocolo MCP usa apenas stdout para JSON-RPC
-    err_console = Console(stderr=True)
-    err_console.print(
-        Panel(
-            "[bold green]✓ Vectora MCP Server pronto[/bold green]\n"
-            "[dim]Transport:[/dim] stdio JSON-RPC  "
-            "[dim]Tools:[/dim] 13  [dim]Resources:[/dim] 4\n"
-            f"[dim]Logs:[/dim] {_log_dir / 'mcp.log'}",
-            title="[bold cyan]Vectora MCP[/bold cyan]",
-            border_style="cyan",
-        )
-    )
+    transport = os.getenv("MCP_TRANSPORT", "stdio").lower()
+    host = os.getenv("MCP_HOST", "0.0.0.0")  # noqa: S104
+    port = int(os.getenv("MCP_PORT", "8000"))
 
-    logger.info("Starting Vectora MCP server (stdio JSON-RPC)")
-    logger.info("Tools: 13 | Resources: 4 | Transport: stdio")
+    # stderr é seguro — em stdio, stdout é reservado ao JSON-RPC
+    err_console = Console(stderr=True)
+
+    if transport == "sse":
+        err_console.print(
+            Panel(
+                "[bold green]✓ Vectora MCP Server pronto (Multi-Agent)[/bold green]\n"
+                f"[dim]Transport:[/dim] SSE HTTP  [dim]Endpoint:[/dim] http://{host}:{port}/sse\n"
+                "[dim]Tools:[/dim] 13  [dim]Resources:[/dim] 4\n"
+                f"[dim]Logs:[/dim] {_log_dir / 'mcp.log'}\n"
+                "[yellow]⚡ Múltiplos agentes podem conectar simultaneamente[/yellow]",
+                title="[bold cyan]Vectora MCP (Multi-Agent Hub)[/bold cyan]",
+                border_style="cyan",
+            )
+        )
+        logger.info(
+            "Starting Vectora MCP server",
+            extra={"transport": "sse", "host": host, "port": port},
+        )
+    else:
+        err_console.print(
+            Panel(
+                "[bold green]✓ Vectora MCP Server pronto[/bold green]\n"
+                "[dim]Transport:[/dim] stdio JSON-RPC  "
+                "[dim]Tools:[/dim] 13  [dim]Resources:[/dim] 4\n"
+                f"[dim]Logs:[/dim] {_log_dir / 'mcp.log'}",
+                title="[bold cyan]Vectora MCP[/bold cyan]",
+                border_style="cyan",
+            )
+        )
+        logger.info("Starting Vectora MCP server", extra={"transport": "stdio"})
+
+    logger.info("Tools: 13 | Resources: 4")
 
     try:
-        mcp.run()
+        if transport == "sse":
+            # FastMCP SSE: HTTP transport para múltiplos agentes remotos
+            # Configurar host/port via settings antes de chamar run()
+            mcp.settings.host = host
+            mcp.settings.port = port
+            mcp.run(transport="sse")
+        else:
+            # stdio JSON-RPC (default) — Claude Desktop, Claude Code
+            mcp.run(transport="stdio")
     except KeyboardInterrupt:
         logger.info("Vectora MCP server stopped by user")
         sys.exit(0)
