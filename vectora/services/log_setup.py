@@ -163,14 +163,11 @@ def setup_logging(
             "voyageai",
             "voyageai.client",
             "aiosqlite",
-            # HuggingFace Hub — baixa tokenizadores na 1ª chamada do Voyage AI;
-            # o aviso de rate limit é ruído para o usuário final
+            # HuggingFace Hub — transitiva do voyageai SDK (tokenizers);
+            # aviso de rate limit é ruído para o usuário final
             "huggingface_hub",
             "huggingface_hub.utils",
             "huggingface_hub.utils._http",
-            # sentence-transformers (reranker local)
-            "sentence_transformers",
-            "transformers",
         ]
         for logger_name in silent_loggers:
             logging.getLogger(logger_name).setLevel(logging.CRITICAL)

@@ -132,12 +132,10 @@ def setup_logging(
             # Voyage AI SDK — evita output espúrio durante embed_query()
             "voyageai",
             "voyageai.client",
-            # HuggingFace Hub — tokenizadores baixados na 1ª chamada do Voyage AI
+            # HuggingFace Hub — transitiva do voyageai SDK (tokenizers)
             "huggingface_hub",
             "huggingface_hub.utils",
             "huggingface_hub.utils._http",
-            "sentence_transformers",
-            "transformers",
         ]
         for name in _noisy_loggers:
             logging.getLogger(name).setLevel(logging.CRITICAL)
