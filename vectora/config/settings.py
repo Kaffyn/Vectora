@@ -317,7 +317,19 @@ class Settings(BaseSettings):
             logger.debug(f"Loaded user .env from {user_env}")
 
         # Level 1 (highest): Load project-local .env — overrides user global
+        # Also check the package/project root directory to support running from other directories (e.g. via MCP/orchestrator)
+        package_root_env = Path(__file__).resolve().parent.parent.parent / ".env"
         project_env = Path.cwd() / ".env"
+
+        # Load package root .env first
+        if (
+            package_root_env.exists()
+            and package_root_env.resolve() != project_env.resolve()
+        ):
+            load_dotenv(package_root_env, override=True)
+            logger.debug(f"Loaded package root .env from {package_root_env}")
+
+        # Load project-local .env (precedence over package root if in a different directory)
         if project_env.exists():
             load_dotenv(project_env, override=True)
             logger.debug(f"Loaded project .env from {project_env}")

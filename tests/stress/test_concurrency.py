@@ -44,7 +44,7 @@ class TestConcurrency:
             enable_rag=True,
             embedding_queue_enabled=True,
             embedding_queue_db=":memory:",
-            voyage_api_key="test-key",
+            cohere_api_key="test-key",
         )
 
         queue = await get_embedding_queue(config.embedding_queue_url)
@@ -247,7 +247,7 @@ class TestBackgroundWorkerStress:
             enable_rag=True,
             embedding_queue_enabled=True,
             embedding_queue_db=":memory:",
-            voyage_api_key="test-key",
+            cohere_api_key="test-key",
         )
 
         queue = await get_embedding_queue(config.embedding_queue_url)

@@ -206,7 +206,7 @@ class TestErrorHandling:
 
     @pytest.mark.asyncio
     async def test_worker_handles_api_failures(self):
-        """Verify worker handles Voyage AI API failures gracefully."""
+        """Verify worker handles Cohere API failures gracefully."""
         with patch("background_worker.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
             mock_instance.reconcile = AsyncMock()

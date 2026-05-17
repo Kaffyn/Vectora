@@ -110,11 +110,9 @@ jobs:
           restore-keys: |
             venv-${{ runner.os }}-${{ env.PYTHON_VERSION }}-
 
-      - name: Verify package structure
+      - name: Compile structure
         run: |
-          uv run python -m py_compile vectora/chat.py
-          uv run python -m py_compile vectora/tools.py
-          uv run python -m py_compile vectora/graph.py
+          uv run python -m compileall vectora
 
   test-unit:
     name: Unit Tests
@@ -146,7 +144,7 @@ jobs:
         run: |
           cat <<'EOF' > .env
           GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY || 'test-key' }}
-          VOYAGE_API_KEY=${{ secrets.VOYAGE_API_KEY || 'test-key' }}
+          COHERE_API_KEY=${{ secrets.COHERE_API_KEY || 'test-key' }}
           TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY || 'test-key' }}
           LANGSMITH_API_KEY=${{ secrets.LANGSMITH_API_KEY || '' }}
           LLM_PROVIDER=google-genai
@@ -192,7 +190,7 @@ jobs:
         run: |
           cat <<'EOF' > .env
           GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY || 'test-key' }}
-          VOYAGE_API_KEY=${{ secrets.VOYAGE_API_KEY || 'test-key' }}
+          COHERE_API_KEY=${{ secrets.COHERE_API_KEY || 'test-key' }}
           TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY || 'test-key' }}
           LANGSMITH_API_KEY=${{ secrets.LANGSMITH_API_KEY || '' }}
           LLM_PROVIDER=google-genai

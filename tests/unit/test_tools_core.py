@@ -213,7 +213,7 @@ class TestVectorSearch:
     async def test_vector_search_returns_dict(self) -> None:
         """Verify vector_search returns results dictionary with mocked services."""
         # Simple test: just verify RAG can be disabled
-        # (Full vector_search test requires complex LanceDB/Voyage mocking)
+        # (Full vector_search test requires complex LanceDB/Cohere mocking)
         config = ToolConfig(enable_rag=False)
 
         with patch("tools.get_tool_config", return_value=config):
@@ -233,7 +233,7 @@ class TestVectorSearch:
         """Verify vector_search filters by min_score."""
         config = ToolConfig(
             enable_rag=True,
-            voyage_api_key="mock-voyage-key",
+            cohere_api_key="mock-cohere-key",
             lancedb_dir="./data/lancedb",
             search_min_score=0.5,
         )

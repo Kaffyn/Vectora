@@ -46,7 +46,7 @@ class TestFireAndForgetBasic:
 
     @pytest.mark.asyncio
     async def test_embedding_returns_immediately(self) -> None:
-        """Test que embedding() retorna em <200ms sem esperar Voyage AI."""
+        """Test que embedding() retorna em <200ms sem esperar Cohere."""
         # 1. Mock da fila de embedding para evitar conexão com DB real
         mock_queue = AsyncMock()
         mock_queue.enqueue.return_value = "queue-123"
@@ -157,7 +157,7 @@ class TestBackgroundWorker:
             enable_rag=True,
             embedding_queue_enabled=True,
             embedding_queue_db=":memory:",
-            voyage_api_key="test-key",
+            cohere_api_key="test-key",
         )
 
         # Enfileirar documento
@@ -168,13 +168,13 @@ class TestBackgroundWorker:
             metadata={"test": True},
         )
 
-        # Mock Voyage AI embedding
+        # Mock Cohere embedding
         mock_vector = [0.1, 0.2, 0.3] * 400  # 1200-dim vector
 
-        with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
+        with patch("vectora.services.background.CohereEmbeddings") as mock_cohere:
             mock_instance = MagicMock()
             mock_instance.embed_query = MagicMock(return_value=mock_vector)
-            mock_voyage.return_value = mock_instance
+            mock_cohere.return_value = mock_instance
 
             with patch("background_worker.lancedb") as mock_lancedb:
                 mock_db = AsyncMock()
@@ -219,7 +219,7 @@ class TestBackgroundWorker:
             enable_rag=True,
             embedding_queue_enabled=True,
             embedding_queue_db=":memory:",
-            voyage_api_key="test-key",
+            cohere_api_key="test-key",
             lancedb_dir=Path(":memory:"),
         )
 
@@ -240,10 +240,10 @@ class TestBackgroundWorker:
                 raise Exception(msg)
             return [0.1, 0.2] * 600  # Success on 3rd attempt
 
-        with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
+        with patch("vectora.services.background.CohereEmbeddings") as mock_cohere:
             mock_instance = MagicMock()
             mock_instance.embed_query = MagicMock(side_effect=mock_embed_query)
-            mock_voyage.return_value = mock_instance
+            mock_cohere.return_value = mock_instance
 
             with patch("background_worker.lancedb") as mock_lancedb:
                 mock_db = AsyncMock()
@@ -281,7 +281,7 @@ class TestBackgroundWorker:
             enable_rag=True,
             embedding_queue_enabled=True,
             embedding_queue_db=":memory:",
-            voyage_api_key="test-key",
+            cohere_api_key="test-key",
             lancedb_dir=Path(":memory:"),
         )
 
@@ -296,10 +296,10 @@ class TestBackgroundWorker:
             msg = "Permanent API failure"
             raise Exception(msg)
 
-        with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
+        with patch("vectora.services.background.CohereEmbeddings") as mock_cohere:
             mock_instance = MagicMock()
             mock_instance.embed_query = MagicMock(side_effect=mock_embed_query_fail)
-            mock_voyage.return_value = mock_instance
+            mock_cohere.return_value = mock_instance
 
             with patch("background_worker.lancedb") as mock_lancedb:
                 mock_db = AsyncMock()
@@ -327,7 +327,7 @@ class TestBackgroundWorker:
             enable_rag=True,
             embedding_queue_enabled=True,
             embedding_queue_db=":memory:",
-            voyage_api_key="test-key",
+            cohere_api_key="test-key",
             lancedb_dir=Path(":memory:"),
         )
 
@@ -339,10 +339,10 @@ class TestBackgroundWorker:
 
         mock_vector = [0.1, 0.2] * 600
 
-        with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
+        with patch("vectora.services.background.CohereEmbeddings") as mock_cohere:
             mock_instance = MagicMock()
             mock_instance.embed_query = MagicMock(return_value=mock_vector)
-            mock_voyage.return_value = mock_instance
+            mock_cohere.return_value = mock_instance
 
             with patch("background_worker.lancedb") as mock_lancedb:
                 mock_db = AsyncMock()
@@ -506,7 +506,7 @@ async def test_full_fire_and_forget_workflow() -> None:
         enable_rag=True,
         embedding_queue_enabled=True,
         embedding_queue_db=":memory:",
-        voyage_api_key="test-key",
+        cohere_api_key="test-key",
     )
 
     # Step 1: Simulate user search → enqueue documents
@@ -526,10 +526,10 @@ async def test_full_fire_and_forget_workflow() -> None:
     # Step 2: Background worker processa
     mock_vector = [0.1, 0.2] * 600
 
-    with patch("background_worker.VoyageAIEmbeddings") as mock_voyage:
+    with patch("vectora.services.background.CohereEmbeddings") as mock_cohere:
         mock_instance = MagicMock()
         mock_instance.embed_query = MagicMock(return_value=mock_vector)
-        mock_voyage.return_value = mock_instance
+        mock_cohere.return_value = mock_instance
 
         with patch("background_worker.lancedb") as mock_lancedb:
             with patch("background_worker.pa") as mock_pa:
