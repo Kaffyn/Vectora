@@ -72,7 +72,7 @@ async def main() -> None:
         # ====================================================================
         # STEP 2: Initialize AgentManager (Orchestrator)
         # ====================================================================
-        from core.agent import AgentManager
+        from agent import AgentManager
 
         try:
             agent = AgentManager(settings)
