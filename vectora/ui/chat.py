@@ -436,7 +436,6 @@ async def chat_loop(
     checkpointer: Checkpointer,
     context: Context,
     provider: str = "unset",
-    telemetry_callbacks: list | None = None,
 ) -> None:
     """Rich Gorda chat loop with dashboard layout and live rendering."""
     # Initialize Debug Mode (load from persistent config)
@@ -478,19 +477,12 @@ async def chat_loop(
 
     status_panel = VectoraStatusPanel(console)
     audit = AuditPanel(max_visible=3)
-
-    # Build RunnableConfig with optional developer telemetry callbacks.
-    # telemetry_callbacks contains the sanitized LangSmith tracer for the
-    # developer's channel (hide_inputs=True). The user's own LangSmith
-    # tracer (if LANGSMITH_API_KEY is set) is added automatically by
-    # LangChain via env vars and runs in parallel without any explicit wiring.
-    _callbacks = telemetry_callbacks or []
+    # Injetar contexto no configurable para que os nós possam acessá-lo
     config = RunnableConfig(
         configurable={
             "thread_id": context.thread_id,
             "context": context,
-        },
-        callbacks=_callbacks or None,
+        }
     )
     # Track current thread_id to detect session changes
     current_thread_id = context.thread_id
@@ -535,19 +527,6 @@ async def chat_loop(
         for msg in audit.messages:
             console.print(msg.to_panel())
 
-    # Hint de telemetria — exibido uma única vez quando o usuário nunca respondeu.
-    # Não é intrusivo: uma linha dim, sem painel, sem bloqueio.
-    try:
-        from vectora.services.consent import get_consent_manager as _gcm
-
-        if not _gcm().has_answered():
-            console.print(
-                "[dim]💡 Ajude a melhorar o Vectora com telemetria anônima: "
-                "[bold]/privacidade enable[/bold][/dim]\n"
-            )
-    except Exception:
-        pass
-
     # Main chat loop
     while True:
         try:
@@ -588,8 +567,7 @@ async def chat_loop(
                         configurable={
                             "thread_id": context.thread_id,
                             "context": context,
-                        },
-                        callbacks=_callbacks or None,
+                        }
                     )
                     console.print(
                         SuccessPanel.render(
@@ -677,11 +655,7 @@ async def chat_loop(
     await _export_audit(audit)
 
 
-async def run_chat(
-    agent: Any | None = None,
-    settings: Any | None = None,
-    telemetry_callbacks: list | None = None,
-) -> None:
+async def run_chat(agent: Any | None = None, settings: Any | None = None) -> None:
     """Run chat with Rich Gorda dashboard.
 
     Args:
@@ -730,13 +704,7 @@ async def run_chat(
 
             async with Checkpointer(settings.db_dsn) as checkpointer:
                 graph = build_graph(checkpointer)
-                await chat_loop(
-                    graph,
-                    checkpointer,
-                    context,
-                    provider=provider,
-                    telemetry_callbacks=telemetry_callbacks,
-                )
+                await chat_loop(graph, checkpointer, context, provider=provider)
         except Exception as e:
             error_panel = Panel(
                 f"[red]Critical error: {e!s}[/red]",

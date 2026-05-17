@@ -63,9 +63,8 @@ vectora-mcp = "vectora.mcp.server:run"
 [tool.hatch.build.targets.wheel]
 packages = ["vectora"]
 
-# defaults.env is inside the vectora package directory and will be included
-# automatically by hatchling (all files inside packages = ["vectora"] are
-# included). No force-include needed.
+[tool.hatch.build.targets.wheel.force-include]
+"vectora/config/defaults.env" = "defaults.env"
 
 [tool.ruff]
 line-length = 88

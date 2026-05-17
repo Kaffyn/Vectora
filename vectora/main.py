@@ -33,78 +33,6 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
-def _configure_langsmith(settings: "Settings") -> list:  # noqa: F821
-    """Configura LangSmith para dois canais independentes.
-
-    Retorna lista de callbacks a adicionar ao RunnableConfig do LangGraph.
-
-    ─────────────────────────────────────────────────────────────────
-    Canal A — Usuário (LANGSMITH_API_KEY / LANGSMITH_TRACING=true)
-    ─────────────────────────────────────────────────────────────────
-    Configurado via variáveis de ambiente no .env local do usuário.
-    LangChain/LangGraph detecta automaticamente — zero código extra.
-    Quando ativo, o usuário vê seus traces completos (inputs, outputs).
-    Independente do consentimento de telemetria do Vectora.
-
-    ─────────────────────────────────────────────────────────────────
-    Canal B — Desenvolvedor (VECTORA_LANGSMITH_API_KEY + consentimento)
-    ─────────────────────────────────────────────────────────────────
-    Só ativo quando:
-      1. vectora_langsmith_api_key presente (injetada em build via CI/CD)
-      2. Usuário consentiu via /privacidade enable (LGPD Art. 7)
-
-    Usa build_sanitized_tracer() que cria um langsmith.Client com
-    hide_inputs=True e hide_outputs=True — hard gate por código, não
-    por variável de ambiente. O tracer é adicionado como callback
-    explícito no RunnableConfig e NÃO interfere com o Canal A.
-
-    Args:
-        settings: Settings inicializadas com campos vectora_langsmith_* e
-                  langsmith_*.
-
-    Returns:
-        Lista de BaseCallbackHandler. Vazia se telemetria do dev inativa.
-    """
-    from vectora.services.consent import get_consent_manager
-
-    callbacks: list = []
-
-    # ── Canal A: usuário — configurado via env vars, LangChain cuida sozinho ──
-    # Se LANGSMITH_TRACING=true + LANGSMITH_API_KEY estão presentes (via .env
-    # local do usuário ou override de dev), o LangChain já ativou o tracer
-    # global automaticamente ao importar. Não precisamos fazer nada.
-    if settings.langsmith_tracing and settings.langsmith_api_key:
-        logger.info(
-            "langsmith_user_tracing_active",
-            extra={"project": settings.langsmith_project},
-        )
-    else:
-        # Garante que env vars não deixem rastro se não configurado
-        os.environ.setdefault("LANGSMITH_TRACING", "false")
-
-    # ── Canal B: desenvolvedor — tracer sanitizado como callback explícito ───
-    consent = get_consent_manager()
-    if consent.is_consented() and settings.vectora_langsmith_api_key:
-        try:
-            from vectora.services.privacy import build_sanitized_tracer
-
-            dev_tracer = build_sanitized_tracer(
-                api_key=settings.vectora_langsmith_api_key,
-                project_name=settings.vectora_langsmith_project,
-                endpoint=settings.vectora_langsmith_endpoint,
-            )
-            callbacks.append(dev_tracer)
-            logger.info(
-                "langsmith_dev_telemetry_active",
-                extra={"project": settings.vectora_langsmith_project},
-            )
-        except Exception:
-            # Telemetria nunca deve bloquear o app
-            logger.warning("langsmith_dev_tracer_build_failed", exc_info=True)
-
-    return callbacks
-
-
 async def main() -> None:
     """Main entry point for Vectora CLI.
 
@@ -142,14 +70,6 @@ async def main() -> None:
             sys.exit(1)
 
         # ====================================================================
-        # STEP 1b: Configure LangSmith (two independent channels)
-        # ====================================================================
-        # Returns list of callbacks for the developer's sanitized channel.
-        # The user's own channel (LANGSMITH_API_KEY) is auto-detected by
-        # LangChain from env vars — no explicit handling needed.
-        telemetry_callbacks = _configure_langsmith(settings)
-
-        # ====================================================================
         # STEP 2: Initialize AgentManager (Orchestrator)
         # ====================================================================
         from vectora.agent import AgentManager
@@ -185,11 +105,7 @@ async def main() -> None:
         # ====================================================================
         from vectora.ui.chat import run_chat
 
-        await run_chat(
-            agent=agent,
-            settings=settings,
-            telemetry_callbacks=telemetry_callbacks,
-        )
+        await run_chat(agent=agent, settings=settings)
 
     except KeyboardInterrupt:
         logger.info("Chat interrupted by user")

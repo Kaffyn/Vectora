@@ -316,6 +316,3 @@ dist/
 build/
 /.tests
 /company
-
-# defaults.env contains developer LangSmith key injected by CI/CD at build time.
-# Commit only the template (key value is empty); CI injects real key before build.
