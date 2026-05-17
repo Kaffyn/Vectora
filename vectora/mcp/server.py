@@ -136,10 +136,60 @@ logger.info("Vectora MCP server initialized with FastMCP")
 
 
 # ============================================================================
+# TOOL TIMEOUTS (proteção contra travamentos)
+# ============================================================================
+
+TOOL_TIMEOUTS = {
+    "web_search": 30.0,  # 30 segundos para busca web
+    "fetch_url": 30.0,  # 30 segundos para extrair URL
+    "vector_search": 20.0,  # 20 segundos para busca vetorial
+    "embedding": 60.0,  # 60 segundos para embedding (fire-and-forget)
+    "ingest_docs": 120.0,  # 2 minutos para ingestão em batch
+    "file_read": 10.0,  # 10 segundos para ler arquivo
+    "file_edit": 15.0,  # 15 segundos para editar arquivo
+    "file_write": 15.0,  # 15 segundos para escrever arquivo
+    "grep": 20.0,  # 20 segundos para grep
+    "list_dir": 10.0,  # 10 segundos para listar diretório
+    "terminal": 60.0,  # 60 segundos para comando terminal
+    "call_mcp_tool": 45.0,  # 45 segundos para chamar outro MCP
+}
+
+
+async def _with_timeout(
+    coro,
+    tool_name: str,
+    default_timeout: float = 30.0,
+) -> str:
+    """Executa corrotina com timeout e trata exceções.
+
+    Args:
+        coro: Corrotina a executar
+        tool_name: Nome da ferramenta (para logs)
+        default_timeout: Timeout padrão em segundos
+
+    Returns:
+        Resultado da corrotina ou mensagem de erro
+    """
+    import asyncio
+
+    timeout = TOOL_TIMEOUTS.get(tool_name, default_timeout)
+
+    try:
+        result = await asyncio.wait_for(coro, timeout=timeout)
+        return str(result)
+    except asyncio.TimeoutError:
+        logger.warning(f"Tool timeout: {tool_name} excedeu {timeout}s")
+        return f"Erro: Ferramenta '{tool_name}' excedeu timeout de {timeout}s. Tente novamente."
+    except Exception as e:
+        logger.exception(f"Tool error: {tool_name}", extra={"error": str(e)})
+        return f"Erro na ferramenta '{tool_name}': {type(e).__name__}: {str(e)}"
+
+
+# ============================================================================
 # TOOLS — Bridge between LangChain tools and MCP protocol
 # ============================================================================
 # FastMCP automatically converts tool descriptions to MCP tool definitions.
-# We wrap each LangChain tool in a @mcp.tool() async function.
+# We wrap each LangChain tool em @mcp.tool() async function with timeouts.
 
 
 @mcp.tool()
@@ -155,8 +205,10 @@ async def web_search_tool(query: str) -> str:
     Returns:
         Resultados da busca formatados como texto
     """
-    result = await web_search.ainvoke({"query": query})
-    return str(result)
+    return await _with_timeout(
+        web_search.ainvoke({"query": query}),
+        "web_search",
+    )
 
 
 @mcp.tool()
@@ -171,8 +223,10 @@ async def fetch_url_tool(url: str) -> str:
     Returns:
         Conteúdo textual extraído da página
     """
-    result = await fetch_url.ainvoke({"url": url})
-    return str(result)
+    return await _with_timeout(
+        fetch_url.ainvoke({"url": url}),
+        "fetch_url",
+    )
 
 
 @mcp.tool()
@@ -193,10 +247,12 @@ async def vector_search_tool(
     Returns:
         Documentos similares com score de relevância
     """
-    result = await vector_search.ainvoke(
-        {"query": query, "collection": collection, "limit": limit}
+    return await _with_timeout(
+        vector_search.ainvoke(
+            {"query": query, "collection": collection, "limit": limit}
+        ),
+        "vector_search",
     )
-    return str(result)
 
 
 @mcp.tool()
