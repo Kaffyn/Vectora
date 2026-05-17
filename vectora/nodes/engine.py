@@ -25,21 +25,12 @@ from vectora.config.settings import settings
 from vectora.context import Context
 from vectora.prompts import get_system_prompt
 from vectora.services.memory import get_memory_store
+from vectora.services.text import text_service
 from vectora.services.utils import load_llm
 from vectora.state import State
 from vectora.tools import TOOLS, embedding
 
 logger = logging.getLogger(__name__)
-
-
-def _simple_token_counter(messages: list) -> int:
-    """Simple token counter without requiring LLM initialization.
-
-    Estimates tokens as ~4 characters per token (rough approximation).
-    Avoids triggering lazy LLM initialization which causes config leakage.
-    """
-    total_length = sum(len(str(msg.content or "")) for msg in messages)
-    return total_length // 4
 
 
 def _sanitize_for_gemini(messages: list) -> list:
@@ -228,7 +219,7 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
         state["messages"],
         max_tokens=settings.max_context_tokens,
         strategy="last",
-        token_counter=_simple_token_counter,
+        token_counter=text_service.count_messages_tokens,
     )
 
     # Garante pelo menos 1 HumanMessage no histórico.

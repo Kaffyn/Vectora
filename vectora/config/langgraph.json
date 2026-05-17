@@ -1,9 +1,9 @@
 {
   "$schema": "https://langgra.ph/schema.json",
   "graphs": {
-    "vectora": "graph:build_graph"
+    "vectora": "vectora.graph:build_graph"
   },
-  "env": "../.env",
-  "python_version": "3.14",
+  "env": ".env",
+  "python_version": "3.13",
   "dependencies": ["."]
 }

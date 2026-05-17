@@ -2771,6 +2771,7 @@ dependencies = [
     { name = "sqlalchemy" },
     { name = "stevedore" },
     { name = "tavily-python" },
+    { name = "tiktoken" },
     { name = "trio" },
     { name = "types-python-dateutil" },
 ]
@@ -2833,6 +2834,7 @@ requires-dist = [
     { name = "sqlalchemy", specifier = ">=2.0.0" },
     { name = "stevedore", specifier = ">=5.7.0" },
     { name = "tavily-python", specifier = ">=0.7.24" },
+    { name = "tiktoken", specifier = ">=0.13.0" },
     { name = "trio", specifier = ">=0.27.0" },
     { name = "types-python-dateutil", specifier = ">=2.9.0.20260508" },
     { name = "types-python-dateutil", marker = "extra == 'dev'" },

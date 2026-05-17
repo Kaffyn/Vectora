@@ -8,10 +8,10 @@ from typing import Any
 
 from langchain.tools import tool
 from langchain_core.documents import Document as LCDoc
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from vectora.config.settings import settings
 from vectora.services.queue import get_embedding_queue
+from vectora.services.text import text_service
 
 try:
     import lancedb
@@ -296,16 +296,9 @@ async def ingest_docs(
             }
         )
 
-    # Splitting por tokens (tiktoken cl100k_base) em vez de caracteres.
-    # Garante que cada chunk respeita o limite de contexto do Voyage AI sem
-    # depender do tokenizador interno do SDK (que baixa arquivos da HuggingFace Hub).
-    # voyage-3/voyage-3-lite: 32k tokens de contexto. 512 tokens/chunk é ideal
-    # para retrieval de alta precisão com overlap suficiente para contexto.
-    splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-        encoding_name="cl100k_base",
-        chunk_size=512,
-        chunk_overlap=50,
-    )
+    # Splitter vem do TextService — fonte única de verdade para chunking.
+    # Encoding, chunk_size e chunk_overlap são definidos em Settings e
+    # compartilhados com o token_counter do trim_messages em engine.py.
     success_count = 0
     fail_count = 0
     total_chunks = 0
@@ -321,7 +314,7 @@ async def ingest_docs(
             fail_count += 1
             continue
 
-        chunks = splitter.split_text(text)
+        chunks = text_service.split(text)
         total_chunks += len(chunks)
 
         for chunk_text in chunks:

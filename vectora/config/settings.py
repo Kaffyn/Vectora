@@ -186,6 +186,18 @@ class Settings(BaseSettings):
     embedding_queue_enabled: bool = True
     """Enable asynchronous embedding queue processing."""
 
+    # ── Tokenizer / Chunking ─────────────────────────────────────────────────
+    tiktoken_encoding: str = "cl100k_base"
+    """Tiktoken encoding used for token counting and document chunking.
+    cl100k_base é compatível com GPT-4 e serve de boa aproximação para
+    Voyage AI (context de 32k tokens). Sem download de HuggingFace."""
+
+    chunk_size: int = 512
+    """Tamanho máximo de cada chunk em tokens (para ingestão de documentos)."""
+
+    chunk_overlap: int = 50
+    """Sobreposição em tokens entre chunks consecutivos (contexto entre chunks)."""
+
     default_search_top_k: int = 10
     """Default number of top-k results for vector search."""
 
