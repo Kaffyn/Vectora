@@ -306,11 +306,11 @@ class WelcomeScreen:
 [bold green]/help[/bold green]         [dim]Quick help[/dim]
 [bold green]/quit[/bold green]         [dim]Exit chat[/dim]
 
-[bold cyan]⌨️  Input Tips:[/bold cyan]
+[bold cyan]⌨️  Dicas de Entrada:[/bold cyan]
 
-[bold green]Enter[/bold green]          [dim]Send your message[/dim]
-[bold green]Ctrl+Enter[/bold green]     [dim]Insert line break[/dim]
-[bold green]Alt+Enter[/bold green]      [dim]Insert line break (alternative)[/dim]
+[bold green]Enter[/bold green]          [dim]Enviar mensagem[/dim]
+[bold green]Alt+Enter[/bold green]      [dim]Quebra de linha[/dim]
+[bold green]Shift+Enter[/bold green]    [dim]Quebra de linha (alternativa)[/dim]
 
 [dim]Type [bold green]/list[/bold green] for full documentation[/dim]
 

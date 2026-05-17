@@ -211,11 +211,11 @@ async def _process_user_turn(
 
 
 async def _read_multiline_input() -> str:
-    """Read user input with multiline support via Ctrl+Enter.
+    """Lê input do usuário com suporte para multilinha via Alt+Enter.
 
     Comportamento:
     - Enter: envia a mensagem
-    - Ctrl+Enter ou Alt+Enter: adiciona quebra de linha
+    - Alt+Enter: adiciona quebra de linha
     - Suporta multiline paste automaticamente
 
     Returns:
@@ -229,26 +229,24 @@ async def _read_multiline_input() -> str:
         # Criar key bindings customizados
         bindings = KeyBindings()
 
-        @bindings.add("c-enter")  # Ctrl+Enter para quebra de linha
-        def _(event):
-            """Insere quebra de linha quando Ctrl+Enter é pressionado."""
-            event.current_buffer.insert_text("\n")
-
-        @bindings.add("escape", "enter")  # Alt+Enter como fallback para quebra de linha
+        # Alt+Enter para quebra de linha (padrão em Discord, Slack, etc)
+        @bindings.add("m-enter")  # Meta+Enter = Alt+Enter no terminal
         def _(event):
             """Insere quebra de linha quando Alt+Enter é pressionado."""
             event.current_buffer.insert_text("\n")
 
-        @bindings.add("c-j")  # Ctrl+J como alternativa portable para newline
+        # Shift+Enter como alternativa portável
+        @bindings.add("s-enter")  # Shift+Enter
         def _(event):
-            """Insere quebra de linha quando Ctrl+J é pressionado."""
+            """Insere quebra de linha quando Shift+Enter é pressionado."""
             event.current_buffer.insert_text("\n")
 
-        # Criar sessão de prompt SEM multiline=True
-        # Isso faz com que Enter envie a mensagem por padrão
+        # Criar sessão de prompt COM multiline=True
+        # Permite múltiplas linhas naturalmente
+        # Mas Enter normal (sem modifiers) envia a mensagem por padrão
         session = PromptSession(
             "You: ",
-            multiline=False,
+            multiline=True,
             key_bindings=bindings,
             editing_mode=EditingMode.EMACS,
         )
