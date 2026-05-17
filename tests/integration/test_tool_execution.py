@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Diagnostic test for tool message loss bug.
 
 This script tests the tool execution pipeline to identify where ToolMessages

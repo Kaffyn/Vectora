@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Check ToolNode behavior and signatures."""
 
 import inspect

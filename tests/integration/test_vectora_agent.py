@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Teste reduzido do Vectora Research Agent - 2 tópicos para demonstração."""
 
 import asyncio

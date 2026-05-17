@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Test embedding with mocked LLM to bypass Google API quota limits.
 
 This test verifies that:

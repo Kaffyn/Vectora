@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Test the message flow through add_messages reducer."""
 
 import sys

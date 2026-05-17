@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Test embedding with full DEBUG logging to diagnose tool message loss."""
 
 import asyncio
