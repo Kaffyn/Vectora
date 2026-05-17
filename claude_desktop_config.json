@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "Vectora-MCP": {
-      "command": "uv",
-      "args": ["run", "--project", "/path/to/vectora", "vectora-mcp"]
-    }
-  }
-}

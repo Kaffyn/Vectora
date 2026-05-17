@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "Vectora-MCP": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "C:/Users/Machi/Desktop/vectora/",
+        "vectora-mcp"
+      ]
+    }
+  }
+}
