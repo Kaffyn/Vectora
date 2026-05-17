@@ -174,34 +174,51 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
     # LangSmith tracing é auto-injetado via env vars (LANGSMITH_API_KEY, etc)
     response_content = ""
     tool_calls_collected = []
-    with nullcontext():
-        # LangSmith automatically captures duration, tokens, and model info
-        # Use astream() to get complete messages without the event overhead
-        # which may bypass some of the config leakage issues from astream_events()
-        async for chunk in llm_with_tools.astream(
-            messages_with_system,
-        ):
-            # astream() returns AIMessage chunks with partial content and tool_calls
-            if hasattr(chunk, "content") and chunk.content:
-                # Handle content as string or list of content blocks
-                content = chunk.content
-                if isinstance(content, list):
-                    # Extract text from content blocks
-                    for item in content:
-                        if isinstance(item, dict) and "text" in item:
-                            response_content += item["text"]
-                        elif isinstance(item, str):
-                            response_content += item
-                        else:
-                            response_content += str(item)
-                elif isinstance(content, dict) and "text" in content:
-                    response_content += content["text"]
-                else:
-                    response_content += str(content)
+    try:
+        with nullcontext():
+            # LangSmith automatically captures duration, tokens, and model info
+            # Use astream() to get complete messages without the event overhead
+            # which may bypass some of the config leakage issues from astream_events()
+            async for chunk in llm_with_tools.astream(
+                messages_with_system,
+            ):
+                # astream() returns AIMessage chunks with partial content and tool_calls
+                if hasattr(chunk, "content") and chunk.content:
+                    # Handle content as string or list of content blocks
+                    content = chunk.content
+                    if isinstance(content, list):
+                        # Extract text from content blocks
+                        for item in content:
+                            if isinstance(item, dict) and "text" in item:
+                                response_content += item["text"]
+                            elif isinstance(item, str):
+                                response_content += item
+                            else:
+                                response_content += str(item)
+                    elif isinstance(content, dict) and "text" in content:
+                        response_content += content["text"]
+                    else:
+                        response_content += str(content)
 
-            # Capture tool_calls from chunks (may accumulate across multiple chunks)
-            if hasattr(chunk, "tool_calls") and chunk.tool_calls:
-                tool_calls_collected = chunk.tool_calls
+                # Capture tool_calls from chunks (may accumulate across multiple chunks)
+                if hasattr(chunk, "tool_calls") and chunk.tool_calls:
+                    tool_calls_collected = chunk.tool_calls
+    except Exception as e:
+        error_str = str(e)
+        if "RESOURCE_EXHAUSTED" in error_str or "429" in error_str:
+            logger.warning("Quota da API esgotada: %s", error_str[:200])
+            return {
+                "messages": [
+                    AIMessage(
+                        content=(
+                            "**⚠️ Limite de quota da API atingido.**\n\n"
+                            "Seu plano atual esgotou as requisições disponíveis. "
+                            "Aguarde alguns minutos ou configure uma chave de API diferente."
+                        )
+                    )
+                ]
+            }
+        raise
 
     # Create AIMessage from collected response, preserving tool_calls
     result = AIMessage(

@@ -119,6 +119,8 @@ def setup_logging(
             "google.genai",
             "google.genai._api_client",
             "google.genai._api_client.BaseApiClient",
+            "google_genai",
+            "google_genai._api_client",
             "httpx",
             "urllib3",
             "requests",
