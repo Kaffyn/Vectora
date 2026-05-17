@@ -343,8 +343,73 @@ async def call_mcp_tool_tool(tool_name: str, arguments: str) -> str:
     return str(result)
 
 
+@mcp.tool()
+async def delegate_task_to_vectora(
+    task_prompt: str,
+    thread_id: int = 1,
+) -> str:
+    """Delega uma tarefa complexa para o motor de raciocínio do Vectora.
+
+    Use esta ferramenta quando a tarefa exigir múltiplas etapas de RAG,
+    análise de arquivos, busca web ou raciocínio que o Agent Principal
+    não deve gerenciar sozinho.
+
+    O Vectora executará seu LangGraph interno e retornará apenas o resultado final.
+    Esta é a ferramenta de "delegação de sub-agente" - o Vectora processa
+    tudo internamente (RAG, file ops, web search) e devolve resultado processado.
+
+    Args:
+        task_prompt: Descrição completa da tarefa/pergunta para o Vectora processar
+        thread_id: ID da sessão/conversa para manter contexto (default: 1)
+
+    Returns:
+        Resultado final após processar a tarefa completamente no LangGraph do Vectora
+    """
+    logger.info(
+        "Delegação recebida do Agent Principal",
+        extra={"thread_id": thread_id, "prompt_length": len(task_prompt)},
+    )
+
+    try:
+        from vectora.agent import AgentManager
+        from vectora.config.settings import settings as mcp_settings
+
+        # Inicializar AgentManager com as settings
+        agent = AgentManager(mcp_settings)
+        await agent.initialize()
+
+        # Executar a tarefa via o LangGraph interno do Vectora
+        # Isso dispara todo o pipeline: RAG, tools, reasoning, etc.
+        resultado = await agent.chat(
+            user_input=task_prompt,
+            session_id=thread_id,
+        )
+
+        logger.info(
+            "Delegação processada com sucesso",
+            extra={
+                "thread_id": thread_id,
+                "result_length": len(str(resultado)),
+            },
+        )
+
+        return resultado
+
+    except Exception as e:
+        logger.exception(
+            "Falha na delegação de sub-agente",
+            extra={"thread_id": thread_id},
+        )
+        return (
+            f"Erro ao processar tarefa delegada no Vectora: {str(e)}\n\n"
+            f"Por favor, tente novamente ou quebre a tarefa em partes menores."
+        )
+
+
 logger.info(
-    "12 tools registered: web_search, fetch_url, vector_search, embedding, ingest_docs, file_read, file_edit, file_write, grep, list_dir, terminal, call_mcp_tool"
+    "13 tools registered: web_search, fetch_url, vector_search, embedding, ingest_docs, "
+    "file_read, file_edit, file_write, grep, list_dir, terminal, call_mcp_tool, "
+    "delegate_task_to_vectora"
 )
 
 
@@ -479,7 +544,7 @@ async def get_server_status() -> str:
                 "mcp_enabled": settings.enable_mcp,
                 "embedding_queue_enabled": settings.embedding_queue_enabled,
             },
-            "tools_count": 12,
+            "tools_count": 13,
             "resources_count": 4,
         }
     )
@@ -561,7 +626,7 @@ def run() -> None:
         Panel(
             "[bold green]✓ Vectora MCP Server pronto[/bold green]\n"
             "[dim]Transport:[/dim] stdio JSON-RPC  "
-            "[dim]Tools:[/dim] 12  [dim]Resources:[/dim] 4\n"
+            "[dim]Tools:[/dim] 13  [dim]Resources:[/dim] 4\n"
             f"[dim]Logs:[/dim] {_log_dir / 'mcp.log'}",
             title="[bold cyan]Vectora MCP[/bold cyan]",
             border_style="cyan",
@@ -569,7 +634,7 @@ def run() -> None:
     )
 
     logger.info("Starting Vectora MCP server (stdio JSON-RPC)")
-    logger.info("Tools: 12 | Resources: 4 | Transport: stdio")
+    logger.info("Tools: 13 | Resources: 4 | Transport: stdio")
 
     try:
         mcp.run()
