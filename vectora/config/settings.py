@@ -334,8 +334,15 @@ class Settings(BaseSettings):
         self.embedding_queue_file = self.data_dir / "embedding_queue.db"
 
         # Connection strings
+        # db_dsn: path simples (aceito por aiosqlite.connect() e Checkpointer)
         self.db_dsn = str(self.db_file)
-        self.embedding_queue_dsn = str(self.embedding_queue_file)
+        # embedding_queue_dsn: URL SQLAlchemy completa com driver async
+        # SQLAlchemy create_async_engine() exige formato: dialect+driver:///path
+        # Em Windows, paths absolutos começam com letra (C:\...) então usar as_posix()
+        # para evitar escape de barras invertidas
+        self.embedding_queue_dsn = (
+            f"sqlite+aiosqlite:///{self.embedding_queue_file.as_posix()}"
+        )
 
         # Vector store
         self.lancedb_dir = str(self.data_dir / "lancedb")

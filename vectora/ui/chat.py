@@ -36,6 +36,9 @@ from vectora.ui.main import (
     LogPanel,
     SeparatorLine,
     SuccessPanel,
+    TerminalPanel,
+    ToolCallPanel,
+    ToolMessagePanel,
     VectoraLayout,
     VectoraStatusPanel,
     WelcomeScreen,
@@ -166,6 +169,81 @@ async def _load_prior_messages(
         return 0
 
 
+def _is_terminal_tool(tool_name: str) -> bool:
+    """Verifica se a tool é o terminal (precisa de UX especial verde)."""
+    return tool_name.lower() in {"terminal", "terminal_tool"}
+
+
+def _render_tool_event_start(
+    tool_name: str, tool_input: object, status_ctx: Any
+) -> None:
+    """Exibe um evento de início de tool no console.
+
+    Suspende o spinner momentaneamente para não embaralhar o panel.
+    Terminal recebe tratamento verde especial; outras tools ficam amarelas.
+    """
+    try:
+        if status_ctx is not None and hasattr(status_ctx, "stop"):
+            status_ctx.stop()
+    except Exception:
+        pass
+
+    if _is_terminal_tool(tool_name):
+        # Comando shell em verde
+        command = ""
+        if isinstance(tool_input, dict):
+            command = str(tool_input.get("command", ""))
+        else:
+            command = str(tool_input)
+        console.print(TerminalPanel.render_command(command))
+    else:
+        # Tool genérica em amarelo
+        args_obj = tool_input if isinstance(tool_input, dict) else {"input": tool_input}
+        console.print(ToolCallPanel.render(tool_name, args_obj))
+
+    try:
+        if status_ctx is not None and hasattr(status_ctx, "start"):
+            status_ctx.start()
+    except Exception:
+        pass
+
+
+def _render_tool_event_end(
+    tool_name: str, tool_output: object, status_ctx: Any
+) -> None:
+    """Exibe um evento de fim de tool no console.
+
+    Suspende o spinner momentaneamente para não embaralhar o panel.
+    Terminal recebe tratamento verde; demais tools ficam vermelhas.
+    """
+    try:
+        if status_ctx is not None and hasattr(status_ctx, "stop"):
+            status_ctx.stop()
+    except Exception:
+        pass
+
+    # Extrai conteúdo de string ou ToolMessage
+    if hasattr(tool_output, "content"):
+        output_str = str(tool_output.content)
+    else:
+        output_str = str(tool_output)
+
+    is_error = output_str.lower().startswith(("erro", "error"))
+
+    if _is_terminal_tool(tool_name):
+        # Saída do terminal em verde
+        console.print(TerminalPanel.render_output(output_str))
+    else:
+        # Resposta de tool genérica em vermelho
+        console.print(ToolMessagePanel.render(tool_name, output_str, is_error=is_error))
+
+    try:
+        if status_ctx is not None and hasattr(status_ctx, "start"):
+            status_ctx.start()
+    except Exception:
+        pass
+
+
 async def _process_user_turn(
     user_input: str,
     graph: CompiledStateGraph[State, Context, State, State],
@@ -173,24 +251,37 @@ async def _process_user_turn(
     audit: AuditPanel,
     status_panel: VectoraStatusPanel,
 ) -> str:
-    """Process a single user turn and return AI response."""
+    """Process a single user turn and return AI response.
+
+    Exibe eventos visuais ao longo do processamento:
+    - Tool calls em AMARELO (ToolCallPanel)
+    - Tool responses em VERMELHO (ToolMessagePanel)
+    - Terminal commands/outputs em VERDE (TerminalPanel)
+    - Resposta final do LLM em magenta (ChatMessage)
+    """
     audit.add_message("User", user_input)
     console.print(ChatMessage("User", user_input).to_panel())
 
     response_content = ""
-    with status_panel.thinking("Processing your message..."):
+    # Usamos status_ctx manualmente para poder suspender/retomar o spinner
+    # quando exibimos panels de tool (evita conflito visual com Live render)
+    status_ctx = status_panel.thinking("Processing your message...")
+    status_ctx.__enter__()
+    try:
         async for event in graph.astream_events(
             {"messages": [HumanMessage(user_input)]},
             config=config,
             version="v2",
         ):
-            if event.get("event") == "on_chat_model_stream":
+            event_type = event.get("event")
+            event_name = event.get("name", "")
+
+            # Streaming do conteúdo da IA
+            if event_type == "on_chat_model_stream":
                 chunk = event.get("data", {}).get("chunk")
                 if chunk and hasattr(chunk, "content") and chunk.content:
-                    # Handle content as string or list of content blocks
                     content = chunk.content
                     if isinstance(content, list):
-                        # Extract text from content blocks
                         for item in content:
                             if isinstance(item, dict) and "text" in item:
                                 response_content += item["text"]
@@ -202,6 +293,21 @@ async def _process_user_turn(
                         response_content += content["text"]
                     else:
                         response_content += str(content)
+
+            # Tool chamada: AMARELO (ou VERDE se terminal)
+            elif event_type == "on_tool_start":
+                tool_input = event.get("data", {}).get("input")
+                _render_tool_event_start(event_name, tool_input, status_ctx)
+
+            # Tool retornou: VERMELHO (ou VERDE se terminal)
+            elif event_type == "on_tool_end":
+                tool_output = event.get("data", {}).get("output")
+                _render_tool_event_end(event_name, tool_output, status_ctx)
+    finally:
+        import contextlib
+
+        with contextlib.suppress(Exception):
+            status_ctx.__exit__(None, None, None)
 
     if response_content:
         console.print(ChatMessage("Vectora", response_content).to_panel())

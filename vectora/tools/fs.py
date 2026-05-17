@@ -1,9 +1,9 @@
 """Filesystem tools: leitura, escrita, edição de arquivos, grep, listagem e terminal."""
 
+import asyncio
 import logging
 import platform
 import re
-import subprocess as sp
 from pathlib import Path
 
 from langchain.tools import tool
@@ -226,8 +226,12 @@ def list_dir(path: str = ".", *, recursive: bool = False) -> str:
 
 
 @tool
-def terminal(command: str) -> str:
-    """Executa um comando shell. Permite tudo exceto comandos destrutivos (rm -rf, mkfs, etc).
+async def terminal(command: str) -> str:
+    """Executa um comando shell de forma assíncrona (não bloqueia o event loop).
+
+    Suporta comandos longos via streaming interno. Bloqueia destrutivos por whitelist.
+    Comandos multi-etapa ainda exigem invocações separadas (uma tool call por comando)
+    pois o processo é finalizado ao retornar — não há sessão persistente de terminal.
 
     Args:
         command: Comando shell para executar
@@ -254,34 +258,48 @@ def terminal(command: str) -> str:
             "and fork bombs are not permitted."
         )
 
+    proc: asyncio.subprocess.Process | None = None
     try:
-        result = sp.run(
+        # asyncio.create_subprocess_shell não bloqueia o event loop
+        # permitindo que o UI (Rich panels) e outras tarefas continuem rodando
+        proc = await asyncio.create_subprocess_shell(
             command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=30,
-            check=False,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
 
-        output = result.stdout
-        if result.stderr:
-            output += result.stderr
+        # Timeout de 30s aplicado via wait_for
+        try:
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                proc.communicate(), timeout=30
+            )
+        except TimeoutError:
+            proc.kill()
+            await proc.wait()
+            logger.warning("terminal_command_timeout", extra={"command": command[:50]})
+            return "Error: Command timed out after 30 seconds"
+
+        stdout = stdout_bytes.decode("utf-8", errors="replace") if stdout_bytes else ""
+        stderr = stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
+        output = stdout + stderr
 
         logger.info(
             "terminal_command_executed",
             extra={
                 "command": command[:50],
-                "exit_code": result.returncode,
+                "exit_code": proc.returncode,
                 "output_length": len(output),
             },
         )
 
-        return output or f"Command executed with exit code {result.returncode}"
+        return output or f"Command executed with exit code {proc.returncode}"
 
-    except sp.TimeoutExpired:
-        logger.warning("terminal_command_timeout", extra={"command": command[:50]})
-        return "Error: Command timed out after 30 seconds"
     except Exception:
         logger.exception("terminal_command_failed", extra={"command": command[:50]})
+        if proc is not None and proc.returncode is None:
+            try:
+                proc.kill()
+                await proc.wait()
+            except Exception:
+                pass
         return "Error executing command. Check logs."

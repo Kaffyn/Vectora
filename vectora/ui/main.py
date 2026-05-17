@@ -228,6 +228,132 @@ class ChatMessage:
         return f"## {role_text}\n\n{self.content}\n\n---\n\n"
 
 
+class ToolCallPanel:
+    """Painel amarelo para exibir chamadas de tools pelo agente."""
+
+    @staticmethod
+    def render(tool_name: str, tool_args: dict[str, Any] | str | None = None) -> Panel:
+        """Renderiza chamada de tool com argumentos.
+
+        Args:
+            tool_name: Nome da ferramenta chamada
+            tool_args: Argumentos passados (dict ou string)
+
+        Returns:
+            Panel amarelo com ícone de ferramenta
+        """
+        import json
+
+        if isinstance(tool_args, dict):
+            try:
+                args_repr = json.dumps(tool_args, indent=2, ensure_ascii=False)
+            except (TypeError, ValueError):
+                args_repr = str(tool_args)
+        elif tool_args is None:
+            args_repr = "{}"
+        else:
+            args_repr = str(tool_args)
+
+        # Limita tamanho para não poluir o terminal
+        if len(args_repr) > 600:
+            args_repr = args_repr[:600] + "\n... [truncated]"
+
+        body = f"[bold yellow]{tool_name}[/bold yellow]\n[dim]{args_repr}[/dim]"
+        return Panel(
+            body,
+            title="[bold yellow][TOOL CALL][/bold yellow]",
+            style="yellow",
+            border_style="yellow",
+            expand=False,
+        )
+
+
+class ToolMessagePanel:
+    """Painel vermelho para exibir respostas (resultados) das tools."""
+
+    @staticmethod
+    def render(tool_name: str, content: str, *, is_error: bool = False) -> Panel:
+        """Renderiza resposta de tool.
+
+        Args:
+            tool_name: Nome da ferramenta que respondeu
+            content: Conteúdo da resposta
+            is_error: Se True, destaca como erro
+
+        Returns:
+            Panel vermelho (canonical para tool messages)
+        """
+        # Limita tamanho para não poluir o terminal
+        max_len = 800
+        truncated = content[:max_len] + (
+            f"\n... [truncated {len(content) - max_len} chars]"
+            if len(content) > max_len
+            else ""
+        )
+
+        prefix = "[bold red][X] ERROR[/bold red]\n" if is_error else ""
+        body = f"{prefix}[red]{truncated}[/red]"
+
+        return Panel(
+            body,
+            title=f"[bold red][TOOL RESPONSE][/bold red] [dim]{tool_name}[/dim]",
+            style="red",
+            border_style="red",
+            expand=False,
+        )
+
+
+class TerminalPanel:
+    """Painel verde para exibir comandos de terminal e suas saídas em tempo real."""
+
+    @staticmethod
+    def render_command(command: str) -> Panel:
+        """Renderiza o comando que vai ser executado.
+
+        Args:
+            command: Comando shell
+
+        Returns:
+            Panel verde claro com prompt $ comando
+        """
+        return Panel(
+            f"[bold green]$[/bold green] [bright_green]{command}[/bright_green]",
+            title="[bold green][TERMINAL][/bold green]",
+            style="green",
+            border_style="green",
+            expand=False,
+        )
+
+    @staticmethod
+    def render_output(output: str, *, exit_code: int | None = None) -> Panel:
+        """Renderiza a saída do terminal.
+
+        Args:
+            output: stdout + stderr combinados
+            exit_code: Exit code do processo (None se ainda rodando)
+
+        Returns:
+            Panel verde com saída
+        """
+        # Trunca para não estourar a tela
+        max_len = 2000
+        truncated = output[:max_len] + (
+            f"\n... [truncated {len(output) - max_len} chars]"
+            if len(output) > max_len
+            else ""
+        )
+
+        title_suffix = f" [dim]exit={exit_code}[/dim]" if exit_code is not None else ""
+
+        return Panel(
+            f"[green]{truncated or '(no output)'}[/green]",
+            title=f"[bold green][TERMINAL OUTPUT][/bold green]{title_suffix}",
+            style="green",
+            border_style="green",
+            expand=False,
+        )
+
+
 class AuditPanel:
     """Panel for displaying conversation audit and history."""
 
