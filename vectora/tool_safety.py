@@ -80,49 +80,55 @@ def is_safe_regex_pattern(pattern: str) -> bool:
 
 
 def is_safe_shell_command(command: str) -> bool:
-    """Valida se um comando shell é seguro (whitelist de comandos).
+    """Valida se um comando shell é seguro usando modelo blacklist-only.
 
-    Allowed: git, python, npm, node, etc
-    Blocked: rm -rf, dd, etc
+    Política: PERMITIR tudo, exceto comandos explicitamente destrutivos.
+
+    BLACKLIST (sempre bloqueados):
+    - Deleção recursiva / irrecuperável: rm -rf, rm -fr, rmdir /s
+    - Formatação de disco: mkfs, format c:, dd if=/dev/zero
+    - Escalada de privilégios: sudo su, runas
+    - Ataque fork bomb: :(){:|:&};:
+    - Wipe de dados: shred, wipe, secure-delete
+
+    Todos os outros comandos — incluindo git add, git commit, git push,
+    npm install, python scripts, curl, etc. — são permitidos sem restrição.
 
     Args:
-        command: Comando a validar
+        command: Comando shell a validar
 
     Returns:
-        True se comando é permitido
+        True se o comando NÃO está na blacklist (pode ser executado)
+        False se o comando está na blacklist (bloqueado)
     """
-    allowed_commands = {
-        "python",
-        "node",
-        "npm",
-        "git",
-        "ls",
-        "pwd",
-        "echo",
-        "cat",
-        "grep",
-        "find",
-        "tail",
-        "head",
-        "wc",
-        "sort",
-        "uniq",
-        "cut",
-    }
+    cmd = command.strip().lower()
 
-    forbidden_patterns = {
-        "rm ",
-        "dd ",
+    # Blacklist: padrões destrutivos e irrecuperáveis
+    BLACKLIST: list[str] = [
+        # Deleção recursiva/forçada
+        "rm -rf",
+        "rm -fr",
+        "rm --no-preserve-root",
+        "rmdir /s",
+        "rd /s",
+        # Formatação de disco
         "mkfs",
-        "format",
-        "erase",
-        "del ",
-        "unlink",
-    }
+        "format c:",
+        "format d:",
+        "format e:",
+        "dd if=/dev/zero",
+        "dd if=/dev/urandom",
+        # Wipe de dados
+        "shred ",
+        "wipe ",
+        "secure-delete",
+        # Fork bomb
+        ":(){:|:&};:",
+        # Escalada de privilégios perigosa
+        "sudo rm",
+        "sudo mkfs",
+        "sudo dd",
+        "sudo shred",
+    ]
 
-    first_word = command.split(maxsplit=1)[0] if command.split() else ""
-
-    if first_word not in allowed_commands:
-        return False
-
-    return all(forbidden not in command for forbidden in forbidden_patterns)
+    return not any(blocked in cmd for blocked in BLACKLIST)

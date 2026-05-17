@@ -856,7 +856,7 @@ def terminal(command: str) -> str:
             "terminal command blocked by safety check",
             extra={"command": command[:50]},
         )
-        return f"Error: Command '{command}' is not allowed. Only safe commands like python, git, npm, node, ls, pwd, cat, grep, find, tail, head, wc, sort, uniq, cut are permitted."
+        return f"Error: Command '{command}' is blocked for safety. Destructive commands like rm -rf, mkfs, dd if=/dev/zero, and fork bombs are not permitted."
 
     try:
         result = sp.run(
