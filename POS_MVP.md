@@ -12,7 +12,7 @@ Esta versão transforma o MAIN_NODE monolítico num **Supervisor** que delega pa
 
 ### Multi-Agent Architecture
 
-```
+```text
 Supervisor (router inteligente)
   ├── SearchAgent   → RAG, Tavily, web research
   ├── CoderAgent    → File ops, terminal, git
@@ -80,7 +80,7 @@ O ponto alto do roadmap: **agentes que se auto-criticam** e **corrigem respostas
 
 Um nó adicional no grafo avalia a qualidade da resposta gerada:
 
-```
+```text
 call_llm → [resposta fraca?] → critique_node → call_llm (nova tentativa)
          → [resposta ok?]   → END
 ```
@@ -133,7 +133,7 @@ Extensões planejadas para o ecossistema Vectora:
 
 ## Versão Resumida do Roadmap
 
-```
+```text
 v0.1.0 ── MVP ─────────────────────────────────┐
                                                 │
           └──► v0.2: Multi-Agent + PostgreSQL   │
@@ -148,3 +148,36 @@ v0.1.0 ── MVP ────────────────────�
           └──► v1.0: Plugins + Asset Library    │
                     + ACP + VSCode              ┘
 ```
+
+https://docs.langchain.com/oss/python/integrations/providers/cohere
+https://docs.langchain.com/oss/python/integrations/chat/cohere
+https://docs.langchain.com/oss/python/integrations/retrievers/cohere
+https://docs.langchain.com/oss/python/integrations/embeddings/cohere
+https://docs.langchain.com/oss/python/integrations/retrievers/cohere-reranker
+https://docs.langchain.com/oss/python/langchain/knowledge-base
+https://docs.langchain.com/oss/python/integrations/vectorstores/index#qdrant
+https://docs.langchain.com/oss/python/langchain/rag#qdrant
+https://docs.langchain.com/oss/python/langchain/knowledge-base#qdrant
+https://docs.langchain.com/langsmith/self-host-external-redis#connect-to-an-external-redis-or-valkey-database
+https://docs.langchain.com/langsmith/data-plane#redis
+https://docs.langchain.com/langsmith/scalability-and-resilience#redis-resilience
+https://docs.langchain.com/oss/python/integrations/vectorstores/index#valkey
+https://docs.langchain.com/langsmith/script-running-pg-support-queries#run-support-queries-against-postgresql
+https://docs.langchain.com/langsmith/self-host-external-postgres#connect-to-an-external-postgresql-database
+https://docs.langchain.com/langsmith/configure-checkpointer#default-postgresql
+https://docs.langchain.com/langsmith/data-plane#postgresql
+https://docs.langchain.com/oss/python/integrations/middleware
+https://docs.langchain.com/oss/python/integrations/providers/google
+https://docs.langchain.com/oss/python/integrations/chat
+https://docs.langchain.com/oss/python/integrations/tools/tavily_search
+https://docs.langchain.com/oss/python/integrations/tools/tavily_extract
+https://reference.langchain.com/python/langgraph.checkpoint.sqlite/SqliteSaver
+https://reference.langchain.com/python/langgraph.checkpoint.postgres/PostgresSaver
+https://docs.langchain.com/oss/python/integrations/retrievers
+https://docs.langchain.com/oss/python/integrations/retrievers/cohere-reranker
+https://docs.langchain.com/oss/python/integrations/retrievers/cohere
+https://docs.langchain.com/oss/python/integrations/retrievers/tavily
+https://docs.langchain.com/oss/python/integrations/embeddings
+https://docs.langchain.com/oss/python/integrations/vectorstores
+https://docs.langchain.com/oss/python/integrations/vectorstores/lancedb
+https://docs.langchain.com/oss/python/integrations/document_loaders
