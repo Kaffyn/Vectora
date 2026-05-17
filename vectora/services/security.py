@@ -1,258 +1,134 @@
-"""SecurityService: Security validation and guardrails.
+"""Módulo de segurança para execução de ferramentas com whitelisting."""
 
-Responsibilities:
-1. Validate file operations (prevent dangerous edits)
-2. Validate terminal commands (prevent destructive operations)
-3. Validate directory access
-4. Maintain protected paths and blocked commands lists
-5. Log all security violations
-
-Week 2 implementation task: Move from security.py and enhance
-"""
-
-import logging
+import re
 from pathlib import Path
 
-from vectora.settings import Settings
 
-logger = logging.getLogger(__name__)
+def is_safe_file_path(path: str, allowed_dirs: list[str] | None = None) -> bool:
+    """Verifica se um caminho de arquivo é seguro para leitura/edição.
 
-# System-critical directories that should never be modified
-PROTECTED_PATHS = {
-    # Windows system paths
-    r"C:\Windows",
-    r"C:\Program Files",
-    r"C:\Program Files (x86)",
-    r"C:\ProgramData",
-    r"C:\System Volume Information",
-    r"C:\$Recycle.Bin",
-    # Linux/Unix system paths
-    "/bin",
-    "/sbin",
-    "/usr/bin",
-    "/usr/sbin",
-    "/usr/local/bin",
-    "/etc",
-    "/boot",
-    "/sys",
-    "/proc",
-    "/dev",
-    "/root",
-    # macOS system paths
-    "/Library/System",
-    "/System/Library",
-    "/usr/libexec",
-}
+    Rejeita:
+    - Caminhos absolutoscom /../
+    - Arquivos fora de allowed_dirs (se especificado)
+    - Extensões perigosas
 
-# System-critical files that should never be edited
-PROTECTED_FILES = {
-    # Windows critical files
-    r"C:\boot.ini",
-    r"C:\bootmgr",
-    r"C:\ntdetect.com",
-    # Linux/Unix critical files
-    "/etc/passwd",
-    "/etc/shadow",
-    "/etc/sudoers",
-    "/etc/fstab",
-    "/etc/hostname",
-    # Shell profiles
-    "~/.bashrc",
-    "~/.bash_profile",
-    "~/.zshrc",
-    "~/.profile",
-    # SSH keys and config
-    "~/.ssh/config",
-    "~/.ssh/authorized_keys",
-}
+    Args:
+        path: Caminho do arquivo
+        allowed_dirs: Diretórios permitidos (ex: ["./vectora", "./data"])
 
-# Dangerous terminal commands that should be blocked
-BLOCKED_COMMANDS = {
-    "rm -rf",
-    "rmdir",
-    "rm ",
-    "mkfs",
-    "dd",
-    "format",
-    "del ",
-    "erase",
-    "chown",
-    "chmod",
-    "sudo",
-    "su ",
-    ":(){:|:&};:",  # Fork bomb
-}
-
-
-class SecurityService:
-    """Validates operations before execution.
-
-    Implements guardrails to prevent dangerous operations:
-    - File deletion
-    - System file modification
-    - Privileged command execution
-    - Directory traversal attacks
-
-    Design principle: Fail-secure. Errors default to blocking.
+    Returns:
+        True se caminho é seguro
     """
+    try:
+        file_path = Path(path).resolve()
 
-    def __init__(self, settings: Settings):
-        """Initialize SecurityService.
+        if ".." in path:
+            return False
 
-        Args:
-            settings: Application settings
-        """
-        self.settings = settings
-        self.protected_paths = PROTECTED_PATHS
-        self.protected_files = PROTECTED_FILES
-        self.blocked_commands = BLOCKED_COMMANDS
+        dangerous_extensions = {".exe", ".sh", ".bat", ".cmd", ".com", ".pif"}
+        if file_path.suffix.lower() in dangerous_extensions:
+            return False
 
-        logger.debug("SecurityService initialized")
-
-    def validate_file_edit(self, file_path: str) -> tuple[bool, str]:
-        """Validate if file edit is allowed.
-
-        Args:
-            file_path: Path to file to edit
-
-        Returns:
-            Tuple of (is_allowed, reason_message)
-        """
-        try:
-            normalized = self._normalize_path(file_path)
-            normalized_str = str(normalized).lower()
-
-            # Check protected files
-            for protected_file in self.protected_files:
-                protected_normalized = self._normalize_path(protected_file)
-                if normalized == protected_normalized:
-                    reason = f"[BLOCKED] Cannot edit protected file: {file_path}"
-                    logger.warning(reason)
-                    return False, reason
-
-            # Check protected directories
-            for protected_dir in self.protected_paths:
+        if allowed_dirs:
+            for allowed_dir in allowed_dirs:
+                allowed_path = Path(allowed_dir).resolve()
                 try:
-                    protected_normalized = self._normalize_path(protected_dir)
-                    if normalized.is_relative_to(protected_normalized):
-                        reason = f"[BLOCKED] File in protected directory: {file_path}"
-                        logger.warning(reason)
-                        return False, reason
-                except (ValueError, AttributeError):
-                    if normalized_str.startswith(str(protected_normalized).lower()):
-                        reason = f"[BLOCKED] File in protected directory: {file_path}"
-                        logger.warning(reason)
-                        return False, reason
+                    file_path.relative_to(allowed_path)
+                    return True
+                except ValueError:
+                    pass
+            return False
 
-            logger.debug(f"File edit allowed: {file_path}")
-            return True, f"[OK] Safe to edit: {file_path}"
+        return True
+    except (ValueError, OSError):
+        return False
 
-        except Exception as e:
-            logger.exception(f"Error validating file: {e}")
-            return False, f"[ERROR] Validation error: {e}"
 
-    def validate_terminal_command(self, command: str) -> tuple[bool, str]:
-        """Validate if terminal command is safe to execute.
+def is_safe_regex_pattern(pattern: str) -> bool:
+    """Valida se um padrão regex é seguro (evita ReDoS).
 
-        Args:
-            command: Command string to validate
+    Args:
+        pattern: Padrão regex
 
-        Returns:
-            Tuple of (is_safe, reason_message)
-        """
-        command_lower = command.lower().strip()
+    Returns:
+        True se padrão é válido
+    """
+    dangerous_patterns = [
+        r"(.*)*",
+        r"(.*)+",
+        r"(.+)*",
+        r"(.+)+",
+        r"(a*)*",
+        r"(a+)*",
+        r"(a*)+",
+        r"(a+)+",
+        r"(a|a)*",
+        r"(a|a)+",
+    ]
 
-        # Check for blocked commands
-        for blocked in self.blocked_commands:
-            if blocked.lower() in command_lower:
-                reason = f"[BLOCKED] Dangerous command blocked: '{blocked}' detected"
-                logger.warning(f"Command blocked: {command}")
-                return False, reason
+    # Remove anchors for pattern matching to catch variations like (a+)+$ and (a|a)*$
+    pattern_without_anchors = pattern.lstrip("^").rstrip("$")
 
-        # Check for deletion patterns
-        if command_lower.startswith(("rm", "del")):
-            reason = "[BLOCKED] File deletion commands not allowed for safety"
-            logger.warning(f"Deletion command blocked: {command}")
-            return False, reason
+    if any(dangerous in pattern_without_anchors for dangerous in dangerous_patterns):
+        return False
 
-        logger.debug(f"Command validation passed: {command}")
-        return True, f"[OK] Safe to execute: {command}"
+    try:
+        re.compile(pattern)
+        return True
+    except re.error:
+        return False
 
-    def validate_directory_access(self, directory: str) -> tuple[bool, str]:
-        """Validate if directory can be accessed.
 
-        Args:
-            directory: Directory path to access
+def is_safe_shell_command(command: str) -> bool:
+    """Valida se um comando shell é seguro usando modelo blacklist-only.
 
-        Returns:
-            Tuple of (is_allowed, reason_message)
-        """
-        try:
-            normalized = self._normalize_path(directory)
+    Política: PERMITIR tudo, exceto comandos explicitamente destrutivos.
 
-            if normalized.exists() and not normalized.is_dir():
-                reason = f"[ERROR] Path is not a directory: {directory}"
-                logger.warning(reason)
-                return False, reason
+    BLACKLIST (sempre bloqueados):
+    - Deleção recursiva / irrecuperável: rm -rf, rm -fr, rmdir /s
+    - Formatação de disco: mkfs, format c:, dd if=/dev/zero
+    - Escalada de privilégios: sudo su, runas
+    - Ataque fork bomb: :(){:|:&};:
+    - Wipe de dados: shred, wipe, secure-delete
 
-            # Check if it's a protected directory
-            for protected_dir in self.protected_paths:
-                try:
-                    protected_normalized = self._normalize_path(protected_dir)
-                    if normalized.is_relative_to(protected_normalized):
-                        reason = f"[WARNING] Protected system directory: {directory}"
-                        logger.warning(reason)
-                        return False, reason
-                except (ValueError, AttributeError):
-                    if (
-                        str(normalized)
-                        .lower()
-                        .startswith(str(protected_normalized).lower())
-                    ):
-                        reason = f"[WARNING] Protected system directory: {directory}"
-                        logger.warning(reason)
-                        return False, reason
+    Todos os outros comandos — incluindo git add, git commit, git push,
+    npm install, python scripts, curl, etc. — são permitidos sem restrição.
 
-            logger.debug(f"Directory access allowed: {directory}")
-            return True, f"[OK] Safe to access: {directory}"
+    Args:
+        command: Comando shell a validar
 
-        except Exception as e:
-            logger.exception(f"Error validating directory: {e}")
-            return False, f"[ERROR] Validation failed: {e}"
+    Returns:
+        True se o comando NÃO está na blacklist (pode ser executado)
+        False se o comando está na blacklist (bloqueado)
+    """
+    cmd = command.strip().lower()
 
-    @staticmethod
-    def _normalize_path(path: str) -> Path:
-        """Normalize and expand path variables.
+    # Blacklist: padrões destrutivos e irrecuperáveis
+    blacklist: list[str] = [
+        # Deleção recursiva/forçada
+        "rm -rf",
+        "rm -fr",
+        "rm --no-preserve-root",
+        "rmdir /s",
+        "rd /s",
+        # Formatação de disco
+        "mkfs",
+        "format c:",
+        "format d:",
+        "format e:",
+        "dd if=/dev/zero",
+        "dd if=/dev/urandom",
+        # Wipe de dados
+        "shred ",
+        "wipe ",
+        "secure-delete",
+        # Fork bomb
+        ":(){:|:&};:",
+        # Escalada de privilégios perigosa
+        "sudo rm",
+        "sudo mkfs",
+        "sudo dd",
+        "sudo shred",
+    ]
 
-        Args:
-            path: Path string
-
-        Returns:
-            Normalized, expanded Path object
-        """
-        return Path(path).expanduser().resolve()
-
-    def log_security_event(
-        self,
-        event_type: str,
-        status: str,
-        resource: str,
-        reason: str | None = None,
-    ) -> None:
-        """Log security-relevant events.
-
-        Args:
-            event_type: Type of event ("file_edit", "command_exec", "access")
-            status: "allowed" or "blocked"
-            resource: Path or command being validated
-            reason: Reason for block (if blocked)
-        """
-        logger.warning(
-            f"Security event: {event_type}={status}",
-            extra={
-                "event_type": event_type,
-                "status": status,
-                "resource": resource,
-                "reason": reason,
-            },
-        )
+    return not any(blocked in cmd for blocked in blacklist)

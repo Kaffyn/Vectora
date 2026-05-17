@@ -12,8 +12,8 @@ from langgraph.prebuilt.tool_node import tools_condition
 from langgraph.pregel.main import BaseCheckpointSaver
 
 from vectora.context import Context
-from vectora.nodes import handle_sub_node, process_retrieval
-from vectora.nodes_debug import DiagnosticToolNode, call_llm_debug
+from vectora.nodes.debug import DiagnosticToolNode, call_llm_debug
+from vectora.nodes.engine import handle_sub_node, process_retrieval
 from vectora.state import State
 from vectora.tools import TOOLS
 

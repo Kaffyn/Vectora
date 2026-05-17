@@ -22,12 +22,12 @@ from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
 
 from vectora.context import Context
-from vectora.memory_store import get_memory_store
 from vectora.prompts import get_system_prompt
+from vectora.services.memory import get_memory_store
+from vectora.services.utils import load_llm
 from vectora.settings import settings
 from vectora.state import State
 from vectora.tools import TOOLS, embedding
-from vectora.utils import load_llm
 
 logger = logging.getLogger(__name__)
 

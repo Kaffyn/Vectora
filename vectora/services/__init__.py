@@ -7,17 +7,15 @@ Services:
 - SessionService: Session lifecycle management
 - EmbeddingService: Vector store and embeddings
 - TelemetryService: Logging and audit trails
-- SecurityService: Security validation
+- Security (module): Security validation utilities (is_safe_* functions)
 """
 
 from vectora.services.embedding import EmbeddingService
-from vectora.services.security import SecurityService
 from vectora.services.session import SessionService
 from vectora.services.telemetry import TelemetryService
 
 __all__ = [
     "EmbeddingService",
-    "SecurityService",
     "SessionService",
     "TelemetryService",
 ]

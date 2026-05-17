@@ -50,15 +50,13 @@ class AgentManager:
         self.settings = settings or self._load_settings()
 
         # Initialize services (Phase 2 completion)
-        from services.embedding import EmbeddingService
-        from services.security import SecurityService
-        from services.session import SessionService
-        from services.telemetry import TelemetryService
+        from vectora.services.embedding import EmbeddingService
+        from vectora.services.session import SessionService
+        from vectora.services.telemetry import TelemetryService
 
         self.telemetry_service = TelemetryService(self.settings)
         self.session_service = SessionService(self.settings)
         self.embedding_service = EmbeddingService(self.settings)
-        self.security_service = SecurityService(self.settings)
 
         # Initialize graph (will be implemented in Week 4)
         self.graph = None  # build_graph(self.settings)

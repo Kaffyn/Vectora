@@ -1,1 +1,1 @@
-"""UI Module."""
+"""UI Package: User Interface Components and Chat."""

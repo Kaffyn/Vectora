@@ -8,12 +8,12 @@ from pathlib import Path
 
 from langchain.tools import tool
 
-from vectora.settings import settings
-from vectora.tool_safety import (
+from vectora.services.security import (
     is_safe_file_path,
     is_safe_regex_pattern,
     is_safe_shell_command,
 )
+from vectora.settings import settings
 
 logger = logging.getLogger(__name__)
 

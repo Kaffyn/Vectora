@@ -51,8 +51,8 @@ from rich.live import Live
 from rich.panel import Panel
 
 from vectora.log_setup import setup_logging, setup_queue_handler
+from vectora.services.utils import async_lifespan
 from vectora.state import State
-from vectora.utils import async_lifespan
 
 logger = logging.getLogger(__name__)
 
