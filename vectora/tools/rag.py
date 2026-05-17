@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 from langchain.tools import tool
-from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.documents import Document as LCDoc
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -234,7 +233,8 @@ async def ingest_docs(
 ) -> str:
     """Lê todos os arquivos de um diretório e os indexa no banco vetorial.
 
-    Útil para popular o conhecimento do agente com documentação local.
+    Respeita automaticamente o .gitignore do projeto — __pycache__, .venv,
+    node_modules e demais entradas do .gitignore são ignorados na varredura.
 
     Args:
         directory_path: Caminho da pasta contendo os documentos
@@ -242,10 +242,11 @@ async def ingest_docs(
         glob_pattern: Padrão de busca de arquivos (ex: **/*.md, **/*.txt)
 
     Returns:
-        Status da ingestão com contagem de sucessos/falhas
+        JSON com contagem de arquivos, chunks, sucessos e falhas
     """
     from pathlib import Path
 
+    from vectora.services.gitignore import is_ignored, load_gitignore_spec
     from vectora.services.security import is_safe_file_path
 
     if not settings.enable_file_operations:
@@ -254,71 +255,109 @@ async def ingest_docs(
     if not is_safe_file_path(directory_path):
         return f"Access denied: {directory_path} is outside allowed directory"
 
-    path = Path(directory_path)
+    path = Path(directory_path).resolve()
     if not path.is_dir():
         return f"Not a directory: {directory_path}"
 
-    loader = DirectoryLoader(
-        str(path),
-        glob=glob_pattern,
-        loader_cls=TextLoader,
-        loader_kwargs={"encoding": "utf-8"},
-    )
+    # Carrega spec do .gitignore uma vez para todo o diretório
+    spec = load_gitignore_spec(path)
 
-    try:
-        docs = loader.load()
-    except Exception as e:
-        logger.exception(f"Error loading documents from {directory_path}: {e}")
-        return f"Error loading documents: {e!s}"
+    # Extrai o sufixo do glob_pattern (ex: **/*.md → .md) para filtrar por extensão
+    # Se o padrão não tiver extensão definida, aceita todos os arquivos
+    suffix_filter: str | None = None
+    if "." in glob_pattern.rsplit("/", maxsplit=1)[-1]:
+        suffix_filter = "." + glob_pattern.rsplit(".", 1)[-1]
 
-    if not docs:
-        return f"No documents found in {directory_path} matching {glob_pattern}"
+    # Varre o diretório respeitando .gitignore
+    raw_files = sorted(path.rglob("*"))
+    files_to_ingest: list[Path] = []
+    skipped_ignored = 0
 
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-    chunks = splitter.split_documents(docs)
+    for f in raw_files:
+        if not f.is_file():
+            continue
+        if suffix_filter and f.suffix != suffix_filter:
+            continue
+        if is_ignored(f, path, spec):
+            skipped_ignored += 1
+            logger.debug(
+                "ingest_docs: arquivo ignorado por .gitignore",
+                extra={"file": str(f)},
+            )
+            continue
+        files_to_ingest.append(f)
 
-    success_count = 0
-    fail_count = 0
-
-    for chunk in chunks:
-        chunk_metadata = chunk.metadata or {}
-        chunk_metadata.update(
-            {"ingested_at": datetime.now(UTC).isoformat(), "source_dir": directory_path}
+    if not files_to_ingest:
+        return json.dumps(
+            {
+                "status": "no_files",
+                "message": f"Nenhum arquivo encontrado em '{directory_path}' com padrão '{glob_pattern}' (após filtrar .gitignore)",
+                "skipped_ignored": skipped_ignored,
+            }
         )
 
-        res = ""
-        async for stream_chunk in embedding.astream(
-            {
-                "text": chunk.page_content,
-                "collection": collection,
-                "metadata": chunk_metadata,
-            }
-        ):
-            if isinstance(stream_chunk, str):
-                res += stream_chunk
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    success_count = 0
+    fail_count = 0
+    total_chunks = 0
 
-        if '"status": "fire_and_forget"' in res:
-            success_count += 1
-        else:
+    for file_path in files_to_ingest:
+        try:
+            text = file_path.read_text(encoding="utf-8", errors="ignore")
+        except Exception as e:
+            logger.warning(
+                "ingest_docs: falha ao ler arquivo",
+                extra={"file": str(file_path), "error": str(e)},
+            )
             fail_count += 1
+            continue
+
+        chunks = splitter.split_text(text)
+        total_chunks += len(chunks)
+
+        for chunk_text in chunks:
+            chunk_metadata = {
+                "source": str(file_path),
+                "source_dir": directory_path,
+                "ingested_at": datetime.now(UTC).isoformat(),
+            }
+
+            res = ""
+            async for stream_chunk in embedding.astream(
+                {
+                    "text": chunk_text,
+                    "collection": collection,
+                    "metadata": chunk_metadata,
+                }
+            ):
+                if isinstance(stream_chunk, str):
+                    res += stream_chunk
+
+            if '"status": "fire_and_forget"' in res:
+                success_count += 1
+            else:
+                fail_count += 1
 
     logger.info(
         "ingest_docs_completed",
         extra={
             "collection": collection,
+            "total_files": len(files_to_ingest),
+            "total_chunks": total_chunks,
             "success": success_count,
             "fail": fail_count,
-            "total_chunks": len(chunks),
+            "skipped_ignored": skipped_ignored,
         },
     )
 
     return json.dumps(
         {
             "status": "completed",
-            "total_files": len(docs),
-            "total_chunks": len(chunks),
+            "total_files": len(files_to_ingest),
+            "total_chunks": total_chunks,
             "indexed": success_count,
             "failed": fail_count,
+            "skipped_ignored": skipped_ignored,
             "collection": collection,
         }
     )

@@ -6,72 +6,17 @@ import platform
 import re
 from pathlib import Path
 
-import pathspec
 from langchain.tools import tool
 
 from vectora.config.settings import settings
+from vectora.services.gitignore import is_ignored as _is_ignored
+from vectora.services.gitignore import load_gitignore_spec as _load_gitignore_spec
 from vectora.services.security import (
     is_safe_file_path,
     is_safe_regex_pattern,
     is_safe_shell_command,
 )
 from vectora.services.terminal_stream import emit_terminal_line
-
-# Padrões sempre ignorados (independente de .gitignore) — binários e caches
-_ALWAYS_SKIP_SUFFIXES = {".pyc", ".pyo", ".o", ".exe", ".dll", ".so", ".class"}
-_ALWAYS_SKIP_DIRS = {
-    "__pycache__",
-    ".git",
-    ".venv",
-    "venv",
-    "node_modules",
-    ".mypy_cache",
-    ".ruff_cache",
-}
-
-
-def _load_gitignore_spec(base_dir: Path) -> pathspec.PathSpec | None:
-    """Carrega .gitignore do diretório base e retorna um PathSpec.
-
-    Sobe a árvore de diretórios até encontrar um .gitignore (ou a raiz).
-    Retorna None se não houver .gitignore.
-    """
-    search = base_dir.resolve()
-    for parent in [search, *search.parents]:
-        gitignore = parent / ".gitignore"
-        if gitignore.is_file():
-            try:
-                patterns = gitignore.read_text(encoding="utf-8", errors="ignore")
-                return pathspec.PathSpec.from_lines(
-                    "gitwildmatch", patterns.splitlines()
-                )
-            except Exception:
-                return None
-    return None
-
-
-def _is_ignored(path: Path, base_dir: Path, spec: pathspec.PathSpec | None) -> bool:
-    """Verifica se um path deve ser ignorado (gitignore + dirs sempre ignorados)."""
-    # Ignora sempre: __pycache__, .git, etc.
-    for part in path.parts:
-        if part in _ALWAYS_SKIP_DIRS:
-            return True
-
-    # Extensões de binários/caches
-    if path.suffix in _ALWAYS_SKIP_SUFFIXES:
-        return True
-
-    # .gitignore via pathspec
-    if spec is not None:
-        try:
-            rel = path.relative_to(base_dir)
-            if spec.match_file(str(rel).replace("\\", "/")):
-                return True
-        except ValueError:
-            pass
-
-    return False
-
 
 logger = logging.getLogger(__name__)
 
