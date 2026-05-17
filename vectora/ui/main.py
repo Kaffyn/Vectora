@@ -297,20 +297,24 @@ class WelcomeScreen:
 
 [bold cyan]📋 Available Commands:[/bold cyan]
 
-[bold green]/list[/bold green]         [cyan]Show ALL commands with help[/cyan]
-[bold green]/tools[/bold green]        [cyan]List available tools[/cyan]
-[bold green]/model[/bold green]        [cyan]List/switch models[/cyan]
-[bold green]/debug[/bold green]        [cyan]Toggle debug mode[/cyan]
-[bold green]/new[/bold green]          [cyan]Create new session[/cyan]
-[bold green]/session <id>[/bold green] [cyan]Switch session[/cyan]
-[bold green]/help[/bold green]         [cyan]Quick help[/cyan]
-[bold green]/quit[/bold green]         [cyan]Exit chat[/cyan]
+[bold green]/list[/bold green]         [dim]Show ALL commands with help[/dim]
+[bold green]/tools[/bold green]        [dim]List available tools[/dim]
+[bold green]/model[/bold green]        [dim]List/switch models[/dim]
+[bold green]/debug[/bold green]        [dim]Toggle debug mode[/dim]
+[bold green]/new[/bold green]          [dim]Create new session[/dim]
+[bold green]/session <id>[/bold green] [dim]Switch to session[/dim]
+[bold green]/help[/bold green]         [dim]Quick help[/dim]
+[bold green]/quit[/bold green]         [dim]Exit chat[/dim]
 
-[dim]Type [bold green]/list[/bold green] for complete command documentation[/dim]
+[dim]Type [bold green]/list[/bold green] for full documentation[/dim]
 
 [green]✓ Ready to chat![/green]
 """
-        return Panel(welcome_text, title="[bold cyan][ROCKET] Vectora Chat[/bold cyan]")
+        return Panel(
+            welcome_text,
+            title="[bold cyan][ROCKET] Vectora Chat[/bold cyan]",
+            expand=True,
+        )
 
 
 class ProgressIndicator:

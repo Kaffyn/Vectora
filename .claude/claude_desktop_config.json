@@ -1,13 +1,11 @@
 {
   "mcpServers": {
-    "Vectora-MCP": {
+    "vectora": {
       "command": "uv",
-      "args": [
-        "run",
-        "--project",
-        "C:/Users/Machi/Desktop/vectora",
-        "vectora-mcp"
-      ]
+      "args": ["run", "vectora-mcp"],
+      "env": {
+        "ENABLE_LOCAL_FILE_ACCESS": "true"
+      }
     }
   }
 }
