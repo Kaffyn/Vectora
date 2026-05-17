@@ -9,7 +9,6 @@ import logging
 from contextlib import nullcontext
 from datetime import UTC, datetime
 
-from context import Context
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import (
     AIMessage,
@@ -21,12 +20,14 @@ from langchain_core.messages import (
 from langchain_core.runnables import Runnable, RunnableConfig
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
-from memory_store import get_memory_store
-from prompts import get_system_prompt
-from settings import settings
-from state import State
-from tools import TOOLS, embedding
-from utils import load_llm
+
+from vectora.context import Context
+from vectora.memory_store import get_memory_store
+from vectora.prompts import get_system_prompt
+from vectora.settings import settings
+from vectora.state import State
+from vectora.tools import TOOLS, embedding
+from vectora.utils import load_llm
 
 logger = logging.getLogger(__name__)
 

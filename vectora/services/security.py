@@ -13,7 +13,7 @@ Week 2 implementation task: Move from security.py and enhance
 import logging
 from pathlib import Path
 
-from settings import Settings
+from vectora.settings import Settings
 
 logger = logging.getLogger(__name__)
 

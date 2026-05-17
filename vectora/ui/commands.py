@@ -11,8 +11,9 @@ from typing import Any
 
 from rich.panel import Panel
 from rich.table import Table
-from settings import settings
-from ui import SuccessPanel
+
+from vectora.settings import settings
+from vectora.ui.main import SuccessPanel
 
 logger = logging.getLogger(__name__)
 

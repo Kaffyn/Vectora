@@ -18,7 +18,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
-from version import __version__
+
+from vectora.version import __version__
 
 
 class VectoraLayout:

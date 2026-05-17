@@ -26,7 +26,7 @@ if str(vectora_dir) not in sys.path:
     sys.path.insert(0, str(vectora_dir))
 
 # Setup logging early (before importing rest of app)
-from log_setup import setup_logging
+from vectora.log_setup import setup_logging
 
 setup_logging()
 

@@ -6,12 +6,13 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from embedding_queue import get_embedding_queue
 from langchain.tools import tool
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.documents import Document as LCDoc
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from settings import settings
+
+from vectora.services.queue import get_embedding_queue
+from vectora.settings import settings
 
 try:
     import lancedb

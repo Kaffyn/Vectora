@@ -6,7 +6,8 @@ import logging
 from typing import Any
 
 from langchain.tools import tool
-from settings import settings
+
+from vectora.settings import settings
 
 try:
     from langchain_mcp_adapters import MultiServerMCPClient  # type: ignore

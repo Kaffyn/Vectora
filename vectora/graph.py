@@ -6,15 +6,16 @@ Coordinates conversation flow, tool execution, and state management.
 
 import logging
 
-from context import Context
 from langgraph.constants import END, START
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 from langgraph.prebuilt.tool_node import tools_condition
 from langgraph.pregel.main import BaseCheckpointSaver
-from nodes import handle_sub_node, process_retrieval
-from nodes_debug import DiagnosticToolNode, call_llm_debug
-from state import State
-from tools import TOOLS
+
+from vectora.context import Context
+from vectora.nodes import handle_sub_node, process_retrieval
+from vectora.nodes_debug import DiagnosticToolNode, call_llm_debug
+from vectora.state import State
+from vectora.tools import TOOLS
 
 logger = logging.getLogger(__name__)
 

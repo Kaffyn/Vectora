@@ -4,8 +4,9 @@ import json
 import logging
 
 from langchain.tools import tool
-from settings import settings
 from tavily import TavilyClient
+
+from vectora.settings import settings
 
 logger = logging.getLogger(__name__)
 

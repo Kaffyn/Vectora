@@ -7,8 +7,13 @@ import subprocess as sp
 from pathlib import Path
 
 from langchain.tools import tool
-from settings import settings
-from tool_safety import is_safe_file_path, is_safe_regex_pattern, is_safe_shell_command
+
+from vectora.settings import settings
+from vectora.tool_safety import (
+    is_safe_file_path,
+    is_safe_regex_pattern,
+    is_safe_shell_command,
+)
 
 logger = logging.getLogger(__name__)
 

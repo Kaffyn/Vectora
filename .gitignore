@@ -315,3 +315,4 @@ htmlcov/
 dist/
 build/
 /.tests
+/company

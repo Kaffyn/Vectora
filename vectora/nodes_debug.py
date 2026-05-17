@@ -7,7 +7,8 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
-from state import State
+
+from vectora.state import State
 
 logger = logging.getLogger(__name__)
 

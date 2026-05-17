@@ -10,10 +10,10 @@ Services:
 - SecurityService: Security validation
 """
 
-from services.embedding import EmbeddingService
-from services.security import SecurityService
-from services.session import SessionService
-from services.telemetry import TelemetryService
+from vectora.services.embedding import EmbeddingService
+from vectora.services.security import SecurityService
+from vectora.services.session import SessionService
+from vectora.services.telemetry import TelemetryService
 
 __all__ = [
     "EmbeddingService",

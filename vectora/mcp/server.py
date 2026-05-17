@@ -39,8 +39,8 @@ logger = logging.getLogger("vectora.mcp_adapter.server")
 try:
     from mcp.server.fastmcp import FastMCP
 
-    from vectora.checkpointer import Checkpointer
-    from vectora.core.agent import AgentManager
+    from vectora.agent import AgentManager
+    from vectora.services.checkpoint import Checkpointer
     from vectora.settings import settings
     from vectora.tools import (
         call_mcp_tool,

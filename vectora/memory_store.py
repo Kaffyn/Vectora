@@ -10,7 +10,8 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import aiosqlite
-from settings import settings
+
+from vectora.settings import settings
 
 logger = logging.getLogger(__name__)
 

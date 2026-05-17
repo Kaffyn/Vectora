@@ -16,8 +16,8 @@ from datetime import UTC, datetime
 from io import BytesIO
 from pathlib import Path
 
-from settings import settings
-from version import __version__
+from vectora.settings import settings
+from vectora.version import __version__
 
 logger = logging.getLogger(__name__)
 

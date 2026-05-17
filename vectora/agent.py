@@ -14,7 +14,8 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage
 from langgraph.graph import MessageGraph
-from settings import Settings
+
+from vectora.settings import Settings
 
 logger = logging.getLogger(__name__)
 

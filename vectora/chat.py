@@ -25,12 +25,12 @@ from typing import TYPE_CHECKING, Any
 if os.getenv("QUIET_MODE", "true").lower() == "true":
     warnings.filterwarnings("ignore", category=UserWarning)
 
-from background_worker import get_background_worker
-from checkpointer import Checkpointer
-from commands import handle_command
-from context import Context
-from graph import build_graph
-from ui import (
+from vectora.context import Context
+from vectora.graph import build_graph
+from vectora.services.background import get_background_worker
+from vectora.services.checkpoint import Checkpointer
+from vectora.ui.commands import handle_command
+from vectora.ui.main import (
     AuditPanel,
     ChatMessage,
     LogPanel,
@@ -40,18 +40,19 @@ from ui import (
     VectoraStatusPanel,
     WelcomeScreen,
 )
-from version import __version__
+from vectora.version import __version__
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
-from log_setup import setup_logging, setup_queue_handler
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
-from state import State
-from utils import async_lifespan
+
+from vectora.log_setup import setup_logging, setup_queue_handler
+from vectora.state import State
+from vectora.utils import async_lifespan
 
 logger = logging.getLogger(__name__)
 
@@ -281,7 +282,7 @@ async def chat_loop(
 ) -> None:
     """Rich Gorda chat loop with dashboard layout and live rendering."""
     # Initialize Debug Mode (load from persistent config)
-    from commands import _load_debug_config
+    from vectora.ui.commands import _load_debug_config
 
     debug_mode = _load_debug_config()
     log_queue: Queue | None = None
@@ -527,7 +528,7 @@ async def run_chat(agent: Any | None = None, settings: Any | None = None) -> Non
         try:
             # For now, still use legacy graph/checkpointer from agent
             # TODO Week 2: Replace with agent.chat() method
-            from checkpointer import Checkpointer
+            from vectora.services.checkpoint import Checkpointer
 
             async with Checkpointer(settings.db_dsn) as checkpointer:
                 graph = build_graph(checkpointer)

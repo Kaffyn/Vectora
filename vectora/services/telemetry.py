@@ -23,7 +23,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 
-from settings import Settings
+from vectora.settings import Settings
 
 logger = logging.getLogger(__name__)
 
