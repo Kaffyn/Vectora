@@ -123,13 +123,29 @@ def load_llm() -> BaseLanguageModel:
 async def async_lifespan() -> AsyncGenerator[None]:
     """Async context manager for application lifecycle.
 
-    Manages resource initialization and cleanup for the Vectora application.
+    Inicia o BackgroundEmbeddingWorker na entrada e para gracefully na saída.
+    O worker lê da fila SQLite e escreve embeddings no LanceDB.
+
+    Sem este lifespan, os documentos enfileirados pela tool `embedding` ficam
+    em status "pending" indefinidamente — nada os processa.
 
     Usage:
         async with async_lifespan():
             # Application runs here
             pass
     """
-    # Initialization
-    yield
-    # Cleanup (if needed in future)
+    import logging
+
+    from vectora.services.background import get_background_worker
+
+    _log = logging.getLogger(__name__)
+
+    worker = await get_background_worker()
+    await worker.start()
+    _log.info("BackgroundEmbeddingWorker iniciado via async_lifespan")
+
+    try:
+        yield
+    finally:
+        await worker.stop()
+        _log.info("BackgroundEmbeddingWorker parado via async_lifespan")
