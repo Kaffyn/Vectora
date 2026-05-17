@@ -296,7 +296,16 @@ async def ingest_docs(
             }
         )
 
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    # Splitting por tokens (tiktoken cl100k_base) em vez de caracteres.
+    # Garante que cada chunk respeita o limite de contexto do Voyage AI sem
+    # depender do tokenizador interno do SDK (que baixa arquivos da HuggingFace Hub).
+    # voyage-3/voyage-3-lite: 32k tokens de contexto. 512 tokens/chunk é ideal
+    # para retrieval de alta precisão com overlap suficiente para contexto.
+    splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+        encoding_name="cl100k_base",
+        chunk_size=512,
+        chunk_overlap=50,
+    )
     success_count = 0
     fail_count = 0
     total_chunks = 0
