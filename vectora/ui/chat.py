@@ -223,7 +223,6 @@ async def _read_multiline_input() -> str:
     """
     try:
         from prompt_toolkit import PromptSession
-        from prompt_toolkit.enums import EditingMode
         from prompt_toolkit.key_binding import KeyBindings
 
         # Criar key bindings customizados
@@ -241,14 +240,13 @@ async def _read_multiline_input() -> str:
             """Insere quebra de linha quando Shift+Enter é pressionado."""
             event.current_buffer.insert_text("\n")
 
-        # Criar sessão de prompt COM multiline=True
-        # Permite múltiplas linhas naturalmente
-        # Mas Enter normal (sem modifiers) envia a mensagem por padrão
+        # Criar sessão de prompt
+        # multiline=False: Enter envia por padrão
+        # com key_bindings customizados: Alt+Enter e Shift+Enter adicionam quebras
         session = PromptSession(
             "You: ",
-            multiline=True,
+            multiline=False,
             key_bindings=bindings,
-            editing_mode=EditingMode.EMACS,
         )
 
         loop = asyncio.get_event_loop()
@@ -256,13 +254,25 @@ async def _read_multiline_input() -> str:
 
         return user_input
 
-    except (ImportError, ValueError):
-        # Fallback se prompt_toolkit não estiver disponível ou houver erro
-        logger.warning("prompt_toolkit not available, using basic input")
+    except ImportError:
+        # Fallback se prompt_toolkit não estiver disponível
+        logger.debug("prompt_toolkit not available, using basic input")
         loop = asyncio.get_event_loop()
         sys.stdout.write("\033[1;36mYou: \033[0m")
         sys.stdout.flush()
-        return await loop.run_in_executor(None, sys.stdin.readline)
+        user_line = await loop.run_in_executor(None, sys.stdin.readline)
+        return user_line.rstrip("\n")
+    except Exception as e:
+        # Log unexpected errors from prompt_toolkit initialization
+        logger.debug(
+            "Error in multiline input, falling back to basic input",
+            extra={"error": type(e).__name__, "message": str(e)},
+        )
+        loop = asyncio.get_event_loop()
+        sys.stdout.write("\033[1;36mYou: \033[0m")
+        sys.stdout.flush()
+        user_line = await loop.run_in_executor(None, sys.stdin.readline)
+        return user_line.rstrip("\n")
 
 
 async def chat_loop(
