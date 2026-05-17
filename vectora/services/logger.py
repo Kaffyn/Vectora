@@ -129,10 +129,11 @@ def setup_logging(
             "asyncio",
             "aiosqlite",
             "httpcore",
-            # Voyage AI SDK — evita output espúrio durante embed_query()
-            "voyageai",
-            "voyageai.client",
-            # HuggingFace Hub — transitiva do voyageai SDK (tokenizers)
+            # Cohere SDK — evita output espúrio durante embed_query()
+            "cohere",
+            "cohere.client",
+            "cohere.base_client",
+            # HuggingFace Hub — transitiva do langchain-cohere (tokenizers)
             "huggingface_hub",
             "huggingface_hub.utils",
             "huggingface_hub.utils._http",

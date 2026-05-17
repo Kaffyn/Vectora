@@ -521,7 +521,7 @@ async def _handle_rag_command(args: str, console: Any) -> None:
     queue_table.add_column("count", justify="right", width=7)
     queue_table.add_column("desc", style="dim")
     _q_rows = [
-        ("pending", "[yellow]", "aguardando Voyage AI"),
+        ("pending", "[yellow]", "aguardando Cohere"),
         ("processing", "[cyan]", "sendo processados agora"),
         ("success", "[green]", "escritos no LanceDB"),
         ("failed", "[red]", "use /rag failed para detalhes"),

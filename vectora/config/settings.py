@@ -171,17 +171,17 @@ class Settings(BaseSettings):
     """API key for Tavily web search service."""
 
     # ============================================================================
-    # EMBEDDINGS (VOYAGE AI) & RAG
+    # EMBEDDINGS (COHERE) & RAG
     # ============================================================================
 
-    voyage_api_key: str | None = None
-    """API key for Voyage AI embeddings service."""
+    cohere_api_key: str | None = None
+    """API key for Cohere embeddings and reranking service."""
 
-    embedding_model: str = "voyage-3-lite"
-    """Embedding model name (Voyage AI)."""
+    embedding_model: str = "embed-multilingual-v3.0"
+    """Cohere embedding model. v3.0 multilingual cobre 100+ idiomas (PT-BR)."""
 
-    embedding_dims: int = 512
-    """Embedding vector dimensions."""
+    embedding_dims: int = 1024
+    """Cohere v3 retorna vetores de 1024 dimensões."""
 
     embedding_queue_enabled: bool = True
     """Enable asynchronous embedding queue processing."""
@@ -190,7 +190,7 @@ class Settings(BaseSettings):
     tiktoken_encoding: str = "cl100k_base"
     """Tiktoken encoding used for token counting and document chunking.
     cl100k_base é compatível com GPT-4 e serve de boa aproximação para
-    Voyage AI (context de 32k tokens). Sem download de HuggingFace."""
+    Cohere v3 (context de 512 tokens por embedding). Sem HuggingFace."""
 
     chunk_size: int = 512
     """Tamanho máximo de cada chunk em tokens (para ingestão de documentos)."""
@@ -204,11 +204,11 @@ class Settings(BaseSettings):
     search_min_score: float = 0.5
     """Minimum similarity score threshold for search results."""
 
-    reranker_type: str = "voyage"
-    """Reranking model type (voyage, none)."""
+    reranker_type: str = "cohere"
+    """Reranking model type (cohere, none)."""
 
-    reranker_model: str = "reranker-2-lite"
-    """Reranking model name."""
+    reranker_model: str = "rerank-multilingual-v3.0"
+    """Cohere reranker. v3.0 multilingual ideal para conteúdo PT-BR."""
 
     reranker_top_k: int = 5
     """Number of results to rerank."""
@@ -430,15 +430,20 @@ class Settings(BaseSettings):
         }
         return key_map.get(self.llm_provider)
 
-    def get_voyage_api_key(self) -> str | None:
-        """Get the API key for Voyage AI embeddings.
+    def get_cohere_api_key(self) -> str | None:
+        """Get the API key for Cohere embeddings and reranking.
+
+        Precedência:
+        1. Settings.cohere_api_key (carregado de .env / ~/.vectora/.env)
+        2. Variável de ambiente COHERE_API_KEY (autodetectada pelo SDK também)
 
         Returns:
-            Voyage API key from VOYAGE_API_KEY environment variable or None
+            Cohere API key ou None se não configurado.
         """
-        import os
+        if self.cohere_api_key:
+            return self.cohere_api_key
 
-        return os.getenv("VOYAGE_API_KEY")
+        return os.getenv("COHERE_API_KEY")
 
     def get_available_providers(self) -> list[str]:
         """Get list of providers with API keys configured.

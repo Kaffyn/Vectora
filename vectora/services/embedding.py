@@ -7,7 +7,7 @@ Responsibilities:
 4. Manage background worker lifecycle
 5. Handle embedding retry logic and backoff
 
-Implementation: Integrates LanceDB, background worker, and VoyageAI embeddings.
+Implementation: Integrates LanceDB, background worker, and Cohere embeddings.
 Provides fire-and-forget pattern for document ingestion and vector persistence.
 """
 
@@ -22,9 +22,9 @@ except ImportError:
     lancedb = None
 
 try:
-    from langchain_voyageai import VoyageAIEmbeddings
+    from langchain_cohere import CohereEmbeddings
 except ImportError:
-    VoyageAIEmbeddings = None
+    CohereEmbeddings = None
 
 from vectora.config.settings import Settings
 from vectora.services.ignore_validator import get_ignore_validator
@@ -376,22 +376,25 @@ class EmbeddingService:
             raise
 
     async def _initialize_embeddings(self) -> None:
-        """Initialize embeddings model (VoyageAI)."""
-        if not VoyageAIEmbeddings:
+        """Initialize embeddings model (Cohere)."""
+        if not CohereEmbeddings:
             raise ImportError(
-                "langchain-voyageai not installed. Install with: uv add langchain-voyageai"
+                "langchain-cohere not installed. Install with: uv add langchain-cohere"
             )
 
         try:
-            api_key = self.settings.get_voyage_api_key()
+            api_key = self.settings.get_cohere_api_key()
             if not api_key:
-                raise ValueError("VOYAGE_API_KEY not configured")
+                raise ValueError("COHERE_API_KEY not configured")
 
-            self.embeddings = VoyageAIEmbeddings(
-                voyage_api_key=api_key,
-                model="voyage-3",
+            self.embeddings = CohereEmbeddings(
+                cohere_api_key=api_key,
+                model=self.settings.embedding_model,
             )
-            logger.info("VoyageAI embeddings model initialized")
+            logger.info(
+                "Cohere embeddings model initialized",
+                extra={"model": self.settings.embedding_model},
+            )
         except Exception as e:
             logger.exception(f"Failed to initialize embeddings model: {e}")
             raise

@@ -130,7 +130,7 @@ As a local-first assistant, you hold a position of trust regarding the user's lo
 
 When `embedding` returns `"status": "fire_and_forget"` or `ingest_docs` returns
 `"status": "completed"`, documents were **QUEUED** — NOT yet embedded or searchable.
-The BackgroundEmbeddingWorker processes them asynchronously: Voyage AI generates vectors,
+The BackgroundEmbeddingWorker processes them asynchronously: Cohere generates vectors,
 then they are written to LanceDB.
 
 **Your response MUST:**
@@ -142,7 +142,7 @@ then they are written to LanceDB.
 
 Example correct response after `ingest_docs`:
 > "Enfileirei 456 chunks de 50 arquivos na coleção `knowledge_base`. O BackgroundEmbeddingWorker
-> está processando via Voyage AI → LanceDB em background. Use `/rag` para acompanhar o progresso
+> está processando via Cohere → LanceDB em background. Use `/rag` para acompanhar o progresso
 > em tempo real — quando `success` chegar a 456, os documentos estarão disponíveis para `vector_search`."
 
 ## Vectora Features & Commands

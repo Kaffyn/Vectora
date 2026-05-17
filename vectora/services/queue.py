@@ -1,6 +1,6 @@
 """Asynchronous Embedding Queue for Fire-and-Forget Vector Generation.
 
-Manages SQLite-backed queue for embedding documents with Voyage AI.
+Manages SQLite-backed queue for embedding documents with Cohere.
 Supports retry logic, exponential backoff, Dead Letter Queue (DLQ) for failures,
 and reconciliation for crash recovery.
 """
@@ -45,7 +45,7 @@ class EmbeddingQueueRecord(Base):  # type: ignore[valid-type,misc]
 
 
 class EmbeddingQueue:
-    """Gerenciador de fila para embedding de documentos quando API Voyage falha."""
+    """Gerenciador de fila para embedding de documentos quando API Cohere falha."""
 
     def __init__(self: Self, db_url: str) -> None:
         """Inicializa fila de embedding com conexão de banco de dados."""

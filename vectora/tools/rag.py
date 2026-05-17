@@ -15,12 +15,12 @@ from vectora.services.text import text_service
 
 try:
     import lancedb
-    from langchain_voyageai import VoyageAIEmbeddings, VoyageAIRerank
+    from langchain_cohere import CohereEmbeddings, CohereRerank
     from pydantic import SecretStr
 except ImportError:
     lancedb = None
-    VoyageAIEmbeddings = None
-    VoyageAIRerank = None
+    CohereEmbeddings = None
+    CohereRerank = None
     SecretStr = None
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ async def embedding(
 ) -> str:
     """Enfileira documento para embedding assíncrono (fire-and-forget).
 
-    Em vez de bloquear esperando Voyage AI (5+ segundos), enfileira o documento
+    Em vez de bloquear esperando Cohere (1-2 segundos por chunk), enfileira o documento
     imediatamente. Um background worker processa a fila e indexa em LanceDB.
 
     Args:
@@ -115,17 +115,18 @@ async def vector_search(
         return "RAG is disabled. Enable ENABLE_RAG=true to use this tool."
 
     try:
-        if lancedb is None or VoyageAIEmbeddings is None:
-            return "LanceDB or Voyage AI dependencies missing."
+        if lancedb is None or CohereEmbeddings is None:
+            return "LanceDB or Cohere dependencies missing."
 
-        if not settings.voyage_api_key:
-            logger.error("vector_search called but VOYAGE_API_KEY not configured")
+        api_key = settings.get_cohere_api_key()
+        if not api_key:
+            logger.error("vector_search called but COHERE_API_KEY not configured")
             return json.dumps(
-                {"status": "failed", "error": "VOYAGE_API_KEY not configured"}
+                {"status": "failed", "error": "COHERE_API_KEY not configured"}
             )
 
-        embeddings_model = VoyageAIEmbeddings(
-            api_key=SecretStr(settings.voyage_api_key),
+        embeddings_model = CohereEmbeddings(
+            cohere_api_key=SecretStr(api_key),
             model=settings.embedding_model,
         )
 
@@ -172,12 +173,12 @@ async def vector_search(
         ]
 
         # Reranking opcional — melhora precisão
-        if results and settings.reranker_type == "voyage" and VoyageAIRerank:
+        if results and settings.reranker_type == "cohere" and CohereRerank:
             try:
-                reranker = VoyageAIRerank(
-                    api_key=SecretStr(settings.voyage_api_key),
+                reranker = CohereRerank(
+                    cohere_api_key=SecretStr(api_key),
                     model=settings.reranker_model,
-                    top_k=settings.reranker_top_k,
+                    top_n=settings.reranker_top_k,
                 )
                 docs_to_rerank = [
                     LCDoc(page_content=str(r["content"]), metadata=r["metadata"])

@@ -3,7 +3,7 @@
 Loop assíncrono que:
 1. Busca documentos pendentes da fila de embedding a cada 5 segundos
 2. Processa até 10 documentos em paralelo (limitado por Semaphore(5))
-3. Gera embeddings via Voyage AI
+3. Gera embeddings via Cohere (embed-multilingual-v3.0)
 4. Escreve em LanceDB com idempotência (via queue_id como document ID)
 5. Retry com exponential backoff (1s → 2s → 4s) até 3 tentativas
 6. Move para DLQ após 3 falhas para auditoria manual
@@ -29,9 +29,9 @@ except ImportError:
     pa = None
 
 try:
-    from langchain_voyageai import VoyageAIEmbeddings
+    from langchain_cohere import CohereEmbeddings
 except ImportError:
-    VoyageAIEmbeddings = None
+    CohereEmbeddings = None
 
 from vectora.config.settings import settings
 from vectora.services.queue import EmbeddingQueueRecord, get_embedding_queue
@@ -174,7 +174,7 @@ class BackgroundEmbeddingWorker:
                     # Marcar como processing
                     await queue.mark_processing(queue_id)
 
-                    # Gerar embedding via Voyage AI
+                    # Gerar embedding via Cohere
                     embedding_vector = await self._generate_embedding(record.text)
 
                     # Escrever em LanceDB (idempotente via queue_id)
@@ -240,7 +240,7 @@ class BackgroundEmbeddingWorker:
                         )
 
     async def _generate_embedding(self, text: str) -> list[float]:
-        """Gera embedding via Voyage AI.
+        """Gera embedding via Cohere.
 
         Args:
             text: Texto para embeddar
@@ -249,23 +249,24 @@ class BackgroundEmbeddingWorker:
             Lista de floats representando o embedding
 
         Raises:
-            ValueError: Se VOYAGE_API_KEY não estiver configurado
-            ImportError: Se langchain_voyageai não estiver instalado
+            ValueError: Se COHERE_API_KEY não estiver configurado
+            ImportError: Se langchain_cohere não estiver instalado
         """
-        if not self.config.voyage_api_key:
-            msg = "VOYAGE_API_KEY não configurado"
+        api_key = self.config.get_cohere_api_key()
+        if not api_key:
+            msg = "COHERE_API_KEY não configurado"
             raise ValueError(msg)
 
-        if VoyageAIEmbeddings is None:
-            msg = "langchain_voyageai não está instalado"
+        if CohereEmbeddings is None:
+            msg = "langchain_cohere não está instalado"
             raise ImportError(msg)
 
-        embeddings_model = VoyageAIEmbeddings(
-            api_key=SecretStr(self.config.voyage_api_key),
+        embeddings_model = CohereEmbeddings(
+            cohere_api_key=SecretStr(api_key),
             model=self.config.embedding_model,
         )
 
-        # embed_query é bloqueante (HTTP síncrono ~2s por chunk).
+        # embed_query é bloqueante (HTTP síncrono ~1-2s por chunk).
         # asyncio.to_thread() move para a thread pool do SO, liberando o event loop
         # para o spinner da UI e demais tarefas async enquanto a API responde.
         return await asyncio.to_thread(embeddings_model.embed_query, text)

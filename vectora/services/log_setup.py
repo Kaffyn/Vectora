@@ -159,11 +159,12 @@ def setup_logging(
             "urllib3",
             "requests",
             "asyncio",
-            # Voyage AI SDK e SQLite async driver
-            "voyageai",
-            "voyageai.client",
+            # Cohere SDK e SQLite async driver
+            "cohere",
+            "cohere.client",
+            "cohere.base_client",
             "aiosqlite",
-            # HuggingFace Hub — transitiva do voyageai SDK (tokenizers);
+            # HuggingFace Hub — transitiva do langchain-cohere (tokenizers);
             # aviso de rate limit é ruído para o usuário final
             "huggingface_hub",
             "huggingface_hub.utils",
