@@ -177,12 +177,12 @@ async def _with_timeout(
     try:
         result = await asyncio.wait_for(coro, timeout=timeout)
         return str(result)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning(f"Tool timeout: {tool_name} excedeu {timeout}s")
         return f"Erro: Ferramenta '{tool_name}' excedeu timeout de {timeout}s. Tente novamente."
     except Exception as e:
         logger.exception(f"Tool error: {tool_name}", extra={"error": str(e)})
-        return f"Erro na ferramenta '{tool_name}': {type(e).__name__}: {str(e)}"
+        return f"Erro na ferramenta '{tool_name}': {type(e).__name__}: {e!s}"
 
 
 # ============================================================================
@@ -277,8 +277,10 @@ async def embedding_tool(
     args: dict = {"text": text, "collection": collection}
     if metadata:
         args["metadata"] = metadata
-    result = await embedding.ainvoke(args)
-    return str(result)
+    return await _with_timeout(
+        embedding.ainvoke(args),
+        "embedding",
+    )
 
 
 @mcp.tool()
@@ -299,10 +301,16 @@ async def ingest_docs_tool(
     Returns:
         Relatório de ingestão com arquivos processados
     """
-    result = await ingest_docs.ainvoke(
-        {"docs_pattern": docs_pattern, "collection": collection, "recursive": recursive}
+    return await _with_timeout(
+        ingest_docs.ainvoke(
+            {
+                "docs_pattern": docs_pattern,
+                "collection": collection,
+                "recursive": recursive,
+            }
+        ),
+        "ingest_docs",
     )
-    return str(result)
 
 
 @mcp.tool()
@@ -317,8 +325,10 @@ async def file_read_tool(file_path: str) -> str:
     Returns:
         Conteúdo completo do arquivo como string
     """
-    result = await file_read.ainvoke({"file_path": file_path})
-    return str(result)
+    return await _with_timeout(
+        file_read.ainvoke({"file_path": file_path}),
+        "file_read",
+    )
 
 
 @mcp.tool()
@@ -335,10 +345,12 @@ async def file_edit_tool(file_path: str, old_text: str, new_text: str) -> str:
     Returns:
         Confirmação da edição realizada
     """
-    result = await file_edit.ainvoke(
-        {"file_path": file_path, "old_text": old_text, "new_text": new_text}
+    return await _with_timeout(
+        file_edit.ainvoke(
+            {"file_path": file_path, "old_text": old_text, "new_text": new_text}
+        ),
+        "file_edit",
     )
-    return str(result)
 
 
 @mcp.tool()
@@ -355,8 +367,10 @@ async def file_write_tool(file_path: str, content: str) -> str:
     Returns:
         Confirmação com caminho e tamanho em bytes
     """
-    result = await file_write.ainvoke({"file_path": file_path, "content": content})
-    return str(result)
+    return await _with_timeout(
+        file_write.ainvoke({"file_path": file_path, "content": content}),
+        "file_write",
+    )
 
 
 @mcp.tool()
@@ -372,8 +386,10 @@ async def grep_tool(pattern: str, path: str = ".") -> str:
     Returns:
         Linhas correspondentes com contexto (arquivo:linha:conteúdo)
     """
-    result = await grep.ainvoke({"pattern": pattern, "path": path})
-    return str(result)
+    return await _with_timeout(
+        grep.ainvoke({"pattern": pattern, "path": path}),
+        "grep",
+    )
 
 
 @mcp.tool()
@@ -387,8 +403,10 @@ async def list_dir_tool(path: str = ".", recursive: bool = False) -> str:
     Returns:
         Lista de arquivos e diretórios com metadados
     """
-    result = await list_dir.ainvoke({"path": path, "recursive": recursive})
-    return str(result)
+    return await _with_timeout(
+        list_dir.ainvoke({"path": path, "recursive": recursive}),
+        "list_dir",
+    )
 
 
 @mcp.tool()
@@ -403,8 +421,10 @@ async def terminal_tool(command: str) -> str:
     Returns:
         Saída do comando (stdout + stderr)
     """
-    result = await terminal.ainvoke({"command": command})
-    return str(result)
+    return await _with_timeout(
+        terminal.ainvoke({"command": command}),
+        "terminal",
+    )
 
 
 @mcp.tool()
@@ -420,10 +440,10 @@ async def call_mcp_tool_tool(tool_name: str, arguments: str) -> str:
     Returns:
         Resultado da ferramenta MCP invocada
     """
-    result = await call_mcp_tool.ainvoke(
-        {"tool_name": tool_name, "arguments": arguments}
+    return await _with_timeout(
+        call_mcp_tool.ainvoke({"tool_name": tool_name, "arguments": arguments}),
+        "call_mcp_tool",
     )
-    return str(result)
 
 
 @mcp.tool()
@@ -476,7 +496,7 @@ async def delegate_task_to_vectora(
                 ),
                 timeout=300.0,  # 5 minutos
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning(
                 "A2A: Timeout ao processar tarefa",
                 extra={"thread_id": thread_id},
@@ -506,7 +526,7 @@ async def delegate_task_to_vectora(
         )
         return (
             f"Erro ao processar tarefa delegada no Vectora: {type(e).__name__}\n\n"
-            f"Detalhes: {str(e)}\n\n"
+            f"Detalhes: {e!s}\n\n"
             f"Dica: Quebre a tarefa em partes menores ou use ferramentas individuais."
         )
 
