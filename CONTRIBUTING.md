@@ -181,7 +181,7 @@ Você:
 _
 ```
 
-### Opção 2: TUI Textual (Interface Gráfica)
+### Opção 2: CLI Rich (Interface Terminal)
 
 ```bash
 uv run python vectora/run_chat.py

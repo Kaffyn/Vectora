@@ -169,7 +169,7 @@ O servidor iniciará via **Stdio JSON-RPC**. Para configurar em outros agentes, 
 ## Stack Tecnológica
 
 - **Backend / Linguagem:** Python 3.14 gerenciado pelo [UV](https://github.com/astral-sh/uv)
-- **UI no Terminal:** [Rich](https://rich.readthedocs.io/) + [Textual](https://textual.textualize.io/)
+- **UI no Terminal:** [Rich](https://rich.readthedocs.io/)
 - **Orquestração de LLMs:** LangChain 0.3 + LangGraph 0.2+
 - **Vector Store (RAG):** [LanceDB](https://lancedb.github.io/lancedb/) — file-based, zero-config
 - **Persistência de Sessões:** SQLite via `aiosqlite` — file-based, zero-config

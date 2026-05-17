@@ -36,7 +36,7 @@
 
 **Interface:**
 
-- ✅ **CLI Textual:** Setup Wizard + Chat TUI
+- ✅ **CLI Rich:** Setup Wizard + Chat TUI
 - ✅ Setup automático de LLM (Gemini, OpenAI, Anthropic, Ollama)
 - ✅ Auto-detecção de chaves em variáveis de ambiente
 - ✅ Links diretos para obter API keys
@@ -172,7 +172,7 @@ Vectora não é apenas uma "ferramenta" para o Claude Code, mas um **agente cola
 
 **CLI do Deep Agents:**
 
-- ⏳ Substituir Textual temp por CLI robusto
+- ✅ CLI Rich robusto com Panels, Tables, Layouts
 - ⏳ Suporte a múltiplas sessões em paralelo
 - ⏳ Gerenciador de agentes especializados
 - ⏳ Dashboard CLI (status, métricas, logs)
@@ -318,7 +318,7 @@ Capabilities: tools, prompts
 
 ### Fase 1: Setup Wizard
 
-- [x] Textual TUI com 4 screens
+- [x] Rich CLI com Setup Wizard e Chat Interface
 - [x] Auto-detecção de LLMs
 - [x] Teste de conexão
 - [x] Salvamento em ~/.vectora/
@@ -388,7 +388,7 @@ Capabilities: tools, prompts
 - ✅ 11/11 ferramentas operacionais
 - ✅ RAG end-to-end funcionando
 - ✅ MCP Server/Client integrados
-- ✅ CLI Textual responsiva
+- ✅ CLI Rich responsiva com Components avançados
 
 **Qualidade:**
 
