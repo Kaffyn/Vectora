@@ -300,7 +300,7 @@ async def embedding(
         )
 
     try:
-        queue = await get_embedding_queue(settings.embedding_queue_url)
+        queue = await get_embedding_queue(settings.embedding_queue_dsn)
         queue_id = await queue.enqueue(text, collection, metadata)
 
         logger.info(

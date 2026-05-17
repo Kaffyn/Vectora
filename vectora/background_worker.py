@@ -61,7 +61,7 @@ class BackgroundEmbeddingWorker:
 
     async def _get_queue(self) -> Any:
         """Obtém a queue (singleton lazy-loaded)."""
-        return await get_embedding_queue(self.config.embedding_queue_url)
+        return await get_embedding_queue(self.config.embedding_queue_dsn)
 
     async def start(self) -> None:
         """Inicia o worker como asyncio.Task."""
