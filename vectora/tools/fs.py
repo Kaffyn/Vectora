@@ -14,6 +14,7 @@ from vectora.services.security import (
     is_safe_regex_pattern,
     is_safe_shell_command,
 )
+from vectora.services.terminal_stream import emit_terminal_line
 
 logger = logging.getLogger(__name__)
 
@@ -268,20 +269,39 @@ async def terminal(command: str) -> str:
             stderr=asyncio.subprocess.PIPE,
         )
 
-        # Timeout de 30s aplicado via wait_for
+        output_lines: list[str] = []
+
+        async def _stream(
+            stream: asyncio.StreamReader | None,
+        ) -> None:
+            """Lê linhas de um stream e emite via callback em tempo real."""
+            if stream is None:
+                return
+            while True:
+                raw = await stream.readline()
+                if not raw:
+                    break
+                line = raw.decode("utf-8", errors="replace").rstrip("\r\n")
+                output_lines.append(line)
+                emit_terminal_line(line)  # → UI recebe em tempo real
+
+        # Timeout de 30s sobre a leitura de ambos os streams
         try:
-            stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                proc.communicate(), timeout=30
+            await asyncio.wait_for(
+                asyncio.gather(
+                    _stream(proc.stdout),
+                    _stream(proc.stderr),
+                ),
+                timeout=30,
             )
+            await proc.wait()
         except TimeoutError:
             proc.kill()
             await proc.wait()
             logger.warning("terminal_command_timeout", extra={"command": command[:50]})
             return "Error: Command timed out after 30 seconds"
 
-        stdout = stdout_bytes.decode("utf-8", errors="replace") if stdout_bytes else ""
-        stderr = stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
-        output = stdout + stderr
+        output = "\n".join(output_lines)
 
         logger.info(
             "terminal_command_executed",

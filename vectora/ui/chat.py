@@ -29,6 +29,10 @@ from vectora.context import Context
 from vectora.graph import build_graph
 from vectora.services.background import get_background_worker
 from vectora.services.checkpoint import Checkpointer
+from vectora.services.terminal_stream import (
+    register_terminal_output_callback,
+    unregister_terminal_output_callback,
+)
 from vectora.ui.commands import handle_command
 from vectora.ui.main import (
     AuditPanel,
@@ -196,6 +200,12 @@ def _render_tool_event_start(
         else:
             command = str(tool_input)
         console.print(TerminalPanel.render_command(command))
+
+        # Registra callback de streaming: cada linha chega em tempo real
+        def _stream_line(line: str) -> None:
+            console.print(TerminalPanel.render_line(line))
+
+        register_terminal_output_callback(_stream_line)
     else:
         # Tool genérica em amarelo
         args_obj = tool_input if isinstance(tool_input, dict) else {"input": tool_input}
@@ -231,8 +241,29 @@ def _render_tool_event_end(
     is_error = output_str.lower().startswith(("erro", "error"))
 
     if _is_terminal_tool(tool_name):
-        # Saída do terminal em verde
-        console.print(TerminalPanel.render_output(output_str))
+        # Desregistra o callback de streaming — processo terminou
+        unregister_terminal_output_callback()
+
+        # Extrai exit code do output se presente (formato "[exit=N]" não existe
+        # no output real, mas o returncode pode estar no log; exibe apenas
+        # um painel compacto de conclusão — a saída já foi exibida linha a linha)
+        is_error = output_str.lower().startswith(("erro", "error"))
+        if is_error:
+            # Erros aparecem completos para o usuário saber o que falhou
+            console.print(TerminalPanel.render_output(output_str))
+        else:
+            # Sucesso: painel mínimo para não duplicar o que já foi streamado
+            from rich.panel import Panel as _Panel
+
+            console.print(
+                _Panel(
+                    "[green]✓ Command completed[/green]",
+                    title="[bold green][TERMINAL DONE][/bold green]",
+                    style="green",
+                    border_style="green",
+                    expand=False,
+                )
+            )
     else:
         # Resposta de tool genérica em vermelho
         console.print(ToolMessagePanel.render(tool_name, output_str, is_error=is_error))

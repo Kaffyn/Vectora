@@ -325,6 +325,26 @@ class TerminalPanel:
         )
 
     @staticmethod
+    def render_line(line: str) -> Text:
+        """Renderiza uma linha individual de saída em tempo real.
+
+        Usada pelo callback de streaming para exibir cada linha assim que
+        chega do processo, antes do comando terminar.
+
+        Args:
+            line: Linha de saída (sem newline)
+
+        Returns:
+            Rich Text verde formatado
+        """
+        from rich.text import Text as _Text
+
+        t = _Text()
+        t.append("  │ ", style="dim green")
+        t.append(line, style="green")
+        return t
+
+    @staticmethod
     def render_output(output: str, *, exit_code: int | None = None) -> Panel:
         """Renderiza a saída do terminal.
 
