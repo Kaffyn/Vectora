@@ -412,6 +412,9 @@ async def chat_loop(
                             title="Session Switched",
                         )
                     )
+                    console.print()
+                    # Show welcome screen for the new session
+                    console.print(WelcomeScreen.render(provider=provider))
                     logger.info(
                         f"Session switched: {old_thread_id} → {context.thread_id}"
                     )
