@@ -58,6 +58,9 @@ class BackgroundEmbeddingWorker:
         # Semaphore(1) para proteger escritas em LanceDB contra race conditions
         # LanceDB não suporta múltiplas escritas simultâneas no mesmo diretório
         self.lancedb_semaphore = asyncio.Semaphore(1)
+        # Contadores em memória para o painel /rag
+        self.processed_count: int = 0
+        self.failed_count: int = 0
 
     async def _get_queue(self) -> Any:
         """Obtém a queue (singleton lazy-loaded)."""
@@ -179,6 +182,7 @@ class BackgroundEmbeddingWorker:
 
                     # Marcar como success
                     await queue.mark_success(queue_id)
+                    self.processed_count += 1
 
                     logger.info(
                         "embedding_processed_success",
@@ -217,6 +221,7 @@ class BackgroundEmbeddingWorker:
                     await asyncio.sleep(backoff_time)
                 else:
                     # 3 falhas, mover para DLQ com stack trace completo
+                    self.failed_count += 1
                     dlq_reason = f"{e!s}\n\nStack trace:\n{error_trace}"
                     try:
                         await queue.mark_dlq(queue_id, dlq_reason)
@@ -260,9 +265,10 @@ class BackgroundEmbeddingWorker:
             model=self.config.embedding_model,
         )
 
-        # embed_query é bloqueante, mas rodamos sob Semaphore(5)
-        # para limitar chamadas simultâneas de API
-        return embeddings_model.embed_query(text)
+        # embed_query é bloqueante (HTTP síncrono ~2s por chunk).
+        # asyncio.to_thread() move para a thread pool do SO, liberando o event loop
+        # para o spinner da UI e demais tarefas async enquanto a API responde.
+        return await asyncio.to_thread(embeddings_model.embed_query, text)
 
     async def _write_to_lancedb(
         self, record: EmbeddingQueueRecord, vector: list[float]

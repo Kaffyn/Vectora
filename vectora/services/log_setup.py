@@ -129,6 +129,10 @@ def setup_logging(
             "urllib3",
             "requests",
             "asyncio",
+            # Voyage AI SDK e SQLite async driver — evitam output espúrio no terminal
+            "voyageai",
+            "voyageai.client",
+            "aiosqlite",
         ]
         for logger_name in silent_loggers:
             logging.getLogger(logger_name).setLevel(logging.CRITICAL)

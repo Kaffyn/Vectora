@@ -140,6 +140,9 @@ async def handle_command(
     elif cmd in {"/tools", "/tool"}:
         await _handle_tools_command(console)
 
+    elif cmd == "/rag":
+        await _handle_rag_command(args, console)
+
     elif cmd == "/list":
         _display_command_list(console)
 
@@ -427,6 +430,168 @@ async def _handle_tools_command(console: Any) -> None:
         logger.exception("Failed to list tools")
 
 
+async def _handle_rag_command(args: str, console: Any) -> None:
+    """Handle /rag command — exibe painel completo do pipeline RAG.
+
+    Subcomandos:
+        /rag          → painel completo (worker + queue + LanceDB)
+        /rag failed   → lista os últimos itens com erro (failed/dlq)
+    """
+    from rich.table import Table
+
+    args = args.strip().lower()
+
+    # ── Coleta de dados ────────────────────────────────────────────────────
+    # 1. Worker singleton
+    worker_running = False
+    processed_count = 0
+    failed_count = 0
+    try:
+        from vectora.services.background import get_background_worker
+
+        worker = await get_background_worker()
+        worker_running = worker.running
+        processed_count = worker.processed_count
+        failed_count = worker.failed_count
+    except Exception:
+        pass
+
+    # 2. Queue stats
+    queue_stats: dict[str, int] = {
+        "pending": 0,
+        "processing": 0,
+        "success": 0,
+        "failed": 0,
+        "dlq": 0,
+    }
+    failed_records = []
+    try:
+        from vectora.services.queue import get_embedding_queue
+
+        q = await get_embedding_queue(settings.embedding_queue_dsn)
+        queue_stats = await q.get_stats()
+        if args == "failed":
+            failed_records = await q.get_failed(limit=10)
+    except Exception:
+        pass
+
+    # ── Subcomando: /rag failed ────────────────────────────────────────────
+    if args == "failed":
+        if not failed_records:
+            console.print(
+                Panel(
+                    "[green]Nenhum item com falha na fila.[/green]",
+                    title="[bold cyan]RAG — Falhas[/bold cyan]",
+                    border_style="cyan",
+                )
+            )
+            return
+
+        table = Table(title="Últimas Falhas / DLQ", style="red", show_lines=True)
+        table.add_column("queue_id", style="dim", max_width=12)
+        table.add_column("status", style="bold red")
+        table.add_column("tentativas", justify="right")
+        table.add_column("erro", max_width=60)
+        for rec in failed_records:
+            err = (rec.error_message or rec.dlq_reason or "")[:120]
+            table.add_row(
+                rec.queue_id[:8] + "…",
+                rec.status,
+                str(rec.attempt_count),
+                err,
+            )
+        console.print(Panel(table, border_style="red", expand=False))
+        return
+
+    # ── Painel completo ────────────────────────────────────────────────────
+    worker_dot = (
+        "[bold green]● Running[/bold green]"
+        if worker_running
+        else "[dim]○ Stopped[/dim]"
+    )
+    worker_line = (
+        f"{worker_dot}  "
+        f"[green]{processed_count}[/green] processados, "
+        f"[red]{failed_count}[/red] falharam (sessão atual)"
+    )
+
+    # Queue table
+    queue_table = Table(box=None, show_header=False, padding=(0, 1))
+    queue_table.add_column("status", style="dim", width=12)
+    queue_table.add_column("count", justify="right", width=7)
+    queue_table.add_column("desc", style="dim")
+    _q_rows = [
+        ("pending", "[yellow]", "aguardando Voyage AI"),
+        ("processing", "[cyan]", "sendo processados agora"),
+        ("success", "[green]", "escritos no LanceDB"),
+        ("failed", "[red]", "use /rag failed para detalhes"),
+        ("dlq", "[bold red]", "falhas permanentes"),
+    ]
+    for key, color, desc in _q_rows:
+        n = queue_stats.get(key, 0)
+        queue_table.add_row(key, f"{color}{n}[/]", desc)
+
+    # LanceDB collections
+    lancedb_lines: list[str] = []
+    try:
+        import lancedb as _lancedb
+
+        db = await _lancedb.connect_async(str(settings.lancedb_dir))
+        names = await db.table_names()
+        if names:
+            for name in names:
+                try:
+                    tbl = await db.open_table(name)
+                    cnt = await tbl.count_rows()
+                    lancedb_lines.append(f"  [bold]{name}[/bold]   {cnt} docs")
+                except Exception:
+                    lancedb_lines.append(f"  [bold]{name}[/bold]   (erro ao contar)")
+        else:
+            lancedb_lines.append("  [dim](sem coleções ainda)[/dim]")
+    except Exception as e:
+        lancedb_lines.append(f"  [dim]LanceDB indisponível: {e}[/dim]")
+
+    from rich.columns import Columns
+    from rich.rule import Rule
+
+    body = (
+        f"[bold]Background Worker[/bold]   {worker_line}\n"
+        "\n"
+        f"[bold]Queue[/bold] ({settings.embedding_queue_file.name})\n"
+    )
+    lancedb_section = "\n[bold]LanceDB Collections[/bold]  "
+    lancedb_section += f"[dim]({settings.lancedb_dir})[/dim]\n"
+    lancedb_section += "\n".join(lancedb_lines)
+
+    from rich.text import Text
+
+    content = Text.from_markup(body)
+    console.print(
+        Panel(
+            content,
+            title="[bold cyan]RAG Pipeline Status[/bold cyan]",
+            border_style="cyan",
+            expand=False,
+        )
+    )
+    console.print(
+        Panel(
+            queue_table,
+            title="[cyan]Embedding Queue[/cyan]",
+            border_style="cyan",
+            expand=False,
+        )
+    )
+    console.print(
+        Panel(
+            Text.from_markup(lancedb_section),
+            title="[cyan]LanceDB[/cyan]",
+            border_style="cyan",
+            expand=False,
+        )
+    )
+
+
 def _display_command_list(console: Any) -> None:
     """Display all available commands in Vectora.
 
@@ -455,6 +620,14 @@ def _display_command_list(console: Any) -> None:
 [bold]/tools[/bold] or [bold]/tool[/bold]
   List all available tools
   Usage: [dim]/tools[/dim]
+
+[bold]/rag[/bold]
+  Painel completo do pipeline RAG: worker status, fila de embedding, coleções LanceDB
+  Usage: [dim]/rag[/dim]
+
+[bold]/rag failed[/bold]
+  Lista os últimos itens que falharam no embedding (failed/DLQ)
+  Usage: [dim]/rag failed[/dim]
 
 [bold]/new[/bold]
   Create a new chat session
@@ -499,6 +672,7 @@ Type your message to chat, or use these commands:
 [bold]/new[/bold] - Create new session
 [bold]/tools[/bold] - List available tools
 [bold]/debug[/bold] - Toggle debug mode
+[bold]/rag[/bold] - Painel do pipeline RAG (queue + LanceDB)
 
 For complete command reference, type [bold]/list[/bold]
 """

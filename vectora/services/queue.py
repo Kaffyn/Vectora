@@ -194,6 +194,33 @@ class EmbeddingQueue:
         except Exception:
             return 0
 
+    async def get_stats(self) -> dict[str, int]:
+        """Retorna contagem de registros por status para o painel /rag.
+
+        Returns:
+            Dict com chaves pending, processing, success, failed, dlq — cada uma
+            com o número de registros naquele status.
+        """
+        statuses = ["pending", "processing", "success", "failed", "dlq"]
+        result = dict.fromkeys(statuses, 0)
+        try:
+            if self.AsyncSessionLocal is None:
+                return result
+            async with self.AsyncSessionLocal() as session:
+                from sqlalchemy import func, select
+
+                query = select(
+                    EmbeddingQueueRecord.status,
+                    func.count().label("cnt"),
+                ).group_by(EmbeddingQueueRecord.status)
+                rows = await session.execute(query)
+                for status, cnt in rows:
+                    if status in result:
+                        result[status] = cnt
+        except Exception:
+            pass
+        return result
+
     async def mark_processing(self, queue_id: str) -> None:
         """Marca um registro da fila como processando.
 

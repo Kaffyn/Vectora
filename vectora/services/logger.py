@@ -124,6 +124,9 @@ def setup_logging(
             "asyncio",
             "aiosqlite",
             "httpcore",
+            # Voyage AI SDK — evita output espúrio durante embed_query()
+            "voyageai",
+            "voyageai.client",
         ]
         for name in _noisy_loggers:
             logging.getLogger(name).setLevel(logging.CRITICAL)
