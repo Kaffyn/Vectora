@@ -50,7 +50,6 @@ from log_setup import setup_logging, setup_queue_handler
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
-from rich.prompt import Prompt
 from state import State
 from utils import async_lifespan
 
@@ -210,6 +209,70 @@ async def _process_user_turn(
     return response_content
 
 
+async def _read_multiline_input() -> str:
+    """Lê input do usuário com suporte completo a paste multilinha.
+
+    Problema: Rich's Prompt.ask() e input() param no primeiro '\\n'.
+    Quando o usuário cola texto multilinha, cada linha vira uma mensagem
+    separada porque o loop de chat chama input() novamente para cada linha
+    no buffer de stdin.
+
+    Solução: após ler a primeira linha, verifica se há mais conteúdo
+    buffered no stdin (indicativo de paste) e coleta tudo como uma
+    única mensagem.
+
+    Returns:
+        String com todo o input do usuário (pode conter quebras de linha).
+    """
+
+    loop = asyncio.get_event_loop()
+
+    # Exibe prompt
+    sys.stdout.write("\033[1;36mYou: \033[0m")
+    sys.stdout.flush()
+
+    # Lê primeira linha de forma bloqueante no thread pool
+    # (evita bloquear o event loop)
+    first_line = await loop.run_in_executor(None, sys.stdin.readline)
+    if not first_line:
+        raise EOFError("stdin closed")
+
+    lines = [first_line.rstrip("\r\n")]
+
+    # Aguarda brevemente para o buffer de paste se completar.
+    # Paste via terminal acontece "instantaneamente" — 30ms é suficiente
+    # para o SO depositar todo o conteúdo no buffer de stdin.
+    await asyncio.sleep(0.03)
+
+    # Coleta linhas restantes do buffer (sem bloquear)
+    if sys.platform == "win32":
+        import msvcrt
+
+        buf: list[str] = []
+        while msvcrt.kbhit():
+            ch = msvcrt.getwch()
+            if ch == "\r":
+                lines.append("".join(buf))
+                buf = []
+            elif ch != "\n":
+                buf.append(ch)
+        if buf:
+            lines.append("".join(buf))
+    else:
+        import select
+
+        while True:
+            ready, _, _ = select.select([sys.stdin], [], [], 0)
+            if not ready:
+                break
+            line = sys.stdin.readline()
+            if not line:
+                break
+            lines.append(line.rstrip("\r\n"))
+
+    return "\n".join(lines)
+
+
 async def chat_loop(
     graph: CompiledStateGraph[State, Context, State, State],
     checkpointer: Checkpointer,
@@ -307,12 +370,9 @@ async def chat_loop(
             console.print(msg.to_panel())
 
     # Main chat loop
-    prompt = Prompt()
-    Prompt.prompt_suffix = ""
-
     while True:
         try:
-            user_input = prompt.ask("[bold cyan]You: [/bold cyan]")
+            user_input = await _read_multiline_input()
 
             # Handle system commands (/, /model, /help, etc)
             if user_input.startswith("/"):

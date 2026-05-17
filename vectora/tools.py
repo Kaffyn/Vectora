@@ -842,11 +842,20 @@ def terminal(command: str) -> str:
     Returns:
         Saída do comando (stdout + stderr) ou mensagem de erro se bloqueado
     """
+    import platform
     import subprocess as sp
 
     from tool_safety import is_safe_shell_command
 
-    # Using global settings singleton instead of get_tool_config()
+    # Normaliza comandos Unix → Windows quando necessário
+    if platform.system() == "Windows":
+        import re
+
+        # `mkdir -p dir` → `mkdir dir` (cmd.exe não suporta -p,
+        # mas já cria diretórios pai por padrão)
+        command = re.sub(r"\bmkdir\s+-p\s+", "mkdir ", command)
+        # `mkdir -p` sem argumento → não faz nada
+        command = re.sub(r"\bmkdir\s+-p\s*$", "mkdir .", command)
 
     if not settings.enable_file_operations:
         return "File operations are disabled."
