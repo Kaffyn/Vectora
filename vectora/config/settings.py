@@ -273,12 +273,17 @@ class Settings(BaseSettings):
         """Load environment variables with 3-level hierarchy.
 
         Order of precedence (highest to lowest):
-        1. ~/.vectora/.env (user global)
-        2. .env (project local)
+        1. .env (project local)       ← overrides everything
+        2. ~/.vectora/.env (user global defaults)
         3. defaults.env (embedded in package)
         4. OS environment (already loaded)
+
+        Project .env always wins so that changing GOOGLE_API_KEY (or any
+        key) in the project file takes effect on restart without being
+        silently overridden by a stale ~/.vectora/.env written by the
+        setup wizard.
         """
-        # Level 1: Load embedded defaults.env
+        # Level 3 (lowest): Load embedded defaults.env via setdefault
         try:
             defaults_env = resources.files("vectora").joinpath("defaults.env")
             defaults_text = defaults_env.read_text(encoding="utf-8")
@@ -293,17 +298,17 @@ class Settings(BaseSettings):
         except (FileNotFoundError, TypeError, ModuleNotFoundError, AttributeError):
             logger.debug("defaults.env not found (normal for development)")
 
-        # Level 2: Load project-local .env
-        project_env = Path.cwd() / ".env"
-        if project_env.exists():
-            load_dotenv(project_env, override=True)
-            logger.debug(f"Loaded project .env from {project_env}")
-
-        # Level 3: Load user global ~/.vectora/.env
+        # Level 2: Load user global ~/.vectora/.env (base preferences)
         user_env = Path.home() / ".vectora" / ".env"
         if user_env.exists():
             load_dotenv(user_env, override=True)
             logger.debug(f"Loaded user .env from {user_env}")
+
+        # Level 1 (highest): Load project-local .env — overrides user global
+        project_env = Path.cwd() / ".env"
+        if project_env.exists():
+            load_dotenv(project_env, override=True)
+            logger.debug(f"Loaded project .env from {project_env}")
 
     def _initialize_directories(self) -> None:
         """Create all required directories if they don't exist."""
