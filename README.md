@@ -1,164 +1,163 @@
 # Vectora
 
-O **Vectora** é um agente de IA open-source (licença Apache 2.0), self-hosted e **local-first**.
-Projetado para ser instalado com um comando (`uv tool install vectora`) ou via Docker — sem serviços externos, sem configuração de infraestrutura pesada.
+**Vectora** is an open-source AI assistant (Apache 2.0) built for developers — local-first, self-hosted, and designed to run as a powerful sub-agent inside any MCP-compatible orchestrator (Claude Code, Claude Desktop, Paperclip, VS Code extensions).
 
-## O Problema que o Vectora Resolve
-
-O **Vectora** tem o **RAG (Retrieval-Augmented Generation)** em seu coração. Modelos de IA frequentemente sofrem de defasagem de conhecimento e não foram treinados nas versões mais recentes da sua _stack_ (como as últimas atualizações do Next.js, Hono, Bun, Playwright, Axios, Zustand, TypeScript, etc.).
-
-Através do Vectora, a sua IA passa a dominar essas tecnologias de forma instantânea. Basta fornecer a documentação desses projetos para o nosso **Vector Bucket**, e o próprio Vectora realiza a ingestão e indexação automática para você.
-
-Além do conhecimento externo, o Vectora resolve o **problema de contexto da sua própria aplicação**, injetando na IA um entendimento profundo de como cada ponto da sua arquitetura local funciona.
-
-## Arquitetura de Sub-Agent via MCP
-
-O Vectora foi projetado para brilhar primariamente como um **Sub-Agent especializado**.
-
-Utilizando o **MCP (Model Context Protocol)**, um Agente Principal (como o Paperclip, um assistente integrado na sua IDE ou uma IA orquestradora) executa o Vectora e utiliza suas ferramentas de busca semântica. Isso permite que o Vectora forneça o contexto exato necessário para que o Agente Principal prossiga com a tarefa com precisão cirúrgica.
+At its core, Vectora solves the **knowledge gap problem**: LLMs don't know your codebase, your docs, or the latest versions of your stack. Vectora bridges that gap with RAG (Retrieval-Augmented Generation) — ingest your docs once, and every AI interaction becomes contextually aware.
 
 ---
 
-## Pré-requisitos Essenciais
+## Why Vectora?
 
-### ⚠️ Voyage AI - OBRIGATÓRIO 100%
-
-**Vectora depende fundamentalmente do Voyage AI**. Sem ele, a aplicação não funciona.
-
-Voyage AI é usado para:
-
-- **Embedding**: Converter documentos em vetores para busca semântica
-- **Reranking**: Ordenar resultados por relevância
-
-**Obtenha gratuitamente**: https://www.voyageai.com/
-
-O Voyage AI oferece um **free tier com excelentes limites** para uso em desenvolvimento e produção.
+- **RAG-native**: Every conversation is backed by a local vector store. Ingest docs, code, wikis — and your AI actually knows them.
+- **14 tools built-in**: File operations, terminal, web search, vector search, memory, MCP bridging — ready to use.
+- **Sub-agent architecture**: Designed to run as an MCP server. Claude Code delegates complex tasks to Vectora; Vectora reasons and responds.
+- **Persistent memory**: Cross-session memory stored in SQLite. Vectora remembers your preferences, project context, and decisions.
+- **Zero infra**: SQLite + LanceDB. No Docker required for local use. No Postgres, no Redis, no cloud required.
+- **Multi-LLM**: Google Gemini (free tier), OpenAI, Anthropic, or Ollama (fully local).
 
 ---
 
-### Provedores de LLM Suportados (Escolha Um)
+## Prerequisites
 
-O Vectora suporta múltiplos provedores de LLM. Recomendamos **Google Gemini** (gratuito):
+### Voyage AI — Required
 
-| Provider          | API Key                                                       | Modelo Padrão    | Recomendação               |
-| ----------------- | ------------------------------------------------------------- | ---------------- | -------------------------- |
-| **Google Gemini** | [Obter gratuitamente](https://aistudio.google.com/app/apikey) | gemini-2.5-flash | ✅ Recomendado (free tier) |
-| **Ollama**        | Nenhuma (local)                                               | gpt-oss:20b      | Local sem custos           |
-| **OpenAI**        | [Obter aqui](https://platform.openai.com/api-keys)            | gpt-4o           | Pago                       |
-| **Anthropic**     | [Obter aqui](https://console.anthropic.com/)                  | claude-opus-4-1  | Pago                       |
+Vectora uses [Voyage AI](https://www.voyageai.com/) for embeddings and reranking. It offers a **generous free tier**.
+
+Get your key: https://www.voyageai.com/
+
+### LLM Provider — Choose One
+
+| Provider                         | Free Tier | Get Key                                                       |
+| -------------------------------- | --------- | ------------------------------------------------------------- |
+| **Google Gemini** ✅ Recommended | Yes       | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
+| Ollama (local)                   | No cost   | [ollama.ai](https://ollama.ai)                                |
+| OpenAI                           | Paid      | [platform.openai.com](https://platform.openai.com/api-keys)   |
+| Anthropic                        | Paid      | [console.anthropic.com](https://console.anthropic.com/)       |
 
 ---
 
-## Instalação
+## Installation
 
-Escolha uma das duas opções abaixo:
-
-### Opção 1: Instalação via UV (Recomendado)
-
-Requer apenas o [uv](https://github.com/astral-sh/uv) instalado.
+### Option 1: UV (Recommended)
 
 ```bash
-# Instale o Vectora globalmente
+# Install globally
 uv tool install vectora
 
-# Configure suas chaves (será criado em ~/.vectora/)
+# First-time setup (interactive wizard)
 vectora setup
 
-# Execute o chat TUI
+# Start chatting
 vectora chat
 ```
 
-### Opção 2: Instalação via Docker
+### Option 2: From Source
 
 ```bash
-# Crie um arquivo .env com suas configurações
+git clone https://github.com/Kaffyn/vectora.git
+cd vectora
+
+# Install with all dependencies
+uv sync
+
+# Configure your keys
 cp .env.example .env
-# Edite .env com suas API keys
+# Edit .env with your GOOGLE_API_KEY and VOYAGE_API_KEY
 
-# Build da imagem
-docker build -t vectora:0.1.0 .
-
-# Execute o container
-docker run -it \
-  --env-file .env \
-  -v ~/.vectora:/root/.vectora \
-  vectora:0.1.0
-
-# Ou use docker-compose (lê .env automaticamente)
-docker-compose up
+# Run
+uv run vectora chat
 ```
 
-O Vectora cria todos os arquivos necessários no diretório `~/.vectora/` automaticamente:
+### Option 3: Docker
 
-- Banco de dados de sessões (SQLite)
-- Vector store para RAG (LanceDB)
-- Logs estruturados
-- Configurações
+```bash
+# Copy and configure environment
+cp .env.example .env
+# Edit .env with your API keys
+
+# Run the chat interface
+docker compose run --rm vectora
+
+# Or run as MCP server (multi-agent mode)
+MCP_TRANSPORT=sse docker compose up -d
+```
 
 ---
 
-## Servidor MCP (Model Context Protocol)
+## Running Modes
 
-O Vectora pode rodar como um servidor de contexto para outros agentes (como o **Paperclip** ou **Claude Desktop**).
+### Chat Mode (Interactive TUI)
 
-### Configuração de Ambiente
-
-Antes de executar, certifique-se de que o arquivo `.env` está configurado com as chaves necessárias:
+The primary interface — a terminal dashboard built with Rich.
 
 ```bash
-cp .env.example .env
-# Edite .env com suas API keys (LLM_PROVIDER, GOOGLE_API_KEY, VOYAGE_API_KEY, etc)
+vectora chat
 ```
 
-### Via UV:
+Features: multi-turn conversation, session history, live tool feedback (colored panels), debug mode toggle, model switching.
+
+### MCP Server — Local (stdio)
+
+Run Vectora as an MCP sub-agent for Claude Code or Claude Desktop. Single client, local process.
 
 ```bash
 vectora mcp-server
 ```
 
-### Via Docker:
+### MCP Server — Remote (SSE, Multi-Agent)
+
+Run Vectora as a shared hub for multiple Paperclip agents or orchestrators connecting simultaneously.
 
 ```bash
-docker run -it \
-  --env-file .env \
-  -v ~/.vectora:/root/.vectora \
-  vectora:0.1.0 \
-  vectora mcp-server
+MCP_TRANSPORT=sse MCP_PORT=8000 vectora mcp-server
 ```
 
-O servidor iniciará via **Stdio JSON-RPC**. Para configurar em outros agentes, use as seguintes configurações:
+Each client passes its own `thread_id` — sessions are fully isolated.
 
-**Exemplo de configuração em Claude Desktop (JSON):**
+### Setup Wizard
+
+Interactive configuration to set up API keys, choose LLM provider, and test connectivity.
+
+```bash
+vectora setup
+```
+
+---
+
+## Connecting to Claude Code / Claude Desktop
+
+Add Vectora to your `.mcp.json` (in your project root) so Claude Code uses it as a sub-agent:
 
 ```json
 {
   "mcpServers": {
-    "vectora": {
+    "Vectora-MCP": {
       "command": "uv",
-      "args": ["tool", "run", "vectora", "mcp-server"]
+      "args": ["run", "--project", "/absolute/path/to/vectora", "vectora-mcp"]
     }
   }
 }
 ```
 
-**Ou via Docker:**
+For a globally installed Vectora:
 
 ```json
 {
   "mcpServers": {
-    "vectora": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-it",
-        "-e",
-        "GOOGLE_API_KEY=seu-api-key",
-        "-v",
-        "~/.vectora:/root/.vectora",
-        "vectora:0.1.0",
-        "vectora",
-        "mcp-server"
-      ]
+    "Vectora-MCP": {
+      "command": "vectora-mcp"
+    }
+  }
+}
+```
+
+For Docker (SSE mode, multiple agents):
+
+```json
+{
+  "mcpServers": {
+    "Vectora-MCP": {
+      "url": "http://localhost:8000/sse"
     }
   }
 }
@@ -166,55 +165,100 @@ O servidor iniciará via **Stdio JSON-RPC**. Para configurar em outros agentes, 
 
 ---
 
-## Stack Tecnológica
+## Chat Commands
 
-- **Backend / Linguagem:** Python 3.14 gerenciado pelo [UV](https://github.com/astral-sh/uv)
-- **UI no Terminal:** [Rich](https://rich.readthedocs.io/)
-- **Orquestração de LLMs:** LangChain 0.3 + LangGraph 0.2+
-- **Vector Store (RAG):** [LanceDB](https://lancedb.github.io/lancedb/) — file-based, zero-config
-- **Persistência de Sessões:** SQLite via `aiosqlite` — file-based, zero-config
-- **Protocolo de Contexto:** [MCP](https://modelcontextprotocol.io/) (Model Context Protocol)
+| Command         | Description                          |
+| --------------- | ------------------------------------ |
+| `/help`         | Show quick help                      |
+| `/list`         | Show all commands                    |
+| `/tools`        | List available tools                 |
+| `/model`        | List or switch models                |
+| `/debug`        | Toggle debug mode (shows tool calls) |
+| `/new`          | Start a new session                  |
+| `/sessions`     | List all sessions                    |
+| `/session <id>` | Switch to a specific session         |
+| `/quit`         | Exit                                 |
+
+**Input shortcuts:** `Enter` sends, `Alt+Enter` or `Shift+Enter` adds a line break.
 
 ---
 
-## Persistência Local (File-Based)
+## Tools Reference
 
-Toda a persistência do Vectora é baseada em arquivos locais no diretório `~/.vectora/`:
+Vectora exposes 14 tools to the LLM and to MCP clients:
+
+| Category     | Tools                                                      |
+| ------------ | ---------------------------------------------------------- |
+| **Web**      | `web_search`, `fetch_url`                                  |
+| **RAG**      | `vector_search`, `embedding`, `ingest_docs`                |
+| **Files**    | `file_read`, `file_edit`, `file_write`, `grep`, `list_dir` |
+| **Terminal** | `terminal`                                                 |
+| **Memory**   | `save_memory`, `get_memory`, `delete_memory`               |
+| **MCP**      | `call_mcp_tool`                                            |
+
+---
+
+## Data & Persistence
+
+All data is stored locally in `~/.vectora/`:
 
 ```
 ~/.vectora/
-├── config.toml             # Configurações (não-sensível)
-├── .env                    # Variáveis de ambiente (sensível)
+├── .env                    # Your API keys
+├── chat_config.json        # Persistent chat settings
 ├── data/
-│   ├── vectora.db          # Histórico de conversas (SQLite via LangGraph checkpointer)
-│   ├── embedding_queue.db  # Fila de embedding com retry (SQLite via SQLAlchemy async)
-│   └── lancedb/            # Vector Store para RAG semântico
-├── logs/                   # Logs estruturados
-│   ├── vectora.log
-│   ├── mcp_client.log
-│   └── mcp_server.log
-└── keys/                   # Chaves de API encriptadas (opcional)
+│   ├── vectora.db          # Sessions, memories, checkpoints (SQLite)
+│   ├── embedding_queue.db  # Async embedding queue (SQLite)
+│   └── lancedb/            # Vector store for RAG
+├── logs/
+│   ├── vectora.log         # Structured JSON logs
+│   └── mcp.log             # MCP server logs
+└── keys/                   # Encrypted API keys (optional)
 ```
-
-**SQLite** (`aiosqlite` + `langgraph-checkpoint-sqlite`):
-
-- Armazena o histórico completo de todas as conversas com suporte a time-travel.
-- Gerencia a fila de embedding com retry automático em caso de falha de API.
-
-**LanceDB** (file-based, columnar):
-
-- Vector store para busca semântica via RAG de alta performance.
-- Ingestão automática via ferramenta `ingest_docs`.
-- Reranking integrado via VoyageAI.
-
-**Logs e Configuração:**
-
-- Logs estruturados em JSON para análise e debugging
-- Configurações salvas em TOML para fácil edição
-- Suporte a LangSmith para rastreamento de execução
 
 ---
 
-## Licença
+## Tech Stack
 
-Este projeto está sob a licença **Apache 2.0**.
+| Layer            | Technology                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------ |
+| Language         | Python 3.13+ managed by [uv](https://github.com/astral-sh/uv)                                          |
+| Agent Framework  | [LangChain](https://langchain.com/) + [LangGraph](https://langchain-ai.github.io/langgraph/)           |
+| Vector Store     | [LanceDB](https://lancedb.github.io/lancedb/) — file-based, zero-config                                |
+| Embeddings       | [Voyage AI](https://www.voyageai.com/) — state-of-art retrieval models                                 |
+| Persistence      | SQLite via `aiosqlite` + LangGraph Checkpointer                                                        |
+| Context Protocol | [MCP](https://modelcontextprotocol.io/) via [FastMCP](https://github.com/jlowin/fastmcp)               |
+| Terminal UI      | [Rich](https://rich.readthedocs.io/) + [prompt-toolkit](https://python-prompt-toolkit.readthedocs.io/) |
+| Observability    | [LangSmith](https://smith.langchain.com/) (optional)                                                   |
+
+---
+
+## Configuration
+
+All configuration goes in `~/.vectora/.env` or a project-local `.env`:
+
+```env
+# LLM Provider
+LLM_PROVIDER=google-genai
+GOOGLE_API_KEY=your_key_here
+
+# Required for RAG
+VOYAGE_API_KEY=your_key_here
+
+# Optional: Web Search
+TAVILY_API_KEY=your_key_here
+
+# Optional: Tracing
+LANGSMITH_TRACING=false
+LANGSMITH_API_KEY=your_key_here
+LANGSMITH_PROJECT=vectora
+
+# Optional: Logging
+LOG_LEVEL=INFO
+```
+
+---
+
+## License
+
+Apache 2.0. See [LICENSE](./LICENSE).

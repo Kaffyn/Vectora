@@ -1,363 +1,294 @@
 # Contributing to Vectora
 
-Obrigado por contribuir! Este guia explica como configurar o ambiente de desenvolvimento e rodar os testes.
-
-## 📋 Tabela de Conteúdos
-
-- [Setup Inicial](#setup-inicial)
-- [Instalação de Dependências](#instalação-de-dependências)
-- [Rodando Testes](#rodando-testes)
-- [Rodando Vectora Localmente](#rodando-vectora-localmente)
-- [Padrões de Código](#padrões-de-código)
-- [Git Workflow](#git-workflow)
+Obrigado por contribuir! Este guia cobre tudo que você precisa para configurar o ambiente, entender os padrões e submeter código de qualidade.
 
 ---
 
-## 🚀 Setup Inicial
+## Setup do Ambiente
 
 ### Requisitos
 
 - Python 3.13+
-- uv (Python package manager)
+- [uv](https://github.com/astral-sh/uv) — gerenciador de dependências
 - Git
 
-### Passo 1: Clonar o Repositório
+### Instalação
 
 ```bash
-git clone https://github.com/seu-user/vectora.git
+# Clonar
+git clone https://github.com/Kaffyn/vectora.git
 cd vectora
-```
 
-### Passo 2: Instalar Dependências
-
-```bash
-# Instalar com todas as dependências (incluindo testes e dev tools)
-uv sync --all-extras
-
-# Apenas produção
+# Instalar todas as dependências (incluindo dev e test)
 uv sync
-```
 
----
+# Instalar pre-commit hooks
+uv run pre-commit install
 
-## 📦 Instalação de Dependências
-
-### SQLite (Database)
-
-✅ **Incluído automaticamente** via `aiosqlite` no `pyproject.toml`
-
-SQLite é um banco de dados embutido que não requer instalação separada. Perfeito para testes e desenvolvimento.
-
-```python
-# Configuração automática em testes
-DB_DSN="sqlite:///./test.db"
-```
-
-### LanceDB (Vector Store)
-
-LanceDB é uma biblioteca Python para armazenar e buscar vetores localmente. É usado nos testes em vez de Qdrant (que requer Docker/servidor separado).
-
-#### Instalação
-
-```bash
-# Automático via uv sync
-uv sync --all-extras
-
-# Ou instalação manual
-uv pip install lancedb>=0.1.0
-```
-
-#### Verificar Instalação
-
-```bash
-python -c "import lancedb; print(f'LanceDB {lancedb.__version__} instalado')"
-```
-
-#### Configuração em Testes
-
-```python
-# Automático em conftest.py
-VECTOR_STORE_TYPE=lancedb
-LANCEDB_DIR=./data/lancedb
-```
-
-#### Documentação
-
-- [LanceDB Docs](https://docs.lancedb.com)
-- [Python API](https://docs.lancedb.com/python/)
-
----
-
-## 🧪 Rodando Testes
-
-### Setup de Testes
-
-```bash
-# Instalar com dependências de teste
-uv sync --all-extras
-
-# Verificar que tudo está pronto
-uv run python -c "import pytest; import pytest_asyncio; print('OK')"
-```
-
-### Executar Todos os Testes
-
-```bash
-# Todos
-uv run pytest tests/ -v
-
-# Com coverage
-uv run pytest tests/ -v --cov=vectora --cov-report=html
-```
-
-### Executar Testes Específicos
-
-```bash
-# Apenas testes de MCP (estão passando ✅)
-uv run pytest tests/test_mcp_integration.py -v
-
-# Apenas um arquivo
-uv run pytest tests/test_community_tools.py -v
-
-# Um teste específico
-uv run pytest tests/test_mcp_integration.py::TestMCPClientConnection::test_mcp_client_disabled -v
-```
-
-### Debug de Testes
-
-```bash
-# Com output detalhado
-uv run pytest tests/ -vv -s
-
-# Com breakpoint
-uv run pytest tests/ --pdb
-
-# Apenas último teste que falhou
-uv run pytest tests/ --lf
-```
-
-### Status Atual dos Testes
-
-| Componente      | Status                               | Notas                          |
-| --------------- | ------------------------------------ | ------------------------------ |
-| MCP Integration | ✅ 10/10 passando                    | Funcional                      |
-| Community Tools | ❌ Fixture async em testes síncronos | Precisa refactor               |
-| RAG Tools       | ❌ Falta VOYAGE_API_KEY              | Faz mock quando key não existe |
-| Graph Flow      | ❌ Mesmos problemas de fixture       | Precisa refactor               |
-
-**Próximo Passo:** Refatorar `conftest.py` para resolver conflitos async/sync (ver issue #XX).
-
----
-
-## 🚀 Rodando Vectora Localmente
-
-### Opção 1: CLI Interativa (Recomendado)
-
-```bash
-# Setup
+# Copiar e configurar .env
 cp .env.example .env
-nano .env  # Adicionar GOOGLE_API_KEY (de https://ai.google.dev)
-
-# Rodar
-uv run python vectora/run_main.py
-
-# Ou com alias instalado
-uv sync  # Instala scripts em pyproject.toml
-vectora-cli
+# Editar .env com pelo menos GOOGLE_API_KEY e VOYAGE_API_KEY
 ```
 
-**O que você verá:**
-
-```
-Você:
-[digite sua mensagem]
-
-RESPOSTA (gemini-2.0-flash):
-[bot responde...]
-
----
-
-Você:
-_
-```
-
-### Opção 2: CLI Rich (Interface Terminal)
+### Verificar Setup
 
 ```bash
-uv run python vectora/run_chat.py
+# Rodar testes básicos
+uv run pytest tests/unit/ -v
 
-# Ou com alias
-vectora-tui
-```
+# Verificar linting
+uv run ruff check vectora/
 
-### Opção 3: Docker Completo
+# Verificar tipos
+uv run mypy vectora/
 
-```bash
-# Build e iniciar
-docker compose build
-docker compose up -d
-
-# Testar API
-curl http://localhost:8000/health
-
-# Ver logs
-docker compose logs -f vectora
+# Iniciar o chat localmente
+uv run vectora chat
 ```
 
 ---
 
-## 📝 Padrões de Código
+## Rodando Testes
 
-### Tipagem e Type Hints
+### Todos os testes
 
-Todo código Python deve ter type hints completos:
-
-```python
-# ✅ Bom
-async def process_message(text: str) -> dict[str, Any]:
-    """Process a user message."""
-    result: dict[str, str] = {"processed": text}
-    return result
-
-# ❌ Ruim
-async def process_message(text):
-    result = {"processed": text}
-    return result
+```bash
+uv run pytest tests/ -v
 ```
 
-### Imports
+### Com coverage
 
-Use `isort` para ordenar (automático via pre-commit):
+```bash
+uv run pytest tests/ --cov=vectora --cov-report=html
+# Abrir htmlcov/index.html para relatório detalhado
+```
+
+### Por categoria
+
+```bash
+uv run pytest tests/unit/        # Unitários (rápidos, sem IO externo)
+uv run pytest tests/integration/ # Integração (RAG, grafo, A2A)
+uv run pytest tests/e2e/         # End-to-end (chat completo, MCP)
+uv run pytest tests/stress/      # Stress (concorrência)
+```
+
+### Debug de testes
+
+```bash
+uv run pytest tests/ -vv -s         # Output detalhado
+uv run pytest tests/ --pdb          # Breakpoint em falhas
+uv run pytest tests/ --lf           # Só o último teste que falhou
+uv run pytest tests/ -k "rag"       # Apenas testes que contém "rag" no nome
+```
+
+### Coverage Target
+
+- **Overall:** >80%
+- **tools/**, **services/**: >85%
+- **ui/**: >60% (Rich components são difíceis de testar)
+
+---
+
+## Padrões de Código
+
+### Tipagem — Obrigatório
+
+Todo código deve ter type hints completos. Python 3.13+ syntax:
 
 ```python
-# Ordem: stdlib, third-party, local
-import os
+# ✅ Correto
+async def search_docs(query: str, limit: int = 5) -> list[dict[str, str]]:
+    """Busca documentos no LanceDB."""
+    ...
+
+# ❌ Errado — sem tipos
+async def search_docs(query, limit=5):
+    ...
+```
+
+Use `pydantic` para contratos de dados entre camadas:
+
+```python
+from pydantic import BaseModel
+
+class SearchResult(BaseModel):
+    content: str
+    score: float
+    source: str | None = None
+```
+
+### Async — Tudo I/O-bound deve ser async
+
+```python
+# ✅ Correto — async para database e rede
+async def save_memory(key: str, content: str) -> str:
+    async with aiosqlite.connect(db_path) as db:
+        await db.execute("INSERT ...", (key, content))
+        await db.commit()
+
+# ❌ Errado — bloqueia o event loop
+def save_memory(key: str, content: str) -> str:
+    conn = sqlite3.connect(db_path)
+    conn.execute("INSERT ...", (key, content))
+```
+
+### Ferramentas (Tools) — Tratamento de Erros
+
+Toda ferramenta DEVE ter `try/except` para que falhas retornem ao LLM como observação, sem derrubar o grafo:
+
+```python
+@tool
+async def minha_tool(input: str) -> str:
+    """Descrição clara para o LLM entender quando usar."""
+    try:
+        result = await fazer_algo(input)
+        logger.info("minha_tool completed", extra={"input": input[:50]})
+        return result
+    except Exception:
+        logger.exception("minha_tool failed", extra={"input": input[:50]})
+        return "Error: falha na tool. Verifique os logs."
+```
+
+### Imports — Ordem padrão (isort automático)
+
+```python
+# 1. stdlib
+import asyncio
+import logging
 from pathlib import Path
 
-from langchain_core.messages import HumanMessage
-from rich import print
+# 2. third-party
+from langchain.tools import tool
+from pydantic import BaseModel
+from rich.panel import Panel
 
-from context import Context
+# 3. local
+from vectora.config.settings import settings
+from vectora.services.security import is_safe_file_path
 ```
 
-### Docstrings
-
-Use docstrings simples, apenas para o "por quê" não-óbvio:
+### Docstrings — Apenas o necessário
 
 ```python
-# ✅ Bom
-async def call_graph(state: State) -> dict:
-    """Execute the LangGraph workflow."""
-    return await graph.astream_events(state)
+# ✅ Bom — explica o "por quê" não óbvio
+async def call_llm(state: State, config: RunnableConfig) -> dict:
+    """Invoke LLM with sliding window history.
 
-# ❌ Desnecessário
-async def call_graph(state: State) -> dict:
-    """Call the graph with the given state.
-
-    This function takes a state object and invokes the graph.
-    Returns the result from the graph invocation.
+    Uses trim_messages with fallback to prevent 'contents are required'
+    error when ToolMessage alone exceeds max_context_tokens.
     """
-```
 
-### Testing
-
-- Use `pytest` + `pytest-asyncio`
-- Fixtures em `vectora/testing/fixtures.py`
-- Mocks em `vectora/testing/mocks.py`
-- Testes em `tests/` com estrutura espelhando `vectora/`
-
-```python
-# tests/test_my_feature.py
-import pytest
-
-@pytest.mark.asyncio
-async def test_something(test_graph, test_context):
-    """Test something."""
-    # Arrange
-    state = State(messages=[...])
-
-    # Act
-    result = await test_graph.astream_events(state)
-
-    # Assert
-    assert result["messages"][-1].content
+# ❌ Desnecessário — só repete o nome da função
+async def call_llm(state: State, config: RunnableConfig) -> dict:
+    """Call the LLM with the given state and config."""
 ```
 
 ---
 
-## 🔄 Git Workflow
+## Estrutura do Projeto
 
-### 1. Criar uma Branch
-
-```bash
-# A partir de main/develop
-git checkout main
-git pull origin main
-
-# Criar branch com padrão: feature/xyz, fix/xyz, docs/xyz
-git checkout -b feature/my-feature
+```
+vectora/
+├── agent.py          # AgentManager — orquestrador principal
+├── graph.py          # LangGraph builder
+├── state.py          # TypedDict State
+├── context.py        # Context schema
+├── prompts.py        # System prompts
+├── main.py           # CLI entry point
+├── version.py        # Versão dinâmica via importlib.metadata
+├── config/           # Settings (Pydantic), defaults.env
+├── nodes/            # Nós do LangGraph (engine, debug)
+├── tools/            # 14 ferramentas (fs, rag, web, memory, mcp)
+├── mcp/              # MCP Server, Client, VectoraProxy
+├── services/         # Serviços (embedding, memory, checkpoint, security...)
+├── ui/               # TUI (chat, commands, rich components)
+└── testing/          # Fixtures, mocks, message factories
 ```
 
-### 2. Fazer Commits
+---
 
-Siga [Conventional Commits](https://www.conventionalcommits.org/):
+## Git Workflow
+
+### 1. Criar branch
 
 ```bash
-git add vectora/my_feature.py
-git commit -m "feat: Add my awesome feature"
+git checkout main && git pull origin main
+git checkout -b feat/minha-feature
+# ou fix/bug-descricao, docs/atualizar-readme, etc.
 ```
 
-**Tipos válidos:**
-
-- `feat:` - Nova funcionalidade
-- `fix:` - Correção de bug
-- `docs:` - Documentação
-- `refactor:` - Refatoração
-- `test:` - Testes
-- `chore:` - Build, deps, etc
-
-### 3. Push e Pull Request
+### 2. Commits — Conventional Commits (obrigatório)
 
 ```bash
-# Push
-git push origin feature/my-feature
-
-# Criar PR no GitHub (via web ou CLI)
-gh pr create --title "Add my feature" --body "Descrição..."
+git add vectora/tools/nova_tool.py
+git commit -m "feat: add nova_tool para X"
 ```
 
-### 4. Pre-commit Hooks
+Tipos válidos:
 
-Ruff, isort, mypy, prettier são executados automaticamente:
+- `feat:` — Nova funcionalidade
+- `fix:` — Correção de bug
+- `docs:` — Documentação apenas
+- `refactor:` — Refatoração sem mudança de comportamento
+- `test:` — Testes
+- `chore:` — Deps, build, config
+
+### 3. Pre-commit Hooks
+
+Os hooks rodam automaticamente no `git commit`:
+
+```
+Ruff Lint          → formatação e linting Python
+Ruff Format        → estilo consistente
+Mypy               → type checking
+Prettier           → markdown e YAML
+Bandit             → security scan
+```
+
+Se um hook falhar, corrija o erro e faça `git add` novamente antes de re-commitar:
 
 ```bash
-# Se falhar, o commit é rejeitado
-# Corrija os erros:
 uv run ruff check vectora/ --fix
 uv run ruff format vectora/
-uv run isort vectora/
-
-# Tente novamente
 git add vectora/
-git commit -m "feat: Add feature"
+git commit -m "feat: minha feature"
+```
+
+### 4. Pull Request
+
+```bash
+git push origin feat/minha-feature
+gh pr create --title "feat: minha feature" --body "Descrição..."
 ```
 
 ---
 
-## 🤝 Código de Conduta
+## Adicionando uma Nova Ferramenta
 
-- Seja respeitoso com outros contribuidores
-- Erros e bugs são naturais, vamos aprender juntos
-- Pergunte se não tiver certeza antes de submeter
-
----
-
-## ❓ Dúvidas?
-
-- Abra uma issue no GitHub
-- Veja a [Documentação do Projeto](./docs/)
-- Leia o [README](./README.md)
+1. Criar em `vectora/tools/<categoria>.py` com decorator `@tool`
+2. Adicionar ao `vectora/tools/__init__.py` (imports + `__all__`)
+3. Registrar no `vectora/mcp/server.py` como `@mcp.tool()` com timeout
+4. Atualizar `vectora/config/settings.py` se precisar de feature flag
+5. Escrever testes em `tests/unit/test_tools_core.py`
+6. Atualizar `MVP_SCOPE.md` e `README.md`
 
 ---
 
-**Obrigado por contribuir! 🚀**
+## Adicionando um Novo Nó ao LangGraph
+
+1. Implementar a função do nó em `vectora/nodes/engine.py`
+2. Registrar no builder em `vectora/graph.py` com `builder.add_node()`
+3. Adicionar edges (`add_edge` ou `add_conditional_edges`)
+4. Atualizar `State` em `vectora/state.py` se o nó precisar de novo campo
+5. Escrever testes em `tests/integration/test_graph_execution.py`
+
+---
+
+## Código de Conduta
+
+- Respeito em issues, PRs e discussões
+- Erros são oportunidades de aprendizado, não motivo de julgamento
+- Pergunte antes de submeter grandes mudanças arquiteturais
+- Abra uma issue primeiro para discutir features significativas
+
+Dúvidas? Abra uma issue no GitHub.

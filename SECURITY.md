@@ -1,47 +1,99 @@
 # Security Policy
 
-## Supported Versions
+Vectora é uma aplicação local-first. A superfície de ataque é intencionalmente pequena — sem servidores remotos, sem autenticação de usuários, sem APIs REST expostas. Mesmo assim, o código que executa em nome do usuário precisa de proteções reais.
 
-Security fixes are applied to the actively maintained branches and releases of Vectora.
-When a vulnerability is confirmed, the fix should be backported to all supported branches if applicable.
+---
 
-## Reporting a Vulnerability
+## Proteções Built-in
 
-If you discover a security issue, do not open a public issue.
+### Execução de Terminal (`terminal` tool)
 
-Please report it through the repository's private security channel or the maintainer contact path used by the project.
-If no private channel is available, create a minimal public report that avoids technical exploit details and request a private follow-up.
+O terminal é a ferramenta de maior risco. Proteções aplicadas:
 
-Include as much of the following as possible:
+- **Whitelist de comandos**: Bloqueados por padrão — `rm -rf`, `mkfs`, `dd if=/dev/zero`, `:(){:|:&};:` (fork bomb) e similares. A whitelist está em `vectora/services/security.py`.
+- **Timeout**: 30 segundos por execução. Processos que excedem são terminados via `proc.kill()`.
+- **Async execution**: Usa `asyncio.create_subprocess_shell` — nunca bloqueia o event loop ou a UI.
+- **No persistent shell**: Cada execução é um processo filho novo. Não há sessão de terminal persistente entre chamadas.
 
-- Affected component or path
-- Severity estimate
-- Reproduction steps
-- Expected versus actual behavior
-- Any relevant logs, screenshots, or proof of concept
+### Operações de Arquivo
 
-## What to Avoid
+- **Path traversal prevention**: Todos os caminhos são validados antes de leitura/escrita. `../../../etc/passwd` é rejeitado.
+- **No symlink attacks**: Validação de paths resolve symlinks antes de operar.
+- **Allowed directories**: `file_read`, `file_edit` e `file_write` operam apenas em diretórios permitidos (configurável via `ENABLE_FILE_OPERATIONS`).
 
-- Public disclosure before a fix is ready
-- Sharing secrets, tokens, or live credentials
-- Running destructive tests against production data
+### Regex — Proteção anti-ReDoS
 
-## Disclosure Process
+O `grep` tool aceita padrões regex do LLM. Padrões maliciosos podem causar backtracking catastrófico (ReDoS). Proteção:
 
-Once a report is received, the maintainers should:
+- Validação de padrão em `vectora/services/security.py` (`is_safe_regex_pattern`)
+- Timeout de 20s na execução do grep
+- Filtros de tipos de arquivo (ignora `.pyc`, binários)
 
-1. Acknowledge receipt.
-2. Validate the issue.
-3. Prepare a fix.
-4. Coordinate disclosure timing with the reporter.
-5. Publish the fix and advisory after remediation.
+### Secrets e Logs
 
-## Security Expectations
+- **Nenhum secret em logs**: API keys são mascaradas antes de qualquer log statement.
+- **`.env` não commitado**: `.gitignore` inclui `.env`, `.env.*` (exceto `.env.example`).
+- **`~/.vectora/keys/`**: Chaves opcionalmente encriptadas no diretório de dados do usuário.
+- **LangSmith optional**: Tracing só ativado se `LANGSMITH_API_KEY` estiver explicitamente configurada.
 
-All contributions should follow secure coding practices:
+### MCP Server
 
-- Validate and sanitize input.
-- Keep secrets out of logs and source control.
-- Prefer least-privilege access.
-- Use reviewed dependencies.
-- Review changes that affect authentication, authorization, persistence, or external integrations with extra care.
+- **stdio mode**: Comunicação via stdin/stdout. Nenhuma porta de rede aberta localmente.
+- **SSE mode**: Escuta em `MCP_HOST:MCP_PORT` (default `0.0.0.0:8000`). Em produção, coloque atrás de um reverse proxy com TLS.
+- **stderr para feedback**: O Rich panel de startup vai para stderr — nunca polui o canal JSON-RPC do protocolo MCP.
+
+---
+
+## O que NÃO está no MVP
+
+Por design — Vectora é local-first, single-user:
+
+- ❌ **Authentication**: Sem usuários, sem tokens de acesso, sem OAuth.
+- ❌ **TLS/SSL**: Comunicação local via stdio; SSE em LAN sem TLS é aceitável no MVP.
+- ❌ **Rate limiting**: Não há múltiplos usuários competindo por recursos.
+- ❌ **Audit log completo**: Apenas logs estruturados em JSON.
+- ❌ **Sandboxing do LLM**: O LLM pode solicitar execução de qualquer ferramenta habilitada.
+
+Esses itens são parte do roadmap para quando Vectora for multi-tenant.
+
+---
+
+## Reportar Vulnerabilidade
+
+Se você encontrar uma vulnerabilidade de segurança, **não abra uma issue pública**. Isso exporia o problema antes de haver um fix.
+
+**Como reportar:**
+
+1. Abra um [GitHub Security Advisory](https://github.com/Kaffyn/vectora/security/advisories/new) (privado)
+2. Inclua: componente afetado, tipo de vulnerabilidade, passos para reproduzir, impacto estimado
+
+**O que incluir:**
+
+- Versão do Vectora (`vectora --version`)
+- Sistema operacional
+- Passos mínimos para reproduzir
+- Comportamento esperado vs. observado
+
+**O que NÃO incluir:**
+
+- Secrets, tokens ou credenciais reais
+- Exploit técnico completo antes de coordenar disclosure
+
+**Processo de disclosure:**
+
+1. Maintainer confirma recebimento em 48h
+2. Valida e reproduz a vulnerabilidade
+3. Desenvolve e testa o fix
+4. Publica fix + advisory coordenados
+
+---
+
+## Práticas de Desenvolvimento Seguro
+
+Todo código submetido deve seguir:
+
+- **Validar inputs**: Nunca confiar em dados vindos do LLM ou de `function_results`
+- **Secrets fora do git**: Verificar `.gitignore` antes de qualquer commit
+- **Least-privilege**: Ferramentas operam no escopo mínimo necessário
+- **Dependências revisadas**: `uv audit` para verificar advisories conhecidos
+- **Atenção especial** a: security.py, qualquer código que aceite paths do usuário, qualquer execução de subprocess
