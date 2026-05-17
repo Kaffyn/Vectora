@@ -55,7 +55,15 @@ class EmbeddingQueue:
 
     async def init(self) -> None:
         """Inicializa motor de banco de dados assíncrono e cria tabelas."""
-        self.engine = create_async_engine(self.db_url, echo=False)
+        # connect_args timeout: aiosqlite waits up to 30 s for a write lock
+        # instead of immediately raising OperationalError: database is locked.
+        # Needed because ingest_docs (tool) and BackgroundEmbeddingWorker both
+        # write to this SQLite file concurrently.
+        self.engine = create_async_engine(
+            self.db_url,
+            echo=False,
+            connect_args={"timeout": 30},
+        )
 
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)  # type: ignore[attr-defined]
@@ -64,6 +72,8 @@ class EmbeddingQueue:
             # Critical for AsyncIO where Chat and BackgroundWorker write simultaneously
             await conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
             await conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
+            # Redundant with connect_args but explicit for clarity
+            await conn.exec_driver_sql("PRAGMA busy_timeout=30000;")
 
         self.AsyncSessionLocal = sessionmaker(
             self.engine, class_=AsyncSession, expire_on_commit=False
@@ -161,6 +171,28 @@ class EmbeddingQueue:
         except Exception:
             logger.exception("embedding_queue_get_pending_failed")
             return []
+
+    async def count_pending(self) -> int:
+        """Retorna o total de registros ainda não processados (pending + processing).
+
+        Usado pela UI para exibir o contador em tempo real no rodapé.
+
+        Returns:
+            Número de registros com status pending ou processing.
+        """
+        try:
+            if self.AsyncSessionLocal is None:
+                return 0
+            async with self.AsyncSessionLocal() as session:
+                from sqlalchemy import func, select
+
+                query = select(func.count()).where(
+                    EmbeddingQueueRecord.status.in_(["pending", "processing"])
+                )
+                result = await session.execute(query)
+                return result.scalar_one() or 0
+        except Exception:
+            return 0
 
     async def mark_processing(self, queue_id: str) -> None:
         """Marca um registro da fila como processando.

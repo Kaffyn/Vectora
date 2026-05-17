@@ -590,6 +590,18 @@ async def chat_loop(
             # Process turn
             await _process_user_turn(user_input, graph, config, audit, status_panel)
 
+            # Read real queue depth for footer display
+            queue_depth = 0
+            try:
+                from vectora.config.settings import settings as _settings
+                from vectora.services.queue import get_embedding_queue
+
+                if _settings.embedding_queue_enabled:
+                    _q = await get_embedding_queue(_settings.embedding_queue_dsn)
+                    queue_depth = await _q.count_pending()
+            except Exception:
+                pass
+
             # Update display
             if debug_mode:
                 main_layout = layout.get_main_layout()
@@ -608,7 +620,7 @@ async def chat_loop(
                 main_layout["footer"].update(
                     Panel(
                         "[green]*[/green] Background Worker | "
-                        "[cyan]Embedding Queue: 0[/cyan] | "
+                        f"[cyan]Embedding Queue: {queue_depth}[/cyan] | "
                         "[yellow]RAG: Ready[/yellow]",
                         style="dim",
                         expand=False,
@@ -622,7 +634,7 @@ async def chat_loop(
                 layout.update_header(
                     provider=provider, message_count=len(audit.messages)
                 )
-                layout.update_footer(embedding_queue=0, worker_active=True)
+                layout.update_footer(embedding_queue=queue_depth, worker_active=True)
                 console.print(SeparatorLine.render())
 
         except KeyboardInterrupt:
