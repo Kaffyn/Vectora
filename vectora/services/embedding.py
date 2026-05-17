@@ -26,8 +26,8 @@ try:
 except ImportError:
     VoyageAIEmbeddings = None
 
+from vectora.config.settings import Settings
 from vectora.services.ignore_validator import get_ignore_validator
-from vectora.settings import Settings
 
 logger = logging.getLogger(__name__)
 

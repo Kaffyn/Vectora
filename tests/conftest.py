@@ -8,7 +8,7 @@ import os
 
 import pytest
 
-from vectora.log_setup import setup_logging
+from vectora.services.log_setup import setup_logging
 from vectora.testing.fixtures import (
     checkpointer,
     mock_llm,

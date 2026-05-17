@@ -50,7 +50,7 @@ from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
 
-from vectora.log_setup import setup_logging, setup_queue_handler
+from vectora.services.log_setup import setup_logging, setup_queue_handler
 from vectora.services.utils import async_lifespan
 from vectora.state import State
 
@@ -494,7 +494,7 @@ async def run_chat(agent: Any | None = None, settings: Any | None = None) -> Non
     (for backward compatibility during migration to Phase 2).
     """
     from vectora.agent import AgentManager
-    from vectora.settings import Settings as SettingsClass
+    from vectora.config.settings import Settings as SettingsClass
 
     # Dependency injection: Use provided agent/settings or fallback to legacy
     if agent is None:

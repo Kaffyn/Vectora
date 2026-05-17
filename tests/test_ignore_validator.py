@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from vectora.ignore_validator import IgnorePatternValidator
+from vectora.services.ignore_validator import IgnorePatternValidator
 
 
 @pytest.fixture

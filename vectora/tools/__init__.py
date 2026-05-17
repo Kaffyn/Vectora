@@ -16,7 +16,7 @@ import logging
 
 from langchain.tools import BaseTool
 
-from vectora.settings import settings
+from vectora.config.settings import settings
 from vectora.tools.fs import file_edit, file_read, file_write, grep, list_dir, terminal
 from vectora.tools.mcp import call_mcp_tool
 from vectora.tools.memory import delete_memory, get_memory, save_memory

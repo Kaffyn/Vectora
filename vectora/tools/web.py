@@ -6,7 +6,7 @@ import logging
 from langchain.tools import tool
 from tavily import TavilyClient
 
-from vectora.settings import settings
+from vectora.config.settings import settings
 
 logger = logging.getLogger(__name__)
 

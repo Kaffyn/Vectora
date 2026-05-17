@@ -7,7 +7,7 @@ from typing import Any
 
 from langchain.tools import tool
 
-from vectora.settings import settings
+from vectora.config.settings import settings
 
 try:
     from langchain_mcp_adapters import MultiServerMCPClient  # type: ignore

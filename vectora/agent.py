@@ -15,7 +15,7 @@ from typing import Any
 from langchain_core.messages import HumanMessage
 from langgraph.graph import MessageGraph
 
-from vectora.settings import Settings
+from vectora.config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class AgentManager:
         Returns:
             Settings instance
         """
-        from vectora.settings import get_settings
+        from vectora.config.settings import get_settings
 
         return get_settings()
 

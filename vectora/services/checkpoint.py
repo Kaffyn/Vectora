@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
-from vectora.settings import settings
+from vectora.config.settings import settings
 
 logger = logging.getLogger(__name__)
 

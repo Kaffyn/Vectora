@@ -26,7 +26,7 @@ if str(vectora_dir) not in sys.path:
     sys.path.insert(0, str(vectora_dir))
 
 # Setup logging early (before importing rest of app)
-from vectora.log_setup import setup_logging
+from vectora.services.log_setup import setup_logging
 
 setup_logging()
 
@@ -47,7 +47,7 @@ async def main() -> None:
         # ====================================================================
         # STEP 1: Load Settings (Single Source of Truth)
         # ====================================================================
-        from vectora.settings import Settings
+        from vectora.config.settings import Settings
 
         try:
             settings = Settings()
@@ -92,7 +92,7 @@ async def main() -> None:
         available_providers = settings.get_available_providers()
         if not available_providers:
             logger.warning("No LLM providers configured. Running setup wizard...")
-            from vectora.setup_wizard import run_setup_sync
+            from vectora.services.setup_wizard import run_setup_sync
 
             run_setup_sync()
             # After setup, reload settings
@@ -103,7 +103,7 @@ async def main() -> None:
         # ====================================================================
         # STEP 4: Run CLI Dashboard
         # ====================================================================
-        from vectora.chat import run_chat
+        from vectora.ui.chat import run_chat
 
         await run_chat(agent=agent, settings=settings)
 

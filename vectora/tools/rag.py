@@ -11,8 +11,8 @@ from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_core.documents import Document as LCDoc
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+from vectora.config.settings import settings
 from vectora.services.queue import get_embedding_queue
-from vectora.settings import settings
 
 try:
     import lancedb

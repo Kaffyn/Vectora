@@ -16,7 +16,7 @@ from typing import Any
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import RunnableConfig
 
-from vectora.settings import Settings
+from vectora.config.settings import Settings
 
 logger = logging.getLogger(__name__)
 

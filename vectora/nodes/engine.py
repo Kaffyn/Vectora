@@ -21,11 +21,11 @@ from langchain_core.runnables import Runnable, RunnableConfig
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
 
+from vectora.config.settings import settings
 from vectora.context import Context
 from vectora.prompts import get_system_prompt
 from vectora.services.memory import get_memory_store
 from vectora.services.utils import load_llm
-from vectora.settings import settings
 from vectora.state import State
 from vectora.tools import TOOLS, embedding
 

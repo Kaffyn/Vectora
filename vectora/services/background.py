@@ -33,8 +33,8 @@ try:
 except ImportError:
     VoyageAIEmbeddings = None
 
+from vectora.config.settings import settings
 from vectora.services.queue import EmbeddingQueueRecord, get_embedding_queue
-from vectora.settings import settings
 
 logger = logging.getLogger(__name__)
 
