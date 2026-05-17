@@ -23,13 +23,13 @@ Esta seção destaca as principais vantagens e diferenciais que tornam o Vectora
 
 Para que o Vectora funcione perfeitamente, é fundamental configurar os provedores de inteligência artificial corretos. Antes de iniciar, certifique-se de obter as chaves de API necessárias conforme detalhado a seguir:
 
-### Voyage AI — Obrigatório
+### Cohere — Obrigatório
 
-O Voyage AI fornece os modelos de embedding necessários para que o Vectora realize a indexação e a busca semântica em RAG de alta qualidade. Veja abaixo como configurá-lo:
+A Cohere fornece os modelos de embedding e reranking que o Vectora usa para indexação e busca semântica em RAG. Integração first-class no LangChain e excelente cobertura multilíngue (português incluso). Veja abaixo como configurá-lo:
 
-O Vectora utiliza o [Voyage AI](https://www.voyageai.com/) para embeddings e ranqueamento (reranking). O serviço oferece um **plano gratuito bastante generoso**.
+O Vectora utiliza a [Cohere](https://cohere.com/) com `embed-multilingual-v3.0` para embeddings e `rerank-multilingual-v3.0` para ranqueamento. O serviço oferece um **plano gratuito bastante generoso**.
 
-Obtenha sua chave de API aqui: https://www.voyageai.com/
+Obtenha sua chave de API aqui: https://dashboard.cohere.com/api-keys
 
 ### Provedor de LLM — Escolha Um
 
@@ -76,7 +76,7 @@ uv sync
 
 # Configurar suas chaves de API
 cp .env.example .env
-# Edite o arquivo .env com suas chaves GOOGLE_API_KEY e VOYAGE_API_KEY
+# Edite o arquivo .env com suas chaves GOOGLE_API_KEY e COHERE_API_KEY
 
 # Executar
 uv run vectora chat
@@ -264,7 +264,7 @@ Esta tabela detalha os principais componentes técnicos que formam a arquitetura
 | Linguagem          | Python 3.13+ gerenciado pelo [uv](https://github.com/astral-sh/uv)                                     |
 | Framework de Agent | [LangChain](https://langchain.com/) + [LangGraph](https://langchain-ai.github.io/langgraph/)           |
 | Banco Vetorial     | [LanceDB](https://lancedb.github.io/lancedb/) — baseado em arquivos, configuração zero                 |
-| Embeddings         | [Voyage AI](https://www.voyageai.com/) — modelos de busca e recuperação estado da arte                 |
+| Embeddings         | [Cohere](https://cohere.com/) — `embed-multilingual-v3.0` + `rerank-multilingual-v3.0`                 |
 | Persistência       | SQLite via `aiosqlite` + Checkpointer do LangGraph                                                     |
 | Protocolo Contexto | [MCP](https://modelcontextprotocol.io/) via [FastMCP](https://github.com/jlowin/fastmcp)               |
 | Interface Terminal | [Rich](https://rich.readthedocs.io/) + [prompt-toolkit](https://python-prompt-toolkit.readthedocs.io/) |
@@ -284,7 +284,7 @@ LLM_PROVIDER=google-genai
 GOOGLE_API_KEY=sua_chave_aqui
 
 # Obrigatório para RAG (Busca Vetorial)
-VOYAGE_API_KEY=sua_chave_aqui
+COHERE_API_KEY=sua_chave_aqui
 
 # Opcional: Busca na Web
 TAVILY_API_KEY=sua_chave_aqui

@@ -36,7 +36,7 @@ Todas com `try/except` defensivo, logging estruturado e timeout individual:
 
 **RAG (3)**
 
-- ✅ `vector_search` — Busca semântica em LanceDB com reranking Voyage AI
+- ✅ `vector_search` — Busca semântica em LanceDB com reranking Cohere
 - ✅ `embedding` — Indexação assíncrona (fire-and-forget, queue com retry)
 - ✅ `ingest_docs` — Ingestão em lote de pastas inteiras (glob pattern)
 
@@ -194,7 +194,7 @@ vectora/
 ├── services/
 │   ├── background.py      # Embedding background worker
 │   ├── checkpoint.py      # LangGraph SQLite checkpointer
-│   ├── embedding.py       # EmbeddingService (Voyage AI)
+│   ├── embedding.py       # EmbeddingService (Cohere)
 │   ├── memory.py          # MemoryStore (SQLite cross-session)
 │   ├── queue.py           # Embedding queue (SQLAlchemy async)
 │   ├── security.py        # Whitelist, path validation, ReDoS protection

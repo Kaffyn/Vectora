@@ -39,10 +39,10 @@ Para que o pipeline funcione corretamente, configure os seguintes secrets no rep
    - Google Gemini API key para LLM
    - Obtém em: https://aistudio.google.com/app/apikey
 
-6. **`VPS_VOYAGE_API_KEY`**
+6. **`VPS_COHERE_API_KEY`**
 
-   - Voyage AI API key para embeddings
-   - Obtém em: https://www.voyageai.com/api
+   - Cohere API key para embeddings e reranking
+   - Obtém em: https://dashboard.cohere.com/api-keys
 
 7. **`VPS_LANGSMITH_API_KEY`**
 

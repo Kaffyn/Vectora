@@ -19,11 +19,11 @@ At its core, Vectora solves the **knowledge gap problem**: LLMs don't know your 
 
 ## Prerequisites
 
-### Voyage AI — Required
+### Cohere — Required
 
-Vectora uses [Voyage AI](https://www.voyageai.com/) for embeddings and reranking. It offers a **generous free tier**.
+Vectora uses [Cohere](https://cohere.com/) for embeddings (`embed-multilingual-v3.0`) and reranking (`rerank-multilingual-v3.0`). It offers a **generous free tier** with first-class LangChain integration.
 
-Get your key: https://www.voyageai.com/
+Get your key: https://dashboard.cohere.com/api-keys
 
 ### LLM Provider — Choose One
 
@@ -62,7 +62,7 @@ uv sync
 
 # Configure your keys
 cp .env.example .env
-# Edit .env with your GOOGLE_API_KEY and VOYAGE_API_KEY
+# Edit .env with your GOOGLE_API_KEY and COHERE_API_KEY
 
 # Run
 uv run vectora chat
@@ -225,7 +225,7 @@ All data is stored locally in `~/.vectora/`:
 | Language         | Python 3.13+ managed by [uv](https://github.com/astral-sh/uv)                                          |
 | Agent Framework  | [LangChain](https://langchain.com/) + [LangGraph](https://langchain-ai.github.io/langgraph/)           |
 | Vector Store     | [LanceDB](https://lancedb.github.io/lancedb/) — file-based, zero-config                                |
-| Embeddings       | [Voyage AI](https://www.voyageai.com/) — state-of-art retrieval models                                 |
+| Embeddings       | [Cohere](https://cohere.com/) — `embed-multilingual-v3.0` + `rerank-multilingual-v3.0`                 |
 | Persistence      | SQLite via `aiosqlite` + LangGraph Checkpointer                                                        |
 | Context Protocol | [MCP](https://modelcontextprotocol.io/) via [FastMCP](https://github.com/jlowin/fastmcp)               |
 | Terminal UI      | [Rich](https://rich.readthedocs.io/) + [prompt-toolkit](https://python-prompt-toolkit.readthedocs.io/) |
@@ -243,7 +243,7 @@ LLM_PROVIDER=google-genai
 GOOGLE_API_KEY=your_key_here
 
 # Required for RAG
-VOYAGE_API_KEY=your_key_here
+COHERE_API_KEY=your_key_here
 
 # Optional: Web Search
 TAVILY_API_KEY=your_key_here

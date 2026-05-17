@@ -27,7 +27,7 @@ uv run pre-commit install
 
 # Copiar e configurar .env
 cp .env.example .env
-# Editar .env com pelo menos GOOGLE_API_KEY e VOYAGE_API_KEY
+# Editar .env com pelo menos GOOGLE_API_KEY e COHERE_API_KEY
 ```
 
 ### Verificar Setup
