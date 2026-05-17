@@ -104,7 +104,7 @@ def is_safe_shell_command(command: str) -> bool:
     cmd = command.strip().lower()
 
     # Blacklist: padrões destrutivos e irrecuperáveis
-    BLACKLIST: list[str] = [
+    blacklist: list[str] = [
         # Deleção recursiva/forçada
         "rm -rf",
         "rm -fr",
@@ -131,4 +131,4 @@ def is_safe_shell_command(command: str) -> bool:
         "sudo shred",
     ]
 
-    return not any(blocked in cmd for blocked in BLACKLIST)
+    return not any(blocked in cmd for blocked in blacklist)
