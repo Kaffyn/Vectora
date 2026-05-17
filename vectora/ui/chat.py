@@ -211,28 +211,27 @@ async def _process_user_turn(
 
 
 async def _read_multiline_input() -> str:
-    """Lê input do usuário com suporte para multilinha via Ctrl+Enter.
+    """Lê input do usuário com suporte para multilinha via Alt+Enter.
 
     Comportamento:
     - Enter: envia a mensagem
-    - Ctrl+Enter: adiciona quebra de linha
+    - Alt+Enter: adiciona quebra de linha
     - Suporta multiline paste automaticamente
 
     Returns:
-        String com input do usuário (pode conter quebras de linha via Ctrl+Enter).
+        String com input do usuário (pode conter quebras de linha via Alt+Enter).
     """
     try:
         from prompt_toolkit import PromptSession
-        from prompt_toolkit.document import Document
         from prompt_toolkit.enums import EditingMode
         from prompt_toolkit.key_binding import KeyBindings
 
         # Criar key bindings customizados
         bindings = KeyBindings()
 
-        @bindings.add("c-enter")  # Ctrl+Enter para quebra de linha
+        @bindings.add("escape", "enter")  # Alt+Enter para quebra de linha
         def _(event):
-            """Insere quebra de linha quando Ctrl+Enter é pressionado."""
+            """Insere quebra de linha quando Alt+Enter é pressionado."""
             event.current_buffer.insert_text("\n")
 
         # Criar sessão de prompt com suporte a multilinha
@@ -248,8 +247,8 @@ async def _read_multiline_input() -> str:
 
         return user_input
 
-    except ImportError:
-        # Fallback se prompt_toolkit não estiver disponível
+    except (ImportError, ValueError):
+        # Fallback se prompt_toolkit não estiver disponível ou houver erro
         logger.warning("prompt_toolkit not available, using basic input")
         loop = asyncio.get_event_loop()
         sys.stdout.write("\033[1;36mYou: \033[0m")
