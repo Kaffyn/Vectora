@@ -211,15 +211,15 @@ async def _process_user_turn(
 
 
 async def _read_multiline_input() -> str:
-    """Lê input do usuário com suporte para multilinha via Alt+Enter.
+    """Read user input with multiline support via Ctrl+Enter.
 
     Comportamento:
     - Enter: envia a mensagem
-    - Alt+Enter: adiciona quebra de linha
+    - Ctrl+Enter ou Alt+Enter: adiciona quebra de linha
     - Suporta multiline paste automaticamente
 
     Returns:
-        String com input do usuário (pode conter quebras de linha via Alt+Enter).
+        String com input do usuário (pode conter quebras de linha).
     """
     try:
         from prompt_toolkit import PromptSession
@@ -229,15 +229,26 @@ async def _read_multiline_input() -> str:
         # Criar key bindings customizados
         bindings = KeyBindings()
 
-        @bindings.add("escape", "enter")  # Alt+Enter para quebra de linha
+        @bindings.add("c-enter")  # Ctrl+Enter para quebra de linha
+        def _(event):
+            """Insere quebra de linha quando Ctrl+Enter é pressionado."""
+            event.current_buffer.insert_text("\n")
+
+        @bindings.add("escape", "enter")  # Alt+Enter como fallback para quebra de linha
         def _(event):
             """Insere quebra de linha quando Alt+Enter é pressionado."""
             event.current_buffer.insert_text("\n")
 
-        # Criar sessão de prompt com suporte a multilinha
+        @bindings.add("c-j")  # Ctrl+J como alternativa portable para newline
+        def _(event):
+            """Insere quebra de linha quando Ctrl+J é pressionado."""
+            event.current_buffer.insert_text("\n")
+
+        # Criar sessão de prompt SEM multiline=True
+        # Isso faz com que Enter envie a mensagem por padrão
         session = PromptSession(
             "You: ",
-            multiline=True,
+            multiline=False,
             key_bindings=bindings,
             editing_mode=EditingMode.EMACS,
         )
