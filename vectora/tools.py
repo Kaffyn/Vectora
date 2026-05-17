@@ -116,15 +116,18 @@ def fetch_url(url: str) -> str:
     logger.info("fetch_url tool called", extra={"url": url})
 
     try:
-        # Tavily retorna conteúdo extraído direto do URL
         client = TavilyClient(api_key=settings.tavily_api_key)
-        response = client.search(query=url, search_depth="advanced", max_results=1)
 
-        if not response.get("results"):
-            logger.warning("fetch_url returned no results", extra={"url": url})
+        # Usa extract() dedicado para extração de conteúdo de URL
+        # (search() usa a URL como query de busca — comportamento incorreto)
+        response = client.extract(urls=[url])
+
+        results = response.get("results", [])
+        if not results:
+            logger.warning("fetch_url returned no content", extra={"url": url})
             return f"No content found at {url}"
 
-        content = response["results"][0].get("content", "")
+        content = results[0].get("raw_content", "") or results[0].get("content", "")
 
         logger.info(
             "fetch_url completed",
@@ -451,6 +454,9 @@ async def vector_search(
                 logger.info("vector_search_reranked", extra={"top_k": len(results)})
             except Exception as rerank_err:
                 logger.warning(f"Reranking failed, using raw results: {rerank_err}")
+                # Sinaliza ao LLM que os resultados não foram reordenados por relevância
+                for r in results:
+                    r["reranking_status"] = "unavailable"
 
         logger.info(
             "vector_search completed",
@@ -625,13 +631,16 @@ async def ingest_docs(
 
 
 @tool
-def file_edit(file_path: str, old_text: str, new_text: str) -> str:
+def file_edit(
+    file_path: str, old_text: str, new_text: str, replace_all: bool = False
+) -> str:
     """Edita arquivo substituindo texto.
 
     Args:
         file_path: Caminho do arquivo
-        old_text: Texto a encontrar
+        old_text: Texto a encontrar (use "" para criar arquivo se não existir)
         new_text: Texto de substituição
+        replace_all: Se True, substitui todas as ocorrências; padrão substitui apenas a 1ª
 
     Returns:
         Confirmação da edição
@@ -639,8 +648,6 @@ def file_edit(file_path: str, old_text: str, new_text: str) -> str:
     from pathlib import Path
 
     from tool_safety import is_safe_file_path
-
-    # Using global settings singleton instead of get_tool_config()
 
     if not settings.enable_file_operations:
         return "File operations are disabled."
@@ -651,26 +658,75 @@ def file_edit(file_path: str, old_text: str, new_text: str) -> str:
 
     try:
         path = Path(file_path)
+
+        # Cria arquivo novo quando old_text="" e arquivo não existe
+        if old_text == "" and not path.exists():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(new_text, encoding="utf-8")
+            logger.info("file_edit created new file", extra={"path": file_path})
+            return f"[OK] File created: {file_path}"
+
         content = path.read_text(encoding="utf-8")
 
-        if old_text not in content:
+        if old_text and old_text not in content:
             return "Error: Text not found in file"
 
-        new_content = content.replace(old_text, new_text, 1)
+        new_content = (
+            content.replace(old_text, new_text)
+            if replace_all
+            else content.replace(old_text, new_text, 1)
+        )
         path.write_text(new_content, encoding="utf-8")
 
+        count = content.count(old_text) if replace_all else 1
         logger.info(
             "file_edit completed",
-            extra={
-                "path": file_path,
-                "old_len": len(old_text),
-                "new_len": len(new_text),
-            },
+            extra={"path": file_path, "occurrences": count, "replace_all": replace_all},
         )
-        return "[OK] File edited successfully"
+        return f"[OK] File edited successfully ({count} occurrence{'s' if count != 1 else ''} replaced)"
     except Exception:
         logger.exception("file_edit failed", extra={"path": file_path})
         return "Error editing file. Check logs."
+
+
+@tool
+def file_write(file_path: str, content: str) -> str:
+    """Cria ou sobrescreve completamente um arquivo com o conteúdo fornecido.
+
+    Use para criar novos arquivos ou substituir o conteúdo completo de um existente.
+    Para edições cirúrgicas (substituir trechos), prefira file_edit.
+
+    Args:
+        file_path: Caminho do arquivo (absoluto ou relativo)
+        content: Conteúdo completo a escrever no arquivo
+
+    Returns:
+        Confirmação com caminho e tamanho em bytes
+    """
+    from pathlib import Path
+
+    from tool_safety import is_safe_file_path
+
+    if not settings.enable_file_operations:
+        return "File operations are disabled."
+
+    if not is_safe_file_path(file_path, allowed_dirs=["."]):
+        logger.warning("file_write blocked by safety check", extra={"path": file_path})
+        return f"Error: File path '{file_path}' is not allowed"
+
+    try:
+        path = Path(file_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+
+        size = path.stat().st_size
+        logger.info(
+            "file_write completed", extra={"path": file_path, "size_bytes": size}
+        )
+        return f"[OK] File written: {file_path} ({size} bytes)"
+    except Exception:
+        logger.exception("file_write failed", extra={"path": file_path})
+        return "Error writing file. Check logs."
 
 
 @tool
@@ -1008,6 +1064,7 @@ def _build_tools_list() -> list[BaseTool]:
     if settings.enable_file_operations:
         tools.append(file_read)
         tools.append(file_edit)
+        tools.append(file_write)
         tools.append(grep)
         tools.append(list_dir)
         tools.append(terminal)

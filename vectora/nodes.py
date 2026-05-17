@@ -11,12 +11,19 @@ from datetime import UTC, datetime
 
 from context import Context
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, SystemMessage, ToolMessage, trim_messages
+from langchain_core.messages import (
+    AIMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+    trim_messages,
+)
 from langchain_core.runnables import Runnable, RunnableConfig
 from langgraph.prebuilt.tool_node import ToolNode
 from langgraph.runtime import Runtime
 from memory_store import get_memory_store
 from prompts import get_system_prompt
+from settings import settings
 from state import State
 from tools import TOOLS, embedding
 from utils import load_llm
@@ -159,15 +166,22 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
         )
 
     # Gerencia o histórico de mensagens (sliding window) para evitar estouro de contexto
-    # Mantém as últimas mensagens até ~1000 tokens (estimado por contador simples)
     # NÃO usar llm_with_tools como token_counter pois força inicialização lazy do LLM
     # com argumentos inválidos do LangGraph (__pregel_*, thread_id, etc)
     trimmed_messages = trim_messages(
         state["messages"],
-        max_tokens=1000,
+        max_tokens=settings.max_context_tokens,
         strategy="last",
         token_counter=_simple_token_counter,
     )
+
+    # Garante pelo menos 1 HumanMessage ou AIMessage no histórico.
+    # Sem isso, o Google GenAI lança "ValueError: contents are required"
+    # quando ToolMessages grandes consomem todos os max_context_tokens.
+    if not trimmed_messages or not any(
+        isinstance(m, (HumanMessage, AIMessage)) for m in trimmed_messages
+    ):
+        trimmed_messages = state["messages"][-3:]
 
     messages_with_system = [system_prompt, *memory_messages, *trimmed_messages]
 

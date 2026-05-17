@@ -48,6 +48,7 @@ try:
         fetch_url,
         file_edit,
         file_read,
+        file_write,
         grep,
         ingest_docs,
         list_dir,
@@ -227,6 +228,24 @@ async def file_edit_tool(file_path: str, old_text: str, new_text: str) -> str:
 
 
 @mcp.tool()
+async def file_write_tool(file_path: str, content: str) -> str:
+    """Cria ou sobrescreve completamente um arquivo com o conteúdo fornecido.
+
+    Use para criar novos arquivos ou substituir o conteúdo completo de um existente.
+    Para edições cirúrgicas (substituir apenas um trecho), prefira file_edit_tool.
+
+    Args:
+        file_path: Caminho do arquivo (absoluto ou relativo)
+        content: Conteúdo completo a escrever no arquivo
+
+    Returns:
+        Confirmação com caminho e tamanho em bytes
+    """
+    result = await file_write.ainvoke({"file_path": file_path, "content": content})
+    return str(result)
+
+
+@mcp.tool()
 async def grep_tool(pattern: str, path: str = ".") -> str:
     """Busca um padrão regex em arquivos.
 
@@ -294,7 +313,7 @@ async def call_mcp_tool_tool(tool_name: str, arguments: str) -> str:
 
 
 logger.info(
-    "11 tools registered: web_search, fetch_url, vector_search, embedding, ingest_docs, file_read, file_edit, grep, list_dir, terminal, call_mcp_tool"
+    "12 tools registered: web_search, fetch_url, vector_search, embedding, ingest_docs, file_read, file_edit, file_write, grep, list_dir, terminal, call_mcp_tool"
 )
 
 
@@ -450,10 +469,26 @@ def run() -> None:
 
     Starts the FastMCP server listening on stdin/stdout using JSON-RPC 2.0.
     All logging is redirected to ~/.vectora/logs/mcp.log to avoid polluting
-    the stdio channel.
+    the stdio channel. Status feedback goes to stderr (safe for MCP clients).
     """
+    from rich.console import Console
+    from rich.panel import Panel
+
+    # stderr é seguro — o protocolo MCP usa apenas stdout para JSON-RPC
+    err_console = Console(stderr=True)
+    err_console.print(
+        Panel(
+            "[bold green]✓ Vectora MCP Server pronto[/bold green]\n"
+            "[dim]Transport:[/dim] stdio JSON-RPC  "
+            "[dim]Tools:[/dim] 12  [dim]Resources:[/dim] 3\n"
+            f"[dim]Logs:[/dim] {_log_dir / 'mcp.log'}",
+            title="[bold cyan]Vectora MCP[/bold cyan]",
+            border_style="cyan",
+        )
+    )
+
     logger.info("Starting Vectora MCP server (stdio JSON-RPC)")
-    logger.info("Tools: 11 | Resources: 3 | Transport: stdio")
+    logger.info("Tools: 12 | Resources: 3 | Transport: stdio")
 
     try:
         mcp.run()

@@ -154,7 +154,7 @@ class Settings(BaseSettings):
     enable_file_operations: bool = True
     """Enable file operations tools (file_read, file_edit, grep, etc)."""
 
-    max_context_tokens: int = 1000
+    max_context_tokens: int = 8000
     """Maximum tokens to keep in message history (sliding window)."""
 
     max_embedding_queue_size: int = 1000
