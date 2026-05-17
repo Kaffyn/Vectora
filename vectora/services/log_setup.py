@@ -67,28 +67,33 @@ def setup_logging(
     log_level: str | None = None,
     log_file: str | None = None,
 ) -> None:
-    """
-    Configure logging with dual outputs: text (console) + JSON (file).
+    """Configure logging com saída dupla: texto (console) + JSON (arquivo).
+
+    O arquivo JSON é sempre gravado em ~/.vectora/logs/vectora.jsonl,
+    independente de LOG_JSON. Isso garante que a sessão inteira fique
+    auditável em tempo real sem nenhuma variável de ambiente extra.
 
     Args:
-        json_output: Enable JSON output. If None, reads LOG_JSON env var.
-        log_level: Logging level (DEBUG, INFO, WARNING, etc). Defaults to INFO.
-        log_file: Path to JSON log file. If None, uses logs/vectora.jsonl
+        json_output: Ignorado (mantido por compatibilidade). O arquivo JSON
+            é sempre habilitado.
+        log_level: Nível de logging (DEBUG, INFO, WARNING, etc). Padrão: INFO.
+        log_file: Caminho do arquivo JSON. Se None, usa ~/.vectora/logs/vectora.jsonl.
 
     Environment Variables:
-        LOG_LEVEL: Set logging level (default: INFO)
-        LOG_JSON: Set to "true" to enable JSON output (default: false)
-        LOG_FILE: Path to JSON log file
-        QUIET_MODE: Set to "true" to suppress external library logs (default: true)
+        LOG_LEVEL: Nível de logging (padrão: INFO)
+        LOG_FILE: Caminho alternativo para o arquivo de log
+        QUIET_MODE: "true" silencia libs externas (padrão: true)
     """
-    if json_output is None:
-        json_output = os.getenv("LOG_JSON", "false").lower() == "true"
-
     if log_level is None:
         log_level = os.getenv("LOG_LEVEL", "INFO")
 
+    # Resolve o caminho do arquivo de log — sempre em ~/.vectora/logs/
     if log_file is None:
-        log_file = os.getenv("LOG_FILE", "logs/vectora.jsonl")
+        env_log_file = os.getenv("LOG_FILE")
+        if env_log_file:
+            log_file = env_log_file
+        else:
+            log_file = str(Path.home() / ".vectora" / "logs" / "vectora.jsonl")
 
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, log_level))
@@ -106,10 +111,9 @@ def setup_logging(
     handler_console.setLevel(getattr(logging, log_level))
     root_logger.addHandler(handler_console)
 
-    # Suppress external library logs by default (QUIET_MODE)
+    # Silencia libs externas verbosas por padrão (QUIET_MODE)
     quiet_mode = os.getenv("QUIET_MODE", "true").lower() == "true"
     if quiet_mode:
-        # Silence verbose external libraries - set to ERROR to only show critical issues
         silent_loggers = [
             "langchain",
             "langchain_core",
@@ -129,15 +133,15 @@ def setup_logging(
         for logger_name in silent_loggers:
             logging.getLogger(logger_name).setLevel(logging.CRITICAL)
 
-    if json_output:
-        log_file_path = Path(log_file)
-        log_file_path.parent.mkdir(parents=True, exist_ok=True)
+    # Arquivo JSON — sempre habilitado, garante auditabilidade da sessão
+    log_file_path = Path(log_file)
+    log_file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        formatter_json = JSONFormatter()
-        handler_file = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
-        handler_file.setFormatter(formatter_json)
-        handler_file.setLevel(getattr(logging, log_level))
-        root_logger.addHandler(handler_file)
+    formatter_json = JSONFormatter()
+    handler_file = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
+    handler_file.setFormatter(formatter_json)
+    handler_file.setLevel(getattr(logging, log_level))
+    root_logger.addHandler(handler_file)
 
 
 def setup_queue_handler(log_queue: Queue) -> None:
