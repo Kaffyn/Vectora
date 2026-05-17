@@ -448,7 +448,7 @@ async def get_server_status() -> str:
                 "mcp_enabled": settings.enable_mcp,
                 "embedding_queue_enabled": settings.embedding_queue_enabled,
             },
-            "tools_count": 11,
+            "tools_count": 12,
             "resources_count": 3,
         }
     )
