@@ -334,6 +334,27 @@ async def _process_user_turn(
             elif event_type == "on_tool_end":
                 tool_output = event.get("data", {}).get("output")
                 _render_tool_event_end(event_name, tool_output, status_ctx)
+
+            # Captura AIMessage retornado diretamente pelo nó (sem streaming).
+            # Acontece quando call_llm captura internamente um erro de quota/rate-limit
+            # e retorna um AIMessage de fallback — nenhum on_chat_model_stream é emitido.
+            elif event_type == "on_chain_end" and event_name in (
+                "call_llm",
+                "call_llm_debug",
+            ):
+                if not response_content:
+                    output = event.get("data", {}).get("output", {})
+                    if isinstance(output, dict):
+                        msgs = output.get("messages", [])
+                        for msg in msgs:
+                            if (
+                                isinstance(msg, AIMessage)
+                                and msg.content
+                                and not getattr(msg, "tool_calls", None)
+                            ):
+                                c = msg.content
+                                response_content = c if isinstance(c, str) else str(c)
+                                break
     finally:
         import contextlib
 
