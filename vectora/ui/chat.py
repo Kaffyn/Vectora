@@ -211,67 +211,50 @@ async def _process_user_turn(
 
 
 async def _read_multiline_input() -> str:
-    """Lê input do usuário com suporte completo a paste multilinha.
+    """Lê input do usuário com suporte para multilinha via Ctrl+Enter.
 
-    Problema: Rich's Prompt.ask() e input() param no primeiro '\\n'.
-    Quando o usuário cola texto multilinha, cada linha vira uma mensagem
-    separada porque o loop de chat chama input() novamente para cada linha
-    no buffer de stdin.
-
-    Solução: após ler a primeira linha, verifica se há mais conteúdo
-    buffered no stdin (indicativo de paste) e coleta tudo como uma
-    única mensagem.
+    Comportamento:
+    - Enter: envia a mensagem
+    - Ctrl+Enter: adiciona quebra de linha
+    - Suporta multiline paste automaticamente
 
     Returns:
-        String com todo o input do usuário (pode conter quebras de linha).
+        String com input do usuário (pode conter quebras de linha via Ctrl+Enter).
     """
+    try:
+        from prompt_toolkit import PromptSession
+        from prompt_toolkit.document import Document
+        from prompt_toolkit.enums import EditingMode
+        from prompt_toolkit.key_binding import KeyBindings
 
-    loop = asyncio.get_event_loop()
+        # Criar key bindings customizados
+        bindings = KeyBindings()
 
-    # Exibe prompt
-    sys.stdout.write("\033[1;36mYou: \033[0m")
-    sys.stdout.flush()
+        @bindings.add("c-enter")  # Ctrl+Enter para quebra de linha
+        def _(event):
+            """Insere quebra de linha quando Ctrl+Enter é pressionado."""
+            event.current_buffer.insert_text("\n")
 
-    # Lê primeira linha de forma bloqueante no thread pool
-    # (evita bloquear o event loop)
-    first_line = await loop.run_in_executor(None, sys.stdin.readline)
-    if not first_line:
-        raise EOFError("stdin closed")
+        # Criar sessão de prompt com suporte a multilinha
+        session = PromptSession(
+            "You: ",
+            multiline=True,
+            key_bindings=bindings,
+            editing_mode=EditingMode.EMACS,
+        )
 
-    lines = [first_line.rstrip("\r\n")]
+        loop = asyncio.get_event_loop()
+        user_input = await loop.run_in_executor(None, session.prompt)
 
-    # Aguarda brevemente para o buffer de paste se completar.
-    # Paste via terminal acontece "instantaneamente" — 30ms é suficiente
-    # para o SO depositar todo o conteúdo no buffer de stdin.
-    await asyncio.sleep(0.03)
+        return user_input
 
-    # Coleta linhas restantes do buffer (sem bloquear)
-    if sys.platform == "win32":
-        import msvcrt
-
-        buf: list[str] = []
-        while msvcrt.kbhit():
-            ch = msvcrt.getwch()
-            if ch == "\r":
-                lines.append("".join(buf))
-                buf = []
-            elif ch != "\n":
-                buf.append(ch)
-        if buf:
-            lines.append("".join(buf))
-    else:
-        import select
-
-        while True:
-            ready, _, _ = select.select([sys.stdin], [], [], 0)
-            if not ready:
-                break
-            line = sys.stdin.readline()
-            if not line:
-                break
-            lines.append(line.rstrip("\r\n"))
-
-    return "\n".join(lines)
+    except ImportError:
+        # Fallback se prompt_toolkit não estiver disponível
+        logger.warning("prompt_toolkit not available, using basic input")
+        loop = asyncio.get_event_loop()
+        sys.stdout.write("\033[1;36mYou: \033[0m")
+        sys.stdout.flush()
+        return await loop.run_in_executor(None, sys.stdin.readline)
 
 
 async def chat_loop(
