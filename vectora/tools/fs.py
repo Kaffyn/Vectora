@@ -255,7 +255,7 @@ def terminal(command: str) -> str:
         )
 
     try:
-        result = sp.run(  # noqa: S602
+        result = sp.run(
             command,
             shell=True,
             capture_output=True,

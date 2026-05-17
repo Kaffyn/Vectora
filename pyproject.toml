@@ -56,14 +56,14 @@ test = ["pytest>=8.0", "pytest-asyncio>=0.23.0", "pytest-cov>=4.0.0"]
 dev = ["ruff>=0.5.0", "mypy>=1.10.0", "bandit>=1.7.5", "types-python-dateutil"]
 
 [project.scripts]
-vectora = "vectora.run_chat:run_chat"
+vectora = "vectora.main:run"
 vectora-mcp = "vectora.mcp.server:run"
 
 [tool.hatch.build.targets.wheel]
 packages = ["vectora"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"vectora/defaults.env" = "defaults.env"
+"vectora/config/defaults.env" = "defaults.env"
 
 [tool.ruff]
 line-length = 88
@@ -97,10 +97,10 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["ANN201", "ANN001", "ARG001", "ARG002", "S101"]
 "vectora/prompts.py" = ["E501"]
-"vectora/tools.py" = ["PLR0911", "S602"]
-"vectora/nodes.py" = ["E501"]
-"vectora/setup_wizard.py" = ["S603", "RUF006"]
-"vectora/checkpointer.py" = ["N802"]
+"vectora/tools/*.py" = ["PLR0911", "S602"]
+"vectora/nodes/engine.py" = ["E501"]
+"vectora/services/setup_wizard.py" = ["S603", "RUF006"]
+"vectora/services/checkpoint.py" = ["N802"]
 
 [tool.ruff.format]
 quote-style = "double"

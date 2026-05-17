@@ -98,7 +98,7 @@ async def embedding(
 @tool
 async def vector_search(
     query: str, collection: str = "articles", limit: int = 5
-) -> str:  # noqa: PLR0911
+) -> str:
     """Busca o banco de dados vetorial LanceDB por documentos similares.
 
     LanceDB é file-based — nenhum container ou servidor é necessário.

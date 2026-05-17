@@ -2,7 +2,6 @@
 
 import pytest
 from rich.console import Console
-
 from vectora.commands import (
     AVAILABLE_MODELS,
     get_available_models,

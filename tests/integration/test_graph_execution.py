@@ -17,9 +17,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
+from vectora.embedding_queue import get_embedding_queue
 
 from vectora.context import Context
-from vectora.embedding_queue import get_embedding_queue
 from vectora.graph import build_graph
 from vectora.nodes import process_retrieval
 
