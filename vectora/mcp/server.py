@@ -14,6 +14,7 @@ import logging
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 # Adiciona vectora/ ao sys.path para resolver imports internos dos módulos.
 # Os módulos em vectora/ usam imports diretos (ex: from vectora.config.settings import settings)
@@ -36,10 +37,12 @@ logging.basicConfig(
 
 logger = logging.getLogger("vectora.mcp.server")
 
+if TYPE_CHECKING:
+    from vectora.agent import AgentManager
+
 try:
     from mcp.server.fastmcp import FastMCP
 
-    from vectora.agent import AgentManager
     from vectora.config.settings import settings
     from vectora.services.checkpoint import Checkpointer
     from vectora.tools import (
@@ -156,7 +159,7 @@ TOOL_TIMEOUTS = {
 
 
 async def _with_timeout(
-    coro,
+    coro: object,
     tool_name: str,
     default_timeout: float = 30.0,
 ) -> str:

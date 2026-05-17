@@ -30,14 +30,14 @@ class TestAgentManagerSingleton:
 
         init_count = 0
 
-        async def create_agent_once(*args, **kwargs):
+        async def create_agent_once(*args: object, **kwargs: object) -> AsyncMock:
             nonlocal init_count
             init_count += 1
             return mock_agent
 
         # Simulate calling _get_agent_manager multiple times
         # This tests the singleton behavior without importing problematic modules
-        async def mock_get_agent_manager():
+        async def mock_get_agent_manager() -> AsyncMock:
             """Mock implementation of _get_agent_manager()."""
             global _test_agent_instance
             if "_test_agent_instance" not in globals():
@@ -64,10 +64,10 @@ class TestAgentManagerSingleton:
         create_count = 0
         init_count = 0
 
-        async def track_initialization():
+        async def track_initialization() -> AsyncMock:
             nonlocal create_count, init_count
             create_count += 1
-            mock_agent.initialize()
+            await mock_agent.initialize()
             init_count += 1
             return mock_agent
 
@@ -107,7 +107,7 @@ class TestToolTimeouts:
         }
 
         # Verify each tool has a reasonable timeout
-        for tool_name, timeout_seconds in expected_timeouts.items():
+        for timeout_seconds in expected_timeouts.values():
             assert timeout_seconds > 0
             assert timeout_seconds <= 300  # All under 5 minutes (A2A limit)
 
@@ -167,7 +167,7 @@ class TestDelegationContext:
         """Test that empty tasks are rejected."""
 
         # Mock validation logic
-        def validate_task(task_prompt):
+        def validate_task(task_prompt: str) -> tuple[bool, str | None]:
             if not task_prompt or not task_prompt.strip():
                 return False, "Erro: task_prompt não pode estar vazio"
             return True, None
@@ -240,7 +240,7 @@ class TestMCPToolsIntegration:
         }
 
         assert len(tools) == 12
-        for tool_name, timeout in tools.items():
+        for timeout in tools.values():
             assert timeout > 0
 
         logger.info(f"✓ All {len(tools)} MCP tools have timeouts configured")
@@ -263,7 +263,7 @@ class TestResourceManagement:
         """Test that repeated delegation doesn't duplicate expensive operations."""
         initialization_count = 0
 
-        async def mock_expensive_init():
+        async def mock_expensive_init() -> None:
             nonlocal initialization_count
             initialization_count += 1
             logger.debug(f"Expensive initialization #{initialization_count}")

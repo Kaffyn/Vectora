@@ -230,15 +230,15 @@ async def _read_multiline_input() -> str:
 
         # Alt+Enter para quebra de linha (padrão em Discord, Slack, etc)
         @bindings.add("m-enter")  # Meta+Enter = Alt+Enter no terminal
-        def _(event):
+        def _(event: object) -> None:
             """Insere quebra de linha quando Alt+Enter é pressionado."""
-            event.current_buffer.insert_text("\n")
+            event.current_buffer.insert_text("\n")  # type: ignore[attr-defined]
 
         # Shift+Enter como alternativa portável
         @bindings.add("s-enter")  # Shift+Enter
-        def _(event):
+        def _(event: object) -> None:
             """Insere quebra de linha quando Shift+Enter é pressionado."""
-            event.current_buffer.insert_text("\n")
+            event.current_buffer.insert_text("\n")  # type: ignore[attr-defined]
 
         # Criar sessão de prompt
         # multiline=False: Enter envia por padrão
@@ -250,9 +250,7 @@ async def _read_multiline_input() -> str:
         )
 
         loop = asyncio.get_event_loop()
-        user_input = await loop.run_in_executor(None, session.prompt)
-
-        return user_input
+        return await loop.run_in_executor(None, session.prompt)
 
     except ImportError:
         # Fallback se prompt_toolkit não estiver disponível
@@ -266,7 +264,7 @@ async def _read_multiline_input() -> str:
         # Log unexpected errors from prompt_toolkit initialization
         logger.debug(
             "Error in multiline input, falling back to basic input",
-            extra={"error": type(e).__name__, "message": str(e)},
+            extra={"error": type(e).__name__, "error_msg": str(e)},
         )
         loop = asyncio.get_event_loop()
         sys.stdout.write("\033[1;36mYou: \033[0m")
