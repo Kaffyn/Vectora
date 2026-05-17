@@ -142,7 +142,7 @@ async def call_llm_debug(
     state: State, runtime: Runtime | None = None, **kwargs: Any
 ) -> dict[str, Any]:
     """Wrapper de call_llm com logging de entrada/saída para debugging."""
-    from nodes import call_llm as original_call_llm
+    from vectora.nodes import call_llm as original_call_llm
 
     logger.info(
         "[CALL_LLM] ENTRADA",

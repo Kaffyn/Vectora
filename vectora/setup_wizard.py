@@ -284,7 +284,7 @@ async def _finalize_setup(provider_id: str, api_key: str | None) -> None:
     console.print(Rule("[bold cyan]Launching Vectora Chat[/bold cyan]", style="cyan"))
     console.print()
 
-    from chat import run_chat
+    from vectora.chat import run_chat
 
     await run_chat()
 

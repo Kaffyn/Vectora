@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 # Adiciona vectora/ ao sys.path para resolver imports internos dos módulos.
-# Os módulos em vectora/ usam imports diretos (ex: from settings import settings)
+# Os módulos em vectora/ usam imports diretos (ex: from vectora.settings import settings)
 # que exigem que o diretório vectora/ esteja no sys.path quando importados via vectora.*.
 _vectora_dir = str(Path(__file__).parent.parent)
 if _vectora_dir not in sys.path:

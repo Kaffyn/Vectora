@@ -493,8 +493,8 @@ async def run_chat(agent: Any | None = None, settings: Any | None = None) -> Non
     When called without arguments, falls back to legacy initialization
     (for backward compatibility during migration to Phase 2).
     """
-    from agent import AgentManager
-    from settings import Settings as SettingsClass
+    from vectora.agent import AgentManager
+    from vectora.settings import Settings as SettingsClass
 
     # Dependency injection: Use provided agent/settings or fallback to legacy
     if agent is None:

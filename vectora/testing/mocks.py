@@ -4,7 +4,11 @@ from typing import Any, Self
 from langchain_core.language_models import BaseLLM
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.outputs import LLMResult
-from testing.message_factory import ai_message_text, ai_message_with_tool_call
+
+from vectora.testing.message_factory import (
+    ai_message_text,
+    ai_message_with_tool_call,
+)
 
 
 class MockLLM(BaseLLM):

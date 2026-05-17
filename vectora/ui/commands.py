@@ -304,7 +304,7 @@ async def _handle_new_session(context: Any, console: Any) -> Any:
     Returns:
         Updated context with new thread_id
     """
-    from context import Context
+    from vectora.context import Context
 
     # Generate new thread_id by finding the max existing and adding 1
     new_thread_id = (context.thread_id or 1) + 1
@@ -332,7 +332,7 @@ async def _handle_list_sessions(context: Any, console: Any) -> None:
         context: Current context object
         console: Rich console for output
     """
-    from checkpointer import Checkpointer
+    from vectora.services.checkpoint import Checkpointer
 
     try:
         async with Checkpointer(settings.db_dsn) as checkpointer:
@@ -366,7 +366,7 @@ async def _handle_switch_session(args: str, context: Any, console: Any) -> Any:
     Returns:
         Updated context with the new thread_id
     """
-    from context import Context
+    from vectora.context import Context
 
     if not args.strip():
         console.print("[red]Usage: /session <thread_id>[/red]")
@@ -402,7 +402,7 @@ async def _handle_tools_command(console: Any) -> None:
         console: Rich console for output
     """
     try:
-        from tools import TOOLS
+        from vectora.tools import TOOLS
 
         table = Table(title="Available Tools", style="cyan")
         table.add_column("Tool Name", style="bold green")

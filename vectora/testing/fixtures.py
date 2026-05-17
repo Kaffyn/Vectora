@@ -4,13 +4,14 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 
 import pytest
-from context import Context
 from langchain_core.messages import SystemMessage
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph.state import CompiledStateGraph
-from prompts import get_system_prompt
-from state import State
-from testing.mocks import MockLLM
+
+from vectora.context import Context
+from vectora.prompts import get_system_prompt
+from vectora.state import State
+from vectora.testing.mocks import MockLLM
 
 
 @pytest.fixture
@@ -74,7 +75,7 @@ async def test_graph(
 
     async def call_llm_with_mock(state: State, runtime: dict) -> dict:
         """Call LLM using the mock instead of real providers."""
-        from tools import TOOLS
+        from vectora.tools import TOOLS
 
         llm_with_tools = mock_llm.bind_tools(TOOLS)
 
@@ -96,7 +97,8 @@ async def test_graph(
     from langgraph.constants import END, START
     from langgraph.graph.state import StateGraph
     from langgraph.prebuilt.tool_node import ToolNode, tools_condition
-    from tools import TOOLS
+
+    from vectora.tools import TOOLS
 
     builder = StateGraph(
         state_schema=State,

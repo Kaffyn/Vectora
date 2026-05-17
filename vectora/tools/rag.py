@@ -246,7 +246,7 @@ async def ingest_docs(
     """
     from pathlib import Path
 
-    from tool_safety import is_safe_file_path
+    from vectora.tool_safety import is_safe_file_path
 
     if not settings.enable_file_operations:
         return "File operations are disabled."

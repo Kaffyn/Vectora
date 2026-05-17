@@ -74,7 +74,7 @@ class AgentManager:
         Returns:
             Settings instance
         """
-        from settings import get_settings
+        from vectora.settings import get_settings
 
         return get_settings()
 

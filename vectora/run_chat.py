@@ -34,18 +34,18 @@ async def _run_chat_async() -> None:
     os.environ.setdefault("LOG_JSON", "false")
 
     # Validar que Voyage AI está configurado (obrigatório para Vectora)
-    from env import validate_voyage_ai
+    from vectora.env import validate_voyage_ai
 
     validate_voyage_ai()
 
-    from settings import settings
+    from vectora.settings import settings
 
     if not settings.get_llm_provider():
-        from setup_wizard import run_setup_sync
+        from vectora.setup_wizard import run_setup_sync
 
         run_setup_sync()
     else:
-        from chat import run_chat as start_chat_app
+        from vectora.chat import run_chat as start_chat_app
 
         await start_chat_app()
 

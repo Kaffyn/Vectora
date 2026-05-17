@@ -31,7 +31,7 @@ async def save_memory(
         JSON com status saved/failed
     """
     try:
-        from memory_store import get_memory_store
+        from vectora.memory_store import get_memory_store
 
         user_id = "default_user"
         memory_store = await get_memory_store()
@@ -73,7 +73,7 @@ async def get_memory(key: str | None = None) -> str:
         JSON com conteúdo da memória ou lista de memórias
     """
     try:
-        from memory_store import get_memory_store
+        from vectora.memory_store import get_memory_store
 
         user_id = "default_user"
         memory_store = await get_memory_store()
@@ -129,7 +129,7 @@ async def delete_memory(key: str) -> str:
         JSON com status deleted/not_found/failed
     """
     try:
-        from memory_store import get_memory_store
+        from vectora.memory_store import get_memory_store
 
         user_id = "default_user"
         memory_store = await get_memory_store()

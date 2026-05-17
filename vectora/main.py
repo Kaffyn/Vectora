@@ -47,7 +47,7 @@ async def main() -> None:
         # ====================================================================
         # STEP 1: Load Settings (Single Source of Truth)
         # ====================================================================
-        from settings import Settings
+        from vectora.settings import Settings
 
         try:
             settings = Settings()
@@ -72,7 +72,7 @@ async def main() -> None:
         # ====================================================================
         # STEP 2: Initialize AgentManager (Orchestrator)
         # ====================================================================
-        from agent import AgentManager
+        from vectora.agent import AgentManager
 
         try:
             agent = AgentManager(settings)
@@ -92,7 +92,7 @@ async def main() -> None:
         available_providers = settings.get_available_providers()
         if not available_providers:
             logger.warning("No LLM providers configured. Running setup wizard...")
-            from setup_wizard import run_setup_sync
+            from vectora.setup_wizard import run_setup_sync
 
             run_setup_sync()
             # After setup, reload settings
@@ -103,7 +103,7 @@ async def main() -> None:
         # ====================================================================
         # STEP 4: Run CLI Dashboard
         # ====================================================================
-        from chat import run_chat
+        from vectora.chat import run_chat
 
         await run_chat(agent=agent, settings=settings)
 
