@@ -143,6 +143,9 @@ async def handle_command(
     elif cmd == "/rag":
         await _handle_rag_command(args, console)
 
+    elif cmd in {"/privacidade", "/privacy", "/telemetria"}:
+        await _handle_privacy_command(args, console)
+
     elif cmd == "/list":
         _display_command_list(console)
 
@@ -592,6 +595,142 @@ async def _handle_rag_command(args: str, console: Any) -> None:
     )
 
 
+async def _handle_privacy_command(args: str, console: Any) -> None:
+    """Handle /privacidade command — show and change telemetry consent.
+
+    Subcommands:
+        (no args)  — show current status + what is/isn't collected
+        enable     — opt-in to anonymous telemetry
+        disable    — opt-out (revoke consent)
+
+    Args:
+        args: Optional subcommand ("enable" or "disable").
+        console: Rich console for output.
+    """
+    from rich.text import Text
+
+    from vectora.config.settings import settings as _settings
+    from vectora.services.consent import get_consent_manager
+
+    consent = get_consent_manager()
+    sub = args.strip().lower()
+
+    if sub == "enable":
+        # Mostra o que será coletado e pede confirmação explícita (LGPD Art. 8)
+        console.print(
+            Panel(
+                "[bold]O que será enviado (dados operacionais anonimizados):[/bold]\n"
+                "  [green]✔[/green] Tempo de execução por ferramenta/nó do grafo\n"
+                "  [green]✔[/green] Tipo de erro (sem a mensagem completa)\n"
+                "  [green]✔[/green] Modelo LLM em uso e versão do Vectora\n"
+                "\n"
+                "[bold]O que NUNCA será enviado:[/bold]\n"
+                "  [red]✗[/red] Conteúdo das conversas\n"
+                "  [red]✗[/red] Chaves de API, senhas ou credenciais\n"
+                "  [red]✗[/red] Arquivos ou caminhos locais\n"
+                "  [red]✗[/red] Dados pessoais ou identificadores\n"
+                "\n"
+                "[dim]Processador: LangSmith (LangChain Inc.) — EUA.\n"
+                "Base legal: LGPD Art. 7, inciso I — consentimento.\n"
+                "Revogue a qualquer momento com /privacidade disable.[/dim]",
+                title="[bold yellow]📊 Telemetria Anônima[/bold yellow]",
+                border_style="yellow",
+                expand=False,
+            )
+        )
+
+        import asyncio as _asyncio
+
+        answer = (await _asyncio.to_thread(input, "Confirmar? [s/N]: ")).strip().lower()
+
+        if answer not in ("s", "sim", "y", "yes"):
+            console.print("[dim]Operação cancelada. Nenhum dado será enviado.[/dim]")
+            return
+
+        consent.set_consent(True, vectora_version=_settings.version)
+        console.print(
+            Panel(
+                "[green]✔ Telemetria anônima [bold]habilitada[/bold].[/green]\n"
+                "[dim]Obrigado! Reinicie o Vectora para que entre em vigor.\n"
+                "Revogue quando quiser com /privacidade disable.[/dim]",
+                border_style="green",
+                expand=False,
+            )
+        )
+        return
+
+    if sub == "disable":
+        consent.revoke(vectora_version=_settings.version)
+        console.print(
+            Panel(
+                "[cyan]✔ Telemetria anônima [bold]desabilitada[/bold].[/cyan]\n"
+                "[dim]Nenhum dado será enviado a partir do próximo início.[/dim]",
+                title="[bold cyan]Privacidade[/bold cyan]",
+                border_style="cyan",
+                expand=False,
+            )
+        )
+        return
+
+    # --- Status panel ---
+    status = consent.get_status()
+    status_color = (
+        "green"
+        if status == "consented"
+        else ("cyan" if status == "declined" else "yellow")
+    )
+    status_label = {
+        "consented": "✔ Habilitada",
+        "declined": "✗ Desabilitada",
+        "not_asked": "⚠ Não perguntado ainda",
+    }.get(status, status)
+
+    langsmith_key_ok = bool(_settings.langsmith_api_key)
+    langsmith_active = status == "consented" and langsmith_key_ok
+
+    lines = Text()
+    lines.append("Status da telemetria: ", style="bold")
+    lines.append(f"{status_label}\n", style=status_color)
+    lines.append("\n")
+    lines.append("LangSmith: ", style="bold")
+    lines.append(
+        ("● Ativo" if langsmith_active else "○ Inativo") + "\n",
+        style="green" if langsmith_active else "dim",
+    )
+    lines.append("\n")
+    lines.append("O que é coletado (quando ativo):\n", style="bold")
+    lines.append("  ✔ Tempo de execução por nó/ferramenta\n", style="green")
+    lines.append("  ✔ Tipo de erro (sem mensagem completa)\n", style="green")
+    lines.append("  ✔ Modelo LLM em uso\n", style="green")
+    lines.append("  ✔ Versão do Vectora\n", style="green")
+    lines.append("\n")
+    lines.append("O que NUNCA é coletado:\n", style="bold")
+    lines.append("  ✗ Conteúdo das conversas\n", style="red")
+    lines.append("  ✗ Chaves de API ou credenciais\n", style="red")
+    lines.append("  ✗ Arquivos ou caminhos locais\n", style="red")
+    lines.append("  ✗ Dados pessoais ou identificadores\n", style="red")
+    lines.append("\n")
+    lines.append("Base legal: ", style="dim")
+    lines.append("LGPD Art. 7, inciso I — consentimento\n", style="dim")
+    lines.append("Processador: ", style="dim")
+    lines.append("LangSmith (LangChain Inc.) — EUA\n", style="dim")
+    lines.append("\n")
+    lines.append("Comandos:\n", style="bold")
+    lines.append("  /privacidade enable   ", style="bold cyan")
+    lines.append("— habilitar telemetria\n")
+    lines.append("  /privacidade disable  ", style="bold cyan")
+    lines.append("— desabilitar / revogar\n")
+
+    console.print(
+        Panel(
+            lines,
+            title="[bold]🔒 Privacidade & Telemetria[/bold]",
+            border_style="yellow",
+            expand=False,
+        )
+    )
+
+
 def _display_command_list(console: Any) -> None:
     """Display all available commands in Vectora.
 
@@ -641,6 +780,14 @@ def _display_command_list(console: Any) -> None:
   Switch to a specific session by ID
   Usage: [dim]/session 1[/dim]
 
+[bold]/privacidade[/bold]
+  Status da telemetria anônima e opções de consentimento (LGPD)
+  Usage: [dim]/privacidade[/dim]
+
+[bold]/privacidade enable|disable[/bold]
+  Habilitar ou desabilitar telemetria anônima
+  Usage: [dim]/privacidade enable[/dim] ou [dim]/privacidade disable[/dim]
+
 [bold]/list[/bold]
   Show this list of all available commands
   Usage: [dim]/list[/dim]
@@ -673,6 +820,7 @@ Type your message to chat, or use these commands:
 [bold]/tools[/bold] - List available tools
 [bold]/debug[/bold] - Toggle debug mode
 [bold]/rag[/bold] - Painel do pipeline RAG (queue + LanceDB)
+[bold]/privacidade[/bold] - Status e controle de telemetria (LGPD)
 
 For complete command reference, type [bold]/list[/bold]
 """

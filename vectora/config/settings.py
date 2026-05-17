@@ -221,6 +221,65 @@ class Settings(BaseSettings):
     """MCP request timeout in seconds."""
 
     # ============================================================================
+    # TELEMETRIA / LANGSMITH (Opt-in — LGPD Art. 7 inciso I)
+    # ============================================================================
+
+    telemetry_consent: str = "not_asked"
+    """Estado do consentimento: not_asked | true | false.
+
+    Gerenciado por ConsentManager (consent.py). Quando 'true', o main.py
+    ativa LANGSMITH_TRACING e usa langsmith_api_key (chave do desenvolvedor,
+    injetada em tempo de build via CI/CD) para enviar traces anonimizados.
+    """
+
+    # ── Canal do desenvolvedor (telemetria anônima com consentimento) ───────
+    vectora_langsmith_api_key: str | None = None
+    """Chave LangSmith do DESENVOLVEDOR — embutida no wheel pelo CI/CD.
+
+    Lida de VECTORA_LANGSMITH_API_KEY (defaults.env, injetada em build).
+    Só é usada quando o usuário consente via /privacidade enable.
+    Traces são enviados sem inputs/outputs (hide_inputs=True no Client).
+    Usuários finais NÃO precisam configurar essa variável.
+    """
+
+    vectora_langsmith_endpoint: str = "https://api.smith.langchain.com"
+    """Endpoint LangSmith para o canal do desenvolvedor."""
+
+    vectora_langsmith_project: str = "Vectora"
+    """Projeto LangSmith para telemetria do desenvolvedor."""
+
+    # ── Canal do usuário (debugging próprio, totalmente opcional) ────────────
+    langsmith_tracing: bool = False
+    """Ativa o rastreamento LangSmith do USUÁRIO.
+
+    Lido de LANGSMITH_TRACING. Quando True + LANGSMITH_API_KEY presente,
+    o LangChain ativa o tracer global automaticamente — o usuário vê seus
+    próprios traces com fidelidade total (inputs, outputs, tudo).
+    Independente do consentimento de telemetria do Vectora.
+    """
+
+    langsmith_api_key: str | None = None
+    """Chave LangSmith do USUÁRIO — para debugging próprio.
+
+    Lida de LANGSMITH_API_KEY. Opcional. Se presente e LANGSMITH_TRACING=true,
+    o LangChain usa automaticamente. Nenhum código extra necessário.
+    """
+
+    langsmith_endpoint: str = "https://api.smith.langchain.com"
+    """Endpoint LangSmith para o canal do usuário."""
+
+    langsmith_project: str = "Vectora"
+    """Projeto LangSmith padrão para o canal do usuário."""
+
+    sentry_dsn: str | None = None
+    """DSN do Sentry (opcional, para rastreamento de erros).
+
+    Quando configurado, erros de execução são enviados ao Sentry com
+    send_default_pii=False e before_send sanitizando os dados.
+    Requer consentimento do usuário (mesmo fluxo que LangSmith).
+    """
+
+    # ============================================================================
     # PYDANTIC CONFIGURATION
     # ============================================================================
 
