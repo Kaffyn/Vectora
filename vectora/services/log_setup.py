@@ -62,6 +62,32 @@ class TextFormatter(logging.Formatter):
         return prefix + msg
 
 
+class _BackgroundConsoleFilter(logging.Filter):
+    """Bloqueia loggers de background do console em QUIET_MODE.
+
+    Esses loggers operam em paralelo com o Rich e inundam o terminal,
+    corrompendo o prompt de input. Os registros ainda chegam ao handler
+    de arquivo JSON para auditoria — apenas o console é filtrado.
+
+    Loggers bloqueados no console (WARNING+ ainda passam):
+    - vectora.services.background  (worker de embedding)
+    - vectora.services.queue       (fila de embedding)
+    """
+
+    _CONSOLE_NOISY: frozenset[str] = frozenset(
+        {
+            "vectora.services.background",
+            "vectora.services.queue",
+        }
+    )
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        # Deixa WARNING+ sempre passar (erros devem ser visíveis)
+        if record.levelno >= logging.WARNING:
+            return True
+        return record.name not in self._CONSOLE_NOISY
+
+
 def setup_logging(
     json_output: bool | None = None,
     log_level: str | None = None,
@@ -109,11 +135,15 @@ def setup_logging(
     handler_console = logging.StreamHandler()
     handler_console.setFormatter(formatter_text)
     handler_console.setLevel(getattr(logging, log_level))
-    root_logger.addHandler(handler_console)
 
     # Silencia libs externas verbosas por padrão (QUIET_MODE)
     quiet_mode = os.getenv("QUIET_MODE", "true").lower() == "true"
     if quiet_mode:
+        # Loggers de background bloqueados no console (ainda vão para o arquivo JSON).
+        # Usamos Filter no handler — NÃO setLevel() no logger — para preservar
+        # auditabilidade no arquivo sem inundar o terminal do Rich.
+        handler_console.addFilter(_BackgroundConsoleFilter())
+
         silent_loggers = [
             "langchain",
             "langchain_core",
@@ -129,13 +159,23 @@ def setup_logging(
             "urllib3",
             "requests",
             "asyncio",
-            # Voyage AI SDK e SQLite async driver — evitam output espúrio no terminal
+            # Voyage AI SDK e SQLite async driver
             "voyageai",
             "voyageai.client",
             "aiosqlite",
+            # HuggingFace Hub — baixa tokenizadores na 1ª chamada do Voyage AI;
+            # o aviso de rate limit é ruído para o usuário final
+            "huggingface_hub",
+            "huggingface_hub.utils",
+            "huggingface_hub.utils._http",
+            # sentence-transformers (reranker local)
+            "sentence_transformers",
+            "transformers",
         ]
         for logger_name in silent_loggers:
             logging.getLogger(logger_name).setLevel(logging.CRITICAL)
+
+    root_logger.addHandler(handler_console)
 
     # Arquivo JSON — sempre habilitado, garante auditabilidade da sessão
     log_file_path = Path(log_file)

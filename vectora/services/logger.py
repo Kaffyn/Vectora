@@ -104,10 +104,15 @@ def setup_logging(
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(text_formatter)
     console_handler.setLevel(getattr(logging, log_level))
-    root_logger.addHandler(console_handler)
 
     # Suppress external library verbosity in quiet mode
     if os.getenv("QUIET_MODE", "true").lower() == "true":
+        # Bloqueia loggers de background no console via Filter (não setLevel),
+        # preservando auditabilidade no arquivo JSON
+        from vectora.services.log_setup import _BackgroundConsoleFilter
+
+        console_handler.addFilter(_BackgroundConsoleFilter())
+
         _noisy_loggers = [
             "langchain",
             "langchain_core",
@@ -127,9 +132,17 @@ def setup_logging(
             # Voyage AI SDK — evita output espúrio durante embed_query()
             "voyageai",
             "voyageai.client",
+            # HuggingFace Hub — tokenizadores baixados na 1ª chamada do Voyage AI
+            "huggingface_hub",
+            "huggingface_hub.utils",
+            "huggingface_hub.utils._http",
+            "sentence_transformers",
+            "transformers",
         ]
         for name in _noisy_loggers:
             logging.getLogger(name).setLevel(logging.CRITICAL)
+
+    root_logger.addHandler(console_handler)
 
     if json_output:
         log_path = Path(log_file)
