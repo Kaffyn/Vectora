@@ -61,6 +61,32 @@ except ImportError:
     sys.exit(1)
 
 # ============================================================================
+# SINGLETON AGENT MANAGER (para A2A)
+# ============================================================================
+
+_agent_manager_instance: "AgentManager | None" = None
+
+
+async def _get_agent_manager() -> "AgentManager":
+    """Retorna instância singleton do AgentManager.
+
+    Inicializa apenas uma vez na primeira chamada.
+    Isso evita reduplica inicializações caras (LanceDB, embedding worker, etc).
+    """
+    global _agent_manager_instance
+
+    if _agent_manager_instance is None:
+        from vectora.agent import AgentManager
+        from vectora.config.settings import settings as agent_settings
+
+        _agent_manager_instance = AgentManager(agent_settings)
+        await _agent_manager_instance.initialize()
+        logger.info("AgentManager singleton inicializado para A2A")
+
+    return _agent_manager_instance
+
+
+# ============================================================================
 # MCP SERVER INSTANCE
 # ============================================================================
 
@@ -97,11 +123,12 @@ mcp = FastMCP(
         "- Melhor que web_search quando você já sabe a URL\n\n"
         "FLUXO RECOMENDADO:\n"
         "1. Entender a pergunta do usuário\n"
-        "2. SE é sobre algo em tempo real → web_search_tool\n"
-        "3. SE é sobre conhecimento já indexado → vector_search_tool\n"
-        "4. SE precisa ler um arquivo → file_read\n"
-        "5. SE quer indexar novo conteúdo → embedding_tool ou ingest_docs_tool\n"
-        "6. Sempre verificar resources primeiro: /vectora/thread/{id}/history"
+        "2. SE é tarefa COMPLEXA (múltiplas etapas, análise profunda) → delegate_task_to_vectora\n"
+        "3. SE é tarefa SIMPLES (ferramenta única) → chamar ferramenta específica\n"
+        "4. Sempre verificar resources primeiro: /vectora/thread/{id}/history\n\n"
+        "⚡ WHEN TO USE EACH MODE:\n"
+        "- delegate_task_to_vectora: RAG + análise + síntese, decisões complexas\n"
+        "- Ferramentas individuais: quando sabe exatamente qual tool chamar"
     ),
 )
 
@@ -348,61 +375,83 @@ async def delegate_task_to_vectora(
     task_prompt: str,
     thread_id: int = 1,
 ) -> str:
-    """Delega uma tarefa complexa para o motor de raciocínio do Vectora.
+    """Delega uma tarefa complexa para o motor de raciocínio do Vectora (A2A).
 
-    Use esta ferramenta quando a tarefa exigir múltiplas etapas de RAG,
-    análise de arquivos, busca web ou raciocínio que o Agent Principal
-    não deve gerenciar sozinho.
+    MODO SUB-AGENTE: Use quando a tarefa exigir múltiplas etapas de RAG,
+    análise de arquivos, busca web ou raciocínio complexo.
 
-    O Vectora executará seu LangGraph interno e retornará apenas o resultado final.
-    Esta é a ferramenta de "delegação de sub-agente" - o Vectora processa
-    tudo internamente (RAG, file ops, web search) e devolve resultado processado.
+    O Vectora executará seu LangGraph interno COMPLETO:
+    - Decision-making sobre qual ferramenta usar
+    - RAG, web search, file operations, terminal commands
+    - Reasoning e síntese
+    - Retorna resultado FINAL (não ferramentas individuais)
 
     Args:
-        task_prompt: Descrição completa da tarefa/pergunta para o Vectora processar
+        task_prompt: Descrição completa da tarefa/pergunta para processar
         thread_id: ID da sessão/conversa para manter contexto (default: 1)
 
     Returns:
-        Resultado final após processar a tarefa completamente no LangGraph do Vectora
+        Resultado final processado pelo LangGraph do Vectora
     """
+    import asyncio
+
+    if not task_prompt or not task_prompt.strip():
+        return "Erro: task_prompt não pode estar vazio"
+
     logger.info(
-        "Delegação recebida do Agent Principal",
-        extra={"thread_id": thread_id, "prompt_length": len(task_prompt)},
+        "A2A: Delegação recebida",
+        extra={
+            "thread_id": thread_id,
+            "prompt_length": len(task_prompt),
+        },
     )
 
     try:
-        from vectora.agent import AgentManager
-        from vectora.config.settings import settings as mcp_settings
+        # Obter instância singleton do AgentManager (evita reduplica inicializações)
+        agent = await _get_agent_manager()
 
-        # Inicializar AgentManager com as settings
-        agent = AgentManager(mcp_settings)
-        await agent.initialize()
-
-        # Executar a tarefa via o LangGraph interno do Vectora
-        # Isso dispara todo o pipeline: RAG, tools, reasoning, etc.
-        resultado = await agent.chat(
-            user_input=task_prompt,
-            session_id=thread_id,
-        )
+        # Executar a tarefa via LangGraph interno
+        # Com timeout de 5 minutos para evitar travamentos
+        try:
+            resultado = await asyncio.wait_for(
+                agent.chat(
+                    user_input=task_prompt,
+                    session_id=thread_id,
+                ),
+                timeout=300.0,  # 5 minutos
+            )
+        except asyncio.TimeoutError:
+            logger.warning(
+                "A2A: Timeout ao processar tarefa",
+                extra={"thread_id": thread_id},
+            )
+            return (
+                "Erro: Tarefa delegada excedeu timeout de 5 minutos.\n"
+                "Por favor, quebre a tarefa em partes menores ou tente novamente."
+            )
 
         logger.info(
-            "Delegação processada com sucesso",
+            "A2A: Delegação processada com sucesso",
             extra={
                 "thread_id": thread_id,
                 "result_length": len(str(resultado)),
             },
         )
 
-        return resultado
+        return str(resultado)
 
     except Exception as e:
         logger.exception(
-            "Falha na delegação de sub-agente",
-            extra={"thread_id": thread_id},
+            "A2A: Falha na delegação",
+            extra={
+                "thread_id": thread_id,
+                "error_type": type(e).__name__,
+            },
         )
         return (
-            f"Erro ao processar tarefa delegada no Vectora: {str(e)}\n\n"
-            f"Por favor, tente novamente ou quebre a tarefa em partes menores."
+            f"Erro ao processar tarefa delegada no Vectora: {type(e).__name__}\n\n"
+            f"Detalhes: {str(e)}\n\n"
+            f"Dica: Quebre a tarefa em partes menores ou use ferramentas individuais."
         )
 
 
