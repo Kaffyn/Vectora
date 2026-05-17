@@ -42,6 +42,61 @@ def _simple_token_counter(messages: list) -> int:
     return total_length // 4
 
 
+def _sanitize_for_gemini(messages: list) -> list:
+    """Remove mensagens do início que violam as regras de ordenação do Gemini.
+
+    O Gemini exige que a sequência de mensagens respeite este padrão:
+      - Deve começar com HumanMessage OU AIMessage sem tool_calls
+      - AIMessage(tool_calls) deve vir IMEDIATAMENTE após HumanMessage ou ToolMessage
+      - ToolMessage deve vir IMEDIATAMENTE após AIMessage(tool_calls)
+
+    O trim_messages(strategy="last") pode cortar o histórico no meio de um
+    exchange de ferramentas, deixando ToolMessages ou AIMessage(tool_calls) no
+    início do slice sem o contexto necessário. Isso gera:
+      400 Bad Request: "function call turn comes immediately after a user turn"
+
+    Este sanitizador remove do início qualquer mensagem que crie uma sequência
+    inválida, até encontrar um ponto de partida válido.
+
+    Args:
+        messages: Lista de mensagens após trim_messages
+
+    Returns:
+        Lista com início válido para o Gemini
+    """
+    result = list(messages)
+
+    while result:
+        first = result[0]
+
+        # HumanMessage: início válido sempre
+        if isinstance(first, HumanMessage):
+            break
+
+        # AIMessage sem tool_calls: início válido (resposta de modelo standalone)
+        if isinstance(first, AIMessage) and not getattr(first, "tool_calls", None):
+            break
+
+        # AIMessage COM tool_calls no início: inválido — Gemini exige que function
+        # call venha após user turn. Pular este AI + todos os ToolMessages seguintes
+        # (eles são um bloco atômico: separar quebraria a sequência igualmente).
+        if isinstance(first, AIMessage) and getattr(first, "tool_calls", None):
+            result = result[1:]
+            while result and isinstance(result[0], ToolMessage):
+                result = result[1:]
+            continue
+
+        # ToolMessage no início: orphan — não tem AIMessage(tool_calls) anterior
+        if isinstance(first, ToolMessage):
+            result = result[1:]
+            continue
+
+        # Qualquer outro tipo desconhecido: remover por segurança
+        result = result[1:]
+
+    return result
+
+
 tool_node = ToolNode(tools=TOOLS)
 
 # Inicializa LLM com ferramentas uma única vez no carregamento do módulo (não por invocação)
@@ -213,6 +268,27 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
                 "trim_messages fallback: nenhuma HumanMessage encontrada, enviando histórico completo",
                 extra={"total_messages": len(state["messages"])},
             )
+
+    # Sanitiza sequência para Gemini: remove ToolMessages/AIMessage(tool_calls)
+    # órfãos no início que causam "function call turn" 400 Bad Request.
+    original_len = len(trimmed_messages)
+    trimmed_messages = _sanitize_for_gemini(trimmed_messages)
+    if len(trimmed_messages) != original_len:
+        logger.debug(
+            "sanitize_for_gemini: removidas %d mensagens inválidas do início",
+            original_len - len(trimmed_messages),
+            extra={"remaining": len(trimmed_messages)},
+        )
+
+    # Última linha de defesa: se sanitização zerou tudo, usar a última HumanMessage
+    if not trimmed_messages:
+        for i in range(len(state["messages"]) - 1, -1, -1):
+            if isinstance(state["messages"][i], HumanMessage):
+                trimmed_messages = [state["messages"][i]]
+                logger.warning(
+                    "sanitize_for_gemini: histórico inválido completo — usando apenas última HumanMessage",
+                )
+                break
 
     messages_with_system = [system_prompt, *memory_messages, *trimmed_messages]
 

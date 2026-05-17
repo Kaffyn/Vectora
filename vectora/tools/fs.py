@@ -6,6 +6,7 @@ import platform
 import re
 from pathlib import Path
 
+import pathspec
 from langchain.tools import tool
 
 from vectora.config.settings import settings
@@ -15,6 +16,62 @@ from vectora.services.security import (
     is_safe_shell_command,
 )
 from vectora.services.terminal_stream import emit_terminal_line
+
+# Padrões sempre ignorados (independente de .gitignore) — binários e caches
+_ALWAYS_SKIP_SUFFIXES = {".pyc", ".pyo", ".o", ".exe", ".dll", ".so", ".class"}
+_ALWAYS_SKIP_DIRS = {
+    "__pycache__",
+    ".git",
+    ".venv",
+    "venv",
+    "node_modules",
+    ".mypy_cache",
+    ".ruff_cache",
+}
+
+
+def _load_gitignore_spec(base_dir: Path) -> pathspec.PathSpec | None:
+    """Carrega .gitignore do diretório base e retorna um PathSpec.
+
+    Sobe a árvore de diretórios até encontrar um .gitignore (ou a raiz).
+    Retorna None se não houver .gitignore.
+    """
+    search = base_dir.resolve()
+    for parent in [search, *search.parents]:
+        gitignore = parent / ".gitignore"
+        if gitignore.is_file():
+            try:
+                patterns = gitignore.read_text(encoding="utf-8", errors="ignore")
+                return pathspec.PathSpec.from_lines(
+                    "gitwildmatch", patterns.splitlines()
+                )
+            except Exception:
+                return None
+    return None
+
+
+def _is_ignored(path: Path, base_dir: Path, spec: pathspec.PathSpec | None) -> bool:
+    """Verifica se um path deve ser ignorado (gitignore + dirs sempre ignorados)."""
+    # Ignora sempre: __pycache__, .git, etc.
+    for part in path.parts:
+        if part in _ALWAYS_SKIP_DIRS:
+            return True
+
+    # Extensões de binários/caches
+    if path.suffix in _ALWAYS_SKIP_SUFFIXES:
+        return True
+
+    # .gitignore via pathspec
+    if spec is not None:
+        try:
+            rel = path.relative_to(base_dir)
+            if spec.match_file(str(rel).replace("\\", "/")):
+                return True
+        except ValueError:
+            pass
+
+    return False
+
 
 logger = logging.getLogger(__name__)
 
@@ -160,10 +217,15 @@ def grep(pattern: str, path: str = ".") -> str:
     try:
         results = []
         search_path = Path(path)
+        base_dir = search_path if search_path.is_dir() else search_path.parent
+        spec = _load_gitignore_spec(base_dir)
+
         files = [search_path] if search_path.is_file() else list(search_path.rglob("*"))
 
         for file_path in files:
-            if not file_path.is_file() or file_path.suffix in {".pyc", ".o", ".exe"}:
+            if not file_path.is_file():
+                continue
+            if _is_ignored(file_path, base_dir, spec):
                 continue
             try:
                 content = file_path.read_text(encoding="utf-8", errors="ignore")
@@ -205,14 +267,19 @@ def list_dir(path: str = ".", *, recursive: bool = False) -> str:
         if not dir_path.is_dir():
             return f"Error: '{path}' is not a directory"
 
+        spec = _load_gitignore_spec(dir_path)
         items = []
         if recursive:
             for item in sorted(dir_path.rglob("*")):
+                if _is_ignored(item, dir_path, spec):
+                    continue
                 rel_path = item.relative_to(dir_path)
                 prefix = "[DIR]" if item.is_dir() else "[FILE]"
                 items.append(f"{prefix} {rel_path}")
         else:
             for item in sorted(dir_path.iterdir()):
+                if _is_ignored(item, dir_path, spec):
+                    continue
                 prefix = "[DIR]" if item.is_dir() else "[FILE]"
                 items.append(f"{prefix} {item.name}")
 
