@@ -176,13 +176,43 @@ async def call_llm(state: State, runtime: Runtime[Context]) -> dict:
         token_counter=_simple_token_counter,
     )
 
-    # Garante pelo menos 1 HumanMessage ou AIMessage no histórico.
-    # Sem isso, o Google GenAI lança "ValueError: contents are required"
-    # quando ToolMessages grandes consomem todos os max_context_tokens.
+    # Garante pelo menos 1 HumanMessage no histórico.
+    # Sem isso, o Google GenAI lança "ValueError: contents are required".
+    #
+    # Caso crítico: N ToolMessages consecutivos (ex: 10 ferramentas paralelas)
+    # consomem todos os max_context_tokens no trim_messages. Os últimos [-3:]
+    # ainda seriam só ToolMessages — insuficiente.
+    #
+    # Solução: caminhar para trás no histórico completo até encontrar a última
+    # HumanMessage e incluir tudo a partir dela. Isso preserva o par
+    # HumanMessage → AIMessage(tool_calls) → ToolMessage[0..N] que o LLM precisa
+    # para fazer sentido dos resultados das ferramentas.
     if not trimmed_messages or not any(
         isinstance(m, (HumanMessage, AIMessage)) for m in trimmed_messages
     ):
-        trimmed_messages = state["messages"][-3:]
+        last_human_idx: int | None = None
+        for i in range(len(state["messages"]) - 1, -1, -1):
+            if isinstance(state["messages"][i], HumanMessage):
+                last_human_idx = i
+                break
+
+        if last_human_idx is not None:
+            trimmed_messages = state["messages"][last_human_idx:]
+            logger.debug(
+                "trim_messages fallback: usando histórico a partir da última HumanMessage",
+                extra={
+                    "last_human_idx": last_human_idx,
+                    "total_messages": len(state["messages"]),
+                    "trimmed_count": len(trimmed_messages),
+                },
+            )
+        else:
+            # Sem nenhuma HumanMessage no histórico (raro) — envia tudo
+            trimmed_messages = state["messages"]
+            logger.warning(
+                "trim_messages fallback: nenhuma HumanMessage encontrada, enviando histórico completo",
+                extra={"total_messages": len(state["messages"])},
+            )
 
     messages_with_system = [system_prompt, *memory_messages, *trimmed_messages]
 
