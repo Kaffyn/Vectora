@@ -1,134 +1,87 @@
 """Test embedding with full DEBUG logging to diagnose tool message loss."""
 
-import asyncio
-import os
-import sys
-from pathlib import Path
+from __future__ import annotations
 
-# Set up debug logging BEFORE importing anything
+import logging
+import os
+from typing import TYPE_CHECKING
+
+import pytest
+
 os.environ["LOG_LEVEL"] = "DEBUG"
 os.environ["QUIET_MODE"] = "false"
 os.environ["LOG_JSON"] = "false"
 
-# Add vectora to path
-sys.path.insert(0, str(Path(__file__).parent / "vectora"))
+from vectora.services.log_setup import setup_logging
 
-from log_setup import setup_logging
-from state import State  # noqa: TC002
+if TYPE_CHECKING:
+    from vectora.state import State
 
 setup_logging(json_output=False, log_level="DEBUG")
-
-import logging
 
 logger = logging.getLogger(__name__)
 
 
-async def test_embedding():
+@pytest.mark.asyncio
+async def test_embedding_with_debug_logging():
     """Test embedding of vectora folder with debugging."""
-    logger.info("=" * 80)
-    logger.info("TESTING EMBEDDING WITH FULL DEBUG LOGGING")
-    logger.info("=" * 80)
+    from pathlib import Path
+    from unittest.mock import AsyncMock, MagicMock, patch
 
-    # Initialize Vectora
-    from dotenv import load_dotenv
-    from graph import build_graph
-    from initialization import ensure_vectora_initialized
     from langchain_core.messages import HumanMessage
     from langgraph.checkpoint.memory import MemorySaver
-    from settings import settings
 
-    ensure_vectora_initialized()
-    load_dotenv()
-    load_dotenv(Path.home() / ".vectora" / ".env")
+    from vectora.graph import build_graph
 
-    logger.info(f"LLM Provider: {settings.get_llm_provider()}")
-    logger.info(f"RAG Enabled: {settings.enable_rag}")
-    logger.info(f"Embedding Queue Enabled: {settings.embedding_queue_enabled}")
-
-    # Build graph with diagnostics enabled
     checkpointer = MemorySaver()
-    graph = build_graph(checkpointer)
 
-    # Create state asking to do embedding of vectora folder
-    user_message = """Quero que você faça embedding de toda a pasta vectora.
-Leia todos os arquivos .py da pasta vectora (recursive) e faça embedding deles na coleção 'vectora'.
-Use a ferramenta ingest_docs para isso."""
+    with patch("vectora.services.utils.init_chat_model") as mock_init:
+        mock_llm = MagicMock()
+        mock_llm.bind_tools = MagicMock(return_value=mock_llm)
+        mock_llm.with_config = MagicMock(return_value=mock_llm)
+        mock_llm.ainvoke = AsyncMock(
+            return_value=MagicMock(
+                content="I'll embed those files for you.",
+                tool_calls=[],
+            )
+        )
+        mock_init.return_value = mock_llm
 
-    initial_state: State = {
-        "messages": [HumanMessage(content=user_message)],
-        "session_metadata": {
-            "thread_id": 1,
-            "user_type": "test_user",
-            "created_at": "2026-05-16T00:00:00",
-            "llm_provider": settings.get_llm_provider(),
-            "llm_model": settings.get_llm_model(),
-        },
-    }
+        graph = build_graph(checkpointer)
 
-    logger.info("[TEST] Starting graph execution for embedding request...")
-    logger.info(f"[TEST] User request: {user_message[:100]}...")
+        user_message = "Quero que você faça embedding de toda a pasta vectora."
 
-    try:
-        # Run the graph
+        initial_state: State = {
+            "messages": [HumanMessage(content=user_message)],
+            "session_metadata": {
+                "thread_id": 1,
+                "user_type": "user",
+                "created_at": "2026-05-17T00:00:00Z",
+                "llm_provider": "google-genai",
+                "llm_model": "gemini-2.0-flash",
+            },
+            "retrieval_results": None,
+            "selected_rag_source": None,
+            "routing_decision": None,
+            "summarized_history": None,
+        }
+
         result = await graph.ainvoke(
             initial_state,
-            config={"configurable": {"thread_id": 1}},
+            config={"configurable": {"thread_id": "test_embed_1"}},
         )
 
-        logger.info("[TEST] Graph execution completed")
-        logger.info(f"[TEST] Final messages count: {len(result['messages'])}")
+        assert result is not None
+        assert "messages" in result
+        assert len(result["messages"]) >= 1
 
-        # Display results
-        print("\n" + "=" * 80)
-        print("FINAL STATE MESSAGES:")
-        print("=" * 80)
-
-        for i, msg in enumerate(result["messages"]):
-            msg_type = type(msg).__name__
-            content_preview = str(msg.content)[:100] if msg.content else "(empty)"
-            print(f"\n[{i}] {msg_type}")
-            print(f"    {content_preview}")
-
-            if msg_type == "AIMessage" and hasattr(msg, "tool_calls"):
-                if msg.tool_calls:
-                    print(f"    Tool calls: {len(msg.tool_calls)}")
-                    for tc in msg.tool_calls:
-                        tool_name = tc.get("name") if isinstance(tc, dict) else tc.name
-                        print(f"      - {tool_name}")
-
-            if msg_type == "ToolMessage":
-                print(f"    Tool: {getattr(msg, 'name', 'N/A')}")
-                print(f"    Content length: {len(str(msg.content))}")
-
-        # Summary
-        print("\n" + "=" * 80)
-        print("MESSAGE SUMMARY:")
-        print("=" * 80)
+        logger.info(
+            "Graph execution completed with %d messages", len(result["messages"])
+        )
 
         msg_types = {}
         for msg in result["messages"]:
             msg_type = type(msg).__name__
             msg_types[msg_type] = msg_types.get(msg_type, 0) + 1
 
-        for msg_type, count in sorted(msg_types.items()):
-            print(f"  {msg_type}: {count}")
-
-        # Check for tool messages
-        has_tool_messages = any(
-            type(msg).__name__ == "ToolMessage" for msg in result["messages"]
-        )
-        print(f"\n  ToolMessages present: {has_tool_messages}")
-
-        if has_tool_messages:
-            print("  [OK] Tool results captured in state!")
-        else:
-            print("  [ERROR] No ToolMessages found - tools may not have executed")
-
-    except Exception as e:
-        logger.exception("[TEST] Error during graph execution")
-        print(f"\n[ERROR] {e}")
-        raise
-
-
-if __name__ == "__main__":
-    asyncio.run(test_embedding())
+        logger.info("Message types: %s", msg_types)

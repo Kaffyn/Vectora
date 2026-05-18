@@ -9,7 +9,8 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from memory_store import MemoryStore
+
+from vectora.services.memory import MemoryStore
 
 
 @pytest.fixture
@@ -34,6 +35,7 @@ async def test_memory_tool_save_basic(temp_memory_store: MemoryStore):
 
     assert memory_id == "user_test:test_key"
     retrieved = await temp_memory_store.get("user_test", "test_key")
+    assert retrieved is not None
     assert retrieved["content"] == "Test content"
 
 
@@ -63,6 +65,7 @@ async def test_memory_tool_get_by_key(temp_memory_store: MemoryStore):
     )
 
     retrieved = await temp_memory_store.get("user_get", "get_test")
+    assert retrieved is not None
     assert retrieved["content"] == "Content to retrieve"
     assert retrieved["metadata"]["type"] == "test"
 
@@ -123,6 +126,7 @@ async def test_memory_tool_special_characters(temp_memory_store: MemoryStore):
     )
 
     retrieved = await temp_memory_store.get("user_special", "special_chars")
+    assert retrieved is not None
     assert retrieved["content"] == special_content
     assert retrieved["metadata"]["language"] == "português"
 
@@ -133,6 +137,7 @@ async def test_memory_tool_empty_content(temp_memory_store: MemoryStore):
     await temp_memory_store.save("user_empty", "empty", "")
 
     retrieved = await temp_memory_store.get("user_empty", "empty")
+    assert retrieved is not None
     assert retrieved["content"] == ""
 
 
@@ -144,9 +149,11 @@ async def test_memory_tool_overwrite(temp_memory_store: MemoryStore):
 
     await temp_memory_store.save(user_id, key, "Version 1")
     first = await temp_memory_store.get(user_id, key)
+    assert first is not None
 
     await temp_memory_store.save(user_id, key, "Version 2 - Updated")
     second = await temp_memory_store.get(user_id, key)
+    assert second is not None
 
     assert first["content"] == "Version 1"
     assert second["content"] == "Version 2 - Updated"

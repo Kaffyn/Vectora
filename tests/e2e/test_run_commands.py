@@ -21,7 +21,7 @@ class TestVectoraInitialization:
         # Mock Path.home() to use tmp_path
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-        from initialization import initialize_vectora_home
+        from vectora.services.initialization import initialize_vectora_home
 
         vectora_home = initialize_vectora_home()
 
@@ -43,7 +43,7 @@ class TestVectoraInitialization:
         # Mock Path.home()
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-        from initialization import verify_vectora_setup
+        from vectora.services.initialization import verify_vectora_setup
 
         assert verify_vectora_setup() is True
 
@@ -54,7 +54,7 @@ class TestVectoraInitialization:
         # Mock Path.home() without creating directories
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-        from initialization import verify_vectora_setup
+        from vectora.services.initialization import verify_vectora_setup
 
         assert verify_vectora_setup() is False
 
@@ -65,7 +65,10 @@ class TestVectoraInitialization:
         # Mock Path.home()
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-        from initialization import ensure_vectora_initialized, verify_vectora_setup
+        from vectora.services.initialization import (
+            ensure_vectora_initialized,
+            verify_vectora_setup,
+        )
 
         # Verify nothing exists initially
         assert not verify_vectora_setup()
@@ -107,7 +110,7 @@ class TestSetupWizardInitialization:
         """Test that setup wizard creates ~/.vectora directory."""
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-        from initialization import initialize_vectora_home
+        from vectora.services.initialization import initialize_vectora_home
 
         # Initialize
         vectora_home = initialize_vectora_home()
@@ -124,8 +127,8 @@ class TestSetupWizardInitialization:
         """Test that setup wizard saves .env to ~/.vectora/.env."""
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-        from initialization import initialize_vectora_home
-        from setup_wizard import _save_to_env
+        from vectora.services.initialization import initialize_vectora_home
+        from vectora.services.setup_wizard import _save_to_env
 
         # Initialize
         initialize_vectora_home()
@@ -149,7 +152,7 @@ class TestRunCommandsIntegration:
         """Test that Vectora home structure is created and persists."""
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-        from initialization import (
+        from vectora.services.initialization import (
             ensure_vectora_initialized,
             verify_vectora_setup,
         )
@@ -171,7 +174,7 @@ class TestRunCommandsIntegration:
         """Test that logs directory can be written to."""
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-        from initialization import initialize_vectora_home
+        from vectora.services.initialization import initialize_vectora_home
 
         initialize_vectora_home()
 
@@ -187,7 +190,7 @@ class TestRunCommandsIntegration:
         """Test that data directory can be written to."""
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-        from initialization import initialize_vectora_home
+        from vectora.services.initialization import initialize_vectora_home
 
         initialize_vectora_home()
 

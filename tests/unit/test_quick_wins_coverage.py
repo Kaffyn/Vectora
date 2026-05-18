@@ -23,23 +23,24 @@ from vectora.services.utils import init_chat_model
 
 
 class TestConstantsOverride:
-    """Test constants.py override behavior."""
+    """Test settings path configuration."""
 
-    def test_vectora_data_dir_override_sets_db_dsn(self) -> None:
-        """Verify that VECTORA_DATA_DIR env var overrides DB_DSN."""
-        test_dir = str(Path(tempfile.gettempdir()) / "vectora_test_data")
-        with patch.dict(os.environ, {"VECTORA_DATA_DIR": test_dir}):
-            # Re-import to trigger the override logic
-            import importlib
+    def test_settings_embedding_queue_dsn_is_string(self) -> None:
+        """Verify que settings.embedding_queue_dsn é uma string configurada."""
+        from vectora.config.settings import Settings
 
-            import vectora.constants as constants_module
+        s = Settings()
+        # O DSN deve ser configurado após model_post_init
+        assert s.embedding_queue_dsn is not None
+        assert "sqlite" in s.embedding_queue_dsn
 
-            importlib.reload(constants_module)
+    def test_settings_lancedb_dir_is_configured(self) -> None:
+        """Verify que settings.lancedb_dir está configurado."""
+        from vectora.config.settings import Settings
 
-            # Check that paths were overridden (normalize slashes for Windows)
-            assert test_dir in constants_module.DB_DSN
-            assert test_dir in constants_module.EMBEDDING_QUEUE_DSN
-            assert test_dir in constants_module.LANCEDB_DIR
+        s = Settings()
+        assert s.lancedb_dir is not None
+        assert len(str(s.lancedb_dir)) > 0
 
 
 # ============================================================================

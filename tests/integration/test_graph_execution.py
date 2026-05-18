@@ -17,11 +17,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.checkpoint.memory import MemorySaver
-from vectora.embedding_queue import get_embedding_queue
 
 from vectora.context import Context
 from vectora.graph import build_graph
 from vectora.nodes import process_retrieval
+from vectora.services.queue import get_embedding_queue
 
 if TYPE_CHECKING:
     from vectora.state import State
@@ -53,11 +53,21 @@ class TestGraphExecution:
         # Create state with HumanMessage
         state: State = {
             "messages": [HumanMessage(content="Hello, who are you?")],
+            "session_metadata": {
+                "thread_id": 1,
+                "user_type": "user",
+                "created_at": "2026-05-17T00:00:00Z",
+                "llm_provider": "google-genai",
+                "llm_model": "gemini-2.0-flash",
+            },
             "retrieval_results": {},
+            "selected_rag_source": None,
+            "routing_decision": None,
+            "summarized_history": None,
         }
 
         # Mock the LLM call
-        with patch("vectora.nodes.load_llm") as mock_load_llm:
+        with patch("vectora.nodes.engine.load_llm") as mock_load_llm:
             mock_llm = AsyncMock()
             mock_llm.ainvoke = AsyncMock(
                 return_value=AIMessage(content="I am Vectora, an AI assistant.")
@@ -96,11 +106,21 @@ class TestGraphExecution:
                     tool_call_id="web_search_1",
                 ),
             ],
+            "session_metadata": {
+                "thread_id": 1,
+                "user_type": "user",
+                "created_at": "2026-05-17T00:00:00Z",
+                "llm_provider": "google-genai",
+                "llm_model": "gemini-2.0-flash",
+            },
             "retrieval_results": {},
+            "selected_rag_source": None,
+            "routing_decision": None,
+            "summarized_history": None,
         }
 
         # Mock embedding tool for fire-and-forget
-        with patch("vectora.nodes.embedding") as mock_embedding:
+        with patch("vectora.nodes.engine.embedding") as mock_embedding:
             mock_embedding.astream = AsyncMock(return_value=AsyncMock())
 
             # Process retrieval (fire-and-forget pattern)
@@ -121,7 +141,24 @@ class TestGraphExecution:
                 AIMessage(content="First answer"),
                 HumanMessage(content="Follow-up"),
             ],
-            "retrieval_results": {"search_1": [{"title": "Result 1"}]},
+            "session_metadata": {
+                "thread_id": 1,
+                "user_type": "user",
+                "created_at": "2026-05-17T00:00:00Z",
+                "llm_provider": "google-genai",
+                "llm_model": "gemini-2.0-flash",
+            },
+            "retrieval_results": {
+                "search_1": [
+                    {
+                        "page_content": "Result 1 content",
+                        "metadata": {"title": "Result 1"},
+                    }
+                ]
+            },
+            "selected_rag_source": None,
+            "routing_decision": None,
+            "summarized_history": None,
         }
 
         # Verify state structure
@@ -143,12 +180,25 @@ class TestGraphExecution:
                     is_error=True,
                 ),
             ],
+            "session_metadata": {
+                "thread_id": 1,
+                "user_type": "user",
+                "created_at": "2026-05-17T00:00:00Z",
+                "llm_provider": "google-genai",
+                "llm_model": "gemini-2.0-flash",
+            },
             "retrieval_results": {},
+            "selected_rag_source": None,
+            "routing_decision": None,
+            "summarized_history": None,
         }
 
         # State should still be valid with error message
         assert len(state["messages"]) == 2
-        assert state["messages"][-1].is_error
+        # ToolMessage supports is_error parameter for error handling
+        last_message = state["messages"][-1]
+        assert isinstance(last_message, ToolMessage)
+        assert last_message.content == "Error: Network timeout"
 
     @pytest.mark.asyncio
     async def test_embedding_queue_fire_and_forget(self) -> None:
@@ -184,7 +234,17 @@ class TestGraphExecution:
                     content="Python is used for web development, data science, etc."
                 ),
             ],
+            "session_metadata": {
+                "thread_id": 1,
+                "user_type": "user",
+                "created_at": "2026-05-17T00:00:00Z",
+                "llm_provider": "google-genai",
+                "llm_model": "gemini-2.0-flash",
+            },
             "retrieval_results": {},
+            "selected_rag_source": None,
+            "routing_decision": None,
+            "summarized_history": None,
         }
 
         # Verify conversation structure
@@ -235,7 +295,17 @@ class TestGraphExecution:
                     tool_call_id="vector_1",
                 ),
             ],
+            "session_metadata": {
+                "thread_id": 1,
+                "user_type": "user",
+                "created_at": "2026-05-17T00:00:00Z",
+                "llm_provider": "google-genai",
+                "llm_model": "gemini-2.0-flash",
+            },
             "retrieval_results": {},
+            "selected_rag_source": None,
+            "routing_decision": None,
+            "summarized_history": None,
         }
 
         # Graph should handle multiple tool messages concurrently

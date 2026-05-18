@@ -100,7 +100,7 @@ async def test_graph(
 
     from vectora.tools import TOOLS
 
-    builder = StateGraph(
+    builder = StateGraph(  # type: ignore[type-arg,arg-type]
         state_schema=State,
         context_schema=Context,
         input_schema=State,

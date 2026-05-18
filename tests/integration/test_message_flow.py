@@ -1,10 +1,5 @@
 """Test the message flow through add_messages reducer."""
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent / "vectora"))
-
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.graph.message import add_messages
 
@@ -28,6 +23,7 @@ ai_message = AIMessage(
 print("\n2. call_llm returns AIMessage with tool_calls")
 result_from_call_llm = {"messages": [ai_message]}
 updated_1 = add_messages(initial_messages, result_from_call_llm["messages"])
+assert isinstance(updated_1, (list, tuple))
 print(f"   After add_messages: {[type(m).__name__ for m in updated_1]}")
 print(
     f"   Last message has tool_calls: {bool(getattr(updated_1[-1], 'tool_calls', None))}"

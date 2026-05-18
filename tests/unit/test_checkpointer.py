@@ -4,7 +4,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
-from checkpointer import Checkpointer
+
+from vectora.services.checkpoint import Checkpointer
 
 
 class TestCheckpointerInitialization:

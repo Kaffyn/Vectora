@@ -6,7 +6,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from memory_store import MemoryStore, get_memory_store
+
+from vectora.services.memory import MemoryStore, get_memory_store
 
 
 @pytest.fixture
@@ -63,6 +64,7 @@ async def test_update_existing_memory(temp_memory_store: MemoryStore):
     # Primeira versão
     await temp_memory_store.save(user_id, key, "Contexto v1")
     first = await temp_memory_store.get(user_id, key)
+    assert first is not None
     first_updated = first["updated_at"]
 
     # Aguarda para garantir diferença de timestamp
@@ -72,6 +74,7 @@ async def test_update_existing_memory(temp_memory_store: MemoryStore):
     await temp_memory_store.save(user_id, key, "Contexto v2 atualizado")
     second = await temp_memory_store.get(user_id, key)
 
+    assert second is not None
     assert second["content"] == "Contexto v2 atualizado"
     assert second["updated_at"] > first_updated
 
@@ -156,6 +159,8 @@ async def test_memory_isolation_between_users(temp_memory_store: MemoryStore):
     mem_user1 = await temp_memory_store.get("user1", "key1")
     mem_user2 = await temp_memory_store.get("user2", "key1")
 
+    assert mem_user1 is not None
+    assert mem_user2 is not None
     assert mem_user1["content"] == "Conteúdo user1"
     assert mem_user2["content"] == "Conteúdo user2"
 
@@ -226,5 +231,6 @@ async def test_memory_with_empty_metadata(temp_memory_store: MemoryStore):
     await temp_memory_store.save(user_id, key, content)
     retrieved = await temp_memory_store.get(user_id, key)
 
+    assert retrieved is not None
     assert retrieved["content"] == content
     assert retrieved["metadata"] == {}

@@ -7,26 +7,25 @@ Testes críticos que simulam cenários de produção:
 """
 
 import asyncio
+import contextlib
 
 import pytest
-from background_worker import BackgroundEmbeddingWorker
-from embedding_queue import get_embedding_queue
-from tool_config import ToolConfig
+
+from vectora.services.background import BackgroundEmbeddingWorker
+from vectora.services.queue import get_embedding_queue
 
 
 @pytest.fixture(autouse=True)
 async def reset_embedding_queue_singleton() -> None:
     """Reset module-level _queue singleton before each test."""
-    import contextlib
+    import vectora.services.queue as _queue_mod
 
-    import embedding_queue
-
-    embedding_queue._queue = None
+    _queue_mod._queue = None
     yield
-    if embedding_queue._queue:
+    if _queue_mod._queue:
         with contextlib.suppress(Exception):
-            await embedding_queue._queue.close()
-        embedding_queue._queue = None
+            await _queue_mod._queue.close()
+        _queue_mod._queue = None
 
 
 @pytest.mark.stress
@@ -40,14 +39,8 @@ class TestConcurrency:
         Simula: Chat enfileirando documentos enquanto BackgroundWorker processa.
         Esperado: Sem 'database locked' errors, processamento paralelo.
         """
-        config = ToolConfig(
-            enable_rag=True,
-            embedding_queue_enabled=True,
-            embedding_queue_db=":memory:",
-            cohere_api_key="test-key",
-        )
-
-        queue = await get_embedding_queue(config.embedding_queue_url)
+        dsn = "sqlite+aiosqlite:///:memory:"
+        queue = await get_embedding_queue(dsn)
 
         # Enfileirar 50 documentos rapidamente (simula user queries rápidas)
         async def enqueue_documents() -> None:
@@ -75,20 +68,12 @@ class TestConcurrency:
 
         Verifica PRAGMA journal_mode=WAL foi aplicado com sucesso.
         """
-        config = ToolConfig(
-            enable_rag=True,
-            embedding_queue_enabled=True,
-            embedding_queue_db=":memory:",
-        )
-
-        queue = await get_embedding_queue(config.embedding_queue_url)
+        dsn = "sqlite+aiosqlite:///:memory:"
+        queue = await get_embedding_queue(dsn)
 
         # Enfileirar um documento para forçar inicialização
         await queue.enqueue(text="Test", collection="test")
 
-        # Verificar modo WAL
-        # Nota: Para SQLite in-memory, WAL sempre está disponível
-        # Para arquivos, devemos ver os .db-wal files
         pending = await queue.get_pending(limit=1)
         assert len(pending) == 1
 
@@ -98,13 +83,8 @@ class TestConcurrency:
 
         Simula carga real: múltiplos get_pending() enquanto enqueue() acontece.
         """
-        config = ToolConfig(
-            enable_rag=True,
-            embedding_queue_enabled=True,
-            embedding_queue_db=":memory:",
-        )
-
-        queue = await get_embedding_queue(config.embedding_queue_url)
+        dsn = "sqlite+aiosqlite:///:memory:"
+        queue = await get_embedding_queue(dsn)
 
         # Pre-enqueue alguns documentos
         for i in range(20):
@@ -142,7 +122,6 @@ class TestConcurrency:
 
         # Verificar que não houve deadlock
         assert results[2] == 20  # Writer completou 20 enqueues
-        # Readers podem ter lido diferentes quantidades, mas não deve falhar
 
 
 @pytest.mark.stress
@@ -158,16 +137,12 @@ class TestReconciliation:
         """
         from datetime import UTC, datetime, timedelta
 
-        from embedding_queue import EmbeddingQueueRecord
         from sqlalchemy import update
 
-        config = ToolConfig(
-            enable_rag=True,
-            embedding_queue_enabled=True,
-            embedding_queue_db=":memory:",
-        )
+        from vectora.services.queue import EmbeddingQueueRecord
 
-        queue = await get_embedding_queue(config.embedding_queue_url)
+        dsn = "sqlite+aiosqlite:///:memory:"
+        queue = await get_embedding_queue(dsn)
 
         # Enfileirar documento
         queue_id = await queue.enqueue(
@@ -210,13 +185,8 @@ class TestReconciliation:
 
         Esperado: Records em 'processing' há <2 min NÃO são movidos.
         """
-        config = ToolConfig(
-            enable_rag=True,
-            embedding_queue_enabled=True,
-            embedding_queue_db=":memory:",
-        )
-
-        queue = await get_embedding_queue(config.embedding_queue_url)
+        dsn = "sqlite+aiosqlite:///:memory:"
+        queue = await get_embedding_queue(dsn)
 
         # Enfileirar e marcar como processing (agora)
         queue_id = await queue.enqueue(
@@ -243,14 +213,8 @@ class TestBackgroundWorkerStress:
 
         Esperado: Semaphore(5) limita a 5 simultâneos, sem crashes.
         """
-        config = ToolConfig(
-            enable_rag=True,
-            embedding_queue_enabled=True,
-            embedding_queue_db=":memory:",
-            cohere_api_key="test-key",
-        )
-
-        queue = await get_embedding_queue(config.embedding_queue_url)
+        dsn = "sqlite+aiosqlite:///:memory:"
+        queue = await get_embedding_queue(dsn)
 
         # Enfileirar 100 documentos
         for i in range(100):

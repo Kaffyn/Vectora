@@ -31,7 +31,7 @@ def build_graph(
     - SUB_NODE (handle_sub_node): Workflows complexos em instância separada
     """
     logger.info("Building LangGraph with 3-node pattern: call_llm, tools, sub_node")
-    builder = StateGraph(
+    builder = StateGraph(  # type: ignore[type-arg,arg-type]
         state_schema=State,
         context_schema=Context,
         input_schema=State,

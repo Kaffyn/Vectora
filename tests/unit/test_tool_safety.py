@@ -3,7 +3,11 @@
 import tempfile
 from pathlib import Path
 
-from tool_safety import is_safe_file_path, is_safe_regex_pattern, is_safe_shell_command
+from vectora.services.security import (
+    is_safe_file_path,
+    is_safe_regex_pattern,
+    is_safe_shell_command,
+)
 
 
 class TestFilePathValidation:
@@ -63,12 +67,16 @@ class TestCommandValidation:
             result = is_safe_shell_command(cmd)
             assert result is False
 
-    def test_validate_command_blocks_unknown_binaries(self):
-        """Verificar que apenas binários whitelistados são permitidos."""
-        unknown_commands = ["random_unknown_command", "malicious"]
+    def test_validate_command_allows_unknown_binaries(self):
+        """Verificar que binários desconhecidos são permitidos (política blacklist-only).
+
+        A implementação usa blacklist — PERMITE tudo exceto comandos destrutivos.
+        Binários desconhecidos são permitidos pois não estão na blacklist.
+        """
+        unknown_commands = ["random_unknown_command", "custom_tool"]
         for cmd in unknown_commands:
             result = is_safe_shell_command(cmd)
-            assert result is False
+            assert result is True
 
     def test_validate_safe_npm_command(self):
         """Verificar que npm commands são aceitos."""

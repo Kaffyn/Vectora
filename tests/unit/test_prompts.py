@@ -1,6 +1,6 @@
 """Testes unitários para o módulo de prompts (prompts.py)."""
 
-from prompts import get_system_prompt
+from vectora.prompts import get_system_prompt
 
 
 class TestGetSystemPrompt:

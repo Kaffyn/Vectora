@@ -121,7 +121,6 @@ executionEnvironments = [{ root = "vectora" }]
 
 [tool.pytest.ini_options]
 addopts = "-s --color=yes --tb=short"
-pythonpath = ["vectora"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"

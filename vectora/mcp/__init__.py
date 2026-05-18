@@ -19,9 +19,7 @@ Usage:
         result = await vectora.delegate("task", thread_id="agent_42")
 """
 
-from vectora.mcp.client import MCPClient
-from vectora.mcp.proxy import VectoraProxy, create_local_proxy, create_remote_proxy
-from vectora.mcp.server import run
+from __future__ import annotations
 
 __all__ = [
     "MCPClient",
@@ -30,3 +28,20 @@ __all__ = [
     "create_remote_proxy",
     "run",
 ]
+
+
+def __getattr__(name: str) -> object:
+    """Lazy imports para evitar circular import e carregamento pesado."""
+    if name == "MCPClient":
+        from vectora.mcp.client import MCPClient
+
+        return MCPClient
+    if name in ("VectoraProxy", "create_local_proxy", "create_remote_proxy"):
+        from vectora.mcp import proxy as _proxy
+
+        return getattr(_proxy, name)
+    if name == "run":
+        from vectora.mcp.server import run
+
+        return run
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

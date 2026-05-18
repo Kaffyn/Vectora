@@ -67,10 +67,10 @@ logger = logging.getLogger(__name__)
 class SafeConsole(Console):
     """Console wrapper that gracefully handles Unicode encoding errors on Windows."""
 
-    def print(self, *args: object, **kwargs: object) -> None:  # type: ignore[override]
+    def print(self, *args: Any, **kwargs: Any) -> None:  # type: ignore[override]
         """Print with fallback to plain text if encoding fails."""
         try:
-            super().print(*args, **kwargs)
+            super().print(*args, **kwargs)  # type: ignore[arg-type]
         except UnicodeEncodeError:
             # Fallback: print plain text without rich formatting using UTF-8 binary output
             if args:

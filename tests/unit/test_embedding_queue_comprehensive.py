@@ -8,7 +8,8 @@ import asyncio
 import contextlib
 
 import pytest
-from embedding_queue import EmbeddingQueue
+
+from vectora.services.queue import EmbeddingQueue
 
 
 class TestEmbeddingQueueBasics:

@@ -175,6 +175,7 @@ class TestDelegationContext:
         # Test empty task
         is_valid, error = validate_task("")
         assert not is_valid
+        assert error is not None
         assert "erro" in error.lower() or "vazio" in error.lower()
 
         # Test valid task

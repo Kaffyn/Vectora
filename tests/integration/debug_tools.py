@@ -1,11 +1,6 @@
 """Debug script to check tools configuration."""
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent / "vectora"))
-
-from tools import TOOLS, TOOLS_BY_NAME
+from vectora.tools import TOOLS, TOOLS_BY_NAME
 
 print(f"Total tools: {len(TOOLS)}")
 print("\nTools available:")

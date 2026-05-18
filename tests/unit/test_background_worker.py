@@ -7,7 +7,8 @@ graceful shutdown, and reconciliation recovery.
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from background_worker import BackgroundEmbeddingWorker
+
+from vectora.services.background import BackgroundEmbeddingWorker
 
 
 class TestBackgroundWorkerLifecycle:
@@ -16,7 +17,7 @@ class TestBackgroundWorkerLifecycle:
     @pytest.mark.asyncio
     async def test_worker_starts_successfully(self):
         """Verify worker starts and creates task."""
-        with patch("background_worker.get_embedding_queue") as mock_queue:
+        with patch("vectora.services.background.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
             mock_instance.reconcile = AsyncMock()
             mock_queue.return_value = mock_instance
@@ -31,7 +32,7 @@ class TestBackgroundWorkerLifecycle:
     @pytest.mark.asyncio
     async def test_worker_stops_gracefully(self):
         """Verify worker shuts down gracefully."""
-        with patch("background_worker.get_embedding_queue") as mock_queue:
+        with patch("vectora.services.background.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
             mock_instance.reconcile = AsyncMock()
             mock_queue.return_value = mock_instance
@@ -48,7 +49,7 @@ class TestBackgroundWorkerLifecycle:
     @pytest.mark.asyncio
     async def test_worker_respects_shutdown_timeout(self):
         """Verify worker respects timeout during shutdown."""
-        with patch("background_worker.get_embedding_queue") as mock_queue:
+        with patch("vectora.services.background.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
             mock_instance.reconcile = AsyncMock()
             mock_queue.return_value = mock_instance
@@ -74,7 +75,7 @@ class TestConcurrentProcessing:
     @pytest.mark.asyncio
     async def test_worker_processes_multiple_records(self):
         """Verify worker processes multiple pending records."""
-        with patch("background_worker.get_embedding_queue") as mock_queue:
+        with patch("vectora.services.background.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
 
             # Mock 3 pending records
@@ -109,7 +110,7 @@ class TestRetryLogic:
     @pytest.mark.asyncio
     async def test_worker_retries_failed_records(self):
         """Verify worker retries failed records with backoff."""
-        with patch("background_worker.get_embedding_queue") as mock_queue:
+        with patch("vectora.services.background.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
             mock_instance.reconcile = AsyncMock()
             mock_queue.return_value = mock_instance
@@ -124,7 +125,7 @@ class TestDLQHandling:
     @pytest.mark.asyncio
     async def test_worker_moves_to_dlq_after_max_retries(self):
         """Verify worker moves failed records to DLQ after 3 retries."""
-        with patch("background_worker.get_embedding_queue") as mock_queue:
+        with patch("vectora.services.background.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
             mock_instance.mark_dlq = AsyncMock()
             mock_instance.reconcile = AsyncMock()
@@ -137,7 +138,7 @@ class TestDLQHandling:
     @pytest.mark.asyncio
     async def test_dlq_records_include_stack_trace(self):
         """Verify DLQ records include full error traceback."""
-        with patch("background_worker.get_embedding_queue") as mock_queue:
+        with patch("vectora.services.background.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
             mock_instance.mark_dlq = AsyncMock()
             mock_instance.reconcile = AsyncMock()
@@ -156,7 +157,7 @@ class TestReconciliation:
     @pytest.mark.asyncio
     async def test_worker_runs_reconciliation_on_startup(self):
         """Verify worker calls reconcile() on startup."""
-        with patch("background_worker.get_embedding_queue") as mock_queue:
+        with patch("vectora.services.background.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
             mock_instance.reconcile = AsyncMock()
             mock_queue.return_value = mock_instance
@@ -171,7 +172,7 @@ class TestReconciliation:
     @pytest.mark.asyncio
     async def test_reconciliation_recovers_stalled_records(self):
         """Verify reconciliation moves stalled records back to pending."""
-        with patch("background_worker.get_embedding_queue") as mock_queue:
+        with patch("vectora.services.background.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
             mock_instance.reconcile = AsyncMock()
             mock_queue.return_value = mock_instance
@@ -190,7 +191,7 @@ class TestIdempotence:
     @pytest.mark.asyncio
     async def test_worker_uses_queue_id_as_primary_key(self):
         """Verify worker uses queue_id for idempotent LanceDB writes."""
-        with patch("background_worker.get_embedding_queue") as mock_queue:
+        with patch("vectora.services.background.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
             mock_instance.reconcile = AsyncMock()
             mock_queue.return_value = mock_instance
@@ -207,7 +208,7 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_worker_handles_api_failures(self):
         """Verify worker handles Cohere API failures gracefully."""
-        with patch("background_worker.get_embedding_queue") as mock_queue:
+        with patch("vectora.services.background.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
             mock_instance.reconcile = AsyncMock()
             mock_queue.return_value = mock_instance
@@ -219,7 +220,7 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_worker_handles_database_errors(self):
         """Verify worker handles database errors without crashing."""
-        with patch("background_worker.get_embedding_queue") as mock_queue:
+        with patch("vectora.services.background.get_embedding_queue") as mock_queue:
             mock_instance = MagicMock()
             mock_instance.reconcile = AsyncMock(side_effect=Exception("DB error"))
             mock_queue.return_value = mock_instance

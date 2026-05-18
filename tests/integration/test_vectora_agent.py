@@ -1,22 +1,20 @@
 """Teste reduzido do Vectora Research Agent - 2 tópicos para demonstração."""
 
-import asyncio
+from __future__ import annotations
+
 import logging
-import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock, MagicMock, patch
 
-# Carregar .env antes de importar qualquer coisa que precise das variáveis
-from dotenv import load_dotenv
+import pytest
+from langchain_core.messages import HumanMessage
 
-load_dotenv()
+from vectora.context import Context
+from vectora.graph import build_graph
+from vectora.services.checkpoint import Checkpointer
 
-# Setup paths and logging FIRST
-sys.path.insert(0, str(Path(__file__).parent / "vectora"))
-
-# Now import from vectora
-from checkpointer import Checkpointer
-from context import Context
-from graph import build_graph
+if TYPE_CHECKING:
+    from vectora.state import State
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,131 +23,73 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def test_vectora_agent() -> None:
-    """Teste com 2 tópicos (Next.js 16 e Godot 4.7)."""
-    logger.info("🚀 Teste Vectora Research Agent (Modo Reduzido)")
-    logger.info("   Tópicos: 2 (Next.js 16, Godot 4.7)")
-    logger.info("   Demonstração: Vectora como agente de pesquisa autônomo")
+@pytest.mark.asyncio
+async def test_vectora_agent_builds_and_runs() -> None:
+    """Teste que o grafo Vectora pode ser construído e executado."""
+    from langgraph.checkpoint.memory import MemorySaver
 
-    output_dir = Path("output/research")
-    output_dir.mkdir(parents=True, exist_ok=True)
+    checkpointer = MemorySaver()
 
+    with patch("vectora.services.utils.init_chat_model") as mock_init:
+        mock_llm = MagicMock()
+        mock_llm.bind_tools = MagicMock(return_value=mock_llm)
+        mock_llm.with_config = MagicMock(return_value=mock_llm)
+        mock_llm.ainvoke = AsyncMock(
+            return_value=MagicMock(
+                content="I'm Vectora, ready to help.",
+                tool_calls=[],
+            )
+        )
+        mock_init.return_value = mock_llm
+
+        graph = build_graph(checkpointer)
+        assert graph is not None
+
+        state: State = {
+            "messages": [HumanMessage(content="Who are you?")],
+            "session_metadata": {
+                "thread_id": 1,
+                "user_type": "user",
+                "created_at": "2026-05-17T00:00:00Z",
+                "llm_provider": "google-genai",
+                "llm_model": "gemini-2.0-flash",
+            },
+            "retrieval_results": None,
+            "selected_rag_source": None,
+            "routing_decision": None,
+            "summarized_history": None,
+        }
+
+        config = {"configurable": {"thread_id": "test-agent-1"}}
+        result = await graph.ainvoke(state, config=config)
+
+        assert result is not None
+        assert "messages" in result
+        assert len(result["messages"]) >= 1
+        logger.info("Agent test passed with %d messages", len(result["messages"]))
+
+
+@pytest.mark.asyncio
+async def test_context_creation() -> None:
+    """Teste que Context pode ser criado corretamente."""
     context = Context(
         thread_id="test-research-agent",
         user_id="test",
         user_type="researcher",
     )
 
-    # Inicializar checkpointer para persistência de estado
-    async with Checkpointer() as checkpointer:
-        graph = build_graph(checkpointer)
-        logger.info("✅ Grafo LangGraph carregado")
-
-        # Teste 1: Next.js 16
-        logger.info("=" * 80)
-        logger.info("[1/2] Pesquisando: Next.js 16")
-        logger.info("=" * 80)
-
-        prompt_nextjs = """TAREFA: Pesquisa sobre Next.js 16
-
-Execute 3 web_searches sobre:
-1. "Next.js 16 new features 2025"
-2. "Next.js 16 app router guide"
-3. "Next.js 16 performance improvements"
-
-Para CADA resultado:
-- Extraia URLs dos resultados
-- Use fetch_url() para acessar 1-2 sites importantes
-- Compile um sumário de 300 palavras sobre Next.js 16
-
-Formato:
-✅ Search 1: "Next.js 16 new features" - X resultados processados
-✅ Search 2: "Next.js 16 app router" - X resultados processados
-✅ Search 3: "Next.js 16 performance" - X resultados processados
-
-📄 SUMÁRIO FINAL (300 palavras):
-[seu sumário aqui]"""
-
-        config = {"configurable": {"thread_id": context.thread_id}}
-
-        try:
-            result = await graph.astream_events(
-                {"messages": [{"role": "user", "content": prompt_nextjs}]},
-                config=config,
-                context=context,
-            )
-
-            if result and "messages" in result:
-                response = result["messages"][-1]
-                content = (
-                    response.content if hasattr(response, "content") else str(response)
-                )
-                logger.info(f"✅ Resposta recebida ({len(content)} caracteres)")
-                logger.info(f"\n📖 RESPOSTA VECTORA:\n{content[:1000]}...\n")
-            else:
-                logger.warning("⚠️  Resposta vazia")
-
-        except Exception as e:
-            logger.exception("❌ Erro no teste: %s", e)
-
-        # Teste 2: Godot 4.7
-        logger.info("=" * 80)
-        logger.info("[2/2] Pesquisando: Godot 4.7")
-        logger.info("=" * 80)
-
-        prompt_godot = """TAREFA: Pesquisa sobre Godot 4.7
-
-Execute 3 web_searches sobre:
-1. "Godot 4.7 new features release"
-2. "Godot 4.7 3D development guide"
-3. "Godot 4.7 game examples"
-
-Para CADA resultado:
-- Extraia URLs dos resultados
-- Use fetch_url() em 1-2 sites importantes
-- Compile um sumário de 300 palavras sobre Godot 4.7
-
-Formato:
-✅ Search 1: "Godot 4.7 new features" - X resultados processados
-✅ Search 2: "Godot 4.7 3D development" - X resultados processados
-✅ Search 3: "Godot 4.7 game examples" - X resultados processados
-
-📄 SUMÁRIO FINAL (300 palavras):
-[seu sumário aqui]"""
-
-        try:
-            result = await graph.astream_events(
-                {"messages": [{"role": "user", "content": prompt_godot}]},
-                config=config,
-                context=context,
-            )
-
-            if result and "messages" in result:
-                response = result["messages"][-1]
-                content = (
-                    response.content if hasattr(response, "content") else str(response)
-                )
-                logger.info(f"✅ Resposta recebida ({len(content)} caracteres)")
-                logger.info(f"\n📖 RESPOSTA VECTORA:\n{content[:1000]}...\n")
-            else:
-                logger.warning("⚠️  Resposta vazia")
-
-        except Exception as e:
-            logger.exception("❌ Erro no teste: %s", e)
-
-    # Resumo (fora do contexto do checkpointer)
-    logger.info("=" * 80)
-    logger.info("🏁 TESTE CONCLUÍDO")
-    logger.info("=" * 80)
-    logger.info(
-        "✅ O Vectora executou 2 pesquisas completas com web_search + fetch_url"
-    )
-    logger.info("✅ Cada pesquisa teve 3 buscas no Google + acesso a sites")
-    logger.info("✅ Resumos foram gerados pelo Vectora (LLM Gemini 3.0 Flash)")
-    logger.info(
-        "\n💡 Próximo passo: Executar 'python vectora_research_agent.py' para 150 arquivos"
-    )
+    assert context.thread_id == "test-research-agent"
+    assert context.user_id == "test"
+    assert context.user_type == "researcher"
 
 
-if __name__ == "__main__":
-    asyncio.run(test_vectora_agent())
+@pytest.mark.asyncio
+async def test_checkpointer_as_context_manager() -> None:
+    """Teste que Checkpointer funciona como async context manager."""
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        db_path = str(Path(tmpdir) / "test_agent.db")
+        async with Checkpointer(db_path) as checkpointer:
+            assert checkpointer is not None

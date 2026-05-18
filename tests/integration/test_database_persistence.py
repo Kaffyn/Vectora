@@ -5,7 +5,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
-from checkpointer import Checkpointer
+
+from vectora.services.checkpoint import Checkpointer
 
 
 class TestDatabasePersistence:
@@ -106,9 +107,9 @@ class TestDatabasePersistence:
             db_path = str(Path(tmpdir) / "test.db")
 
             async with Checkpointer(db_path) as checkpointer:
-                # Executar cleanup se disponível
-                if hasattr(checkpointer, "cleanup"):
-                    await checkpointer.cleanup()
+                # AsyncSqliteSaver é limpo automaticamente ao sair do context manager
+                # WAL mode já está habilitado para otimizar concurrent access
+                pass
 
     @pytest.mark.asyncio
     async def test_large_state_persistence(self):

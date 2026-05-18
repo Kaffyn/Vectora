@@ -16,13 +16,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-# Adiciona vectora/ ao sys.path para resolver imports internos dos módulos.
-# Os módulos em vectora/ usam imports diretos (ex: from vectora.config.settings import settings)
-# que exigem que o diretório vectora/ esteja no sys.path quando importados via vectora.*.
-_vectora_dir = str(Path(__file__).parent.parent)
-if _vectora_dir not in sys.path:
-    sys.path.insert(0, _vectora_dir)
-
 # Logging to file only — never pollute stdout (JSON-RPC channel)
 _log_dir = Path.home() / ".vectora" / "logs"
 _log_dir.mkdir(parents=True, exist_ok=True)

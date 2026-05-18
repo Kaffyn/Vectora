@@ -26,6 +26,9 @@ class MemoryStore:
             db_dsn: Caminho do SQLite. Se None, usa o padrão de settings.db_dsn.
         """
         dsn = db_dsn or settings.db_dsn
+        if dsn is None:
+            msg = "db_dsn must be provided or configured in settings"
+            raise ValueError(msg)
         # Converte file:/// URLs para caminhos normais se necessário
         if dsn.startswith("file:///"):
             self.db_dsn = dsn[8:]  # Remove file:///

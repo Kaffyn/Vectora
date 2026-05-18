@@ -1,158 +1,160 @@
-"""Testes unitários para o módulo de configuração (config.py)."""
+"""Testes unitários para o módulo de configuração (vectora.config.settings)."""
 
-from config import Config
+import pytest
 
-
-class TestConfigSingleton:
-    """Testes para o padrão singleton da Config."""
-
-    def test_config_instance_returns_same_object(self):
-        """Verificar que Config.instance() retorna sempre a mesma instância."""
-        config1 = Config.instance()
-        config2 = Config.instance()
-        assert config1 is config2
-
-    def test_config_instance_creates_on_first_call(self):
-        """Verificar que Config.instance() cria instância na primeira chamada."""
-        # Reset singleton
-        Config._instance = None
-        config = Config.instance()
-        assert config is not None
-        assert isinstance(config, Config)
+from vectora.config.settings import Settings, settings
 
 
-class TestConfigLLMProvider:
-    """Testes para detecção de LLM provider."""
+class TestSettingsSingleton:
+    """Testes para o singleton settings."""
 
-    def test_get_llm_provider_returns_configured_provider(self, monkeypatch):
-        """Verificar que get_llm_provider retorna o provider configurado."""
-        monkeypatch.setenv("LLM_PROVIDER", "google-genai")
-        Config._instance = None  # Reset singleton
-        config = Config.instance()
-        assert config.get_llm_provider() == "google-genai"
+    def test_settings_is_singleton_instance(self):
+        """Verificar que settings é uma instância de Settings."""
+        assert isinstance(settings, Settings)
 
-    def test_get_llm_provider_returns_none_if_not_configured(self, monkeypatch):
-        """Verificar que get_llm_provider retorna None se não configurado."""
-        # Criar uma instância Mock que não lê .env
-        from unittest.mock import patch
+    def test_settings_same_object_on_import(self):
+        """Verificar que importar settings retorna o mesmo objeto."""
+        from vectora.config.settings import settings as s2
 
-        with patch.object(Config, "get", return_value=None):
-            Config._instance = None  # Reset singleton
-            config = Config.instance()
-            # Mock the get method to return None for all keys
-            config.get = lambda key, default=None: None
-            provider = config.get_llm_provider()
-            assert provider is None
-
-    def test_get_llm_provider_detects_from_env_var(self, monkeypatch):
-        """Verificar detecção de provider por variáveis de ambiente."""
-        monkeypatch.delenv("LLM_PROVIDER", raising=False)
-        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-        Config._instance = None  # Reset singleton
-        config = Config.instance()
-        # Se OPENAI_API_KEY está set, deveria detectar openai
-        # (implementação específica depende do código)
-        assert config is not None
+        assert settings is s2
 
 
-class TestConfigEnvironmentVariables:
-    """Testes para leitura de variáveis de ambiente."""
+class TestSettingsFields:
+    """Testes para campos essenciais de Settings."""
 
-    def test_config_reads_google_api_key(self, monkeypatch):
-        """Verificar que Config lê GOOGLE_API_KEY."""
-        monkeypatch.setenv("GOOGLE_API_KEY", "test-gemini-key")
-        Config._instance = None  # Reset singleton
-        config = Config.instance()
-        # Verificar que a chave foi lida (implementação específica)
-        assert config is not None
+    def test_settings_has_enable_rag(self):
+        """Verificar que settings tem campo enable_rag."""
+        assert hasattr(settings, "enable_rag")
+        assert isinstance(settings.enable_rag, bool)
 
-    def test_config_reads_openai_api_key(self, monkeypatch):
-        """Verificar que Config lê OPENAI_API_KEY."""
-        monkeypatch.setenv("OPENAI_API_KEY", "test-openai-key")
-        Config._instance = None  # Reset singleton
-        config = Config.instance()
-        assert config is not None
+    def test_settings_has_embedding_model(self):
+        """Verificar que settings tem campo embedding_model."""
+        assert hasattr(settings, "embedding_model")
+        assert isinstance(settings.embedding_model, str)
+        assert len(settings.embedding_model) > 0
 
-    def test_config_reads_anthropic_api_key(self, monkeypatch):
-        """Verificar que Config lê ANTHROPIC_API_KEY."""
-        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-anthropic-key")
-        Config._instance = None  # Reset singleton
-        config = Config.instance()
-        assert config is not None
+    def test_settings_has_embedding_queue_enabled(self):
+        """Verificar que settings tem embedding_queue_enabled."""
+        assert hasattr(settings, "embedding_queue_enabled")
+        assert isinstance(settings.embedding_queue_enabled, bool)
 
-    def test_config_reads_langsmith_api_key(self, monkeypatch):
-        """Verificar que Config lê LANGSMITH_API_KEY para observabilidade."""
-        monkeypatch.setenv("LANGSMITH_API_KEY", "test-langsmith-key")
-        Config._instance = None  # Reset singleton
-        config = Config.instance()
-        assert config is not None
+    def test_settings_has_llm_provider(self):
+        """Verificar que settings tem campo llm_provider."""
+        assert hasattr(settings, "llm_provider")
+        assert settings.llm_provider in (
+            "google-genai",
+            "openai",
+            "anthropic",
+            "ollama",
+        )
 
+    def test_settings_has_enable_web_search(self):
+        """Verificar que settings tem enable_web_search."""
+        assert hasattr(settings, "enable_web_search")
+        assert isinstance(settings.enable_web_search, bool)
 
-class TestConfigDefaultValues:
-    """Testes para valores padrão da configuração."""
+    def test_settings_has_enable_file_operations(self):
+        """Verificar que settings tem enable_file_operations."""
+        assert hasattr(settings, "enable_file_operations")
+        assert isinstance(settings.enable_file_operations, bool)
 
-    def test_config_has_reasonable_defaults(self):
-        """Verificar que Config tem valores padrão sensatos."""
-        Config._instance = None  # Reset singleton
-        config = Config.instance()
-        # Verificar que propriedades essenciais existem
-        assert hasattr(config, "get_llm_provider")
-        assert callable(config.get_llm_provider)
+    def test_settings_has_cohere_api_key_field(self):
+        """Verificar que settings tem campo cohere_api_key."""
+        assert hasattr(settings, "cohere_api_key")
+        # cohere_api_key pode ser None ou str
 
-    def test_config_vector_store_defaults_to_lancedb(self, monkeypatch):
-        """Verificar que vector store padrão é LanceDB."""
-        monkeypatch.delenv("VECTOR_STORE", raising=False)
-        Config._instance = None  # Reset singleton
-        config = Config.instance()
-        # Vector store padrão deve ser LanceDB para dev
-        assert config is not None
+    def test_settings_has_search_min_score(self):
+        """Verificar que settings tem search_min_score."""
+        assert hasattr(settings, "search_min_score")
+        assert isinstance(settings.search_min_score, float)
 
-
-class TestConfigValidation:
-    """Testes para validação de configurações."""
-
-    def test_config_validates_valid_llm_provider(self, monkeypatch):
-        """Verificar que Config valida provider válidos."""
-        monkeypatch.setenv("LLM_PROVIDER", "google-genai")
-        Config._instance = None  # Reset singleton
-        config = Config.instance()
-        provider = config.get_llm_provider()
-        # Provider válido não deve gerar erro
-        assert provider == "google-genai"
-
-    def test_config_handles_invalid_llm_provider(self, monkeypatch):
-        """Verificar que Config trata provider inválidos."""
-        monkeypatch.setenv("LLM_PROVIDER", "invalid-provider")
-        Config._instance = None  # Reset singleton
-        config = Config.instance()
-        # Config não deve falhar, apenas retornar o valor
-        assert config is not None
-
-    def test_config_handles_missing_api_keys(self, monkeypatch):
-        """Verificar que Config trata chaves de API ausentes."""
-        monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-        Config._instance = None  # Reset singleton
-        config = Config.instance()
-        # Config não deve falhar mesmo sem chaves
-        assert config is not None
+    def test_settings_has_chunk_size(self):
+        """Verificar que settings tem chunk_size."""
+        assert hasattr(settings, "chunk_size")
+        assert isinstance(settings.chunk_size, int)
+        assert settings.chunk_size > 0
 
 
-class TestConfigReloadBehavior:
-    """Testes para comportamento de recarga de configuração."""
+class TestSettingsMethods:
+    """Testes para métodos de Settings."""
 
-    def test_config_singleton_persists_across_calls(self):
-        """Verificar que singleton persiste entre chamadas."""
-        Config._instance = None  # Reset singleton
-        config1 = Config.instance()
-        config2 = Config.instance()
-        config3 = Config.instance()
-        assert config1 is config2 is config3
+    def test_settings_has_get_cohere_api_key(self):
+        """Verificar que Settings tem get_cohere_api_key()."""
+        assert hasattr(settings, "get_cohere_api_key")
+        assert callable(settings.get_cohere_api_key)
 
-    def test_config_reset_creates_new_instance(self):
-        """Verificar que reset cria nova instância."""
-        config1 = Config.instance()
-        Config._instance = None  # Reset singleton
-        config2 = Config.instance()
-        assert config1 is not config2
+    def test_settings_has_get_llm_provider(self):
+        """Verificar que Settings tem get_llm_provider()."""
+        assert hasattr(settings, "get_llm_provider")
+        assert callable(settings.get_llm_provider)
+
+    def test_get_llm_provider_returns_string(self):
+        """Verificar que get_llm_provider() retorna string."""
+        provider = settings.get_llm_provider()
+        assert isinstance(provider, str)
+        assert len(provider) > 0
+
+    def test_settings_has_get_llm_model(self):
+        """Verificar que Settings tem get_llm_model()."""
+        assert hasattr(settings, "get_llm_model")
+        assert callable(settings.get_llm_model)
+
+    def test_get_llm_model_returns_string(self):
+        """Verificar que get_llm_model() retorna string."""
+        model = settings.get_llm_model()
+        assert isinstance(model, str)
+        assert len(model) > 0
+
+
+class TestSettingsFromEnvironment:
+    """Testes para carregamento de variáveis de ambiente."""
+
+    def test_settings_instance_is_valid(self, monkeypatch):
+        """Verificar que uma nova instância de Settings é válida."""
+        s = Settings()
+        assert s is not None
+
+    def test_settings_enable_rag_default(self):
+        """Verificar valor padrão de enable_rag."""
+        s = Settings()
+        # O valor padrão conforme definido no código
+        assert isinstance(s.enable_rag, bool)
+
+    def test_settings_embedding_model_default(self):
+        """Verificar valor padrão de embedding_model."""
+        s = Settings()
+        assert s.embedding_model == "embed-multilingual-v3.0"
+
+    def test_settings_reranker_model_default(self):
+        """Verificar valor padrão de reranker_model."""
+        s = Settings()
+        assert "rerank" in s.reranker_model
+
+
+class TestSettingsDefaults:
+    """Testes para valores padrão razoáveis."""
+
+    def test_chunk_size_reasonable(self):
+        """Verificar que chunk_size tem valor razoável."""
+        s = Settings()
+        assert 100 <= s.chunk_size <= 10000
+
+    def test_chunk_overlap_less_than_chunk_size(self):
+        """Verificar que chunk_overlap é menor que chunk_size."""
+        s = Settings()
+        assert s.chunk_overlap < s.chunk_size
+
+    def test_search_min_score_in_range(self):
+        """Verificar que search_min_score está entre 0 e 1."""
+        s = Settings()
+        assert 0.0 <= s.search_min_score <= 1.0
+
+    def test_default_search_top_k_positive(self):
+        """Verificar que default_search_top_k é positivo."""
+        s = Settings()
+        assert s.default_search_top_k > 0
+
+    def test_max_context_tokens_positive(self):
+        """Verificar que max_context_tokens é positivo."""
+        s = Settings()
+        assert s.max_context_tokens > 0
