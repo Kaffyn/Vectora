@@ -123,7 +123,7 @@ class TestContextValidation:
     def test_context_with_none_thread_id_raises_error(self):
         """Verificar que thread_id None gera erro."""
         with pytest.raises((ValueError, TypeError)):
-            Context(thread_id=None, user_type="pro")
+            Context(thread_id=None, user_type="pro")  # type: ignore[arg-type]
 
 
 class TestContextUsageInConfigurable:

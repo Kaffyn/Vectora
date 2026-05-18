@@ -22,7 +22,7 @@ ai_message = AIMessage(
 
 print("\n2. call_llm returns AIMessage with tool_calls")
 result_from_call_llm = {"messages": [ai_message]}
-updated_1 = add_messages(initial_messages, result_from_call_llm["messages"])
+updated_1 = add_messages(initial_messages, result_from_call_llm["messages"])  # type: ignore[arg-type]
 assert isinstance(updated_1, (list, tuple))
 print(f"   After add_messages: {[type(m).__name__ for m in updated_1]}")
 print(
@@ -36,7 +36,7 @@ tool_message = ToolMessage(
 
 print("\n3. tools node (ToolNode) returns ToolMessage")
 result_from_tools = {"messages": [tool_message]}
-updated_2 = add_messages(updated_1, result_from_tools["messages"])
+updated_2 = add_messages(updated_1, result_from_tools["messages"])  # type: ignore[arg-type]
 print(f"   After add_messages: {[type(m).__name__ for m in updated_2]}")
 print(f"   ToolMessage present: {any(isinstance(m, ToolMessage) for m in updated_2)}")
 
