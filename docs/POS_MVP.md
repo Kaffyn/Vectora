@@ -1,74 +1,74 @@
 # Roadmap Pós-MVP
 
-Evolução estratégica do Vectora de um **agente RAG local** para um **orquestrador de Deep Agents** escalável, multi-especialista e pronto para produção.
+Evolução estratégica do Vectora de um **agente multi-especialista local** para um **orquestrador de Deep Agents** escalável, com infra de produção e auto-correção.
 
 O pré-requisito absoluto para qualquer item desta lista é que o **v0.1.0 esteja estável em produção**. Não construir sobre areia.
 
 ---
 
-## v0.2 — Agentic Core
+## ✅ Shipped em v0.1.0 (era v0.2)
 
-Esta versão transforma o MAIN_NODE monolítico num **Supervisor** que delega para agentes especialistas. A arquitetura Supervisor/Worker é o padrão correto para sistemas que precisam de escalabilidade e especialização.
+Estes itens foram antecipados e implementados no MVP:
 
-### Multi-Agent Architecture
+- ✅ Supervisor com routing inteligente (`agents/supervisor.py`)
+- ✅ Search Agent — RAG + web search + cascading embeddings (`agents/search.py`)
+- ✅ Coder Agent — filesystem + terminal (`agents/coder.py`)
+- ✅ Direct Agent — síntese + memória (`agents/direct.py`)
+- ✅ RAG subgraph com threshold adaptativo (retrieve → rerank/websearch → inject)
+- ✅ Cascading automático: web_search → LanceDB fire-and-forget
+- ✅ Tools distribuídas por agente (SEARCH_TOOLS / FS_TOOLS / MEMORY_TOOLS)
 
-```text
-Supervisor (router inteligente)
-  ├── SearchAgent   → RAG, Tavily, web research
-  ├── CoderAgent    → File ops, terminal, git
-  └── AnalysisAgent → Reasoning profundo, síntese, critique
-```
+---
 
-Cada agente tem seu próprio grafo LangGraph, ferramentas especializadas e contexto isolado. O Supervisor decide qual agente é mais adequado para cada tarefa recebida.
+## v0.2 — Infra de Produção
 
-Itens concretos:
-
-- [ ] Implementar `agents/supervisor.py` com routing inteligente
-- [ ] Implementar `agents/search_agent.py` (RAG + Tavily)
-- [ ] Implementar `agents/coder_agent.py` (files + terminal)
-- [ ] Migrar `web_search` e `fetch_url` para Tavily API nativa (melhor contexto RAG que DuckDuckGo)
-- [ ] Suporte a execução paralela de sub-agentes (`asyncio.gather`)
+Esta versão torna o Vectora apto para produção real com múltiplos usuários simultâneos e observabilidade de nível enterprise.
 
 ### Infra Escalável
 
-Para produção real com múltiplos usuários simultâneos:
-
-- [ ] PostgreSQL como alternativa ao SQLite (connection pool, concurrent writes)
-- [ ] Qdrant Cloud como alternativa ao LanceDB (vector store gerenciado, escalável)
-- [ ] Valkey/Redis como cache distribuído (embeddings, respostas frequentes)
+- [ ] **PostgreSQL** como alternativa ao SQLite (connection pool, concurrent writes, `AsyncPostgresSaver` do LangGraph)
+- [ ] **Qdrant Cloud** como alternativa ao LanceDB (vector store gerenciado, escalável)
+- [ ] **Valkey/Redis** como cache distribuído (embeddings, respostas frequentes)
 - [ ] Migrações automáticas SQLite → PostgreSQL
 
 ### Observabilidade Production-Grade
 
-- [ ] Prometheus metrics (latência, tokens/call, taxa de erro por tool)
-- [ ] Jaeger distributed tracing (trace completo de cada delegação A2A)
-- [ ] LangSmith com `client_thread_id` nos metadados (identificar qual agente Paperclip causou o quê)
-- [ ] Alert system (Slack/Discord/PagerDuty para erros críticos)
+- [ ] Prometheus metrics — latência, tokens/call, taxa de erro por ferramenta, fila de embedding
+- [ ] Jaeger distributed tracing — trace completo de cada delegação A2A
+- [ ] LangSmith com `client_thread_id` nos metadados — identifica qual agente Paperclip causou cada trace
+- [ ] Alert system — Slack/Discord para erros críticos (DLQ cheio, embedding worker morto)
+
+### Débitos Técnicos Prioritários
+
+- [ ] **`thread_id: str` nativo** — Hoje usa `hash(s) & 0xFFFFFFFF`. Em larga escala, colisões são inevitáveis. Migrar para `str` nativo no LangGraph Checkpointer.
+- [ ] **SSE Heartbeat** — Conexões ociosas fechadas silenciosamente por firewalls (30–60s). Adicionar `heartbeat_interval = 25s`.
+- [ ] **Streaming de tokens** — `delegate()` hoje bloqueia até o LangGraph finalizar. Migrar para `astream_events`.
 
 ---
 
 ## v0.3 — Memory & Human-in-the-Loop
 
-Esta versão adiciona **consciência temporal** (o agente lembra de versões anteriores de si mesmo) e **controle humano** (o usuário pode revisar antes de ações destrutivas).
+Esta versão adiciona **consciência temporal** e **controle humano** antes de ações destrutivas.
 
 ### Human-in-the-Loop (HITL)
 
-LangGraph suporta `interrupt_before` — o grafo pausa e aguarda confirmação humana antes de executar nós específicos. Casos de uso:
+LangGraph suporta `interrupt_before` — o grafo pausa e aguarda confirmação humana:
 
-- Antes de `file_edit` ou `file_write` em produção
-- Antes de `terminal` com comandos de mutação (git push, rm, deploy)
-- Antes de `ingest_docs` em coleções críticas
+- [ ] Antes de `file_edit` / `file_write` em produção
+- [ ] Antes de `terminal` com comandos de mutação (git push, rm, deploy)
+- [ ] Antes de `ingest_docs` em coleções críticas
+- [ ] CLI exibe Rich Panel de confirmação antes de prosseguir
 
-A CLI exibirá um Rich Panel pedindo confirmação antes de prosseguir.
-
-### Long-Term Memory aprimorada
-
-A base já existe (`save_memory`, `get_memory`) mas precisa evoluir:
+### Long-Term Memory Aprimorada
 
 - [ ] User profile persistente — preferências, estilo de código, projetos ativos
 - [ ] Consolidação automática — memórias antigas resumidas para evitar overflow
 - [ ] Memórias contextuais — recuperadas automaticamente com base no assunto da conversa
 - [ ] TTL inteligente — memórias expiram por uso, não apenas por tempo
+
+### Execução Paralela de Sub-Agentes
+
+- [ ] `asyncio.gather` para tarefas independentes — supervisor despacha search + coder em paralelo quando não há dependência entre eles
 
 ---
 
@@ -78,106 +78,55 @@ O ponto alto do roadmap: **agentes que se auto-criticam** e **corrigem respostas
 
 ### Reflection Pattern
 
-Um nó adicional no grafo avalia a qualidade da resposta gerada:
-
-```text
+```
 call_llm → [resposta fraca?] → critique_node → call_llm (nova tentativa)
          → [resposta ok?]   → END
 ```
 
-Critérios de qualidade: coerência, completude, fundamentação em fontes, tom adequado.
+Critérios de qualidade: coerência, completude, fundamentação em fontes, tom adequado. O agente recebe a crítica como nova instrução: _"Sua resposta anterior foi incompleta porque X. Tente novamente com foco em Y."_
 
-### Self-Correction em Loop
+### Supervisor com LLM Full
 
-Se a resposta não passar no critique, o agente recebe a crítica como nova instrução: _"Sua resposta anterior foi incompleta porque X. Tente novamente com foco em Y."_ Isso reduz alucinações drasticamente em tarefas complexas.
+- [ ] Hoje o supervisor usa regex + keyword fallback. Migrar para LLM call com structured output para casos ambíguos.
+- [ ] Roteamento multi-hop — supervisor pode re-rotear após worker completar (ex: search completa busca → direct sintetiza).
 
 ### Streaming de Respostas
 
-Hoje `delegate()` bloqueia até o LangGraph finalizar. Com `astream_events` do LangGraph:
-
-- [ ] CLI exibe tokens em tempo real (streaming token-by-token)
+- [ ] CLI exibe tokens em tempo real (streaming token-by-token via `astream_events`)
 - [ ] MCP SSE envia eventos incrementais para o Paperclip
 - [ ] Cancelamento mid-stream suportado
 
 ---
 
-## Débitos Técnicos Prioritários
-
-Itens que devem ser resolvidos antes ou durante v0.2, pois criam riscos reais:
-
-### `thread_id: str` nativo
-
-Atualmente, IDs alfanuméricos são convertidos via `hash(s) & 0xFFFFFFFF`. Em larga escala, colisões de hash são matematicamente inevitáveis (birthday paradox). A migração para `str` nativo no LangGraph Checkpointer é simples e deve ser feita no início de v0.2.
-
-### SSE Heartbeat
-
-Em modo SSE, conexões ociosas são silenciosamente fechadas por firewalls e load balancers (típico: 30–60s). Tarefas de delegação longas falham sem feedback. Solução: `mcp.settings.heartbeat_interval = 25` (abaixo do threshold padrão de 30s).
-
-### LangSmith Multi-Agent Correlation
-
-Sem `client_thread_id` nos traces do LangSmith, é impossível auditá-los em produção multi-agent. Cada trace aparece sem identificação do agente cliente que o causou.
-
----
-
 ## Plugins & Ecossistema (v0.3+)
 
-Extensões planejadas para o ecossistema Vectora:
-
 - [ ] **VSCode Extension** — Usar Vectora inline no editor sem sair do contexto de código
-- [ ] **ACP Protocol Server** — Agent Client Protocol para Zed/Neovim enviarem comandos ao agente
-- [ ] **Plugin oficial Paperclip** — `integrations/paperclip/plugin/` com API ergonômica de alto nível
+- [ ] **ACP Protocol Server** — Agent Client Protocol para Zed/Neovim
+- [ ] **Plugin oficial Paperclip** — `integrations/paperclip/plugin/` com API de alto nível
 - [ ] **Vectora Asset Library** — Buckets de embeddings pré-treinados (Next.js docs, FastAPI, etc.)
 - [ ] **Gemini CLI Plugin** — Usar Vectora como ferramenta dentro do Gemini CLI
 
 ---
 
-## Versão Resumida do Roadmap
+## Roadmap Resumido
 
-```text
-v0.1.0 ── MVP ─────────────────────────────────┐
-                                                │
-          └──► v0.2: Multi-Agent + PostgreSQL   │
-                    + Tavily + Observabilidade  │
-                                                │
-          └──► v0.3: HITL + Long-Term Memory    │
-                    + Streaming                 │
-                                                │
-          └──► v0.4: Deep Agents + Reflection   │
-                    + Self-Correction           │
-                                                │
-          └──► v1.0: Plugins + Asset Library    │
-                    + ACP + VSCode              ┘
 ```
-
-https://docs.langchain.com/oss/python/integrations/providers/cohere
-https://docs.langchain.com/oss/python/integrations/chat/cohere
-https://docs.langchain.com/oss/python/integrations/retrievers/cohere
-https://docs.langchain.com/oss/python/integrations/embeddings/cohere
-https://docs.langchain.com/oss/python/integrations/retrievers/cohere-reranker
-https://docs.langchain.com/oss/python/langchain/knowledge-base
-https://docs.langchain.com/oss/python/integrations/vectorstores/index#qdrant
-https://docs.langchain.com/oss/python/langchain/rag#qdrant
-https://docs.langchain.com/oss/python/langchain/knowledge-base#qdrant
-https://docs.langchain.com/langsmith/self-host-external-redis#connect-to-an-external-redis-or-valkey-database
-https://docs.langchain.com/langsmith/data-plane#redis
-https://docs.langchain.com/langsmith/scalability-and-resilience#redis-resilience
-https://docs.langchain.com/oss/python/integrations/vectorstores/index#valkey
-https://docs.langchain.com/langsmith/script-running-pg-support-queries#run-support-queries-against-postgresql
-https://docs.langchain.com/langsmith/self-host-external-postgres#connect-to-an-external-postgresql-database
-https://docs.langchain.com/langsmith/configure-checkpointer#default-postgresql
-https://docs.langchain.com/langsmith/data-plane#postgresql
-https://docs.langchain.com/oss/python/integrations/middleware
-https://docs.langchain.com/oss/python/integrations/providers/google
-https://docs.langchain.com/oss/python/integrations/chat
-https://docs.langchain.com/oss/python/integrations/tools/tavily_search
-https://docs.langchain.com/oss/python/integrations/tools/tavily_extract
-https://reference.langchain.com/python/langgraph.checkpoint.sqlite/SqliteSaver
-https://reference.langchain.com/python/langgraph.checkpoint.postgres/PostgresSaver
-https://docs.langchain.com/oss/python/integrations/retrievers
-https://docs.langchain.com/oss/python/integrations/retrievers/cohere-reranker
-https://docs.langchain.com/oss/python/integrations/retrievers/cohere
-https://docs.langchain.com/oss/python/integrations/retrievers/tavily
-https://docs.langchain.com/oss/python/integrations/embeddings
-https://docs.langchain.com/oss/python/integrations/vectorstores
-https://docs.langchain.com/oss/python/integrations/vectorstores/lancedb
-https://docs.langchain.com/oss/python/integrations/document_loaders
+v0.1.0 ── MVP ──────────────────────────────────────────────┐
+          Supervisor + 3 Workers + RAG Subgraph              │
+          14 tools, cascading embeddings, MCP server         │
+                                                             │
+v0.2   ── Infra de Produção ─────────────────────────────── │
+          PostgreSQL + Qdrant + Observabilidade              │
+          Prometheus + Jaeger + streaming tokens             │
+                                                             │
+v0.3   ── Memory & HITL ────────────────────────────────── │
+          Human-in-the-loop + Long-term memory              │
+          Execução paralela de sub-agentes                   │
+                                                             │
+v0.4   ── Deep Agents ─────────────────────────────────── │
+          Reflection + Self-correction                       │
+          Supervisor com LLM full + multi-hop routing        │
+                                                             │
+v1.0   ── Plugins & Ecossistema ──────────────────────────┘
+          VSCode + ACP + Asset Library + Gemini CLI
+```

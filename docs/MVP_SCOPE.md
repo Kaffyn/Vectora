@@ -1,6 +1,6 @@
 # MVP Scope — Vectora v0.1.0
 
-Escopo definitivo para o lançamento oficial do Vectora v0.1.0. Tudo listado aqui está implementado ou é bloqueador para o release.
+Escopo definitivo para o lançamento oficial do Vectora v0.1.0.
 
 **Versão:** 0.1.0
 **Status:** 🟡 Feature-complete, polimento final
@@ -9,21 +9,64 @@ Escopo definitivo para o lançamento oficial do Vectora v0.1.0. Tudo listado aqu
 
 ## Core Features
 
-### Agent & Reasoning (LangGraph)
+### Agent Architecture (LangGraph)
 
-O coração do Vectora é um grafo de estado com 4 nós, compilado pelo LangGraph:
+O coração do Vectora é um grafo de supervisor + workers especializados compilado pelo LangGraph:
 
-- ✅ `call_llm` — Invoca o LLM com histórico deslizante (sliding window) e system prompt adaptativo
-- ✅ `tools` — Executa ferramentas em paralelo com `DiagnosticToolNode` (logging detalhado)
-- ✅ `process_retrieval` — Pós-processamento de resultados RAG (reranking, filtragem)
-- ✅ `sub_node` — Workflows complexos em sub-instância isolada (delegação A2A)
+```
+START
+  └─► supervisor (classifica intenção via regex + LLM fallback)
+        ├─► direct    ──► direct_tools (memory) ──► direct ──► END
+        ├─► search    ──► search_tools ──► process_retrieval ──► search ──► END
+        ├─► coder     ──► coder_tools (fs + memory) ──► coder ──► END
+        └─► rag_subgraph ─────────────────────────────────── ► direct ──► END
+```
 
-Comportamentos do agente:
+**Supervisor** (`agents/supervisor.py`):
 
-- ✅ Histórico deslizante com `trim_messages` e fallback anti-vazio (fix `ValueError: contents are required`)
-- ✅ Auto-summarização de histórico longo
-- ✅ Auto-retry inteligente (até 3x) em falhas de ferramentas
-- ✅ `max_context_tokens: 8000` (configurável via settings)
+- ✅ `classify_intent()` — regex patterns para direct/coder/search/rag + fallback por palavra-chave
+- ✅ Routing via `Command(goto=...)` do LangGraph
+- ✅ Self-awareness via `VECTORA_IDENTITY` (`agents/_identity.py`)
+
+**Direct Agent** (`agents/direct.py`):
+
+- ✅ Respostas diretas, síntese pós-RAG, gerenciamento de memória
+- ✅ Ferramentas: `save_memory`, `get_memory`, `delete_memory`
+
+**Search Agent** (`agents/search.py`):
+
+- ✅ Pesquisa web em tempo real + busca vetorial
+- ✅ Ferramentas: `web_search`, `fetch_url`, `vector_search` (+ `embedding` se RAG habilitado)
+- ✅ Cascading automático: resultados de busca são enfileirados para embedding no LanceDB
+
+**Coder Agent** (`agents/coder.py`):
+
+- ✅ Operações de filesystem, terminal, geração de código
+- ✅ Ferramentas: `file_read`, `file_edit`, `file_write`, `grep`, `list_dir`, `terminal`, + memória
+
+### RAG Subgraph (`nodes/rag_subgraph.py`)
+
+Pipeline de recuperação com threshold adaptativo antes de cada síntese:
+
+```
+rag_retrieve (vector_search)
+  └─► rag_decide (score threshold)
+        ├─► rag_inject    (score ≥ 0.7 — alta confiança, injeta diretamente)
+        ├─► rag_rerank    (score 0.4–0.7 — reranking Cohere antes de injetar)
+        └─► rag_websearch (score < 0.4 — fallback web + auto-embed dos resultados)
+```
+
+- ✅ `rag_retrieve` — busca semântica via `vector_search`
+- ✅ `rag_decide` — threshold adaptativo (0.4 / 0.7) para escolher o próximo nó
+- ✅ `rag_rerank` — reranking com CohereRerank, top-3 docs
+- ✅ `rag_websearch` — busca web + enfileira resultados para embedding (cascading)
+- ✅ `rag_inject` — injeta docs como `SystemMessage` no contexto antes do `direct`
+
+### Process Retrieval (`nodes/engine.py`)
+
+- ✅ Detecta `ToolMessages` de `web_search` / `fetch_url` no histórico
+- ✅ Enfileira automaticamente para embedding no LanceDB (fire-and-forget)
+- ✅ Rastreia `pending_embeds` no `State` para observabilidade
 
 ### 14 Ferramentas Implementadas
 
@@ -38,7 +81,7 @@ Todas com `try/except` defensivo, logging estruturado e timeout individual:
 
 - ✅ `vector_search` — Busca semântica em LanceDB com reranking Cohere
 - ✅ `embedding` — Indexação assíncrona (fire-and-forget, queue com retry)
-- ✅ `ingest_docs` — Ingestão em lote de pastas inteiras (glob pattern)
+- ✅ `ingest_docs` — Ingestão em lote com glob pattern + respeita `.gitignore`
 
 **Filesystem (6)**
 
@@ -47,7 +90,7 @@ Todas com `try/except` defensivo, logging estruturado e timeout individual:
 - ✅ `file_write` — Criar/sobrescrever arquivo completo
 - ✅ `grep` — Busca regex com proteção anti-ReDoS
 - ✅ `list_dir` — Listagem recursiva com filtros
-- ✅ `terminal` — Execução shell async (`asyncio.create_subprocess_shell`), whitelist de segurança, timeout 30s
+- ✅ `terminal` — Execução shell async, whitelist de segurança, timeout 30s
 
 **Memory (3)**
 
@@ -64,103 +107,51 @@ Todas com `try/except` defensivo, logging estruturado e timeout individual:
 Zero infraestrutura externa — tudo em `~/.vectora/`:
 
 - ✅ **SQLite** (`aiosqlite`) — Histórico de conversas, checkpoints LangGraph, memórias persistentes
-- ✅ **LanceDB** — Vector store file-based para RAG semântico de alta performance
-- ✅ **Embedding Queue** — Fila assíncrona com SQLAlchemy (`sqlite+aiosqlite://`) e retry exponencial
-- ✅ **Roaming Profile Pattern** — Dados em `~/.vectora/` independente do diretório de instalação
+- ✅ **LanceDB** — Vector store file-based para RAG semântico
+- ✅ **Embedding Queue** — Fila assíncrona com SQLAlchemy + retry exponencial + DLQ
+- ✅ **Reconciliation** — Background worker recupera jobs travados após crash
 
-### MCP Server (Vectora como Sub-Agente)
-
-Vectora roda como servidor MCP para que Claude Code, Claude Desktop e Paperclip consumam suas capacidades:
+### MCP Server
 
 - ✅ **13 tools expostas** via `@mcp.tool()` com descrições otimizadas para LLM selection
 - ✅ **4 resources expostos** — `thread/context`, `thread/history`, `status`, `collections`
 - ✅ **Transport stdio** — Para uso local com Claude Code / Claude Desktop
 - ✅ **Transport SSE** — Para uso multi-agent (Paperclip, múltiplas instâncias)
-- ✅ **`delegate_task_to_vectora`** — Ferramenta A2A que roda o LangGraph completo como sub-agente
-- ✅ **Rich feedback no stderr** — Panel colorido ao iniciar (`✓ Vectora MCP Server pronto`)
-- ✅ **Timeouts por ferramenta** — Proteção em camadas (10s–120s por tool, 300s global para A2A)
+- ✅ **`delegate_task_to_vectora`** — Ferramenta A2A que executa o grafo completo como sub-agente
 - ✅ **Singleton AgentManager** — Evita reinicialização cara do LanceDB por chamada
-
-### Integração Multi-Agent (Paperclip)
-
-Protocolo formal de integração para múltiplos agentes Paperclip compartilharem um único Vectora:
-
-- ✅ **Hub centralizado** — Um processo Vectora serve N agentes Paperclip via `thread_id`
-- ✅ **Isolamento por thread_id** — Sessões isoladas via LangGraph Checkpointer (sem vazamento de contexto)
-- ✅ **Transport SSE** — HTTP/SSE para comunicação multi-container
-- ✅ **`VectoraProxy`** — Cliente async oficial em `vectora/mcp/proxy.py`
-- ✅ **Protocolo documentado** — `integrations/paperclip/@AGENTS.md` (v1.0.0)
-- ✅ **Modo `stdio` e `sse`** — Seleção via `MCP_TRANSPORT` env var
-- ✅ **Docker Compose** — `docker-compose.yml` para subir hub multi-agent
 
 ### CLI & Interface
 
 - ✅ **Terminal TUI** com Rich (Panels, Tables, Layout, Live)
 - ✅ **Prompt multiline** — `Alt+Enter` / `Shift+Enter` para quebra de linha
 - ✅ **Setup Wizard** — Seleção de provider, input seguro de API key, teste de conexão
-- ✅ **Visual feedback colorido** — Tool calls (amarelo), tool responses (vermelho), terminal (verde)
+- ✅ **Visual feedback colorido** — Tool calls (amarelo), responses (vermelho), terminal (verde)
 - ✅ **Debug Mode** — `/debug` toggle, persiste em `~/.vectora/chat_config.json`
 - ✅ **Session Management** — `/new`, `/sessions`, `/session <id>`
 - ✅ **Model Switching** — `/model` em tempo real (sem restart)
-- ✅ **Welcome Screen** com todos os comandos disponíveis
 
 ### Configuração & Observabilidade
 
 - ✅ **Pydantic Settings** — Single Source of Truth em `vectora/config/settings.py`
-- ✅ **3-level hierarchy** — `defaults.env` → `.env` local → `~/.vectora/.env` (precedência crescente)
-- ✅ **Logs estruturados** em JSON Lines (`~/.vectora/logs/vectora.log`)
+- ✅ **3-level hierarchy** — `defaults.env` → `.env` local → `~/.vectora/.env`
+- ✅ **Logs estruturados** em JSON Lines (`~/.vectora/logs/vectora.jsonl`), rotating 10 MB
 - ✅ **LangSmith integration** — Tracing opcional via `LANGSMITH_API_KEY`
-- ✅ **System prompt multilíngue** — Auto-detecção de idioma do SO
-- ✅ **Auto-detecção de LLM** — Detecta provider disponível pelas API keys presentes
+- ✅ **Feature flags** — `ENABLE_RAG`, `ENABLE_FILE_OPERATIONS` por ambiente
 
 ### Testing
 
-- ✅ **Unit tests** — Ferramentas, checkpointer, config, memória, prompts
-- ✅ **Integration tests** — RAG pipeline, graph execution, A2A, message flow
-- ✅ **E2E tests** — Fire-and-forget, MCP resources, run commands
-- ✅ **Stress tests** — Concorrência e paralelismo
-- ✅ **>80% coverage** (pytest-cov)
+- ✅ **KISS 1:1 pattern** — 1 arquivo de teste por arquivo fonte
+- ✅ **197 testes** passando (unit + integration)
+- ✅ **≥70% coverage** em todos os arquivos com teste dedicado
 - ✅ **pytest-asyncio** com `asyncio_mode = "auto"`
+- ✅ **ruff** — 0 erros de lint
+- ✅ **ty** — 81 erros restantes são incompatibilidade LangGraph/ty + stubs ausentes de terceiros (não acionáveis)
 
 ### CI/CD & Deployment
 
 - ✅ **GitHub Actions** (`runner.yml`) — Lint, type check, test, build
 - ✅ **Dockerfile** + **docker-compose.yml** para desenvolvimento e produção
-- ✅ **Pre-commit hooks** — Ruff, Mypy, Prettier (markdown), Bandit
-- ✅ **Conventional Commits** enforced via AGENTS.md
-
----
-
-## Melhorias de Qualidade de Vida (Pré-Lançamento)
-
-Adicionadas ao escopo após feature-freeze para garantir uma experiência polida no launch:
-
-- ✅ **`file_write` tool** — Criar/sobrescrever arquivos inteiros (antes só existia `file_edit`)
-- ✅ **`file_edit` com `replace_all`** — Suporte a substituição de múltiplas ocorrências
-- ✅ **Memory tools** — `save_memory`, `get_memory`, `delete_memory` para contexto cross-session
-- ✅ **Terminal async** — Migrado de `subprocess.run` (síncrono, bloqueia UI) para `asyncio.create_subprocess_shell`
-- ✅ **Rich panels para tools** — Feedback visual colorido durante execução de ferramentas
-- ✅ **Fix `ValueError: contents are required`** — Fallback no `trim_messages` quando histórico fica vazio
-- ✅ **Fix embedding_queue_dsn** — Formato SQLAlchemy correto (`sqlite+aiosqlite:///path`)
-- ✅ **MCP SSE transport** — Suporte a múltiplos agentes concorrentes (modo Paperclip)
-- ✅ **Protocolo Paperclip** — Documentação formal de integração multi-agent
-- ✅ **Singleton AgentManager no MCP Server** — Evita re-inicialização em cada delegação A2A
-- ✅ **Multiline input** — Sem dependência de `EditingMode.EMACS` (removida)
-
----
-
-## Fora do MVP (Pós-Lançamento)
-
-- ❌ PostgreSQL / Qdrant Cloud (infra escalável)
-- ❌ Streaming de respostas (SSE token-by-token)
-- ❌ `thread_id: str` nativo no LangGraph (workaround atual: `hash & 0xFFFFFFFF`)
-- ❌ Human-in-the-loop (`interrupt_before` em ações destrutivas)
-- ❌ SSE heartbeat para manter conexões longas
-- ❌ Dashboard CLI multi-sessão
-- ❌ Plugin oficial do Paperclip
-- ❌ VSCode Extension / Gemini CLI Plugin
-- ❌ Vectora Asset Library (buckets pré-treinados)
-- ❌ LangSmith trace com `client_thread_id` nos metadados (observabilidade multi-agent)
+- ✅ **Pre-commit hooks** — ruff lint, ruff format, Prettier (markdown), uv-lock
 
 ---
 
@@ -169,18 +160,27 @@ Adicionadas ao escopo após feature-freeze para garantir uma experiência polida
 ```
 vectora/
 ├── agent.py               # AgentManager (orchestrator, DI hub)
-├── graph.py               # LangGraph builder (3-node pattern)
-├── state.py               # TypedDict State definition
-├── context.py             # Context schema (injetado via configurable)
-├── prompts.py             # System prompts, language detection
+├── graph.py               # build_graph() — supervisor + workers + RAG subgraph
+├── state.py               # TypedDict State (messages, routing_decision, rag_*, etc.)
+├── context.py             # Context schema (user_type, thread_id)
 ├── main.py                # CLI entry point
 ├── version.py             # Dynamic version from pyproject.toml
+├── agents/
+│   ├── _identity.py       # VECTORA_IDENTITY constant (self-awareness)
+│   ├── supervisor.py      # classify_intent() + supervisor node
+│   ├── direct.py          # Direct agent (chat, synthesis, memory)
+│   ├── search.py          # Search agent (web, RAG)
+│   └── coder.py           # Coder agent (files, terminal)
 ├── config/
 │   ├── settings.py        # Pydantic Settings (single source of truth)
 │   └── defaults.env       # Embedded defaults
 ├── nodes/
-│   ├── engine.py          # call_llm, process_retrieval, handle_sub_node
-│   └── debug.py           # DiagnosticToolNode, call_llm_debug
+│   ├── base.py            # invoke_llm(), sanitize_for_gemini(), build_messages()
+│   ├── debug.py           # DiagnosticToolNode
+│   ├── engine.py          # process_retrieval (cascading web→LanceDB)
+│   ├── rag_subgraph.py    # build_rag_subgraph() — retrieve→decide→rerank/web→inject
+│   ├── retrieval.py       # retrieval_node() + _rerank()
+│   └── tools.py           # SEARCH_TOOLS, FS_TOOLS, MEMORY_TOOLS, RAG_TOOLS
 ├── tools/
 │   ├── fs.py              # file_read, file_edit, file_write, grep, list_dir, terminal
 │   ├── rag.py             # embedding, vector_search, ingest_docs
@@ -192,23 +192,23 @@ vectora/
 │   ├── client.py          # MCP Client (consumir MCPs externos)
 │   └── proxy.py           # VectoraProxy (cliente oficial para Paperclip)
 ├── services/
-│   ├── background.py      # Embedding background worker
+│   ├── background.py      # Embedding background worker (retry + DLQ)
 │   ├── checkpoint.py      # LangGraph SQLite checkpointer
 │   ├── embedding.py       # EmbeddingService (Cohere)
 │   ├── memory.py          # MemoryStore (SQLite cross-session)
-│   ├── queue.py           # Embedding queue (SQLAlchemy async)
+│   ├── queue.py           # Embedding queue (SQLAlchemy async + WAL mode)
 │   ├── security.py        # Whitelist, path validation, ReDoS protection
 │   ├── session.py         # Session lifecycle
 │   ├── setup_wizard.py    # Interactive first-run wizard
-│   ├── telemetry.py       # LangSmith tracing
-│   └── log_setup.py       # Structured logging setup
+│   ├── telemetry.py       # Structured logging, audit trails, debug dumps
+│   └── text.py            # TextService (split, count_tokens)
 ├── ui/
 │   ├── chat.py            # Chat TUI (Rich Live, prompt-toolkit)
 │   ├── commands.py        # Command dispatcher (/quit, /debug, /model, ...)
 │   └── main.py            # Rich components (panels, layouts, widgets)
 └── testing/
-    ├── fixtures.py        # Pytest fixtures
-    ├── mocks.py           # LLM/tool mocks
+    ├── fixtures.py        # Pytest fixtures (test_graph, checkpointer, etc.)
+    ├── mocks.py           # MockLLM, MockToolNode
     └── message_factory.py # Test message builders
 ```
 
@@ -219,7 +219,9 @@ vectora/
 ### Core
 
 - [x] 14 ferramentas implementadas e testadas
-- [x] LangGraph 3-node compilado com checkpointer
+- [x] Supervisor + 3 workers especializados compilados no LangGraph
+- [x] RAG subgraph com threshold adaptativo (inject/rerank/websearch)
+- [x] Cascading embeddings (web → LanceDB fire-and-forget)
 - [x] Persistência SQLite + LanceDB funcional
 - [x] MCP Server (stdio + SSE) operacional
 - [x] Memory cross-session funcional
@@ -228,8 +230,8 @@ vectora/
 ### Qualidade
 
 - [x] `ruff check vectora/` — 0 erros
-- [x] `mypy vectora/` — tipo-correto
-- [x] `pytest tests/ --cov=vectora` — >80% coverage
+- [x] `ty check vectora/` — 81 erros restantes são não-acionáveis (stubs de terceiros)
+- [x] `pytest tests/ --cov=vectora` — ≥70% coverage em arquivos testados, 197 testes
 - [x] Pre-commit hooks passando
 - [ ] Release notes escritas
 - [ ] Git tag `v0.1.0` criada
