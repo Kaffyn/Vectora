@@ -10,9 +10,15 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from vectora.nodes.rag_subgraph import (
     _best_score,
+    _call_vector_search,
+    _call_web_search,
+    _enqueue_for_embedding,
     _extract_query,
+    _rag_decide_node,
+    _route_after_decide,
     rag_decide,
     rag_inject,
+    rag_rerank,
     rag_retrieve,
     rag_websearch,
 )
@@ -185,6 +191,133 @@ class TestRagInject:
     @pytest.mark.asyncio
     async def test_truncates_to_5_docs(self):
         docs = [_doc(0.8, f"doc {i}") for i in range(10)]
+
         result = await rag_inject(_state(rag_docs=docs, rag_query="test"))
         assert "doc 4" in result["messages"][0].content
         assert "doc 5" not in result["messages"][0].content
+
+
+class TestCallVectorSearch:
+    @pytest.mark.asyncio
+    async def test_returns_empty_on_error_status(self):
+        import json
+        from unittest.mock import AsyncMock, patch
+
+        mock_vs = AsyncMock(return_value=json.dumps({"status": "error"}))
+        with patch("vectora.nodes.rag_subgraph.vector_search", create=True):
+            with patch(
+                "vectora.tools.rag.vector_search",
+                new_callable=lambda: type("T", (), {"ainvoke": staticmethod(mock_vs)}),
+            ):
+                result = await _call_vector_search("test")
+        assert result == []
+
+    @pytest.mark.asyncio
+    async def test_returns_docs_on_success(self):
+        import json
+        from unittest.mock import AsyncMock, patch
+
+        payload = json.dumps(
+            {"results": [{"content": "hello", "metadata": {}, "score": 0.9}]}
+        )
+        mock_ainvoke = AsyncMock(return_value=payload)
+        with patch("vectora.tools.rag.vector_search") as mock_vs:
+            mock_vs.ainvoke = mock_ainvoke
+            result = await _call_vector_search("hello world")
+        assert len(result) == 1
+        assert result[0]["page_content"] == "hello"
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_on_exception(self):
+        from unittest.mock import AsyncMock, patch
+
+        with patch("vectora.tools.rag.vector_search") as mock_vs:
+            mock_vs.ainvoke = AsyncMock(side_effect=Exception("boom"))
+            result = await _call_vector_search("test")
+        assert result == []
+
+
+class TestCallWebSearch:
+    @pytest.mark.asyncio
+    async def test_returns_list_on_success(self):
+        import json
+        from unittest.mock import patch
+
+        data = [{"content": "web result", "url": "https://x.com"}]
+        with patch("vectora.tools.web.web_search") as mock_ws:
+            mock_ws.invoke = lambda **_: json.dumps(data)
+            result = await _call_web_search("query")
+        assert isinstance(result, list)
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_on_exception(self):
+        from unittest.mock import patch
+
+        with patch("vectora.tools.web.web_search") as mock_ws:
+            mock_ws.invoke = lambda **_: (_ for _ in ()).throw(Exception("fail"))
+            result = await _call_web_search("query")
+        assert result == []
+
+
+class TestEnqueueForEmbedding:
+    @pytest.mark.asyncio
+    async def test_returns_queue_id(self):
+        import json
+        from unittest.mock import AsyncMock, patch
+
+        payload = json.dumps({"queue_id": "abc-123"})
+        with patch("vectora.tools.rag.embedding") as mock_emb:
+            mock_emb.ainvoke = AsyncMock(return_value=payload)
+            result = await _enqueue_for_embedding("text", "articles")
+        assert result == "abc-123"
+
+    @pytest.mark.asyncio
+    async def test_returns_none_on_exception(self):
+        from unittest.mock import AsyncMock, patch
+
+        with patch("vectora.tools.rag.embedding") as mock_emb:
+            mock_emb.ainvoke = AsyncMock(side_effect=Exception("fail"))
+            result = await _enqueue_for_embedding("text")
+        assert result is None
+
+
+class TestRagRerank:
+    @pytest.mark.asyncio
+    async def test_empty_docs_returns_empty(self):
+        result = await rag_rerank(_state(rag_docs=[], rag_query="q"))
+        assert result == {}
+
+    @pytest.mark.asyncio
+    async def test_no_api_key_returns_empty(self):
+        from unittest.mock import patch
+
+        docs = [_doc(0.7, "content")]
+        with patch("vectora.nodes.rag_subgraph.settings") as ms:
+            ms.get_cohere_api_key.return_value = None
+            result = await rag_rerank(_state(rag_docs=docs, rag_query="test"))
+        assert result == {}
+
+    @pytest.mark.asyncio
+    async def test_exception_returns_empty(self):
+        from unittest.mock import MagicMock, patch
+
+        docs = [_doc(0.7, "content")]
+        mock_reranker = MagicMock()
+        mock_reranker.compress_documents.side_effect = Exception("Cohere error")
+        with patch("vectora.nodes.rag_subgraph.settings") as ms:
+            ms.get_cohere_api_key.return_value = "test-key"
+            ms.reranker_model = "rerank-english-v2.0"
+            with patch("langchain_cohere.CohereRerank", return_value=mock_reranker):
+                result = await rag_rerank(_state(rag_docs=docs, rag_query="test"))
+        assert result == {}
+
+
+class TestRagDecideNode:
+    @pytest.mark.asyncio
+    async def test_returns_empty_dict(self):
+        result = await _rag_decide_node(_state())
+        assert result == {}
+
+    def test_route_after_decide_delegates_to_rag_decide(self):
+        s = _state(rag_docs=[_doc(0.9)])
+        assert _route_after_decide(s) == rag_decide(s)
