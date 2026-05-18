@@ -71,6 +71,50 @@ class TestEmbedding:
         data = json.loads(result)
         assert data["status"] == "error"
 
+    @pytest.mark.asyncio
+    async def test_enqueue_success_returns_fire_and_forget(self):
+        from vectora.tools.rag import embedding
+
+        mock_queue = AsyncMock()
+        mock_queue.enqueue.return_value = "queue-id-123"
+
+        with patch("vectora.tools.rag.settings") as mock_settings:
+            mock_settings.enable_rag = True
+            mock_settings.embedding_queue_enabled = True
+            mock_settings.embedding_queue_dsn = "sqlite:///test.db"
+            with patch(
+                "vectora.tools.rag.get_embedding_queue",
+                new_callable=AsyncMock,
+                return_value=mock_queue,
+            ):
+                result = await embedding.ainvoke(
+                    {"text": "sample text", "collection": "articles"}
+                )
+        data = json.loads(result)
+        assert data["status"] == "fire_and_forget"
+        assert data["queue_id"] == "queue-id-123"
+        assert data["collection"] == "articles"
+
+    @pytest.mark.asyncio
+    async def test_enqueue_exception_returns_error(self):
+        from vectora.tools.rag import embedding
+
+        with patch("vectora.tools.rag.settings") as mock_settings:
+            mock_settings.enable_rag = True
+            mock_settings.embedding_queue_enabled = True
+            mock_settings.embedding_queue_dsn = "sqlite:///test.db"
+            with patch(
+                "vectora.tools.rag.get_embedding_queue",
+                new_callable=AsyncMock,
+                side_effect=Exception("DB connection failed"),
+            ):
+                result = await embedding.ainvoke(
+                    {"text": "sample text", "collection": "articles"}
+                )
+        data = json.loads(result)
+        assert data["status"] == "error"
+        assert "DB connection failed" in data["error"]
+
 
 class TestIngestDocs:
     @pytest.mark.asyncio

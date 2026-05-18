@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from langchain_core.messages import HumanMessage
 
-from vectora.nodes.retrieval import retrieval_node
+from vectora.nodes.retrieval import _rerank, retrieval_node
 from vectora.state import Document, State
 
 
@@ -71,3 +71,72 @@ class TestRetrievalNode:
         assert "rag_docs" in result
         assert result["rag_query"] == "JWT token"
         assert len(result["rag_docs"]) == 2
+
+
+class TestRerank:
+    def _docs(self, n: int = 2) -> list[Document]:
+        return [
+            Document(page_content=f"doc {i}", metadata={}, relevance_score=0.5)
+            for i in range(n)
+        ]
+
+    @pytest.mark.asyncio
+    async def test_no_api_key_returns_docs_unchanged(self):
+        docs = self._docs(2)
+        with patch("vectora.config.settings.settings") as mock_settings:
+            mock_settings.get_cohere_api_key.return_value = None
+            result = await _rerank(docs, "query")
+        assert result is docs
+
+    @pytest.mark.asyncio
+    async def test_exception_returns_docs_unchanged(self):
+        docs = self._docs(2)
+        with patch("langchain_cohere.CohereRerank", side_effect=Exception("API err")):
+            result = await _rerank(docs, "query")
+        # Exception in the try block → fallback to original docs
+        assert result is docs
+
+    @pytest.mark.asyncio
+    async def test_rerank_success_returns_reranked(self):
+        from langchain_core.documents import Document as LCDoc
+
+        docs = self._docs(3)
+        reranked_lc = [
+            LCDoc(page_content="doc 2", metadata={}),
+            LCDoc(page_content="doc 0", metadata={}),
+        ]
+
+        mock_reranker = MagicMock()
+        mock_reranker.compress_documents.return_value = reranked_lc
+
+        from vectora.config.settings import settings as real_settings
+
+        original_key = real_settings.cohere_api_key
+        try:
+            real_settings.cohere_api_key = "test-key-123"  # type: ignore[misc]
+            with patch("langchain_cohere.CohereRerank", return_value=mock_reranker):
+                result = await _rerank(docs, "test query")
+        finally:
+            real_settings.cohere_api_key = original_key  # type: ignore[misc]
+
+        assert len(result) == 2
+        assert result[0]["page_content"] == "doc 2"
+
+    @pytest.mark.asyncio
+    async def test_compress_documents_failure_fallback(self):
+        docs = self._docs(2)
+
+        mock_reranker = MagicMock()
+        mock_reranker.compress_documents.side_effect = Exception("Cohere API error")
+
+        from vectora.config.settings import settings as real_settings
+
+        original_key = real_settings.cohere_api_key
+        try:
+            real_settings.cohere_api_key = "test-key-123"  # type: ignore[misc]
+            with patch("langchain_cohere.CohereRerank", return_value=mock_reranker):
+                result = await _rerank(docs, "query")
+        finally:
+            real_settings.cohere_api_key = original_key  # type: ignore[misc]
+
+        assert result is docs
