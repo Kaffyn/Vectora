@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 import contextlib
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from vectora.ui.commands import (
-    AVAILABLE_MODELS,
-    CONFIG_FILE,
     _display_command_list,
     _display_help,
     _handle_debug_command,

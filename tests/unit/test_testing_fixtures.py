@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 
 def test_fixtures_module_imports():
     """Verificar que fixtures pode ser importado."""

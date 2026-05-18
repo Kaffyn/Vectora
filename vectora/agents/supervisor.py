@@ -1,15 +1,10 @@
-"""Supervisor — Decide qual worker deve processar a mensagem atual.
-
-Substitui o router.py com lógica mais rica: além de classificar a intenção,
-o supervisor também decide se delegar de volta ao supervisor após um worker
-terminar (ex: search_worker fez busca → supervisor decide injetar RAG antes
-de responder via direct_worker).
+"""Supervisor — Classifica a intenção do usuário e roteia para o agent correto.
 
 Rota de saída:
-  "search_worker"  → busca web + RAG
-  "coder_worker"   → filesystem, terminal, git
-  "direct_worker"  → resposta direta sem ferramentas
-  "rag_subgraph"   → pipeline RAG completo (retrieve→rerank→inject)
+  "search"      → Search Agent (busca web + RAG)
+  "coder"       → Coder Agent (filesystem, terminal, git)
+  "direct"      → Direct Agent (resposta direta, síntese)
+  "rag_subgraph"→ RAG pipeline (retrieve → rerank → inject → direct)
 """
 
 from __future__ import annotations
@@ -58,8 +53,8 @@ _SEARCH_PATTERNS = re.compile(
     r"\b("
     r"busca(r)? na web|pesquisa(r)? na internet|procura(r)? online"
     r"|search|google|notícia(s)?|news|atualidade(s)?"
-    r"|o que (é|aconteceu|está acontecendo)|quem (é|foi|inventou)"
-    r"|quando (foi|aconteceu)|onde (fica|está)|como (funciona|fazer)"
+    r"|o que (aconteceu|está acontecendo)|quem (foi|inventou)"
+    r"|quando (foi|aconteceu)|onde (fica|está)"
     r"|acessa(r)? url|abre(r)? link|fetch url|download page"
     r"|search the web|look up|find out|what is|who is|when did|where is"
     r")\b",
@@ -106,10 +101,10 @@ def classify_intent(text: str) -> str:
     return "direct"
 
 
-_WORKER_MAP = {
-    "direct": "direct_worker",
-    "coder": "coder_worker",
-    "search": "search_worker",
+_AGENT_MAP = {
+    "direct": "direct",
+    "coder": "coder",
+    "search": "search",
     "rag": "rag_subgraph",
 }
 
@@ -129,16 +124,16 @@ async def supervisor(state: State) -> Command:
             break
 
     intent = classify_intent(last_human_text)
-    worker = _WORKER_MAP[intent]
+    agent = _AGENT_MAP[intent]
 
     logger.info(
         "Supervisor: '%s...' → %s (%s)",
         last_human_text[:60],
-        worker,
+        agent,
         intent,
     )
 
     return Command(
-        goto=worker,
+        goto=agent,
         update={"routing_decision": intent},  # type: ignore[arg-type]
     )

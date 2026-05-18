@@ -11,7 +11,6 @@ Implementation: Ports AsyncSqliteSaver logic from checkpointer.py
 
 import logging
 from datetime import UTC, datetime
-from typing import Any
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import RunnableConfig

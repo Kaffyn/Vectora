@@ -1,11 +1,9 @@
 """Tests for Rich UI components - "Rich Gorda" dashboard."""
 
 import logging
-from datetime import datetime
 from pathlib import Path
 from queue import Queue
 
-import pytest
 from rich.console import Console
 
 from vectora.ui import (

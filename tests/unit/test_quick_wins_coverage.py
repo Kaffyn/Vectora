@@ -1,19 +1,14 @@
 """Quick wins - test coverage for nearly-complete files.
 
-Covers: constants.py (94%), prompts.py (77%), tool_safety.py (92%),
+Covers: constants.py (94%), agents prompts, tool_safety.py (92%),
 tool_config.py (94%), utils.py (79%), env.py (71%)
 """
 
 import os
-import tempfile
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-# Note: tool_config.py was refactored and is no longer available
-# from vectora.tool_config import ToolConfig, _parse_comma_separated
-from vectora.prompts import get_system_language, get_system_prompt
 from vectora.services.security import is_safe_file_path, is_safe_regex_pattern
 from vectora.services.utils import init_chat_model
 
@@ -44,41 +39,46 @@ class TestConstantsOverride:
 
 
 # ============================================================================
-# PROMPTS.PY - Cover lines 19-21 (exception handling in get_system_language)
+# AGENTS PROMPTS - Verifica que cada agent tem SYSTEM_PROMPT com identidade Vectora
 # ============================================================================
 
 
-class TestPromptsLanguageDetection:
-    """Test prompts.py language detection with exceptions."""
+class TestAgentPrompts:
+    """Verifica que cada agent contém seu SYSTEM_PROMPT com identidade Vectora."""
 
-    def test_get_system_language_with_valid_locale(self) -> None:
-        """Test language detection with valid locale."""
-        with patch("locale.getdefaultlocale", return_value=("pt_BR", "UTF-8")):
-            lang = get_system_language()
-            assert lang == "pt_br"  # Lowercase
+    def test_direct_agent_has_system_prompt(self) -> None:
+        from vectora.agents.direct import SYSTEM_PROMPT
 
-    def test_get_system_language_with_none_returns_english(self) -> None:
-        """Test that None locale returns 'en'."""
-        with patch("locale.getdefaultlocale", return_value=(None, None)):
-            lang = get_system_language()
-            assert lang == "en"
+        assert isinstance(SYSTEM_PROMPT, str)
+        assert "Vectora" in SYSTEM_PROMPT
+        assert len(SYSTEM_PROMPT) > 200
 
-    def test_get_system_language_with_exception_returns_english(self) -> None:
-        """Test that exception in locale returns 'en'."""
-        with patch("locale.getdefaultlocale", side_effect=Exception("Mock error")):
-            lang = get_system_language()
-            assert lang == "en"
+    def test_search_agent_has_system_prompt(self) -> None:
+        from vectora.agents.search import SYSTEM_PROMPT
 
-    def test_get_system_prompt_with_custom_language(self) -> None:
-        """Test get_system_prompt with custom language."""
-        prompt = get_system_prompt(language="fr_FR")
-        assert "fr_FR" in prompt
+        assert isinstance(SYSTEM_PROMPT, str)
+        assert "vector_search" in SYSTEM_PROMPT
+        assert "web_search" in SYSTEM_PROMPT
 
-    def test_get_system_prompt_without_language_auto_detects(self) -> None:
-        """Test get_system_prompt auto-detects language."""
-        with patch("vectora.prompts.get_system_language", return_value="es_ES"):
-            prompt = get_system_prompt()
-            assert "es_ES" in prompt
+    def test_coder_agent_has_system_prompt(self) -> None:
+        from vectora.agents.coder import SYSTEM_PROMPT
+
+        assert isinstance(SYSTEM_PROMPT, str)
+        assert "git" in SYSTEM_PROMPT
+        assert "terminal" in SYSTEM_PROMPT
+
+    def test_all_agents_share_vectora_identity(self) -> None:
+        from vectora.agents._identity import VECTORA_IDENTITY
+        from vectora.agents.coder import SYSTEM_PROMPT as coder_prompt
+        from vectora.agents.direct import SYSTEM_PROMPT as direct_prompt
+        from vectora.agents.search import SYSTEM_PROMPT as search_prompt
+
+        identity_snippet = "LangGraph"
+        for prompt in (direct_prompt, search_prompt, coder_prompt):
+            assert identity_snippet in prompt
+            assert "LanceDB" in prompt
+            assert "FastMCP" in prompt
+        assert identity_snippet in VECTORA_IDENTITY
 
 
 # ============================================================================

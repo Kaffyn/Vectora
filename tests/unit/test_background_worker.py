@@ -11,9 +11,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import logging
-import traceback
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest

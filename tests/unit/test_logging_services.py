@@ -9,8 +9,6 @@ from __future__ import annotations
 import json
 import logging
 import logging.handlers
-import tempfile
-from pathlib import Path
 from queue import Queue
 from unittest.mock import patch
 

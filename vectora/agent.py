@@ -10,10 +10,6 @@ from UI. CLI, APIs, bots all call the same AgentManager methods.
 """
 
 import logging
-from typing import Any
-
-from langchain_core.messages import HumanMessage
-from langgraph.graph import MessageGraph
 
 from vectora.config.settings import Settings
 
@@ -127,7 +123,7 @@ class AgentManager:
 
             return response
 
-        except Exception as e:
+        except Exception:
             logger.exception("Chat execution failed", extra={"session_id": session_id})
             raise
 
@@ -276,7 +272,7 @@ class AgentManager:
                 extra={"query_length": len(query), "result_count": len(results)},
             )
             return results
-        except Exception as e:
+        except Exception:
             logger.exception("Vector search failed")
             return []
 
@@ -397,7 +393,7 @@ class AgentManager:
             # self.graph = build_graph(self.settings)
 
             logger.info("AgentManager initialization complete")
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to initialize AgentManager services")
             raise
 

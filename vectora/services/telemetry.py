@@ -13,14 +13,12 @@ Ports logic from: log_setup.py, chat.py, debug_dump.py
 import json
 import logging
 import logging.handlers
-import os
 import platform
 import sys
 import tarfile
 import uuid
 from datetime import UTC, datetime
 from io import BytesIO
-from pathlib import Path
 from typing import Any
 
 from vectora.config.settings import Settings

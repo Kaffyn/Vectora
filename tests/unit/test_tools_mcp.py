@@ -5,8 +5,7 @@ Cobre: _get_mcp_client, _get_mcp_tools, call_mcp_tool
 
 from __future__ import annotations
 
-import importlib
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -125,7 +124,6 @@ class TestCallMcpTool:
     @pytest.mark.asyncio
     async def test_returns_error_on_exception(self):
         """Verifica que retorna mensagem de erro em caso de exceção."""
-        import vectora.tools.mcp as mcp_mod
         from vectora.tools.mcp import call_mcp_tool
 
         mock_client_class = MagicMock(side_effect=Exception("connection error"))

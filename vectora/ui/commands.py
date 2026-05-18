@@ -551,9 +551,6 @@ async def _handle_rag_command(args: str, console: Any) -> None:
     except Exception as e:
         lancedb_lines.append(f"  [dim]LanceDB indisponível: {e}[/dim]")
 
-    from rich.columns import Columns
-    from rich.rule import Rule
-
     body = (
         f"[bold]Background Worker[/bold]   {worker_line}\n"
         "\n"

@@ -17,7 +17,6 @@ import asyncio
 import logging
 import os
 import warnings
-from pathlib import Path
 from queue import Queue
 from typing import TYPE_CHECKING, Any
 
@@ -27,7 +26,6 @@ if os.getenv("QUIET_MODE", "true").lower() == "true":
 
 from vectora.context import Context
 from vectora.graph import build_graph
-from vectora.services.background import get_background_worker
 from vectora.services.checkpoint import Checkpointer
 from vectora.services.terminal_stream import (
     register_terminal_output_callback,
@@ -50,11 +48,10 @@ from vectora.ui.main import (
 from vectora.version import __version__
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
+    pass
+from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.graph.state import CompiledStateGraph, RunnableConfig
 from rich.console import Console
-from rich.live import Live
 from rich.panel import Panel
 
 from vectora.services.log_setup import setup_logging, setup_queue_handler

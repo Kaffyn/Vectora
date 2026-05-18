@@ -1,7 +1,5 @@
 """Testes unitários para o módulo de configuração (vectora.config.settings)."""
 
-import pytest
-
 from vectora.config.settings import Settings, settings
 
 

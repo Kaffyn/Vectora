@@ -5,8 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from vectora.services.initialization import (
     ensure_vectora_initialized,
     initialize_vectora_home,

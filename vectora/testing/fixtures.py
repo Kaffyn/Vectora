@@ -8,8 +8,8 @@ from langchain_core.messages import SystemMessage
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph.state import CompiledStateGraph
 
+from vectora.agents.direct import SYSTEM_PROMPT as _DEFAULT_SYSTEM_PROMPT
 from vectora.context import Context
-from vectora.prompts import get_system_prompt
 from vectora.state import State
 from vectora.testing.mocks import MockLLM
 
@@ -80,7 +80,7 @@ async def test_graph(
         llm_with_tools = mock_llm.bind_tools(TOOLS)
 
         # Prepend Vectora system prompt
-        system_prompt = SystemMessage(content=get_system_prompt())
+        system_prompt = SystemMessage(content=_DEFAULT_SYSTEM_PROMPT)
         messages_with_system = [system_prompt, *list(state["messages"])]
 
         result_text = ""

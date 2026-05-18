@@ -2,12 +2,7 @@
 
 from __future__ import annotations
 
-import asyncio
-import json
-import tarfile
-from io import BytesIO
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 

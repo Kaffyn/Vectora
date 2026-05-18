@@ -260,7 +260,7 @@ class EmbeddingService:
                     logger.exception(f"LanceDB search failed: {e}")
                     return []
 
-        except Exception as e:
+        except Exception:
             logger.exception("Vector search failed")
             return []
 

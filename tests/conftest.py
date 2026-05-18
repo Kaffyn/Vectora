@@ -9,14 +9,6 @@ import os
 import pytest
 
 from vectora.services.log_setup import setup_logging
-from vectora.testing.fixtures import (
-    checkpointer,
-    mock_llm,
-    temp_db,
-    test_context,
-    test_graph,
-    vector_store_dir,
-)
 
 pytest_plugins = ("pytest_asyncio",)
 

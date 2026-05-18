@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 
 def test_telemetry_module_imports():
     """Verificar que telemetry pode ser importado."""

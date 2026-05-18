@@ -1,6 +1,6 @@
 """Tests for command dispatcher module."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 from rich.console import Console

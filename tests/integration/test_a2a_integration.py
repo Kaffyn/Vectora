@@ -10,7 +10,7 @@ to Vectora's internal LangGraph, validating:
 """
 
 import logging
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 

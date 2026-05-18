@@ -7,7 +7,6 @@ Funções compartilhadas por todos os workers:
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import TYPE_CHECKING
 
@@ -20,7 +19,6 @@ from langchain_core.messages import (
 )
 
 from vectora.config.settings import settings
-from vectora.prompts import get_system_prompt
 from vectora.services.memory import get_memory_store
 from vectora.services.text import text_service
 
@@ -58,7 +56,7 @@ def sanitize_for_gemini(messages: list) -> list:
     return result
 
 
-async def build_messages(state: State) -> list:
+async def build_messages(state: State, system_prompt: str = "") -> list:
     """Monta a lista de mensagens para enviar ao LLM.
 
     Pipeline:
@@ -97,8 +95,8 @@ async def build_messages(state: State) -> list:
                 trimmed = [all_messages[i]]
                 break
 
-    # 4. System prompt
-    system_content = get_system_prompt()
+    # 4. System prompt — fornecido pelo agent ou vazio
+    system_content = system_prompt
 
     # Injeta contexto RAG se disponível (injetado pelo rag_subgraph)
     rag_docs = state.get("rag_docs")
@@ -138,12 +136,12 @@ async def build_messages(state: State) -> list:
     return [system_msg, *memory_messages, *trimmed]
 
 
-async def invoke_llm(llm: Runnable, state: State) -> dict:
+async def invoke_llm(llm: Runnable, state: State, system_prompt: str = "") -> dict:
     """Invoca o LLM com o state atual e retorna {'messages': [AIMessage]}.
 
     Usado por todos os workers — cada um passa seu próprio LLM bindado.
     """
-    messages = await build_messages(state)
+    messages = await build_messages(state, system_prompt=system_prompt)
 
     response_content = ""
     tool_calls_collected = []

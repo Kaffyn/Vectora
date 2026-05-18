@@ -10,7 +10,6 @@ Why this matters:
 - Provides integration-level coverage for the MCP transport layer
 """
 
-import asyncio
 import importlib.util
 import subprocess
 import sys

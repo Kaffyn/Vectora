@@ -5,10 +5,6 @@ Cobre: DiagnosticToolNode, funções de terminal stream.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
-import pytest
-
 
 class TestTerminalStream:
     """Testa serviço de terminal stream."""

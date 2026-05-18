@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 
 def test_fs_module_imports():
     """Verificar que fs pode ser importado."""

@@ -5,8 +5,6 @@ from __future__ import annotations
 from importlib.metadata import PackageNotFoundError
 from unittest.mock import patch
 
-import pytest
-
 from vectora.version import get_vectora_version
 
 

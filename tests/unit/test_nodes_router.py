@@ -1,4 +1,4 @@
-"""Testes para vectora/nodes/router.py"""
+"""Testes para vectora/agents/supervisor.py"""
 
 from __future__ import annotations
 
@@ -7,71 +7,72 @@ from typing import TYPE_CHECKING
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.types import Command
-from vectora.nodes.router import _classify_intent, route_request
+
+from vectora.agents.supervisor import classify_intent, supervisor
 
 if TYPE_CHECKING:
     from vectora.state import State
 
 
 class TestClassifyIntent:
-    """Testes unitários para _classify_intent()."""
+    """Testes unitários para classify_intent()."""
 
     def test_direct_greeting_oi(self):
-        assert _classify_intent("oi") == "direct"
+        assert classify_intent("oi") == "direct"
 
     def test_direct_greeting_hello(self):
-        assert _classify_intent("hello") == "direct"
+        assert classify_intent("hello") == "direct"
 
     def test_direct_greeting_bom_dia(self):
-        assert _classify_intent("Bom dia!") == "direct"
+        assert classify_intent("Bom dia!") == "direct"
 
     def test_direct_obrigado(self):
-        assert _classify_intent("obrigado") == "direct"
+        assert classify_intent("obrigado") == "direct"
 
     def test_direct_who_are_you(self):
-        assert _classify_intent("quem é você") == "direct"
+        assert classify_intent("quem é você") == "direct"
 
-    def test_tools_criar_arquivo(self):
-        assert _classify_intent("cria um arquivo chamado test.py") == "tools"
+    def test_coder_criar_arquivo(self):
+        assert classify_intent("cria um arquivo chamado test.py") == "coder"
 
-    def test_tools_terminal(self):
-        assert _classify_intent("execute o comando git status no terminal") == "tools"
+    def test_coder_terminal(self):
+        assert classify_intent("execute o comando git status no terminal") == "coder"
 
-    def test_tools_git(self):
-        assert _classify_intent("rode git commit -m 'fix'") == "tools"
+    def test_coder_git(self):
+        assert classify_intent("rode git commit -m 'fix'") == "coder"
 
-    def test_tools_search_web_explicit(self):
-        assert _classify_intent("busca na web sobre Python 3.13") == "tools"
+    def test_search_web_explicit(self):
+        assert classify_intent("busca na web sobre Python 3.13") == "search"
 
-    def test_tools_npm(self):
-        assert _classify_intent("instala o pacote via npm") == "tools"
+    def test_coder_npm(self):
+        assert classify_intent("instala o pacote via npm") == "coder"
 
     def test_rag_documentacao(self):
-        assert _classify_intent("o que diz o documento sobre autenticação?") == "rag"
+        assert classify_intent("o que diz o documento sobre autenticação?") == "rag"
 
     def test_rag_base_conhecimento(self):
-        assert _classify_intent("busque na base de conhecimento") == "rag"
+        assert classify_intent("busque na base de conhecimento") == "rag"
 
     def test_rag_de_acordo_com(self):
         assert (
-            _classify_intent("de acordo com a documentação, como configurar?") == "rag"
+            classify_intent("de acordo com a documentação, como configurar?") == "rag"
         )
 
     def test_rag_long_question(self):
         # Perguntas longas sem trigger explícito → rag (heurística de comprimento)
-        result = _classify_intent(
+        result = classify_intent(
             "como funciona o sistema de autenticação JWT no projeto?"
         )
         assert result == "rag"
 
     def test_direct_short_question(self):
         # Perguntas curtas sem trigger → direct
-        result = _classify_intent("ok")
+        result = classify_intent("ok")
         assert result == "direct"
 
 
-class TestRouteRequest:
-    """Testes para route_request()."""
+class TestSupervisor:
+    """Testes para supervisor()."""
 
     @pytest.mark.asyncio
     async def test_route_greeting_to_direct(self):
@@ -79,22 +80,22 @@ class TestRouteRequest:
             "messages": [HumanMessage(content="oi")],
             "session_metadata": {},
         }
-        cmd = await route_request(state)
+        cmd = await supervisor(state)
 
         assert isinstance(cmd, Command)
-        assert cmd.goto == "call_llm"
+        assert cmd.goto == "direct"
         assert cmd.update["routing_decision"] == "direct"
 
     @pytest.mark.asyncio
-    async def test_route_tools_to_call_llm(self):
+    async def test_route_coder_to_coder(self):
         state: State = {
             "messages": [HumanMessage(content="cria um arquivo main.py")],
             "session_metadata": {},
         }
-        cmd = await route_request(state)
+        cmd = await supervisor(state)
 
-        assert cmd.goto == "call_llm"
-        assert cmd.update["routing_decision"] == "tools"
+        assert cmd.goto == "coder"
+        assert cmd.update["routing_decision"] == "coder"
 
     @pytest.mark.asyncio
     async def test_route_rag_to_rag_subgraph(self):
@@ -104,7 +105,7 @@ class TestRouteRequest:
             ],
             "session_metadata": {},
         }
-        cmd = await route_request(state)
+        cmd = await supervisor(state)
 
         assert cmd.goto == "rag_subgraph"
         assert cmd.update["routing_decision"] == "rag"
@@ -119,7 +120,7 @@ class TestRouteRequest:
             ],
             "session_metadata": {},
         }
-        cmd = await route_request(state)
+        cmd = await supervisor(state)
 
         assert cmd.goto == "rag_subgraph"
         assert cmd.update["routing_decision"] == "rag"
@@ -131,9 +132,9 @@ class TestRouteRequest:
             "messages": [AIMessage(content="Olá!")],
             "session_metadata": {},
         }
-        cmd = await route_request(state)
+        cmd = await supervisor(state)
 
-        assert cmd.goto == "call_llm"
+        assert cmd.goto == "direct"
 
     @pytest.mark.asyncio
     async def test_route_uses_last_human_message(self):
@@ -146,15 +147,15 @@ class TestRouteRequest:
             ],
             "session_metadata": {},
         }
-        cmd = await route_request(state)
+        cmd = await supervisor(state)
 
         assert cmd.update["routing_decision"] == "direct"
-        assert cmd.goto == "call_llm"
+        assert cmd.goto == "direct"
 
     @pytest.mark.asyncio
     async def test_route_empty_messages_defaults_to_direct(self):
         state: State = {"messages": [], "session_metadata": {}}
-        cmd = await route_request(state)
+        cmd = await supervisor(state)
 
-        assert cmd.goto == "call_llm"
+        assert cmd.goto == "direct"
         assert cmd.update["routing_decision"] == "direct"

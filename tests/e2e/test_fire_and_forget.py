@@ -295,12 +295,12 @@ class TestLocalFirstRAGRouter:
     """Test Local-First RAG routing behavior (system prompt instruction)."""
 
     def test_system_prompt_mentions_vector_search(self) -> None:
-        """Verifica que sistema prompt contém instrução sobre Local-First RAG."""
-        from vectora.prompts import get_system_prompt
+        """Verifica que o prompt do search agent contém instrução RAG-first."""
+        from vectora.agents.search import SYSTEM_PROMPT
 
-        prompt = get_system_prompt(language="en_US")
-        assert isinstance(prompt, str)
-        assert len(prompt) > 100
+        assert isinstance(SYSTEM_PROMPT, str)
+        assert len(SYSTEM_PROMPT) > 100
+        assert "vector_search" in SYSTEM_PROMPT
 
 
 @pytest.mark.asyncio

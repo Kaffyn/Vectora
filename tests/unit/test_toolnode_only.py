@@ -1,12 +1,8 @@
 """Direct test of ToolNode behavior without LLM calls."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
-from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.prebuilt.tool_node import ToolNode
 
-from vectora.state import State
 from vectora.tools import TOOLS
 
 

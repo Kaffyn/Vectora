@@ -21,14 +21,14 @@ from langgraph.constants import END, START
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 from langgraph.prebuilt.tool_node import tools_condition
 
+from vectora.agents.coder import coder
+from vectora.agents.direct import direct
+from vectora.agents.search import search
+from vectora.agents.supervisor import supervisor
 from vectora.context import Context
-from vectora.nodes.coder_worker import coder_worker
 from vectora.nodes.debug import DiagnosticToolNode
-from vectora.nodes.direct_worker import direct_worker
 from vectora.nodes.engine import process_retrieval
 from vectora.nodes.rag_subgraph import build_rag_subgraph
-from vectora.nodes.search_worker import search_worker
-from vectora.nodes.supervisor import supervisor
 from vectora.nodes.tools import FS_TOOLS, MEMORY_TOOLS, SEARCH_TOOLS
 from vectora.state import State
 
@@ -42,14 +42,13 @@ def _supervisor_route(state: State) -> str:
     """Mapeia routing_decision para o nó de destino."""
     decision = state.get("routing_decision") or "direct"
     mapping = {
-        "direct": "direct_worker",
-        "search": "search_worker",
-        "coder": "coder_worker",
+        "direct": "direct",
+        "search": "search",
+        "coder": "coder",
         "rag": "rag_subgraph",
-        # Compatibilidade com router.py legado
-        "tools": "search_worker",
+        "tools": "search",
     }
-    return mapping.get(decision, "direct_worker")
+    return mapping.get(decision, "direct")
 
 
 def build_graph(
@@ -77,13 +76,13 @@ def build_graph(
     builder.add_node("supervisor", supervisor)
     builder.add_node("rag_subgraph", rag_subgraph)
 
-    builder.add_node("direct_worker", direct_worker)
+    builder.add_node("direct", direct)
     builder.add_node("direct_tools", direct_tools_node)
 
-    builder.add_node("search_worker", search_worker)
+    builder.add_node("search", search)
     builder.add_node("search_tools", search_tools_node)
 
-    builder.add_node("coder_worker", coder_worker)
+    builder.add_node("coder", coder)
     builder.add_node("coder_tools", coder_tools_node)
 
     builder.add_node("process_retrieval", process_retrieval)
@@ -93,48 +92,48 @@ def build_graph(
     # START → supervisor (ponto de entrada único)
     builder.add_edge(START, "supervisor")
 
-    # supervisor → workers (baseado em routing_decision)
+    # supervisor → agents (baseado em routing_decision)
     builder.add_conditional_edges(
         "supervisor",
         _supervisor_route,
         {
-            "direct_worker": "direct_worker",
-            "search_worker": "search_worker",
-            "coder_worker": "coder_worker",
+            "direct": "direct",
+            "search": "search",
+            "coder": "coder",
             "rag_subgraph": "rag_subgraph",
         },
     )
 
-    # RAG subgraph → direct_worker para síntese final
-    builder.add_edge("rag_subgraph", "direct_worker")
+    # RAG subgraph → direct para síntese final
+    builder.add_edge("rag_subgraph", "direct")
 
-    # direct_worker → memory tools se precisar, senão END
+    # direct → memory tools se precisar, senão END
     builder.add_conditional_edges(
-        "direct_worker",
+        "direct",
         tools_condition,
         {"tools": "direct_tools", END: END},
     )
-    builder.add_edge("direct_tools", "direct_worker")
+    builder.add_edge("direct_tools", "direct")
 
-    # search_worker → search_tools → process_retrieval (cascading web→LanceDB) → END
+    # search → search_tools → process_retrieval (cascading web→LanceDB) → search
     builder.add_conditional_edges(
-        "search_worker",
+        "search",
         tools_condition,
         {"tools": "search_tools", END: END},
     )
     builder.add_edge("search_tools", "process_retrieval")
-    builder.add_edge("process_retrieval", "search_worker")
+    builder.add_edge("process_retrieval", "search")
 
-    # coder_worker → coder_tools → coder_worker (loop até concluir)
+    # coder → coder_tools → coder (loop até concluir)
     builder.add_conditional_edges(
-        "coder_worker",
+        "coder",
         tools_condition,
         {"tools": "coder_tools", END: END},
     )
-    builder.add_edge("coder_tools", "coder_worker")
+    builder.add_edge("coder_tools", "coder")
 
     compiled = builder.compile(checkpointer=checkpointer)
     logger.info(
-        "Graph compiled: supervisor + direct/search/coder workers + RAG subgraph"
+        "Graph compiled: supervisor + direct/search/coder agents + RAG subgraph"
     )
     return compiled

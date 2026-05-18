@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 from io import StringIO
-from unittest.mock import AsyncMock, MagicMock, mock_open, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 

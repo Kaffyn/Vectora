@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 @pytest.mark.asyncio
 async def test_embedding_with_debug_logging():
     """Test embedding of vectora folder with debugging."""
-    from pathlib import Path
     from unittest.mock import AsyncMock, MagicMock, patch
 
     from langchain_core.messages import HumanMessage

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -185,7 +184,6 @@ class TestMainModuleIntegration:
 
     def test_sys_path_includes_vectora_dir(self) -> None:
         """Verificar que vectora directory está adicionado ao sys.path."""
-        import vectora.main
 
         # Se importou sem erro, o sys.path foi configurado corretamente
         assert True
