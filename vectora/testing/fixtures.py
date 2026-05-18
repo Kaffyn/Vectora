@@ -116,4 +116,4 @@ async def test_graph(
     builder.add_conditional_edges("call_llm", tools_condition, ["tools", END])
     builder.add_edge("tools", "call_llm")
 
-    return builder.compile(checkpointer=checkpointer)
+    return builder.compile(checkpointer=checkpointer)  # type: ignore

@@ -456,13 +456,20 @@ _queue: EmbeddingQueue | None = None
 _queue_lock: asyncio.Lock = asyncio.Lock()
 
 
-async def get_embedding_queue(db_url: str) -> EmbeddingQueue:
+async def get_embedding_queue(db_url: str | None) -> EmbeddingQueue:
     """Obtém ou cria instância global da fila de embedding de forma thread-safe.
 
     O `asyncio.Lock` garante que apenas uma coroutine inicializa `_queue`,
     eliminando a race condition quando chamadas simultâneas chegam antes da
     primeira inicialização completar.
+
+    Args:
+        db_url: URL de conexão SQLAlchemy. Obrigatório — levanta ValueError se None.
     """
+    if db_url is None:
+        msg = "embedding_queue_dsn não configurado. Verifique as settings."
+        raise ValueError(msg)
+
     global _queue
     if _queue is not None:
         return _queue

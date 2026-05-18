@@ -18,10 +18,10 @@ try:
     from langchain_cohere import CohereEmbeddings, CohereRerank
     from pydantic import SecretStr
 except ImportError:
-    lancedb = None
-    CohereEmbeddings = None
-    CohereRerank = None
-    SecretStr = None
+    lancedb = None  # type: ignore
+    CohereEmbeddings = None  # type: ignore
+    CohereRerank = None  # type: ignore
+    SecretStr = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@ Includes reducer for message deduplication and history management.
 """
 
 from collections.abc import Sequence
-from typing import Annotated, Any, Literal, TypedDict
+from typing import Annotated, Any, Literal, NotRequired, TypedDict
 
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
@@ -62,15 +62,23 @@ class State(TypedDict):
     session_metadata: SessionMetadata
 
     # Campos legados (mantidos por compatibilidade)
-    retrieval_results: dict[str, list[Document]] | None
-    selected_rag_source: str | None
-    summarized_history: str | None
+    retrieval_results: NotRequired[dict[str, list[Document]] | None]
+    selected_rag_source: NotRequired[str | None]
+    summarized_history: NotRequired[str | None]
 
     # Roteamento determinístico
-    routing_decision: Literal["direct", "tools", "rag"] | None
+    routing_decision: NotRequired[
+        Literal["direct", "coder", "search", "tools", "rag"] | None
+    ]
 
     # Pipeline de RAG
-    rag_query: str | None  # Query extraída para busca vetorial
-    rag_docs: list[Document] | None  # Documentos recuperados pelo subgrafo RAG
-    pending_embeds: list[str] | None  # queue_ids do fire-and-forget para rastreamento
-    web_search_triggered: bool | None  # Flag: web_search foi acionado no ciclo atual
+    rag_query: NotRequired[str | None]  # Query extraída para busca vetorial
+    rag_docs: NotRequired[
+        list[Document] | None
+    ]  # Documentos recuperados pelo subgrafo RAG
+    pending_embeds: NotRequired[
+        list[str] | None
+    ]  # queue_ids do fire-and-forget para rastreamento
+    web_search_triggered: NotRequired[
+        bool | None
+    ]  # Flag: web_search foi acionado no ciclo atual

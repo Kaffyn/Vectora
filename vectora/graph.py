@@ -136,4 +136,4 @@ def build_graph(
     logger.info(
         "Graph compiled: supervisor + direct/search/coder agents + RAG subgraph"
     )
-    return compiled
+    return compiled  # type: ignore

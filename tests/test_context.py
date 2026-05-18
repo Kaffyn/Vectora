@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import dataclasses
 
+import pytest
+
 from vectora.context import Context
 
 
@@ -22,7 +24,7 @@ def test_context_immutable():
     ctx = Context(user_type="free", thread_id=1)
     try:
         ctx.user_type = "plus"  # type: ignore[misc]
-        assert False, "should be immutable"
+        pytest.fail("should be immutable")
     except (TypeError, dataclasses.FrozenInstanceError, AttributeError):
         pass  # esperado — frozen dataclass
 

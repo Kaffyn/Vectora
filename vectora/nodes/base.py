@@ -109,9 +109,10 @@ async def build_messages(state: State, system_prompt: str = "") -> list:
         system_content += "\n".join(lines)
 
     # Injeta retrieval_results legado se houver
-    if state.get("retrieval_results"):
+    retrieval_results = state.get("retrieval_results")
+    if retrieval_results:
         parts = []
-        for col, docs in state["retrieval_results"].items():
+        for col, docs in retrieval_results.items():
             parts.append(f"\nContexto da coleção '{col}':")
             for i, doc in enumerate(docs, 1):
                 parts.append(f"[{i}] {doc['page_content']}")

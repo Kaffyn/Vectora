@@ -15,6 +15,8 @@ from vectora.nodes.tools import SEARCH_TOOLS
 from vectora.services.utils import load_llm
 
 if TYPE_CHECKING:
+    from langchain_core.runnables import Runnable
+
     from vectora.state import State
 
 logger = logging.getLogger(__name__)
@@ -52,7 +54,7 @@ não indexados ainda. Informe o usuário: use `/rag` para acompanhar o progresso
 _search_llm = None
 
 
-def _get_search_llm() -> object:
+def _get_search_llm() -> Runnable:
     global _search_llm
     if _search_llm is None:
         _search_llm = load_llm().bind_tools(SEARCH_TOOLS)

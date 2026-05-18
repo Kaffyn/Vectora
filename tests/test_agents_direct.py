@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 
 from vectora.agents.direct import SYSTEM_PROMPT, direct
-from vectora.state import State
+
+if TYPE_CHECKING:
+    from vectora.state import State
 
 
 def test_system_prompt_exists():

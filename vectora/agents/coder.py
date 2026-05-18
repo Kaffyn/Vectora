@@ -15,6 +15,8 @@ from vectora.nodes.tools import FS_TOOLS, MEMORY_TOOLS
 from vectora.services.utils import load_llm
 
 if TYPE_CHECKING:
+    from langchain_core.runnables import Runnable
+
     from vectora.state import State
 
 logger = logging.getLogger(__name__)
@@ -58,7 +60,7 @@ _CODER_TOOLS = [*FS_TOOLS, *MEMORY_TOOLS]
 _coder_llm = None
 
 
-def _get_coder_llm() -> object:
+def _get_coder_llm() -> Runnable:
     global _coder_llm
     if _coder_llm is None:
         if not _CODER_TOOLS:

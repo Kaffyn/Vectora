@@ -8,4 +8,4 @@ from vectora.agents.direct import direct
 from vectora.agents.search import search
 from vectora.agents.supervisor import classify_intent, supervisor
 
-__all__ = ["supervisor", "classify_intent", "direct", "search", "coder"]
+__all__ = ["classify_intent", "coder", "direct", "search", "supervisor"]

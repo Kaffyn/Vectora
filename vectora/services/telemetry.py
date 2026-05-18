@@ -10,6 +10,8 @@ Responsibilities:
 Ports logic from: log_setup.py, chat.py, debug_dump.py
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import logging.handlers
@@ -19,9 +21,12 @@ import tarfile
 import uuid
 from datetime import UTC, datetime
 from io import BytesIO
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
-from vectora.config.settings import Settings
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from vectora.config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +96,8 @@ class TelemetryService:
             settings: Application settings
         """
         self.settings = settings
-        self.log_file = settings.log_file
+        # log_file is always set by Settings._initialize_derived_paths; cast for ty
+        self.log_file: Path = cast("Path", settings.log_file)
         self.correlation_id: str | None = None
         self.session_messages: dict[int, list[dict]] = {}  # session_id -> messages
 
@@ -272,7 +278,7 @@ class TelemetryService:
 
                 # Add databases if present
                 data_dir = self.settings.data_dir
-                if data_dir.exists():
+                if data_dir is not None and data_dir.exists():
                     for db_file in data_dir.glob("*.db"):
                         tar.add(str(db_file), arcname=f"data/{db_file.name}")
                     for wal_file in data_dir.glob("*.db-*"):

@@ -35,7 +35,7 @@ class IgnorePatternValidator:
                      Se None, usa diretório atual.
         """
         self.base_dir = base_dir or Path.cwd()
-        self.patterns: list[re.Pattern[str]] = []
+        self.patterns: list[str] = []
         self.ignore_files = [
             ".gitignore",
             ".npmignore",

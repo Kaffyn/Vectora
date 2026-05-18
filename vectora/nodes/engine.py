@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING
 
 from langchain_core.messages import ToolMessage
 
+from vectora.state import Document
 from vectora.tools import embedding
 
 if TYPE_CHECKING:
@@ -53,7 +54,9 @@ async def process_retrieval(state: State, runtime: Runtime[Context]) -> dict:
             continue
 
         try:
-            data = json.loads(msg.content)
+            data = json.loads(
+                msg.content if isinstance(msg.content, str) else str(msg.content)
+            )
         except json.JSONDecodeError:
             logger.warning(
                 "process_retrieval: JSON inválido",
@@ -109,13 +112,13 @@ def _extract_tavily_results(data: dict | list, tool_name: str) -> list[dict] | N
 
 async def _process_tavily_results(
     results: list[dict], source: str, embedding_tool: Runnable
-) -> tuple[list[dict], list[str]]:
+) -> tuple[list[Document], list[str]]:
     """Formata docs Tavily e enfileira cada um para embedding fire-and-forget.
 
     Returns:
         (formatted_docs, queue_ids)
     """
-    formatted_docs: list[dict] = []
+    formatted_docs: list[Document] = []
     queue_ids: list[str] = []
 
     for r in results:
@@ -128,7 +131,7 @@ async def _process_tavily_results(
             "url": r.get("url", ""),
             "source": source,
         }
-        formatted_docs.append({"page_content": content, "metadata": metadata})
+        formatted_docs.append(Document(page_content=content, metadata=metadata))
 
         try:
             raw = await embedding_tool.ainvoke(

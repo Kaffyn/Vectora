@@ -18,6 +18,8 @@ from vectora.nodes.tools import MEMORY_TOOLS
 from vectora.services.utils import load_llm
 
 if TYPE_CHECKING:
+    from langchain_core.runnables import Runnable
+
     from vectora.state import State
 
 logger = logging.getLogger(__name__)
@@ -54,7 +56,7 @@ entre sessões.
 _direct_llm = None
 
 
-def _get_direct_llm() -> object:
+def _get_direct_llm() -> Runnable:
     global _direct_llm
     if _direct_llm is None:
         _direct_llm = load_llm().bind_tools(MEMORY_TOOLS)

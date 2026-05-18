@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.types import Command
 
 from vectora.agents.supervisor import classify_intent, supervisor
-from vectora.state import State
+
+if TYPE_CHECKING:
+    from vectora.state import State
 
 # ---------------------------------------------------------------------------
 # classify_intent

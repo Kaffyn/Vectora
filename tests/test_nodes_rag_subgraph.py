@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -21,7 +22,7 @@ _SCORE_HIGH = 0.7
 _SCORE_LOW = 0.4
 
 
-def _state(**kw) -> State:
+def _state(**kw: Any) -> State:
     base: State = {
         "messages": [HumanMessage(content="como funciona o JWT?")],
         "session_metadata": {},

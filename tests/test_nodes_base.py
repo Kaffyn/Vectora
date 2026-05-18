@@ -108,7 +108,7 @@ class TestInvokeLlm:
             "session_metadata": {},
         }
 
-        async def fake_astream(msgs):
+        async def fake_astream(msgs):  # type: ignore[return]
             chunk = MagicMock()
             chunk.content = "resposta"
             chunk.tool_calls = []

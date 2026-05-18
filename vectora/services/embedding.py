@@ -19,12 +19,12 @@ from typing import Any
 try:
     import lancedb
 except ImportError:
-    lancedb = None
+    lancedb = None  # type: ignore
 
 try:
     from langchain_cohere import CohereEmbeddings
 except ImportError:
-    CohereEmbeddings = None
+    CohereEmbeddings = None  # type: ignore
 
 from vectora.config.settings import Settings
 from vectora.services.ignore_validator import get_ignore_validator

@@ -24,13 +24,21 @@ from typing import TYPE_CHECKING, Any
 if os.getenv("QUIET_MODE", "true").lower() == "true":
     warnings.filterwarnings("ignore", category=UserWarning)
 
+from langchain_core.messages import AIMessage, HumanMessage
+from langgraph.graph.state import CompiledStateGraph, RunnableConfig
+from rich.console import Console
+from rich.panel import Panel
+
 from vectora.context import Context
 from vectora.graph import build_graph
 from vectora.services.checkpoint import Checkpointer
+from vectora.services.log_setup import setup_logging, setup_queue_handler
 from vectora.services.terminal_stream import (
     register_terminal_output_callback,
     unregister_terminal_output_callback,
 )
+from vectora.services.utils import async_lifespan
+from vectora.state import State
 from vectora.ui.commands import handle_command
 from vectora.ui.main import (
     AuditPanel,
@@ -46,17 +54,6 @@ from vectora.ui.main import (
     WelcomeScreen,
 )
 from vectora.version import __version__
-
-if TYPE_CHECKING:
-    pass
-from langchain_core.messages import AIMessage, HumanMessage
-from langgraph.graph.state import CompiledStateGraph, RunnableConfig
-from rich.console import Console
-from rich.panel import Panel
-
-from vectora.services.log_setup import setup_logging, setup_queue_handler
-from vectora.services.utils import async_lifespan
-from vectora.state import State
 
 logger = logging.getLogger(__name__)
 

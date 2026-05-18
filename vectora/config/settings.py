@@ -15,7 +15,7 @@ import logging
 import os
 from importlib import resources
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
@@ -358,9 +358,14 @@ class Settings(BaseSettings):
 
     def _initialize_derived_paths(self) -> None:
         """Set all derived path and connection string fields."""
+        # data_dir and logs_dir are always set by _initialize_directories before this;
+        # cast to Path so the type checker understands the None branch is unreachable here
+        data_dir = cast("Path", self.data_dir)
+        logs_dir = cast("Path", self.logs_dir)
+
         # Database files
-        self.db_file = self.data_dir / "vectora.db"
-        self.embedding_queue_file = self.data_dir / "embedding_queue.db"
+        self.db_file = data_dir / "vectora.db"
+        self.embedding_queue_file = data_dir / "embedding_queue.db"
 
         # Connection strings
         # db_dsn: path simples (aceito por aiosqlite.connect() e Checkpointer)
@@ -374,11 +379,11 @@ class Settings(BaseSettings):
         )
 
         # Vector store
-        self.lancedb_dir = str(self.data_dir / "lancedb")
+        self.lancedb_dir = str(data_dir / "lancedb")
 
         # Configuration files
         self.env_file = self.vectora_home / ".env"
-        self.log_file = self.logs_dir / "vectora.jsonl"
+        self.log_file = logs_dir / "vectora.jsonl"
         self.mcp_config_file = self.vectora_home / "mcp.config.json"
         self.chat_config_file = self.vectora_home / "chat_config.json"
 

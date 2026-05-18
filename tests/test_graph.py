@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 from langgraph.checkpoint.memory import MemorySaver
 
 from vectora.graph import _supervisor_route, build_graph
-from vectora.state import State
+
+if TYPE_CHECKING:
+    from vectora.state import State
 
 
 def test_build_graph_compiles():

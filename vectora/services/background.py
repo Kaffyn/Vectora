@@ -21,17 +21,17 @@ from pydantic import SecretStr
 try:
     import lancedb
 except ImportError:
-    lancedb = None
+    lancedb = None  # type: ignore
 
 try:
     import pyarrow as pa
 except ImportError:
-    pa = None
+    pa = None  # type: ignore
 
 try:
     from langchain_cohere import CohereEmbeddings
 except ImportError:
-    CohereEmbeddings = None
+    CohereEmbeddings = None  # type: ignore
 
 from vectora.config.settings import settings
 from vectora.services.queue import EmbeddingQueueRecord, get_embedding_queue
