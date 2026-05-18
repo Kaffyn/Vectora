@@ -68,7 +68,7 @@ vectora chat
 Se você deseja contribuir com o desenvolvimento ou prefere rodar o Vectora diretamente a partir do repositório, siga os passos de compilação abaixo:
 
 ```bash
-git clone https://github.com/Kaffyn/vectora.git
+git clone https://github.com/brunosrz/vectora.git
 cd vectora
 
 # Instalar com todas as dependências

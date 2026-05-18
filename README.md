@@ -54,7 +54,7 @@ vectora chat
 ### Option 2: From Source
 
 ```bash
-git clone https://github.com/Kaffyn/vectora.git
+git clone https://github.com/brunosrz/vectora.git
 cd vectora
 
 # Install with all dependencies

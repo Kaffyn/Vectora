@@ -137,19 +137,18 @@ class TestGenerateDebugDump:
                     mock_stat.st_size = 128
 
                     # Path retorna diferentes valores para diferentes paths
-                    def path_side_effect(arg):
+                    def path_side_effect(arg: object) -> MagicMock:
                         if "data" in str(arg):
                             mock = MagicMock()
                             mock.exists.return_value = False  # data dir nao existe
                             return mock
-                        elif "logs" in str(arg):
+                        if "logs" in str(arg):
                             mock = MagicMock()
                             mock.exists.return_value = False
                             return mock
-                        else:
-                            mock = MagicMock()
-                            mock.stat.return_value = mock_stat
-                            return mock
+                        mock = MagicMock()
+                        mock.stat.return_value = mock_stat
+                        return mock
 
                     mock_path_cls.side_effect = path_side_effect
 

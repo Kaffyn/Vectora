@@ -38,14 +38,14 @@ class TestProviders:
         """Verificar que cada provider tem campos obrigatorios."""
         required_fields = {"name", "provider_id", "env_var", "url", "model"}
 
-        for provider_id, provider_info in PROVIDERS.items():
+        for provider_info in PROVIDERS.values():
             assert isinstance(provider_info, dict)
             for field in required_fields:
                 assert field in provider_info
 
     def test_providers_have_valid_names(self):
         """Verificar que providers tem nomes validos."""
-        for provider_id, provider_info in PROVIDERS.items():
+        for provider_info in PROVIDERS.values():
             assert len(provider_info["name"]) > 0
             assert provider_info["provider_id"] in [
                 "google-genai",
@@ -56,14 +56,14 @@ class TestProviders:
 
     def test_providers_have_valid_urls(self):
         """Verificar que providers tem URLs validas."""
-        for provider_id, provider_info in PROVIDERS.items():
+        for provider_info in PROVIDERS.values():
             url = provider_info["url"]
             assert url.startswith("http")
             assert len(url) > 10
 
     def test_providers_have_models(self):
         """Verificar que providers tem modelos definidos."""
-        for provider_id, provider_info in PROVIDERS.items():
+        for provider_info in PROVIDERS.values():
             model = provider_info["model"]
             assert len(model) > 0
 

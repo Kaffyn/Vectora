@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -286,11 +287,9 @@ class TestHandleRagCommand:
         console = MagicMock()
 
         with patch("vectora.ui.commands.settings"):
-            try:
-                await _handle_rag_command("search-term", console)
-            except Exception:
+            with contextlib.suppress(Exception):
                 # Pode falhar por dependencias externas
-                pass
+                await _handle_rag_command("search-term", console)
 
 
 class TestHandleNewSession:
@@ -353,7 +352,7 @@ class TestHandleCommand:
         """Testar comando /quit."""
         console = MagicMock()
 
-        should_exit, context, debug_mode = await handle_command(
+        should_exit, _context, _debug_mode = await handle_command(
             "/quit", None, console, None, False
         )
 
@@ -364,7 +363,7 @@ class TestHandleCommand:
         """Testar comando /sair (portugues)."""
         console = MagicMock()
 
-        should_exit, context, debug_mode = await handle_command(
+        should_exit, _context, _debug_mode = await handle_command(
             "/sair", None, console, None, False
         )
 
@@ -375,7 +374,7 @@ class TestHandleCommand:
         """Testar comando /q (abreviado)."""
         console = MagicMock()
 
-        should_exit, context, debug_mode = await handle_command(
+        should_exit, _context, _debug_mode = await handle_command(
             "/q", None, console, None, False
         )
 
@@ -387,7 +386,7 @@ class TestHandleCommand:
         console = MagicMock()
 
         with patch("vectora.ui.commands._display_help"):
-            should_exit, context, debug_mode = await handle_command(
+            should_exit, _context, _debug_mode = await handle_command(
                 "/help", None, console, None, False
             )
 
@@ -403,7 +402,7 @@ class TestHandleCommand:
         ) as mock_debug:
             mock_debug.return_value = True
 
-            should_exit, context, debug_mode = await handle_command(
+            should_exit, _context, debug_mode = await handle_command(
                 "/debug", None, console, None, False
             )
 
@@ -416,7 +415,7 @@ class TestHandleCommand:
         console = MagicMock()
 
         with patch("vectora.ui.commands._handle_model_command", new_callable=AsyncMock):
-            should_exit, context, debug_mode = await handle_command(
+            should_exit, _context, _debug_mode = await handle_command(
                 "/model gpt-4", None, console, None, False
             )
 
@@ -432,7 +431,7 @@ class TestHandleCommand:
         ) as mock_new:
             mock_new.return_value = MagicMock()
 
-            should_exit, context, debug_mode = await handle_command(
+            should_exit, _context, _debug_mode = await handle_command(
                 "/new", None, console, MagicMock(), False
             )
 
@@ -444,7 +443,7 @@ class TestHandleCommand:
         console = MagicMock()
 
         with patch("vectora.ui.commands._handle_list_sessions", new_callable=AsyncMock):
-            should_exit, context, debug_mode = await handle_command(
+            should_exit, _context, _debug_mode = await handle_command(
                 "/sessions", None, console, None, False
             )
 
@@ -460,7 +459,7 @@ class TestHandleCommand:
         ) as mock_switch:
             mock_switch.return_value = MagicMock()
 
-            should_exit, context, debug_mode = await handle_command(
+            should_exit, _context, _debug_mode = await handle_command(
                 "/session id123", None, console, MagicMock(), False
             )
 
@@ -472,7 +471,7 @@ class TestHandleCommand:
         console = MagicMock()
 
         with patch("vectora.ui.commands._handle_tools_command", new_callable=AsyncMock):
-            should_exit, context, debug_mode = await handle_command(
+            should_exit, _context, _debug_mode = await handle_command(
                 "/tools", None, console, None, False
             )
 
@@ -484,7 +483,7 @@ class TestHandleCommand:
         console = MagicMock()
 
         with patch("vectora.ui.commands._handle_tools_command", new_callable=AsyncMock):
-            should_exit, context, debug_mode = await handle_command(
+            should_exit, _context, _debug_mode = await handle_command(
                 "/tool", None, console, None, False
             )
 
@@ -496,7 +495,7 @@ class TestHandleCommand:
         console = MagicMock()
 
         with patch("vectora.ui.commands._handle_rag_command", new_callable=AsyncMock):
-            should_exit, context, debug_mode = await handle_command(
+            should_exit, _context, _debug_mode = await handle_command(
                 "/rag search-term", None, console, None, False
             )
 
@@ -508,7 +507,7 @@ class TestHandleCommand:
         console = MagicMock()
 
         with patch("vectora.ui.commands._display_command_list"):
-            should_exit, context, debug_mode = await handle_command(
+            should_exit, _context, _debug_mode = await handle_command(
                 "/list", None, console, None, False
             )
 
@@ -519,7 +518,7 @@ class TestHandleCommand:
         """Testar comando desconhecido."""
         console = MagicMock()
 
-        should_exit, context, debug_mode = await handle_command(
+        should_exit, _context, _debug_mode = await handle_command(
             "/unknown", None, console, None, False
         )
 
@@ -532,7 +531,7 @@ class TestHandleCommand:
         console = MagicMock()
         original_context = MagicMock()
 
-        should_exit, returned_context, debug_mode = await handle_command(
+        _should_exit, returned_context, _debug_mode = await handle_command(
             "/help", None, console, original_context, False
         )
 
@@ -543,7 +542,7 @@ class TestHandleCommand:
         """Testar que preserva debug mode quando nao mudado."""
         console = MagicMock()
 
-        should_exit, context, debug_mode = await handle_command(
+        _should_exit, _context, debug_mode = await handle_command(
             "/help", None, console, None, True
         )
 

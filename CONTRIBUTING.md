@@ -16,7 +16,7 @@ Obrigado por contribuir! Este guia cobre tudo que você precisa para configurar 
 
 ```bash
 # Clonar
-git clone https://github.com/Kaffyn/vectora.git
+git clone https://github.com/brunosrz/vectora.git
 cd vectora
 
 # Instalar todas as dependências (incluindo dev e test)

@@ -64,7 +64,7 @@ Se você encontrar uma vulnerabilidade de segurança, **não abra uma issue púb
 
 **Como reportar:**
 
-1. Abra um [GitHub Security Advisory](https://github.com/Kaffyn/vectora/security/advisories/new) (privado)
+1. Abra um [GitHub Security Advisory](https://github.com/brunosrz/vectora/security/advisories/new) (privado)
 2. Inclua: componente afetado, tipo de vulnerabilidade, passos para reproduzir, impacto estimado
 
 **O que incluir:**

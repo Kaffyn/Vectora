@@ -9,9 +9,9 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 5
     reviewers:
-      - "Kaffyn"
+      - "brunosrz"
     assignees:
-      - "Kaffyn"
+      - "brunosrz"
     commit-message:
       prefix: "📦 deps"
       include: "scope"
@@ -28,9 +28,9 @@ updates:
       - dependency-type: "direct"
       - dependency-type: "indirect"
     reviewers:
-      - "Kaffyn"
+      - "brunosrz"
     assignees:
-      - "Kaffyn"
+      - "brunosrz"
     commit-message:
       prefix: "🔒 security"
       include: "scope"
@@ -44,9 +44,9 @@ updates:
       time: "09:00"
     open-pull-requests-limit: 3
     reviewers:
-      - "Kaffyn"
+      - "brunosrz"
     assignees:
-      - "Kaffyn"
+      - "brunosrz"
     commit-message:
       prefix: "🔐 ci"
       include: "scope"

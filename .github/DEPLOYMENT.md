@@ -175,7 +175,7 @@ gh run view <run-id> --log
 
 ```bash
 # Testar login local
-echo $GITHUB_TOKEN | docker login ghcr.io -u Kaffyn --password-stdin
+echo $GITHUB_TOKEN | docker login ghcr.io -u brunosrz --password-stdin
 
 # Verificar imagens
 docker image ls

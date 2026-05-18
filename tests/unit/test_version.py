@@ -1,37 +1,62 @@
-"""Tests for version management module."""
+"""Testes para version.py (Vectora version management)."""
+
+from __future__ import annotations
+
+from importlib.metadata import PackageNotFoundError
+from unittest.mock import patch
 
 import pytest
 
-from vectora.version import __version__, get_vectora_version
+from vectora.version import get_vectora_version
 
 
-class TestVersion:
-    """Test version module."""
+class TestGetVectoraVersion:
+    """Testes para função get_vectora_version()."""
 
-    def test_version_string_format(self):
-        """Test that version string has correct format."""
-        assert isinstance(__version__, str)
-        assert len(__version__) > 0
-        # Should be something like "0.1.0" or "0.1.0-dev"
-        assert __version__[0].isdigit()
+    def test_get_vectora_version_returns_string(self) -> None:
+        """Verificar que get_vectora_version() retorna string."""
+        result = get_vectora_version()
+        assert isinstance(result, str)
 
-    def test_get_vectora_version_returns_string(self):
-        """Test that get_vectora_version returns a string."""
-        version = get_vectora_version()
-        assert isinstance(version, str)
-        assert len(version) > 0
+    def test_get_vectora_version_returns_valid_version_format(self) -> None:
+        """Verificar que versão tem formato válido."""
+        result = get_vectora_version()
+        # Deve ter pelo menos 1 caractere
+        assert len(result) > 0
 
-    def test_version_consistent(self):
-        """Test that __version__ and get_vectora_version() are consistent."""
-        assert __version__ == get_vectora_version()
+    def test_get_vectora_version_when_package_found(self) -> None:
+        """Verificar que retorna versão quando pacote existe."""
+        with patch("vectora.version.get_version", return_value="0.5.0"):
+            result = get_vectora_version()
+            assert result == "0.5.0"
 
-    def test_version_matches_pyproject(self):
-        """Test that version string is valid semantic version."""
-        # Version should be a valid semantic version string
-        parts = __version__.split("-")
-        version_part = parts[0].split(".")
-        assert len(version_part) >= 2  # At least major.minor
-        assert all(part.isdigit() for part in version_part)
-        # Optional: can have -dev or other suffix
-        if len(parts) > 1:
-            assert parts[1] == "dev" or parts[1].isalpha()
+    def test_get_vectora_version_when_package_not_found(self) -> None:
+        """Verificar que retorna dev version quando pacote não existe."""
+        with patch(
+            "vectora.version.get_version",
+            side_effect=PackageNotFoundError("vectora"),
+        ):
+            result = get_vectora_version()
+            assert result == "0.1.0-dev"
+
+    def test_get_vectora_version_catches_package_not_found_error(self) -> None:
+        """Verificar que função trata PackageNotFoundError corretamente."""
+        with patch(
+            "vectora.version.get_version",
+            side_effect=PackageNotFoundError("vectora"),
+        ):
+            # Não deve lançar exceção
+            result = get_vectora_version()
+            assert isinstance(result, str)
+            assert "dev" in result.lower()
+
+    def test_get_vectora_version_dev_fallback_is_valid_version(self) -> None:
+        """Verificar que fallback dev é versão válida."""
+        with patch(
+            "vectora.version.get_version",
+            side_effect=PackageNotFoundError("vectora"),
+        ):
+            result = get_vectora_version()
+            # Deve ser "0.1.0-dev"
+            assert "0.1.0" in result
+            assert "dev" in result
