@@ -5,7 +5,7 @@ Includes reducer for message deduplication and history management.
 """
 
 from collections.abc import Sequence
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, Literal, TypedDict
 
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
@@ -61,7 +61,16 @@ class State(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     session_metadata: SessionMetadata
 
+    # Campos legados (mantidos por compatibilidade)
     retrieval_results: dict[str, list[Document]] | None
     selected_rag_source: str | None
-    routing_decision: dict[str, Any] | None
     summarized_history: str | None
+
+    # Roteamento determinístico
+    routing_decision: Literal["direct", "tools", "rag"] | None
+
+    # Pipeline de RAG
+    rag_query: str | None  # Query extraída para busca vetorial
+    rag_docs: list[Document] | None  # Documentos recuperados pelo subgrafo RAG
+    pending_embeds: list[str] | None  # queue_ids do fire-and-forget para rastreamento
+    web_search_triggered: bool | None  # Flag: web_search foi acionado no ciclo atual

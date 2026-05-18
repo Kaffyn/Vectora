@@ -22,7 +22,6 @@ class TestNodesModuleExports:
             "_get_llm_with_tools",
             "_process_tavily_results",
             "call_llm",
-            "handle_sub_node",
             "process_retrieval",
         ]
         for export in expected_exports:

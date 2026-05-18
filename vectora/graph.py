@@ -1,36 +1,63 @@
-"""LangGraph Construction for Multi-Node Agentic Workflow.
+"""LangGraph Construction — Supervisor + Subagents + RAG Subgraph.
 
-Builds compiled state graph with MAIN_NODE, TOOL_NODE, SUB_NODE pattern.
-Coordinates conversation flow, tool execution, and state management.
+Topologia:
+  START → supervisor
+            ├── direct_worker  → (memory tools) → END
+            ├── search_worker  → (search tools) → process_retrieval → supervisor
+            ├── coder_worker   → (fs tools)     → supervisor
+            └── rag_subgraph   → direct_worker  → END
+
+O supervisor classifica a intenção em: direct | search | coder | rag.
+Após cada worker terminar, o supervisor pode re-rotear (ex: search completou
+busca → vai para direct para sintetizar a resposta final).
 """
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
 
 from langgraph.constants import END, START
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 from langgraph.prebuilt.tool_node import tools_condition
-from langgraph.pregel.main import BaseCheckpointSaver
 
 from vectora.context import Context
-from vectora.nodes.debug import DiagnosticToolNode, call_llm_debug
-from vectora.nodes.engine import handle_sub_node, process_retrieval
+from vectora.nodes.coder_worker import coder_worker
+from vectora.nodes.debug import DiagnosticToolNode
+from vectora.nodes.direct_worker import direct_worker
+from vectora.nodes.engine import process_retrieval
+from vectora.nodes.rag_subgraph import build_rag_subgraph
+from vectora.nodes.search_worker import search_worker
+from vectora.nodes.supervisor import supervisor
+from vectora.nodes.tools import FS_TOOLS, MEMORY_TOOLS, SEARCH_TOOLS
 from vectora.state import State
-from vectora.tools import TOOLS
+
+if TYPE_CHECKING:
+    from langgraph.pregel.main import BaseCheckpointSaver
 
 logger = logging.getLogger(__name__)
+
+
+def _supervisor_route(state: State) -> str:
+    """Mapeia routing_decision para o nó de destino."""
+    decision = state.get("routing_decision") or "direct"
+    mapping = {
+        "direct": "direct_worker",
+        "search": "search_worker",
+        "coder": "coder_worker",
+        "rag": "rag_subgraph",
+        # Compatibilidade com router.py legado
+        "tools": "search_worker",
+    }
+    return mapping.get(decision, "direct_worker")
 
 
 def build_graph(
     checkpointer: BaseCheckpointSaver,
 ) -> CompiledStateGraph[State, Context, State, State]:
-    """Constrói LangGraph com padrão 3-node: MAIN_NODE, TOOL_NODE, SUB_NODE.
+    """Constrói LangGraph com supervisor + workers especializados + RAG subgraph."""
+    logger.info("Building LangGraph: supervisor + subagents topology")
 
-    Fluxo:
-    - MAIN_NODE (call_llm): Invoca LLM com histórico deslizante
-    - TOOL_NODE (tool_node): Executa ferramentas em paralelo
-    - SUB_NODE (handle_sub_node): Workflows complexos em instância separada
-    """
-    logger.info("Building LangGraph with 3-node pattern: call_llm, tools, sub_node")
     builder = StateGraph(  # type: ignore[type-arg,arg-type]
         state_schema=State,
         context_schema=Context,
@@ -38,19 +65,76 @@ def build_graph(
         output_schema=State,
     )
 
-    # Create diagnostic nodes for debugging message loss
-    diagnostic_tool_node = DiagnosticToolNode(tools=TOOLS)
+    # Subgrafo RAG compilado como nó atômico
+    rag_subgraph = build_rag_subgraph()
 
-    builder.add_node("call_llm", call_llm_debug)
-    builder.add_node("tools", diagnostic_tool_node)
+    # ToolNodes com diagnóstico
+    search_tools_node = DiagnosticToolNode(tools=SEARCH_TOOLS)
+    coder_tools_node = DiagnosticToolNode(tools=[*FS_TOOLS, *MEMORY_TOOLS])
+    direct_tools_node = DiagnosticToolNode(tools=MEMORY_TOOLS)
+
+    # --- Nós ---
+    builder.add_node("supervisor", supervisor)
+    builder.add_node("rag_subgraph", rag_subgraph)
+
+    builder.add_node("direct_worker", direct_worker)
+    builder.add_node("direct_tools", direct_tools_node)
+
+    builder.add_node("search_worker", search_worker)
+    builder.add_node("search_tools", search_tools_node)
+
+    builder.add_node("coder_worker", coder_worker)
+    builder.add_node("coder_tools", coder_tools_node)
+
     builder.add_node("process_retrieval", process_retrieval)
-    builder.add_node("sub_node", handle_sub_node)
 
-    builder.add_edge(START, "call_llm")
-    builder.add_conditional_edges("call_llm", tools_condition, ["tools", END])
-    builder.add_edge("tools", "process_retrieval")
-    builder.add_edge("process_retrieval", "call_llm")
+    # --- Edges ---
+
+    # START → supervisor (ponto de entrada único)
+    builder.add_edge(START, "supervisor")
+
+    # supervisor → workers (baseado em routing_decision)
+    builder.add_conditional_edges(
+        "supervisor",
+        _supervisor_route,
+        {
+            "direct_worker": "direct_worker",
+            "search_worker": "search_worker",
+            "coder_worker": "coder_worker",
+            "rag_subgraph": "rag_subgraph",
+        },
+    )
+
+    # RAG subgraph → direct_worker para síntese final
+    builder.add_edge("rag_subgraph", "direct_worker")
+
+    # direct_worker → memory tools se precisar, senão END
+    builder.add_conditional_edges(
+        "direct_worker",
+        tools_condition,
+        {"tools": "direct_tools", END: END},
+    )
+    builder.add_edge("direct_tools", "direct_worker")
+
+    # search_worker → search_tools → process_retrieval (cascading web→LanceDB) → END
+    builder.add_conditional_edges(
+        "search_worker",
+        tools_condition,
+        {"tools": "search_tools", END: END},
+    )
+    builder.add_edge("search_tools", "process_retrieval")
+    builder.add_edge("process_retrieval", "search_worker")
+
+    # coder_worker → coder_tools → coder_worker (loop até concluir)
+    builder.add_conditional_edges(
+        "coder_worker",
+        tools_condition,
+        {"tools": "coder_tools", END: END},
+    )
+    builder.add_edge("coder_tools", "coder_worker")
 
     compiled = builder.compile(checkpointer=checkpointer)
-    logger.info("Graph compiled successfully with 3-node pattern")
+    logger.info(
+        "Graph compiled: supervisor + direct/search/coder workers + RAG subgraph"
+    )
     return compiled

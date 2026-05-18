@@ -1,12 +1,10 @@
-"""Debug wrapper para diagnosticar fluxo de mensagens no LangGraph."""
+"""Debug wrapper — DiagnosticToolNode para logging detalhado de tool_calls."""
 
-import json
 import logging
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 from langgraph.prebuilt.tool_node import ToolNode
-from langgraph.runtime import Runtime
 
 from vectora.state import State
 
@@ -136,66 +134,3 @@ class DiagnosticToolNode(ToolNode):
                 extra={"error": str(e)},
             )
             raise
-
-
-async def call_llm_debug(
-    state: State, runtime: Runtime | None = None, **kwargs: Any
-) -> dict[str, Any]:
-    """Wrapper de call_llm com logging de entrada/saída para debugging."""
-    from vectora.nodes.engine import call_llm as original_call_llm
-
-    logger.info(
-        "[CALL_LLM] ENTRADA",
-        extra={
-            "messages_count": len(state.get("messages", [])),
-            "messages_summary": [
-                {
-                    "type": type(m).__name__,
-                    "content_length": len(str(m.content)) if m.content else 0,
-                }
-                for m in state.get("messages", [])[-5:]  # Últimas 5
-            ],
-        },
-    )
-
-    try:
-        result = await original_call_llm(state, runtime, **kwargs)
-
-        logger.info(
-            "[CALL_LLM] SAÍDA",
-            extra={
-                "result_keys": list(result.keys())
-                if isinstance(result, dict)
-                else "N/A",
-                "result_type": type(result).__name__,
-                "messages_added": (
-                    len(result.get("messages", []))
-                    if result and isinstance(result, dict) and "messages" in result
-                    else 0
-                ),
-            },
-        )
-
-        # Log do AIMessage retornado
-        if result and isinstance(result, dict) and "messages" in result:
-            for msg in result["messages"]:
-                has_tool_calls = bool(getattr(msg, "tool_calls", None))
-                logger.info(
-                    "[CALL_LLM] AIMessage gerado",
-                    extra={
-                        "type": type(msg).__name__,
-                        "content_length": len(str(msg.content)) if msg.content else 0,
-                        "has_tool_calls": has_tool_calls,
-                        "tool_calls_count": (
-                            len(msg.tool_calls) if has_tool_calls else 0
-                        ),
-                    },
-                )
-
-        return result
-    except Exception as e:
-        logger.exception(
-            "[CALL_LLM] ERRO durante execução",
-            extra={"error": str(e)},
-        )
-        raise

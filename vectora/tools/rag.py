@@ -325,20 +325,24 @@ async def ingest_docs(
                 "ingested_at": datetime.now(UTC).isoformat(),
             }
 
-            res = ""
-            async for stream_chunk in embedding.astream(
-                {
-                    "text": chunk_text,
-                    "collection": collection,
-                    "metadata": chunk_metadata,
-                }
-            ):
-                if isinstance(stream_chunk, str):
-                    res += stream_chunk
-
-            if '"status": "fire_and_forget"' in res:
-                success_count += 1
-            else:
+            try:
+                res = await embedding.ainvoke(
+                    {
+                        "text": chunk_text,
+                        "collection": collection,
+                        "metadata": chunk_metadata,
+                    }
+                )
+                data = json.loads(res) if isinstance(res, str) else res
+                if isinstance(data, dict) and data.get("status") == "fire_and_forget":
+                    success_count += 1
+                else:
+                    fail_count += 1
+            except Exception as chunk_err:
+                logger.warning(
+                    "ingest_docs: falha ao enfileirar chunk",
+                    extra={"file": str(file_path), "error": str(chunk_err)},
+                )
                 fail_count += 1
 
     logger.info(
