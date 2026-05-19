@@ -230,8 +230,7 @@ class TestGeminiCallsVectora:
             import asyncio as _asyncio
 
             await _asyncio.sleep(2)
-            recent = await tracer.get_recent(n=20)
-            return recent
+            return await tracer.get_recent(n=20)
 
         recent_spans = asyncio.run(check_traces())
 

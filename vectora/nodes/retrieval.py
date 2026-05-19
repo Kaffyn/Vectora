@@ -40,13 +40,13 @@ async def retrieval_node(state: State) -> dict:
 
     logger.info("retrieval_node: buscando '%s...'", query[:60])
 
+    import contextlib
+
     from vectora.services.tracer import tracer
 
     session_id: int | None = None
-    try:
+    with contextlib.suppress(Exception):
         session_id = state.get("session_metadata", {}).get("thread_id")  # type: ignore[assignment]
-    except Exception:
-        pass
 
     try:
         async with tracer.span("retrieval_node", "search", session_id=session_id) as s:

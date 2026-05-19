@@ -383,7 +383,7 @@ class TestListVectorCollections:
 
             real_import = builtins.__import__
 
-            def _bad_import(name, *args, **kwargs):
+            def _bad_import(name, *args: object, **kwargs: object):
                 if name == "lancedb":
                     raise ImportError("no lancedb")
                 return real_import(name, *args, **kwargs)

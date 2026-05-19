@@ -21,6 +21,7 @@ import logging
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -297,14 +298,15 @@ class TestMcpProtocol:
     def vectora_mcp_command(self):
         """Retorna o comando para iniciar vectora-mcp."""
         # Preferir .venv/Scripts/python -m vectora.mcp.server
-        venv_python = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
-            ".venv",
-            "Scripts" if sys.platform == "win32" else "bin",
-            "python",
+        project_root = Path(__file__).parent.parent.parent
+        venv_python = (
+            project_root
+            / ".venv"
+            / ("Scripts" if sys.platform == "win32" else "bin")
+            / "python"
         )
-        if os.path.exists(venv_python):
-            return [venv_python, "-m", "vectora.mcp.server"]
+        if venv_python.exists():
+            return [str(venv_python), "-m", "vectora.mcp.server"]
         return ["python", "-m", "vectora.mcp.server"]
 
     def _send_jsonrpc(self, proc, method: str, params: dict, req_id: int = 1) -> dict:

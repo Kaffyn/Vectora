@@ -118,11 +118,11 @@ async def supervisor(state: State) -> Command:
     from vectora.services.tracer import tracer
 
     messages = state.get("messages", [])
+    import contextlib
+
     session_id: int | None = None
-    try:
+    with contextlib.suppress(Exception):
         session_id = state.get("session_metadata", {}).get("thread_id")  # type: ignore[assignment]
-    except Exception:
-        pass
 
     last_human_text = ""
     for msg in reversed(messages):

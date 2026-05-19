@@ -126,13 +126,13 @@ async def _enqueue_for_embedding(
 
 async def rag_retrieve(state: State) -> dict:
     """Nó 1: Executa vector_search com a query do usuário."""
+    import contextlib
+
     from vectora.services.tracer import tracer
 
     session_id: int | None = None
-    try:
+    with contextlib.suppress(Exception):
         session_id = state.get("session_metadata", {}).get("thread_id")  # type: ignore[assignment]
-    except Exception:
-        pass
 
     query = _extract_query(state)
     if not query:

@@ -267,7 +267,9 @@ def run_traces() -> None:
     )
     args = parser.parse_args()
 
-    try:
+    import contextlib
+
+    with contextlib.suppress(KeyboardInterrupt):
         asyncio.run(
             _traces_main(
                 session=args.session,
@@ -276,8 +278,6 @@ def run_traces() -> None:
                 clear=args.clear,
             )
         )
-    except KeyboardInterrupt:
-        pass
 
 
 if __name__ == "__main__":

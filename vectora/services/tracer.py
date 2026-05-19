@@ -30,7 +30,10 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, AsyncGenerator
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +157,7 @@ class VectoraTracer:
         event: str,
         session_id: int | None = None,
         parent_id: str | None = None,
-    ) -> AsyncGenerator[_SpanCtx, None]:
+    ) -> AsyncGenerator[_SpanCtx]:
         """Context manager async para instrumentar um bloco de código.
 
         Example:

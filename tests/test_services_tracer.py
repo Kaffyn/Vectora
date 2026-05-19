@@ -24,8 +24,7 @@ from vectora.services.tracer import VectoraTracer, tracer
 @pytest.fixture
 async def tr(tmp_path):
     """Tracer isolado com banco temporário."""
-    t = VectoraTracer(db_path=tmp_path / "test_traces.db")
-    return t
+    return VectoraTracer(db_path=tmp_path / "test_traces.db")
 
 
 class TestSpanContextManager:
@@ -154,7 +153,7 @@ class TestQueryMethods:
 
     @pytest.mark.asyncio
     async def test_get_recent_respects_limit(self, tr):
-        for i in range(10):
+        for _ in range(10):
             async with tr.span("node", "op"):
                 pass
 

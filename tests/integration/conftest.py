@@ -99,7 +99,6 @@ def integration_cleanup() -> None:  # type: ignore[return]
     Usa asyncio.run() para não conflitar com o event loop do pytest-asyncio.
     """
     asyncio.run(_cleanup_session_1212())
-    yield  # type: ignore[misc]
 
 
 # ============================================================================
@@ -179,7 +178,7 @@ async def embed_direct(text: str, collection: str) -> None:
     from vectora.services.queue import EmbeddingQueueRecord
 
     worker = BackgroundEmbeddingWorker()
-    vector = await worker._generate_embedding(text)  # noqa: SLF001
+    vector = await worker._generate_embedding(text)
 
     record = EmbeddingQueueRecord(
         queue_id=str(uuid4()),
@@ -187,4 +186,4 @@ async def embed_direct(text: str, collection: str) -> None:
         collection=collection,
         doc_metadata="{}",
     )
-    await worker._write_to_lancedb(record, vector)  # noqa: SLF001
+    await worker._write_to_lancedb(record, vector)

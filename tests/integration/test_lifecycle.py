@@ -28,7 +28,7 @@ from tests.integration.conftest import (
     TEST_SESSION_ID,
     TEST_THREAD_ID,
     embed_direct,
-    integration_cleanup,  # noqa: F401 — autouse via explicit use
+    integration_cleanup,
     invoke_graph,
 )
 
@@ -54,7 +54,6 @@ def _reset_session_1212():
     from tests.integration.conftest import _cleanup_session_1212
 
     asyncio.run(_cleanup_session_1212())
-    yield
 
 
 # ============================================================================
