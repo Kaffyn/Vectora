@@ -126,13 +126,28 @@ async def _enqueue_for_embedding(
 
 async def rag_retrieve(state: State) -> dict:
     """Nó 1: Executa vector_search com a query do usuário."""
+    from vectora.services.tracer import tracer
+
+    session_id: int | None = None
+    try:
+        session_id = state.get("session_metadata", {}).get("thread_id")  # type: ignore[assignment]
+    except Exception:
+        pass
+
     query = _extract_query(state)
     if not query:
         logger.warning("rag_retrieve: no query found in state")
         return {"rag_query": "", "rag_docs": []}
 
     logger.info("rag_retrieve: searching for '%s...'", query[:60])
-    docs = await _call_vector_search(query)
+
+    try:
+        async with tracer.span("rag_retrieve", "search", session_id=session_id) as s:
+            docs = await _call_vector_search(query)
+            best = _best_score(docs)
+            s.set(n_docs=len(docs), best_score=round(best, 3), query_len=len(query))
+    except Exception:
+        docs = await _call_vector_search(query)  # fallback sem tracer
 
     logger.info(
         "rag_retrieve: found %d docs, best_score=%.3f", len(docs), _best_score(docs)

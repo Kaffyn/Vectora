@@ -168,17 +168,33 @@ async def _with_timeout(
     """
     import asyncio
 
+    from vectora.services.tracer import tracer
+
     timeout = TOOL_TIMEOUTS.get(tool_name, default_timeout)
 
     try:
-        result = await asyncio.wait_for(coro, timeout=timeout)
-        return str(result)
-    except TimeoutError:
-        logger.warning(f"Tool timeout: {tool_name} excedeu {timeout}s")
-        return f"Erro: Ferramenta '{tool_name}' excedeu timeout de {timeout}s. Tente novamente."
-    except Exception as e:
-        logger.exception(f"Tool error: {tool_name}", extra={"error": str(e)})
-        return f"Erro na ferramenta '{tool_name}': {type(e).__name__}: {e!s}"
+        async with tracer.span("mcp_tool", tool_name) as s:
+            try:
+                result = await asyncio.wait_for(coro, timeout=timeout)
+                return str(result)
+            except TimeoutError:
+                logger.warning(f"Tool timeout: {tool_name} excedeu {timeout}s")
+                s.set(status="timeout")
+                return f"Erro: Ferramenta '{tool_name}' excedeu timeout de {timeout}s. Tente novamente."
+            except Exception as e:
+                logger.exception(f"Tool error: {tool_name}", extra={"error": str(e)})
+                s.set(status="error", error_type=type(e).__name__)
+                return f"Erro na ferramenta '{tool_name}': {type(e).__name__}: {e!s}"
+    except Exception:
+        # Fallback se o próprio tracer falhar
+        timeout = TOOL_TIMEOUTS.get(tool_name, default_timeout)
+        try:
+            result = await asyncio.wait_for(coro, timeout=timeout)
+            return str(result)
+        except TimeoutError:
+            return f"Erro: Ferramenta '{tool_name}' excedeu timeout de {timeout}s. Tente novamente."
+        except Exception as e:
+            return f"Erro na ferramenta '{tool_name}': {type(e).__name__}: {e!s}"
 
 
 # ============================================================================
@@ -478,29 +494,38 @@ async def delegate_task_to_vectora(
         },
     )
 
+    from vectora.services.tracer import tracer
+
     try:
         # Obter instância singleton do AgentManager (evita reduplica inicializações)
         agent = await _get_agent_manager()
 
         # Executar a tarefa via LangGraph interno
         # Com timeout de 5 minutos para evitar travamentos
-        try:
-            resultado = await asyncio.wait_for(
-                agent.chat(
-                    user_input=task_prompt,
-                    session_id=thread_id,
-                ),
-                timeout=300.0,  # 5 minutos
-            )
-        except TimeoutError:
-            logger.warning(
-                "A2A: Timeout ao processar tarefa",
-                extra={"thread_id": thread_id},
-            )
-            return (
-                "Erro: Tarefa delegada excedeu timeout de 5 minutos.\n"
-                "Por favor, quebre a tarefa em partes menores ou tente novamente."
-            )
+        async with tracer.span(
+            "mcp_delegate", "a2a", session_id=thread_id
+        ) as delegation_span:
+            delegation_span.set(prompt_length=len(task_prompt))
+            try:
+                resultado = await asyncio.wait_for(
+                    agent.chat(
+                        user_input=task_prompt,
+                        session_id=thread_id,
+                    ),
+                    timeout=300.0,  # 5 minutos
+                )
+            except TimeoutError:
+                logger.warning(
+                    "A2A: Timeout ao processar tarefa",
+                    extra={"thread_id": thread_id},
+                )
+                delegation_span.set(status="timeout")
+                return (
+                    "Erro: Tarefa delegada excedeu timeout de 5 minutos.\n"
+                    "Por favor, quebre a tarefa em partes menores ou tente novamente."
+                )
+
+            delegation_span.set(result_length=len(str(resultado)))
 
         logger.info(
             "A2A: Delegação processada com sucesso",

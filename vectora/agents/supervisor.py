@@ -115,7 +115,14 @@ async def supervisor(state: State) -> Command:
     Returns:
         Command com goto = worker alvo e routing_decision atualizado no State.
     """
+    from vectora.services.tracer import tracer
+
     messages = state.get("messages", [])
+    session_id: int | None = None
+    try:
+        session_id = state.get("session_metadata", {}).get("thread_id")  # type: ignore[assignment]
+    except Exception:
+        pass
 
     last_human_text = ""
     for msg in reversed(messages):
@@ -132,6 +139,12 @@ async def supervisor(state: State) -> Command:
         agent,
         intent,
     )
+
+    try:
+        async with tracer.span("supervisor", "route", session_id=session_id) as s:
+            s.set(routing=agent, intent=intent, query_len=len(last_human_text))
+    except Exception:
+        pass  # tracer nunca quebra o fluxo
 
     return Command(
         goto=agent,

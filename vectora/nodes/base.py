@@ -142,44 +142,68 @@ async def invoke_llm(llm: Runnable, state: State, system_prompt: str = "") -> di
 
     Usado por todos os workers — cada um passa seu próprio LLM bindado.
     """
+    from vectora.services.tracer import tracer
+
+    session_id: int | None = None
+    try:
+        session_id = state.get("session_metadata", {}).get("thread_id")  # type: ignore[assignment]
+    except Exception:
+        pass
+
     messages = await build_messages(state, system_prompt=system_prompt)
 
     response_content = ""
     tool_calls_collected = []
 
     try:
-        async for chunk in llm.astream(messages):
-            if hasattr(chunk, "content") and chunk.content:
-                content = chunk.content
-                if isinstance(content, list):
-                    for item in content:
-                        if isinstance(item, dict) and "text" in item:
-                            response_content += item["text"]
-                        elif isinstance(item, str):
-                            response_content += item
+        async with tracer.span("invoke_llm", "call", session_id=session_id) as span:
+            try:
+                async for chunk in llm.astream(messages):
+                    if hasattr(chunk, "content") and chunk.content:
+                        content = chunk.content
+                        if isinstance(content, list):
+                            for item in content:
+                                if isinstance(item, dict) and "text" in item:
+                                    response_content += item["text"]
+                                elif isinstance(item, str):
+                                    response_content += item
+                                else:
+                                    response_content += str(item)
+                        elif isinstance(content, dict) and "text" in content:
+                            response_content += content["text"]
                         else:
-                            response_content += str(item)
-                elif isinstance(content, dict) and "text" in content:
-                    response_content += content["text"]
-                else:
-                    response_content += str(content)
-            if hasattr(chunk, "tool_calls") and chunk.tool_calls:
-                tool_calls_collected = chunk.tool_calls
+                            response_content += str(content)
+                    if hasattr(chunk, "tool_calls") and chunk.tool_calls:
+                        tool_calls_collected = chunk.tool_calls
 
-    except Exception as e:
-        err = str(e)
-        if "RESOURCE_EXHAUSTED" in err or "429" in err:
-            logger.warning("Quota esgotada: %s", err[:200])
-            return {
-                "messages": [
-                    AIMessage(
-                        content=(
-                            "**⚠️ Quota da API atingida.**\n"
-                            "Aguarde alguns minutos ou configure outra chave de API."
-                        )
-                    )
-                ]
-            }
+            except Exception as e:
+                err = str(e)
+                if "RESOURCE_EXHAUSTED" in err or "429" in err:
+                    logger.warning("Quota esgotada: %s", err[:200])
+                    span.set(status="quota_error")
+                    return {
+                        "messages": [
+                            AIMessage(
+                                content=(
+                                    "**⚠️ Quota da API atingida.**\n"
+                                    "Aguarde alguns minutos ou configure outra chave de API."
+                                )
+                            )
+                        ]
+                    }
+                raise
+
+            # Extrai token counts do response_metadata (Gemini/OpenAI)
+            try:
+                model_name = getattr(llm, "model", None) or getattr(
+                    llm, "model_name", None
+                )
+                span.set(model=str(model_name) if model_name else "unknown")
+            except Exception:
+                pass
+
+    except Exception:
+        # Tracer não pode quebrar o fluxo — re-lança só se não for do tracer
         raise
 
     result = AIMessage(content=response_content, tool_calls=tool_calls_collected)

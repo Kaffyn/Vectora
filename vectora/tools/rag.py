@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import time
 from datetime import UTC, datetime
 from typing import Any
 
@@ -58,6 +59,7 @@ async def embedding(
             {"status": "error", "error": "Embedding queue not configured."}
         )
 
+    _t0 = time.perf_counter()
     try:
         queue = await get_embedding_queue(settings.embedding_queue_dsn)
         queue_id = await queue.enqueue(text, collection, metadata)
@@ -70,6 +72,13 @@ async def embedding(
                 "text_length": len(text),
             },
         )
+        try:
+            from vectora.services.tracer import tracer as _tr
+
+            async with _tr.span("embedding_tool", "enqueue") as _s:
+                _s.set(queue_id=queue_id, collection=collection, text_len=len(text))
+        except Exception:
+            pass
 
         return json.dumps(
             {
@@ -85,6 +94,18 @@ async def embedding(
             "embedding_enqueue_failed",
             extra={"collection": collection, "text_length": len(text)},
         )
+        try:
+            from vectora.services.tracer import tracer as _tr
+
+            _tr.record_sync(
+                "embedding_tool",
+                "enqueue",
+                time.perf_counter() - _t0,
+                {"collection": collection},
+                status="error",
+            )
+        except Exception:
+            pass
         return json.dumps(
             {
                 "status": "error",
@@ -207,6 +228,15 @@ async def vector_search(
                 "result_count": len(results),
             },
         )
+        try:
+            from vectora.services.tracer import tracer as _tr
+
+            async with _tr.span("vector_search_tool", "search") as _s:
+                _s.set(
+                    collection=collection, n_results=len(results), query_len=len(query)
+                )
+        except Exception:
+            pass
 
         return json.dumps(
             {

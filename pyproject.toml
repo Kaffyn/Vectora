@@ -56,11 +56,17 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=8.0", "pytest-asyncio>=0.23.0", "pytest-cov>=4.0.0"]
+integration = [
+    "pytest-order>=1.0",
+    "pytest-rerunfailures>=12.0",
+    "pytest-timeout>=2.3",
+]
 dev = ["ruff>=0.5.0", "mypy>=1.10.0", "bandit>=1.7.5", "types-python-dateutil"]
 
 [project.scripts]
 vectora = "vectora.main:run"
 vectora-mcp = "vectora.mcp.server:run"
+vectora-traces = "vectora.main:run_traces"
 
 [tool.hatch.build.targets.wheel]
 packages = ["vectora"]
@@ -126,3 +132,8 @@ addopts = "-s --color=yes --tb=short"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "e2e: testes end-to-end com APIs reais (requer env vars e gemini CLI)",
+    "integration: testes de integração com APIs reais (requer GOOGLE_API_KEY + COHERE_API_KEY)",
+    "lifecycle: testes de ciclo de vida sequenciais na session 1212",
+]

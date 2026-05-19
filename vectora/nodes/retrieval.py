@@ -39,15 +39,30 @@ async def retrieval_node(state: State) -> dict:
         return {}
 
     logger.info("retrieval_node: buscando '%s...'", query[:60])
-    docs = await _call_vector_search(query)
 
-    if not docs:
-        logger.info("retrieval_node: sem resultados para '%s'", query[:60])
-        return {}
+    from vectora.services.tracer import tracer
 
-    # Rerank com Cohere se disponível
-    reranked = await _rerank(docs, query)
-    logger.info("retrieval_node: %d docs após rerank", len(reranked))
+    session_id: int | None = None
+    try:
+        session_id = state.get("session_metadata", {}).get("thread_id")  # type: ignore[assignment]
+    except Exception:
+        pass
+
+    try:
+        async with tracer.span("retrieval_node", "search", session_id=session_id) as s:
+            docs = await _call_vector_search(query)
+            if not docs:
+                logger.info("retrieval_node: sem resultados para '%s'", query[:60])
+                s.set(n_results=0)
+                return {}
+            reranked = await _rerank(docs, query)
+            logger.info("retrieval_node: %d docs após rerank", len(reranked))
+            s.set(n_results=len(reranked))
+    except Exception:
+        docs = await _call_vector_search(query)
+        if not docs:
+            return {}
+        reranked = await _rerank(docs, query)
 
     return {"rag_docs": reranked, "rag_query": query}
 

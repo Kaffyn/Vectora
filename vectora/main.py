@@ -131,5 +131,154 @@ def run() -> None:
         sys.exit(0)
 
 
+# ---------------------------------------------------------------------------
+# vectora traces — CLI de observabilidade interna
+# ---------------------------------------------------------------------------
+
+
+async def _traces_main(
+    session: int | None = None,
+    last: int = 50,
+    as_json: bool = False,
+    clear: bool = False,
+) -> None:
+    """Lê e exibe spans do tracer SQLite local."""
+    from vectora.services.tracer import tracer
+
+    if clear:
+        if session is not None:
+            removed = await tracer.clear_session(session)
+            print(f"Removidos {removed} spans da session {session}.")
+        else:
+            removed = await tracer.clear_all()
+            print(f"Removidos {removed} spans.")
+        return
+
+    if session is not None:
+        spans = await tracer.get_session(session, limit=last)
+    else:
+        spans = await tracer.get_recent(n=last)
+
+    if not spans:
+        print("Nenhum span encontrado. Execute o Vectora para gerar traces.")
+        return
+
+    if as_json:
+        for s in spans:
+            print(__import__("json").dumps(s))
+        return
+
+    from rich.console import Console
+    from rich.table import Table
+
+    console = Console()
+    title = (
+        f"Vectora Traces — session {session}"
+        if session
+        else f"Vectora Traces — últimos {len(spans)}"
+    )
+    table = Table(title=title, show_lines=False, expand=True)
+
+    table.add_column("Quando", style="dim", width=19)
+    table.add_column("Node", style="cyan bold", width=20)
+    table.add_column("Event", style="blue", width=14)
+    table.add_column("Status", width=8)
+    table.add_column("ms", justify="right", width=8)
+    table.add_column("in↑", justify="right", width=6)
+    table.add_column("out↓", justify="right", width=6)
+    table.add_column("Session", justify="right", width=8)
+    table.add_column("Metadata", style="dim")
+
+    status_color = {
+        "ok": "green",
+        "error": "red",
+        "timeout": "yellow",
+        "quota_error": "magenta",
+    }
+
+    for s in reversed(spans):  # mais antigo primeiro
+        ts = s.get("started_at", "")[:19].replace("T", " ")
+        node = s.get("node", "")
+        event = s.get("event", "")
+        status = s.get("status", "ok")
+        dur = s.get("duration_ms")
+        dur_str = f"{dur:.1f}" if dur is not None else "—"
+        in_t = str(s.get("in_tokens") or "—")
+        out_t = str(s.get("out_tokens") or "—")
+        sess = str(s.get("session_id") or "—")
+        meta_raw = s.get("metadata", "{}")
+        try:
+            meta = (
+                __import__("json").loads(meta_raw)
+                if isinstance(meta_raw, str)
+                else meta_raw
+            )
+            meta_str = ", ".join(f"{k}={v}" for k, v in meta.items() if v is not None)[
+                :80
+            ]
+        except Exception:
+            meta_str = str(meta_raw)[:80]
+
+        color = status_color.get(status, "red")
+        table.add_row(
+            ts,
+            node,
+            event,
+            f"[{color}]{status}[/{color}]",
+            dur_str,
+            in_t,
+            out_t,
+            sess,
+            meta_str,
+        )
+
+    console.print(table)
+    console.print(f"[dim]{len(spans)} span(s) exibidos.[/dim]")
+
+
+def run_traces() -> None:
+    """Entry point: vectora traces [--session N] [--last N] [--json] [--clear]"""
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="vectora traces",
+        description="Exibe spans de observabilidade interna do Vectora.",
+    )
+    parser.add_argument(
+        "--session", "-s", type=int, default=None, help="Filtrar por session_id"
+    )
+    parser.add_argument(
+        "--last",
+        "-n",
+        type=int,
+        default=50,
+        help="Número de spans a exibir (default: 50)",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        dest="as_json",
+        help="Saída em JSONL (uma linha por span)",
+    )
+    parser.add_argument(
+        "--clear",
+        action="store_true",
+        help="Apaga todos os spans (ou da --session especificada)",
+    )
+    args = parser.parse_args()
+
+    try:
+        asyncio.run(
+            _traces_main(
+                session=args.session,
+                last=args.last,
+                as_json=args.as_json,
+                clear=args.clear,
+            )
+        )
+    except KeyboardInterrupt:
+        pass
+
+
 if __name__ == "__main__":
     run()
