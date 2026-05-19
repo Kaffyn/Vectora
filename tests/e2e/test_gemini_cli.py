@@ -35,13 +35,22 @@ REQUIRES_API_KEY = pytest.mark.skipif(
     reason="GOOGLE_API_KEY não configurado",
 )
 
+
+def _gemini_available() -> bool:
+    """Returns True if gemini CLI is installed and reachable in PATH."""
+    try:
+        result = subprocess.run(
+            ["gemini", "--version"],
+            capture_output=True,
+            check=False,
+        )
+        return result.returncode == 0
+    except FileNotFoundError:
+        return False
+
+
 REQUIRES_GEMINI_CLI = pytest.mark.skipif(
-    subprocess.run(
-        ["gemini", "--version"],
-        capture_output=True,
-        check=False,
-    ).returncode
-    != 0,
+    not _gemini_available(),
     reason="gemini CLI não instalado ou não encontrado em PATH",
 )
 
